@@ -1,18 +1,6 @@
-import { createMMKV } from 'react-native-mmkv';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createJSONStorage, persist, devtools } from 'zustand/middleware';
 import { create } from 'zustand';
-
-const storage = createMMKV({ id: 'vemtap-offline-queue' });
-
-const zustandStorage = {
-  getItem: (name: string): string | null => storage.getString(name) ?? null,
-  setItem: (name: string, value: string): void => {
-    storage.set(name, value);
-  },
-  removeItem: (name: string): void => {
-    storage.remove(name);
-  },
-};
 
 export interface QueuedMutation {
   id: string;
@@ -67,7 +55,7 @@ export const useOfflineQueueStore = create<OfflineQueueState>()(
       }),
       {
         name: 'vemtap-offline-queue',
-        storage: createJSONStorage(() => zustandStorage),
+        storage: createJSONStorage(() => AsyncStorage),
       },
     ),
     { name: 'OfflineQueue' },

@@ -24,7 +24,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const setPreference = useUiStore(state => state.setThemePreference);
 
   const theme: ResolvedTheme =
-    preference === 'system' ? (systemScheme ?? 'light') : preference;
+    preference === 'system' ? (systemScheme === 'dark' ? 'dark' : 'light') : preference;
 
   useEffect(() => {
     colorScheme.set(theme);

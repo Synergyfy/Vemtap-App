@@ -1,18 +1,6 @@
 import { create } from 'zustand';
 import { devtools, persist, createJSONStorage } from 'zustand/middleware';
-import { createMMKV } from 'react-native-mmkv';
-
-const storage = createMMKV({ id: 'vemtap-non-sensitive' });
-
-const zustandStorage = {
-  getItem: (name: string): string | null => storage.getString(name) ?? null,
-  setItem: (name: string, value: string): void => {
-    storage.set(name, value);
-  },
-  removeItem: (name: string): void => {
-    storage.remove(name);
-  },
-};
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type ThemePreference = 'system' | 'light' | 'dark';
 
@@ -41,7 +29,7 @@ export const useUiStore = create<UiState>()(
       }),
       {
         name: 'vemtap-ui',
-        storage: createJSONStorage(() => zustandStorage),
+        storage: createJSONStorage(() => AsyncStorage),
         partialize: state => ({ themePreference: state.themePreference }),
       },
     ),

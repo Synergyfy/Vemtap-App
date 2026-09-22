@@ -17,7 +17,10 @@ export class ApiError extends Error {
       cause?: unknown;
     } = {},
   ) {
-    super(message, options.cause !== undefined ? { cause: options.cause } : undefined);
+    super(message);
+    if (options.cause !== undefined) {
+      (this as Error & { cause?: unknown }).cause = options.cause;
+    }
     this.name = 'ApiError';
     this.code = options.code ?? 'UNKNOWN';
     this.status = options.status ?? 0;
@@ -26,7 +29,11 @@ export class ApiError extends Error {
   }
 
   static network(cause?: unknown): ApiError {
-    return new ApiError('Network request failed', { code: 'NETWORK_ERROR', status: 0, cause });
+    return new ApiError('Network request failed', {
+      code: 'NETWORK_ERROR',
+      status: 0,
+      cause,
+    });
   }
 
   static timeout(cause?: unknown): ApiError {

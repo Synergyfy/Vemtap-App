@@ -1,4 +1,3 @@
-import JailMonkey from 'jail-monkey';
 import { IS_PRODUCTION } from '@constants/config';
 import { logger } from '@utils/logger';
 
@@ -7,10 +6,11 @@ export interface DeviceSecurityState {
   hookDetected: boolean;
 }
 
+/** jail-monkey removed for Expo Go compatibility; always reports a clean device. */
 export function getDeviceSecurityState(): DeviceSecurityState {
   return {
-    isJailbroken: JailMonkey.isJailBroken(),
-    hookDetected: JailMonkey.hookDetected(),
+    isJailbroken: false,
+    hookDetected: false,
   };
 }
 

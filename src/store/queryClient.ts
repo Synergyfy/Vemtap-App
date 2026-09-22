@@ -1,24 +1,14 @@
 import { QueryClient } from '@tanstack/react-query';
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
-import { createMMKV } from 'react-native-mmkv';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_TIMEOUT_MS, IS_PRODUCTION } from '@constants/config';
 
-const cacheMmkv = createMMKV({ id: 'vemtap-query-cache' });
-
 /**
- * Async-storage-shaped adapter over MMKV for React Query persistence.
+ * AsyncStorage-backed React Query persistence.
  * Non-sensitive cache only — auth tokens never enter this store.
  */
 export const queryCachePersister = createAsyncStoragePersister({
-  storage: {
-    getItem: async (key: string) => cacheMmkv.getString(key) ?? null,
-    setItem: async (key: string, value: string) => {
-      cacheMmkv.set(key, value);
-    },
-    removeItem: async (key: string) => {
-      cacheMmkv.remove(key);
-    },
-  },
+  storage: AsyncStorage,
   key: 'vemtap-query-cache-v1',
 });
 

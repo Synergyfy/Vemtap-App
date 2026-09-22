@@ -59,7 +59,7 @@ jest.mock('react-native-reanimated', () => {
   const React = require('react');
   const { View, Text: RNText, Image: RNImage } = require('react-native');
 
-  const mockAnimated = (component) => {
+  const mockAnimated = component => {
     const Comp = React.forwardRef((props, ref) =>
       React.createElement(component, { ...props, ref }),
     );
@@ -93,31 +93,31 @@ jest.mock('react-native-reanimated', () => {
       Image: mockAnimated(RNImage),
       ScrollView: mockAnimated(View),
       FlatList: mockAnimated(View),
-      createAnimatedComponent: (c) => mockAnimated(c),
+      createAnimatedComponent: c => mockAnimated(c),
     },
     View: mockAnimated(View),
     Text: mockAnimated(RNText),
     Image: mockAnimated(RNImage),
     ScrollView: mockAnimated(View),
     FlatList: mockAnimated(View),
-    createAnimatedComponent: (c) => mockAnimated(c),
+    createAnimatedComponent: c => mockAnimated(c),
     useAnimatedStyle: jest.fn(() => ({})),
-    useSharedValue: jest.fn((v) => ({ value: v })),
+    useSharedValue: jest.fn(v => ({ value: v })),
     useAnimatedProps: jest.fn(() => ({})),
-    useDerivedValue: jest.fn((fn) => ({ value: typeof fn === 'function' ? fn() : fn })),
+    useDerivedValue: jest.fn(fn => ({ value: typeof fn === 'function' ? fn() : fn })),
     useAnimatedScrollHandler: jest.fn(() => jest.fn()),
     useAnimatedGestureHandler: jest.fn(() => ({})),
-    useWorkletCallback: jest.fn((fn) => fn),
-    withTiming: jest.fn((v) => v),
-    withSpring: jest.fn((v) => v),
-    withDecay: jest.fn((v) => v),
-    withDelay: jest.fn((v) => v),
-    withRepeat: jest.fn((v) => v),
+    useWorkletCallback: jest.fn(fn => fn),
+    withTiming: jest.fn(v => v),
+    withSpring: jest.fn(v => v),
+    withDecay: jest.fn(v => v),
+    withDelay: jest.fn(v => v),
+    withRepeat: jest.fn(v => v),
     withSequence: jest.fn((...v) => v[v.length - 1]),
     cancelAnimation: jest.fn(),
     Easing,
-    runOnJS: jest.fn((fn) => fn),
-    runOnUI: jest.fn((fn) => fn),
+    runOnJS: jest.fn(fn => fn),
+    runOnUI: jest.fn(fn => fn),
     interpolate: jest.fn(),
     Extrapolation: { CLAMP: 'clamp', EXTEND: 'extend', IDENTITY: 'identity' },
     Extrapolate: { CLAMP: 'clamp', EXTEND: 'extend', IDENTITY: 'identity' },
@@ -137,8 +137,7 @@ jest.mock('react-native-screens', () => {
   const React = require('react');
   const { View } = require('react-native');
 
-  const Mock = ({ children, ...props }) =>
-    React.createElement(View, props, children);
+  const Mock = ({ children, ...props }) => React.createElement(View, props, children);
   Mock.displayName = 'ScreenMock';
 
   return {
@@ -149,6 +148,7 @@ jest.mock('react-native-screens', () => {
     ScreenContainer: Mock,
     ScreenContext: { Provider: Mock, Consumer: Mock },
     ScreenStack: Mock,
+    ScreenStackItem: Mock,
     ScreenStackHeaderConfig: Mock,
     ScreenStackHeaderSubview: Mock,
     ScreenStackHeaderBackButtonImage: Mock,
@@ -159,6 +159,7 @@ jest.mock('react-native-screens', () => {
     SearchBar: Mock,
     NativeScreen: Mock,
     NativeScreenContainer: Mock,
+    compatibilityFlags: {},
   };
 });
 
@@ -189,125 +190,41 @@ jest.mock('react-native-safe-area-context', () => {
   };
 });
 
-jest.mock('react-native-bootsplash', () => ({
-  generate: jest.fn(async () => undefined),
-  hide: jest.fn(async () => undefined),
-  isVisible: jest.fn(async () => false),
-  useBootSplash: () => ({ isLoading: false, error: null }),
-}));
-
-jest.mock('react-native-fast-image', () => {
-  const React = require('react');
-  const { Image } = require('react-native');
-
-  const FastImage = React.forwardRef((props, ref) =>
-    React.createElement(Image, { ...props, ref }),
-  );
-  FastImage.Priority = { low: 'low', normal: 'normal', high: 'high' };
-  FastImage.ResizeMode = {
-    contain: 'contain',
-    cover: 'cover',
-    stretch: 'stretch',
-    center: 'center',
-  };
-  FastImage.CACHE_CONTROL = {
-    immutable: 'immutable',
-    web: 'web',
-    cacheOnly: 'cacheOnly',
-  };
-
-  return { __esModule: true, default: FastImage, ...FastImage };
-});
-
-jest.mock('react-native-config', () => ({
-  APP_ENV: 'test',
-  API_BASE_URL: 'https://api.test.vemtap.com',
-  API_VERSION: 'v1',
-  API_TIMEOUT_MS: '1000',
-  SENTRY_DSN: '',
-  SENTRY_ENABLED: 'false',
-  MIN_SUPPORTED_APP_VERSION: '1.0.0',
-}));
-
-jest.mock('react-native-keychain', () => ({
-  setGenericPassword: jest.fn(async () => true),
-  getGenericPassword: jest.fn(async () => ({
-    username: 'accessToken',
-    password: 'token',
-  })),
-  resetGenericPassword: jest.fn(async () => true),
-  ACCESS_CONTROL: {},
-  ACCESSIBLE: {
-    WHEN_UNLOCKED_THIS_DEVICE_ONLY: 'WhenUnlockedThisDeviceOnly',
-  },
-  AUTHENTICATION_TYPE: {},
-  BIOMETRY_TYPE: {},
-  SECURITY_LEVEL: {
-    SECURE_SOFTWARE: 'SECURE_SOFTWARE',
-    SECURE_HARDWARE: 'SECURE_HARDWARE',
-    ANY: 'ANY',
-  },
-}));
-
-jest.mock('react-native-mmkv', () => {
-  const store = new Map();
-  class MMKVMock {
-    constructor({ id = 'default' } = {}) {
-      this.id = id;
-    }
-
-    getString(key) {
-      return store.get(key);
-    }
-
-    set(key, value) {
-      store.set(key, String(value));
-    }
-
-    delete(key) {
-      store.delete(key);
-    }
-
-    getAllKeys() {
-      return [...store.keys()];
-    }
-  }
-  return {
-    __esModule: true,
-    MMKV: MMKVMock,
-    createMMKV: (options) => new MMKVMock(options),
-  };
-});
-
-jest.mock('@react-native-firebase/app', () => ({
-  apps: [],
-  app: jest.fn(() => ({ name: '[DEFAULT]' })),
-  initializeApp: jest.fn(),
-}));
-
-jest.mock('@react-native-firebase/analytics', () => jest.fn(() => ({
-  logEvent: jest.fn(async () => undefined),
-  setUserId: jest.fn(async () => undefined),
-  setCustomKey: jest.fn(async () => undefined),
-})));
-
-jest.mock('@react-native-firebase/messaging', () => jest.fn(() => ({
-  requestPermission: jest.fn(async () => 1),
-  getToken: jest.fn(async () => 'test-fcm-token'),
-  onMessage: jest.fn(() => jest.fn()),
-  onNotificationOpenedApp: jest.fn(() => jest.fn()),
-  getInitialNotification: jest.fn(async () => null),
-  setBackgroundMessageHandler: jest.fn(),
-})));
-
-jest.mock('@react-native-firebase/remote-config', () =>
-  jest.fn(() => ({
-    setDefaults: jest.fn(async () => undefined),
-    fetch: jest.fn(async () => undefined),
-    activate: jest.fn(async () => true),
-    getValue: jest.fn(() => ({ asString: () => '', asBoolean: () => false, asNumber: () => 0 })),
-  })),
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
 );
+
+jest.mock('expo-secure-store', () => ({
+  getItemAsync: jest.fn(async () => null),
+  setItemAsync: jest.fn(async () => undefined),
+  deleteItemAsync: jest.fn(async () => undefined),
+  WHEN_UNLOCKED_THIS_DEVICE_ONLY: 'WhenUnlockedThisDeviceOnly',
+}));
+
+jest.mock('expo-notifications', () => ({
+  setNotificationHandler: jest.fn(),
+  getPermissionsAsync: jest.fn(async () => ({
+    status: 'granted',
+    granted: true,
+    canAskAgain: true,
+    expires: 0,
+  })),
+  requestPermissionsAsync: jest.fn(async () => ({
+    status: 'granted',
+    granted: true,
+    canAskAgain: true,
+    expires: 0,
+  })),
+  getExpoPushTokenAsync: jest.fn(async () => ({
+    data: 'test-expo-push-token',
+    type: 'default',
+  })),
+  setNotificationChannelAsync: jest.fn(async () => undefined),
+  addNotificationReceivedListener: jest.fn(() => () => {}),
+  addNotificationResponseReceivedListener: jest.fn(() => () => {}),
+  getLastNotificationResponseAsync: jest.fn(async () => null),
+  AndroidImportance: { HIGH: 4 },
+}));
 
 jest.mock('@sentry/react-native', () => ({
   init: jest.fn(),
@@ -316,12 +233,6 @@ jest.mock('@sentry/react-native', () => ({
   addBreadcrumb: jest.fn(),
   setTag: jest.fn(),
   setUser: jest.fn(),
-}));
-
-jest.mock('jail-monkey', () => ({
-  isJailBroken: jest.fn(() => false),
-  isDebuggedMode: jest.fn(async () => false),
-  hookDetected: jest.fn(() => false),
 }));
 
 jest.mock('@react-native-community/netinfo', () => ({

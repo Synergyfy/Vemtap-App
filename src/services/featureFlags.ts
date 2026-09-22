@@ -4,7 +4,6 @@ import {
   APP_VERSION,
   MIN_SUPPORTED_APP_VERSION,
 } from '@constants/config';
-import { logger } from '@utils/logger';
 import { compareVersions } from '@utils/validators';
 
 const LOCAL_DEFAULTS: Record<string, boolean | number | string> = {
@@ -13,71 +12,19 @@ const LOCAL_DEFAULTS: Record<string, boolean | number | string> = {
   force_update_prompt: false,
 };
 
-type RemoteConfig = Awaited<
-  ReturnType<typeof import('@react-native-firebase/remote-config').getRemoteConfig>
->;
-
-/** Public RemoteConfig type omits instance methods; runtime instance has them (RemoteConfigInternal). */
-type RemoteConfigRuntime = RemoteConfig & {
-  setDefaults(defaults: Record<string, boolean | number | string>): Promise<unknown>;
-  fetch(): Promise<void>;
-  activate(): Promise<boolean>;
-  getValue(key: string): {
-    asBoolean(): boolean;
-    asNumber(): number;
-    asString(): string;
-  };
-};
-
 let cachedFlags: Record<string, boolean | number | string> = { ...LOCAL_DEFAULTS };
 let lastFetch = 0;
-let remoteConfig: RemoteConfigRuntime | null = null;
 
-async function getRemoteConfig() {
-  if (!remoteConfig) {
-    try {
-      const mod = await import('@react-native-firebase/remote-config');
-      remoteConfig = mod.getRemoteConfig() as RemoteConfigRuntime;
-    } catch {
-      remoteConfig = null;
-    }
-  }
-  return remoteConfig;
-}
-
-/** Fetch + activate remote flags (no-op when Firebase isn't configured yet). */
+/**
+ * Placeholder kept for API compatibility: without a remote flags backend the
+ * local defaults are always used. Replace with a real fetch when available.
+ */
 export async function refreshFeatureFlags(force = false): Promise<void> {
   const now = Date.now();
   if (!force && now - lastFetch < FEATURE_FLAG_REFRESH_INTERVAL_MS) {
     return;
   }
-  try {
-    const rc = await getRemoteConfig();
-    if (!rc) {
-      lastFetch = now;
-      return;
-    }
-    await rc.setDefaults(LOCAL_DEFAULTS);
-    await rc.fetch();
-    await rc.activate();
-    cachedFlags = Object.fromEntries(
-      Object.keys(LOCAL_DEFAULTS).map(key => {
-        const value = rc.getValue(key);
-        return [
-          key,
-          typeof LOCAL_DEFAULTS[key] === 'number'
-            ? value.asNumber()
-            : typeof LOCAL_DEFAULTS[key] === 'boolean'
-              ? value.asBoolean()
-              : value.asString(),
-        ];
-      }),
-    );
-    lastFetch = now;
-    logger.debug('flags', 'Feature flags refreshed', cachedFlags);
-  } catch (error) {
-    logger.warn('flags', 'Feature flag refresh failed; using local defaults', error);
-  }
+  lastFetch = now;
 }
 
 export function getFeatureFlag<K extends keyof typeof LOCAL_DEFAULTS>(
@@ -93,7 +40,7 @@ export function isFeatureEnabled(key: string, fallback = false): boolean {
 
 /**
  * Force-update gate: block usage when the installed build is below the
- * server-advertised minimum (fetched via remote config `min_supported_version`).
+ * configured minimum version.
  */
 export function shouldForceUpdate(currentVersion = APP_VERSION): boolean {
   const min =

@@ -1,24 +1,12 @@
 import { create } from 'zustand';
 import { devtools, persist, createJSONStorage } from 'zustand/middleware';
-import { createMMKV } from 'react-native-mmkv';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Session } from '@api/authApi';
 
 /**
  * Auth store — holds the *public* session shape (user profile, auth status).
- * Tokens never live here: they are read from react-native-keychain on demand.
+ * Tokens never live here: they are read from expo-secure-store on demand.
  */
-
-const storage = createMMKV({ id: 'vemtap-non-sensitive' });
-
-const zustandStorage = {
-  getItem: (name: string): string | null => storage.getString(name) ?? null,
-  setItem: (name: string, value: string): void => {
-    storage.set(name, value);
-  },
-  removeItem: (name: string): void => {
-    storage.remove(name);
-  },
-};
 
 interface AuthState {
   user: Session['user'] | null;
@@ -42,7 +30,7 @@ export const useAuthStore = create<AuthState>()(
       }),
       {
         name: 'vemtap-auth',
-        storage: createJSONStorage(() => zustandStorage),
+        storage: createJSONStorage(() => AsyncStorage),
         partialize: state => ({ user: state.user, status: state.status }),
       },
     ),

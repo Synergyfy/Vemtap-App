@@ -1,4 +1,4 @@
-import * as Keychain from 'react-native-keychain';
+import * as SecureStore from 'expo-secure-store';
 import {
   clearSecureStorage,
   getSecureItem,
@@ -10,24 +10,23 @@ import {
 
 describe('secureStorage', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-    (Keychain.getGenericPassword as jest.Mock).mockResolvedValue(false);
-    (Keychain.setGenericPassword as jest.Mock).mockResolvedValue(true);
-    (Keychain.resetGenericPassword as jest.Mock).mockResolvedValue(true);
+    jest.resetAllMocks();
+    (SecureStore.getItemAsync as jest.Mock).mockResolvedValue(null);
+    (SecureStore.setItemAsync as jest.Mock).mockResolvedValue(undefined);
+    (SecureStore.deleteItemAsync as jest.Mock).mockResolvedValue(undefined);
   });
 
-  it('stores and reads a secret via Keychain', async () => {
+  it('stores and reads a secret via SecureStore', async () => {
     await setSecureItem('accessToken', 'secret-token');
-    expect(Keychain.setGenericPassword).toHaveBeenCalledWith(
-      'accessToken',
+    expect(SecureStore.setItemAsync).toHaveBeenCalledWith(
+      expect.stringContaining('accessToken'),
       'secret-token',
-      expect.objectContaining({ service: expect.stringContaining('accessToken') }),
+      expect.objectContaining({
+        keychainService: expect.stringContaining('secure'),
+      }),
     );
 
-    (Keychain.getGenericPassword as jest.Mock).mockResolvedValue({
-      username: 'accessToken',
-      password: 'secret-token',
-    });
+    (SecureStore.getItemAsync as jest.Mock).mockResolvedValue('secret-token');
     await expect(getSecureItem('accessToken')).resolves.toBe('secret-token');
   });
 
@@ -37,22 +36,19 @@ describe('secureStorage', () => {
 
   it('persists the token pair atomically', async () => {
     await setTokenPair({ accessToken: 'a', refreshToken: 'r' });
-    expect(Keychain.setGenericPassword).toHaveBeenCalledTimes(2);
+    expect(SecureStore.setItemAsync).toHaveBeenCalledTimes(2);
   });
 
   it('reports session presence', async () => {
     await expect(hasStoredSession()).resolves.toBe(false);
-    (Keychain.getGenericPassword as jest.Mock).mockResolvedValue({
-      username: 'accessToken',
-      password: 'a',
-    });
+    (SecureStore.getItemAsync as jest.Mock).mockResolvedValue('a');
     await expect(hasStoredSession()).resolves.toBe(true);
   });
 
   it('reads the token pair', async () => {
-    (Keychain.getGenericPassword as jest.Mock)
-      .mockResolvedValueOnce({ username: 'accessToken', password: 'a' })
-      .mockResolvedValueOnce({ username: 'refreshToken', password: 'r' });
+    (SecureStore.getItemAsync as jest.Mock)
+      .mockResolvedValueOnce('a')
+      .mockResolvedValueOnce('r');
     await expect(getTokenPair()).resolves.toEqual({
       accessToken: 'a',
       refreshToken: 'r',
@@ -61,6 +57,6 @@ describe('secureStorage', () => {
 
   it('wipes every secure key on clear', async () => {
     await clearSecureStorage();
-    expect(Keychain.resetGenericPassword).toHaveBeenCalledTimes(4);
+    expect(SecureStore.deleteItemAsync).toHaveBeenCalledTimes(4);
   });
 });

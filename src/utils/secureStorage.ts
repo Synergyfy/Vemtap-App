@@ -1,21 +1,22 @@
 /**
- * Secure storage wrapper around react-native-keychain.
+ * Secure storage wrapper around expo-secure-store.
  *
  * Auth tokens and other secrets live ONLY here (iOS Keychain / Android Keystore).
  * Never persist them in AsyncStorage, MMKV, Zustand persist, or Redux.
  */
 
-import * as Keychain from 'react-native-keychain';
+import * as SecureStore from 'expo-secure-store';
 
 const SERVICE = 'com.vemtap.app.secure';
 
 export type SecureStorageKey =
-  | 'accessToken'
-  | 'refreshToken'
-  | 'userPin'
-  | 'biometricSession';
+  'accessToken' | 'refreshToken' | 'userPin' | 'biometricSession';
 
 type StoredPair = { accessToken: string; refreshToken?: string };
+
+function storeKey(key: SecureStorageKey): string {
+  return `${SERVICE}.${key}`;
+}
 
 function assertSecret(key: string): void {
   if (typeof key !== 'string' || key.length === 0) {
@@ -29,29 +30,20 @@ export async function setSecureItem(key: SecureStorageKey, value: string): Promi
     throw new Error('SecureStorage: value is required');
   }
 
-  await Keychain.setGenericPassword(key, value, {
-    service: `${SERVICE}.${key}`,
-    accessible: Keychain.ACCESSIBLE.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
-    securityLevel: Keychain.SECURITY_LEVEL.SECURE_SOFTWARE,
+  await SecureStore.setItemAsync(storeKey(key), value, {
+    keychainService: SERVICE,
+    keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
   });
 }
 
 export async function getSecureItem(key: SecureStorageKey): Promise<string | null> {
   assertSecret(key);
-  const result = await Keychain.getGenericPassword({
-    service: `${SERVICE}.${key}`,
-  });
-
-  if (!result) {
-    return null;
-  }
-
-  return result.password;
+  return SecureStore.getItemAsync(storeKey(key), { keychainService: SERVICE });
 }
 
 export async function removeSecureItem(key: SecureStorageKey): Promise<void> {
   assertSecret(key);
-  await Keychain.resetGenericPassword({ service: `${SERVICE}.${key}` });
+  await SecureStore.deleteItemAsync(storeKey(key), { keychainService: SERVICE });
 }
 
 /** Atomically persist the auth token pair (called once per refresh cycle). */
