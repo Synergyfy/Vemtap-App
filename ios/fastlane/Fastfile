@@ -1,0 +1,32 @@
+# Frozen string literal: true
+
+default_platform(:ios)
+
+platform :ios do
+  desc "Push a new beta build to TestFlight"
+  lane :beta do
+    increment_build_number(
+      xcodeproj: "Vemtap.xcodeproj"
+    )
+    build_app(
+      workspace: "Vemtap.xcworkspace",
+      scheme: "Vemtap",
+      export_method: "app-store",
+      output_directory: "../build/ios",
+      output_name: "Vemtap.ipa"
+    )
+    upload_to_app_store(
+      skip_metadata: true,
+      skip_screenshots: true,
+      force: true
+    )
+  end
+
+  desc "Run tests"
+  lane :test do
+    run_tests(
+      workspace: "Vemtap.xcworkspace",
+      scheme: "Vemtap"
+    )
+  end
+end

@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_tab" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{width:100vw;margin:0;padding:0;}body{overscroll-behavior:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "text-tertiary": "#9CA3AF", "surface-subtle": "#F8FAFC", "primary-container": "#066cf4", "outline": "#727786", "surface-canvas": "#FFFFFF", "on-secondary": "#ffffff", "secondary-container": "#bacfff", "on-secondary-container": "#435881", "tertiary-container": "#c94a03", "error-container": "#ffdad6", "tertiary-fixed": "#ffdbce", "on-secondary-fixed": "#001a41", "surface-tint-blue": "#EEF5FF", "on-primary-fixed": "#001945", "surface-bright": "#f9f9ff", "surface-container": "#e9edff", "on-primary": "#ffffff", "secondary-fixed-dim": "#b2c6f7", "on-secondary-fixed-variant": "#32466f", "inverse-primary": "#b0c6ff", "tertiary-fixed-dim": "#ffb599", "badge-discount-bg": "#ECFDF5", "primary-fixed-dim": "#b0c6ff", "on-tertiary": "#ffffff", "surface-dim": "#d3daef", "surface-tint": "#0058cb", "error": "#ba1a1a", "on-surface-variant": "#424655", "surface-container-low": "#f1f3ff", "on-tertiary-fixed": "#370e00", "on-primary-container": "#fcfaff", "tertiary": "#a13900", "on-surface": "#141b2b", "outline-variant": "#c2c6d7", "on-background": "#141b2b", "on-tertiary-fixed-variant": "#7f2b00", "on-error": "#ffffff", "inverse-on-surface": "#edf0ff", "badge-discount-text": "#059669", "on-primary-fixed-variant": "#00429b", "border-subtle": "#E5E7EB", "primary-fixed": "#d9e2ff", "text-secondary": "#4B5563", "surface-container-lowest": "#ffffff", "on-tertiary-container": "#fffaf9", "surface-container-high": "#e1e8fd", "primary": "#0055c4", "surface": "#f9f9ff", "secondary": "#4a5e88", "border-active": "#BFDBFE", "secondary-fixed": "#d8e2ff", "background": "#f9f9ff", "on-error-container": "#93000a", "inverse-surface": "#293040", "text-primary": "#111827", "surface-container-highest": "#dce2f7", "surface-variant": "#dce2f7" }, borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, spacing: { "space-sm": "0.75rem", "space-lg": "1.5rem", "space-md": "1rem", "space-2xl": "2.5rem", "space-xs": "0.5rem", "space-2xs": "0.25rem", "gutter": "1rem", "space-xl": "2rem", "space-3xl": "3rem", "margin": "1.5rem" }, fontFamily: { "label-md": ["Inter"], "heading-lg": ["Inter"], "label-sm": ["Inter"], "heading-md": ["Inter"], "body-md": ["Inter"], "button-primary": ["Inter"], "heading-sm": ["Inter"], "caption": ["Inter"], "display-hero": ["Inter"], "button-secondary": ["Inter"], "body-lg": ["Inter"], "display-hero-mobile": ["Inter"] }, fontSize: { "label-md": ["14px", { "lineHeight": "18px", "fontWeight": "500" }], "heading-lg": ["26px", { "lineHeight": "34px", "letterSpacing": "-0.015em", "fontWeight": "600" }], "label-sm": ["13px", { "lineHeight": "16px", "fontWeight": "500" }], "heading-md": ["22px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600" }], "body-md": ["15px", { "lineHeight": "22px", "fontWeight": "400" }], "button-primary": ["16px", { "lineHeight": "20px", "letterSpacing": "-0.005em", "fontWeight": "600" }], "heading-sm": ["18px", { "lineHeight": "24px", "fontWeight": "600" }], "caption": ["12px", { "lineHeight": "16px", "fontWeight": "400" }], "display-hero": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.025em", "fontWeight": "700" }], "button-secondary": ["15px", { "lineHeight": "20px", "fontWeight": "500" }], "body-lg": ["17px", { "lineHeight": "24px", "fontWeight": "400" }], "display-hero-mobile": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }] } } } };</script><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface font-body-md text-body-md text-on-surface flex flex-col min-h-screen"><header class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] pt-safe"><div class="h-16 px-margin flex items-center justify-between gap-space-sm"><div class="flex items-center gap-space-sm min-w-0"><h1 class="font-heading-md text-heading-md text-on-surface truncate">Messages</h1><div class="flex items-center gap-1.5 px-space-xs py-0.5 rounded-full bg-badge-discount-bg"><span class="w-2 h-2 rounded-full bg-badge-discount-text animate-pulse"></span><span class="font-caption text-caption text-badge-discount-text font-medium">Online</span></div></div><div class="flex items-center gap-space-xs"><button aria-label="Search conversations" class="w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface transition-colors"><span class="material-symbols-outlined text-[22px]">search</span></button><button aria-label="More options" class="w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface transition-colors"><span class="material-symbols-outlined text-[22px]">more_vert</span></button><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center ml-space-2xs"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex-1 flex flex-col relative w-full pt-16 pb-24 bg-surface"><div class="flex flex-col w-full">
+<div class="px-margin pt-space-xs pb-space-sm bg-surface">
+<div class="flex items-center gap-space-xs">
+<div class="relative flex-1 flex items-center">
+<span class="material-symbols-outlined absolute left-space-sm text-text-secondary text-[20px] pointer-events-none">search</span>
+<input aria-label="Search conversations" class="w-full h-[46px] pl-10 pr-9 bg-surface-container-low rounded-xl text-on-surface font-body-md text-body-md placeholder:text-text-tertiary focus:outline-none focus:bg-surface-canvas shadow-sm transition-all" id="conversationSearchInput" placeholder="Search customers, orders, deals..." type="text" value="Order #VG"/>
+<button aria-label="Clear search input" class="absolute right-space-xs w-7 h-7 flex items-center justify-center rounded-full bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-colors" id="clearSearchBtn">
+<span class="material-symbols-outlined text-[16px]">close</span>
+</button>
+</div>
+<button class="h-[46px] px-space-xs flex items-center justify-center text-primary font-button-secondary text-button-secondary hover:opacity-80 active:scale-95 transition-all" id="cancelSearchBtn">
+        Cancel
+      </button>
+</div>
+<div class="flex items-center gap-space-2xs mt-space-sm overflow-x-auto no-scrollbar py-0.5">
+<button class="flex items-center gap-1.5 h-8 px-space-sm rounded-full bg-surface-tint-blue text-primary font-label-sm text-label-sm whitespace-nowrap shadow-sm">
+<span class="material-symbols-outlined text-[16px]">all_inbox</span>
+<span>All results (3)</span>
+</button>
+<button class="flex items-center gap-1.5 h-8 px-space-sm rounded-full bg-surface-container-low text-text-secondary font-label-sm text-label-sm whitespace-nowrap hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined text-[16px]">receipt_long</span>
+<span>Orders (3)</span>
+</button>
+<button class="flex items-center gap-1.5 h-8 px-space-sm rounded-full bg-surface-container-low text-text-secondary font-label-sm text-label-sm whitespace-nowrap hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined text-[16px]">person</span>
+<span>Customers (0)</span>
+</button>
+<button class="flex items-center gap-1.5 h-8 px-space-sm rounded-full bg-surface-container-low text-text-secondary font-label-sm text-label-sm whitespace-nowrap hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined text-[16px]">local_offer</span>
+<span>Deals (0)</span>
+</button>
+</div>
+</div>
+<div class="px-margin pt-space-xs pb-space-2xs flex items-center justify-between">
+<p class="font-label-sm text-label-sm text-text-secondary">
+      Found <span class="font-semibold text-on-surface">3 conversations</span> matching <span class="text-primary font-semibold">"Order #VG"</span>
+</p>
+<button class="text-text-tertiary hover:text-on-surface transition-colors flex items-center gap-1 font-caption text-caption">
+<span class="material-symbols-outlined text-[14px]">sort</span>
+      Recent
+    </button>
+</div>
+<div class="px-margin flex flex-col gap-space-sm mt-space-xs">
+<div class="w-full bg-surface-canvas rounded-xl p-space-md shadow-sm active:scale-[0.99] transition-transform cursor-pointer relative overflow-hidden">
+<div class="absolute top-0 left-0 w-1 h-full bg-primary rounded-l-xl"></div>
+<div class="flex items-start gap-space-sm pl-1">
+<div class="relative shrink-0">
+<img class="w-12 h-12 rounded-full object-cover shadow-sm" data-alt="Editorial portrait of a friendly young African male merchant customer named Michael James smiling warmly in natural daylight, wearing a tailored navy linen shirt, clean studio background with soft warm bokeh." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAbwy9pUUnmEj5DQgTmMhDt9khd_Hk9OleTH2y3qkc5UP91HY_WI-0GSVKacRUCotNxe8DKYFfl-4EYzqOFM_1VtIjydpEqcU8GEC4jmlGUKt-0NmlWhyYoHDmERv6jHKIqEAtg66N03DHtHOHvFKYOTbQDC_v-lNp2VF9jQOZky1TRlgR1pKSL51JFzt95ruKc9HuhibiVkk_uKEFDIvXNoHmR81Z-vBnMaM5tcR9tgXtag83dq7tsXQ"/>
+<div class="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-badge-discount-text ring-2 ring-surface-canvas"></div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between gap-space-xs mb-1">
+<h3 class="font-heading-sm text-heading-sm text-on-surface truncate">Michael James</h3>
+<span class="font-caption text-caption text-primary font-medium shrink-0">9:24 AM</span>
+</div>
+<div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-surface-tint-blue mb-space-2xs">
+<span class="material-symbols-outlined text-primary text-[14px]">receipt_long</span>
+<span class="font-caption text-caption font-semibold text-primary">
+<mark class="bg-primary/20 text-primary font-semibold px-0.5 rounded">Order #VG</mark>-94021 · ₦34,500
+            </span>
+</div>
+<p class="font-body-md text-body-md text-text-secondary truncate mt-0.5">
+<span class="font-medium text-on-surface">You:</span> Your order <mark class="bg-primary-fixed text-on-primary-fixed-variant font-medium px-1 py-0.2 rounded">#VG-94021</mark> is packed and ready for pickup...
+          </p>
+<div class="flex items-center gap-space-xs mt-2 text-text-tertiary font-caption text-caption">
+<span class="inline-flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px] text-badge-discount-text">check_circle</span>
+              Paid via Card
+            </span>
+<span>•</span>
+<span>Ribeye Steak (x2)</span>
+</div>
+</div>
+</div>
+</div>
+<div class="w-full bg-surface-canvas rounded-xl p-space-md shadow-sm active:scale-[0.99] transition-transform cursor-pointer">
+<div class="flex items-start gap-space-sm">
+<div class="relative shrink-0">
+<img class="w-12 h-12 rounded-full object-cover shadow-sm" data-alt="Close up photography of an African business professional woman named Amina Bello with braided hairstyle wearing a soft cream knit collar, warm sunlit interior background, smiling gently and approachable." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCc63p9Dj9XaaZgVb9GTsLHuzSAlx1RBbaeIqJRQUSFb8hhPliQxQfRgnm_-j7p5enDtUBYrUI424KFcXVNGy0Vyf-d_yV6YDdZ7LfOM9NDRrgAvhxL8xhucZ-R4uedFnl3DMalmlSKc8OoPekQIvsivW5tgtI5GuhU622w5t8EffNXcA4xodXBPcfU2QFl-vDmFAzDhHolNtxplVn1KJSTNja2jB51HPY64-_6n9DVmOBTO8mqlS2dfQ"/>
+<div class="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-primary flex items-center justify-center text-on-primary text-[10px] font-bold">
+            1
+          </div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between gap-space-xs mb-1">
+<h3 class="font-heading-sm text-heading-sm text-on-surface truncate">Amina Bello</h3>
+<span class="font-caption text-caption text-text-tertiary shrink-0">Oct 16</span>
+</div>
+<div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-surface-container-low mb-space-2xs">
+<span class="material-symbols-outlined text-secondary text-[14px]">shopping_bag</span>
+<span class="font-caption text-caption font-medium text-text-secondary">
+<mark class="bg-primary/15 text-primary font-semibold px-0.5 rounded">Order #VG</mark>-94019 · ₦18,200
+            </span>
+</div>
+<p class="font-body-md text-body-md text-on-surface font-medium truncate mt-0.5">
+<span class="text-text-secondary font-normal">Amina:</span> Can I pay with POS terminal when picking up <mark class="bg-primary-fixed text-on-primary-fixed-variant font-medium px-1 py-0.2 rounded">#VG-94019</mark>?
+          </p>
+<div class="flex items-center gap-space-xs mt-2 text-text-tertiary font-caption text-caption">
+<span class="inline-flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px] text-tertiary-container">schedule</span>
+              Awaiting Pickup
+            </span>
+<span>•</span>
+<span>Fresh Herb Bundle</span>
+</div>
+</div>
+</div>
+</div>
+<div class="w-full bg-surface-canvas rounded-xl p-space-md shadow-sm active:scale-[0.99] transition-transform cursor-pointer">
+<div class="flex items-start gap-space-sm">
+<div class="relative shrink-0">
+<img class="w-12 h-12 rounded-full object-cover shadow-sm" data-alt="Portrait photo of Ibrahim Garba, a middle aged African gentleman with distinguished glasses and subtle smile outdoors in Lagos island urban terrace, warm atmospheric evening lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD2cgaPmOhQU3JM8He6ivLgELRl3UBoiBxnUX1V3AzAcCpTv7mL2vh_NclyunSqCi4Lx-xr30_cBorKEyPNdg2tghSuaNzdrUKVirkp2CyHl9iic-ctlz75QzGr8RiYuhwDWgm7-vrNFXRgIKNwteEgMi-qJ0pwoB2DWE-Udhm1m_fRpS0Vi4lMdl9EDronyamRonQuTUMgCPWD4Am_nIdW5OtLkvuBU3DTydKxg1oHIwKB4Dw22u9Q6Q"/>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between gap-space-xs mb-1">
+<h3 class="font-heading-sm text-heading-sm text-on-surface truncate">Ibrahim Garba</h3>
+<span class="font-caption text-caption text-text-tertiary shrink-0">Oct 12</span>
+</div>
+<div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-surface-container-low mb-space-2xs">
+<span class="material-symbols-outlined text-secondary text-[14px]">task_alt</span>
+<span class="font-caption text-caption font-medium text-text-secondary">
+<mark class="bg-primary/15 text-primary font-semibold px-0.5 rounded">Order #VG</mark>-93880 · ₦9,600
+            </span>
+</div>
+<p class="font-body-md text-body-md text-text-secondary truncate mt-0.5">
+<span class="font-medium text-on-surface">You:</span> <mark class="bg-primary-fixed text-on-primary-fixed-variant font-medium px-1 py-0.2 rounded">Order #VG</mark>-93880 has been collected. Thank you!
+          </p>
+<div class="flex items-center gap-space-xs mt-2 text-text-tertiary font-caption text-caption">
+<span class="inline-flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px] text-badge-discount-text">done_all</span>
+              Completed
+            </span>
+<span>•</span>
+<span>Artisan Sourdough Loaf</span>
+</div>
+</div>
+</div>
+</div>
+<div class="mt-space-md pt-space-xs pb-space-lg">
+<div class="flex items-center justify-between mb-space-xs px-1">
+<span class="font-caption text-caption font-semibold tracking-wider uppercase text-text-tertiary">Zero State Preview Mode</span>
+<button class="font-caption text-caption text-primary hover:underline" id="toggleEmptyStateBtn">
+          Simulate No Results
+        </button>
+</div>
+<div class="w-full bg-surface-container-low rounded-xl p-space-lg text-center relative overflow-hidden shadow-sm" id="emptyStateDemoCard">
+<div class="w-16 h-16 mx-auto mb-space-sm rounded-full bg-surface-tint-blue flex items-center justify-center relative">
+<span class="material-symbols-outlined text-primary text-[32px]">manage_search</span>
+<div class="w-3 h-3 rounded-full bg-secondary-fixed-dim absolute top-2 right-2 animate-ping"></div>
+</div>
+<h4 class="font-heading-sm text-heading-sm text-on-surface mb-1">
+          No conversations found for <span class="text-tertiary-container font-semibold">'xyz123'</span>
+</h4>
+<p class="font-body-md text-body-md text-text-secondary max-w-xs mx-auto mb-space-md">
+          Try searching by customer name, deal name, product item, or order booking code.
+        </p>
+<div class="flex flex-wrap items-center justify-center gap-1.5">
+<span class="px-2.5 py-1 rounded-full bg-surface-canvas text-text-secondary font-caption text-caption shadow-sm">
+            E.g. "Ribeye"
+          </span>
+<span class="px-2.5 py-1 rounded-full bg-surface-canvas text-text-secondary font-caption text-caption shadow-sm">
+            "Amina"
+          </span>
+<span class="px-2.5 py-1 rounded-full bg-surface-canvas text-text-secondary font-caption text-caption shadow-sm">
+            "#VG-94021"
+          </span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<script>
+  (function() {
+    const input = document.getElementById('conversationSearchInput');
+    const clearBtn = document.getElementById('clearSearchBtn');
+    const cancelBtn = document.getElementById('cancelSearchBtn');
+    const emptyToggle = document.getElementById('toggleEmptyStateBtn');
+    const emptyCard = document.getElementById('emptyStateDemoCard');
+
+    if (clearBtn && input) {
+      clearBtn.addEventListener('click', () => {
+        input.value = '';
+        input.focus();
+      });
+    }
+
+    if (cancelBtn && input) {
+      cancelBtn.addEventListener('click', () => {
+        input.value = '';
+        input.blur();
+      });
+    }
+
+    if (emptyToggle && emptyCard) {
+      emptyToggle.addEventListener('click', () => {
+        emptyCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        emptyCard.classList.add('scale-[1.02]');
+        setTimeout(() => emptyCard.classList.remove('scale-[1.02]'), 250);
+      });
+    }
+  })();
+</script></main><nav class="fixed bottom-0 w-full z-50 pb-safe bg-surface/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]" data-active-classes="text-primary font-semibold"><div class="flex justify-between items-center h-16 px-space-sm"><a class="flex-1 flex flex-col items-center justify-center gap-space-2xs h-12 text-on-surface-variant hover:text-on-surface transition-all" data-path="overview" href="#"><span class="material-symbols-outlined text-[22px]">dashboard</span><span class="font-caption text-caption">Overview</span></a><a class="flex-1 flex flex-col items-center justify-center gap-space-2xs h-12 text-on-surface-variant hover:text-on-surface transition-all" data-path="orders" href="#"><span class="material-symbols-outlined text-[22px]">receipt_long</span><span class="font-caption text-caption">Orders</span></a><a aria-current="page" class="flex-1 flex flex-col items-center justify-center gap-space-2xs h-12 relative transition-all text-primary font-semibold" data-path="messages" href="#"><div class="relative flex items-center justify-center"><span class="material-symbols-outlined text-[22px]">forum</span><span class="absolute -top-1 -right-2 px-1.5 min-w-[18px] h-4 rounded-full bg-primary text-on-primary font-caption text-[11px] leading-4 text-center font-bold flex items-center justify-center">4</span></div><span class="font-caption text-caption">Messages</span></a><a class="flex-1 flex flex-col items-center justify-center gap-space-2xs h-12 text-on-surface-variant hover:text-on-surface transition-all" data-path="business" href="#"><span class="material-symbols-outlined text-[22px]">storefront</span><span class="font-caption text-caption">Business</span></a><a class="flex-1 flex flex-col items-center justify-center gap-space-2xs h-12 text-on-surface-variant hover:text-on-surface transition-all" data-path="more" href="#"><span class="material-symbols-outlined text-[22px]">menu</span><span class="font-caption text-caption">More</span></a></div></nav></body></html>

@@ -1,0 +1,19 @@
+{
+  "name": "Vemtap",
+  "slug": "vemtap",
+  "version": "0.0.1",
+  "orientation": "portrait",
+  "userInterfaceStyle": "automatic",
+  "ios": {
+    "bundleIdentifier": "com.vemtap.app"
+  },
+  "android": {
+    "package": "com.vemtap.app"
+  },
+  "extra": {
+    "eas": {
+      "projectId": "98b143dc-ace3-4494-99eb-880abec2d09c"
+    }
+  },
+  "owner": "sundayochuko"
+}

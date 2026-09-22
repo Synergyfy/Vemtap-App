@@ -1,0 +1,262 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"><title>Profile Setup</title><link href="https://fonts.googleapis.com" rel="preconnect"><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{width:100%;margin:0;padding:0;min-height:100%;}body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "on-tertiary-container": "#fffaf9", "tertiary-fixed-dim": "#ffb599", "surface-dim": "#d3daef", "on-surface-variant": "#424655", "error-container": "#ffdad6", "on-primary": "#ffffff", "primary-fixed": "#d9e2ff", "border-subtle": "#E5E7EB", "surface-bright": "#f9f9ff", "on-surface": "#141b2b", "surface-container": "#e9edff", "on-error": "#ffffff", "border-active": "#BFDBFE", "secondary": "#4a5e88", "on-secondary-fixed-variant": "#32466f", "on-secondary-container": "#435881", "on-tertiary-fixed": "#370e00", "surface-canvas": "#FFFFFF", "on-background": "#141b2b", "on-secondary": "#ffffff", "tertiary-fixed": "#ffdbce", "text-tertiary": "#9CA3AF", "on-primary-fixed": "#001945", "surface": "#f9f9ff", "on-tertiary-fixed-variant": "#7f2b00", "text-secondary": "#4B5563", "inverse-surface": "#293040", "inverse-primary": "#b0c6ff", "surface-container-low": "#f1f3ff", "primary-fixed-dim": "#b0c6ff", "surface-subtle": "#F8FAFC", "on-secondary-fixed": "#001a41", "background": "#f9f9ff", "outline": "#727786", "tertiary": "#a13900", "text-primary": "#111827", "secondary-fixed-dim": "#b2c6f7", "badge-discount-text": "#059669", "surface-tint-blue": "#EEF5FF", "error": "#ba1a1a", "surface-variant": "#dce2f7", "on-error-container": "#93000a", "surface-container-lowest": "#ffffff", "on-tertiary": "#ffffff", "secondary-container": "#bacfff", "secondary-fixed": "#d8e2ff", "badge-discount-bg": "#ECFDF5", "surface-container-high": "#e1e8fd", "on-primary-container": "#fcfaff", "surface-tint": "#0058cb", "tertiary-container": "#c94a03", "inverse-on-surface": "#edf0ff", "surface-container-highest": "#dce2f7", "primary": "#0055c4", "outline-variant": "#c2c6d7", "on-primary-fixed-variant": "#00429b", "primary-container": "#066cf4" }, borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, spacing: { "space-sm": "0.75rem", "space-lg": "1.5rem", "space-3xl": "3rem", "space-xl": "2rem", "space-2xl": "2.5rem", "space-md": "1rem", "space-2xs": "0.25rem", "gutter": "1rem", "space-xs": "0.5rem", "margin": "1.5rem" }, fontFamily: { "heading-md": ["Inter"], "display-hero": ["Inter"], "button-primary": ["Inter"], "caption": ["Inter"], "label-sm": ["Inter"], "button-secondary": ["Inter"], "body-md": ["Inter"], "heading-lg": ["Inter"], "label-md": ["Inter"], "body-lg": ["Inter"], "display-hero-mobile": ["Inter"], "heading-sm": ["Inter"] }, fontSize: { "heading-md": ["22px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600" }], "display-hero": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.025em", "fontWeight": "700" }], "button-primary": ["16px", { "lineHeight": "20px", "letterSpacing": "-0.005em", "fontWeight": "600" }], "caption": ["12px", { "lineHeight": "16px", "fontWeight": "400" }], "label-sm": ["13px", { "lineHeight": "16px", "fontWeight": "500" }], "button-secondary": ["15px", { "lineHeight": "20px", "fontWeight": "500" }], "body-md": ["15px", { "lineHeight": "22px", "fontWeight": "400" }], "heading-lg": ["26px", { "lineHeight": "34px", "letterSpacing": "-0.015em", "fontWeight": "600" }], "label-md": ["14px", { "lineHeight": "18px", "fontWeight": "500" }], "body-lg": ["17px", { "lineHeight": "24px", "fontWeight": "400" }], "display-hero-mobile": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }], "heading-sm": ["18px", { "lineHeight": "24px", "fontWeight": "600" }] } } } };</script></head><body class="bg-surface-canvas text-text-primary antialiased min-h-screen flex flex-col"><header class="fixed top-0 w-full z-50 pt-safe bg-surface-canvas/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-14 px-margin flex items-center justify-between"><button aria-label="Go back" class="w-11 h-11 -ml-2 flex items-center justify-center rounded-full text-text-primary hover:bg-surface-subtle active:scale-95 transition-all" onclick="history.back()" type="button"><span class="material-symbols-outlined text-[24px]">arrow_back</span></button><h1 class="font-heading-sm text-heading-sm text-text-primary font-semibold text-center truncate max-w-[200px]">Profile Setup</h1><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></header><main class="flex-1 flex flex-col relative w-full pt-14 pb-safe bg-surface-canvas"><div class="flex flex-col w-full">
+<!-- Subtle Top Progress & Indicator Rail -->
+<div class="px-margin pt-space-xs pb-space-sm flex flex-col gap-space-xs bg-surface-canvas">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-2xs bg-surface-container-high px-space-xs py-space-2xs rounded-full">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span>
+<span class="font-label-sm text-label-sm text-primary font-semibold">Step 3 of 3</span>
+</div>
+<div class="flex items-center gap-1.5">
+<div class="w-2 h-2 rounded-full bg-primary-container"></div>
+<div class="w-2 h-2 rounded-full bg-primary-container"></div>
+<div class="w-6 h-2 rounded-full bg-primary-container"></div>
+</div>
+</div>
+<!-- Micro Visual Welcome Accent -->
+<div class="w-full h-1 bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-primary-container rounded-full w-full"></div>
+</div>
+</div>
+<!-- Header Content -->
+<div class="px-margin pt-space-xs pb-space-md">
+<h2 class="font-heading-lg text-heading-lg text-text-primary font-semibold tracking-tight">
+      Tell us about yourself
+    </h2>
+<p class="font-body-md text-body-md text-text-secondary mt-1">
+      Complete your profile and set your security PIN to access your account and claimed deals.
+    </p>
+</div>
+<!-- Main Scrollable Form Container -->
+<div class="flex flex-col px-margin gap-space-lg pb-space-3xl">
+<!-- Section 1: Basic Identity Details -->
+<div class="flex flex-col gap-space-md">
+<div class="flex items-center gap-2">
+<span class="w-7 h-7 rounded-full bg-surface-tint-blue flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[16px]">badge</span>
+</span>
+<span class="font-label-md text-label-md text-text-primary font-semibold">Personal Information</span>
+</div>
+<!-- First & Last Name Grid -->
+<div class="grid grid-cols-2 gap-space-sm">
+<div class="flex flex-col gap-1.5">
+<label class="font-label-sm text-label-sm text-text-secondary font-medium" for="first-name">First name</label>
+<div class="bg-surface-subtle rounded-xl flex items-center px-4 h-[50px] shadow-sm">
+<input autocomplete="given-name" class="w-full bg-transparent border-none outline-none font-body-md text-body-md text-text-primary placeholder:text-text-tertiary focus:ring-0" id="first-name" placeholder="e.g. John" type="text">
+</div>
+</div>
+<div class="flex flex-col gap-1.5">
+<label class="font-label-sm text-label-sm text-text-secondary font-medium" for="last-name">Last name</label>
+<div class="bg-surface-subtle rounded-xl flex items-center px-4 h-[50px] shadow-sm">
+<input autocomplete="family-name" class="w-full bg-transparent border-none outline-none font-body-md text-body-md text-text-primary placeholder:text-text-tertiary focus:ring-0" id="last-name" placeholder="e.g. Doe" type="text">
+</div>
+</div>
+</div>
+<!-- Phone Number Field with Nigerian Pre-configuration -->
+<div class="flex flex-col gap-1.5">
+<label class="font-label-sm text-label-sm text-text-secondary font-medium" for="phone-number">Phone number</label>
+<div class="bg-surface-subtle rounded-xl flex items-center h-[50px] px-3 shadow-sm gap-2">
+<!-- Country Flag Pill Selector Affordance -->
+<div class="flex items-center gap-1.5 bg-surface-canvas rounded-lg px-2.5 py-1.5 shadow-sm">
+<!-- Inline SVG Nigeria Flag -->
+<svg class="w-5 h-3.5 rounded-[2px] overflow-hidden" fill="none" viewBox="0 0 6 4" xmlns="http://www.w3.org/2000/svg">
+<rect fill="#008753" height="4" width="2"></rect>
+<rect fill="#FFFFFF" height="4" width="2" x="2"></rect>
+<rect fill="#008753" height="4" width="2" x="4"></rect>
+</svg>
+<span class="font-label-sm text-label-sm text-text-primary font-semibold">+234</span>
+<span class="material-symbols-outlined text-[14px] text-text-tertiary">expand_more</span>
+</div>
+<input class="flex-1 bg-transparent border-none outline-none font-body-md text-body-md text-text-primary placeholder:text-text-tertiary focus:ring-0" id="phone-number" inputmode="numeric" placeholder="801 234 5678" type="tel">
+</div>
+</div>
+</div>
+<!-- Section 2: Security & PIN Creation Section -->
+<div class="bg-surface-subtle rounded-xl p-space-md flex flex-col gap-space-md shadow-sm">
+<div class="flex flex-col gap-1">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="w-7 h-7 rounded-full bg-surface-tint-blue flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[18px]">lock</span>
+</span>
+<span class="font-heading-sm text-heading-sm text-text-primary font-semibold">Create your 6-digit PIN</span>
+</div>
+<span class="font-caption text-caption font-semibold px-2 py-0.5 rounded-full bg-surface-container text-primary">Encrypted</span>
+</div>
+<p class="font-caption text-caption text-text-secondary mt-1">
+          This 6-digit PIN will be your primary access credential to sign in and confirm deal claims.
+        </p>
+</div>
+<!-- PIN Input 1: Primary PIN creation -->
+<div class="flex flex-col gap-2 pt-1">
+<div class="flex items-center justify-between">
+<label class="font-label-sm text-label-sm text-text-primary font-medium">Create 6-digit PIN</label>
+<span class="font-caption text-caption text-text-tertiary" id="pin1-counter">0 / 6 entered</span>
+</div>
+<!-- Masked PIN 6-Box Cells -->
+<div class="grid grid-cols-6 gap-2 relative">
+<div class="pin-box-1 h-12 rounded-xl bg-surface-canvas flex items-center justify-center shadow-sm">
+<span class="w-2.5 h-2.5 rounded-full bg-surface-dim pin-dot-1"></span>
+</div>
+<div class="pin-box-1 h-12 rounded-xl bg-surface-canvas flex items-center justify-center shadow-sm">
+<span class="w-2.5 h-2.5 rounded-full bg-surface-dim pin-dot-1"></span>
+</div>
+<div class="pin-box-1 h-12 rounded-xl bg-surface-canvas flex items-center justify-center shadow-sm">
+<span class="w-2.5 h-2.5 rounded-full bg-surface-dim pin-dot-1"></span>
+</div>
+<div class="pin-box-1 h-12 rounded-xl bg-surface-canvas flex items-center justify-center shadow-sm">
+<span class="w-2.5 h-2.5 rounded-full bg-surface-dim pin-dot-1"></span>
+</div>
+<div class="pin-box-1 h-12 rounded-xl bg-surface-canvas flex items-center justify-center shadow-sm">
+<span class="w-2.5 h-2.5 rounded-full bg-surface-dim pin-dot-1"></span>
+</div>
+<div class="pin-box-1 h-12 rounded-xl bg-surface-canvas flex items-center justify-center shadow-sm">
+<span class="w-2.5 h-2.5 rounded-full bg-surface-dim pin-dot-1"></span>
+</div>
+<!-- Invisible overlay input capturing keystrokes -->
+<input aria-label="Create 6-digit PIN" class="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10" id="hidden-pin-1" inputmode="numeric" maxlength="6" type="password">
+</div>
+</div>
+<!-- PIN Input 2: Confirmation PIN -->
+<div class="flex flex-col gap-2 pt-2">
+<div class="flex items-center justify-between">
+<label class="font-label-sm text-label-sm text-text-primary font-medium">Confirm your 6-digit PIN</label>
+<div class="flex items-center gap-1 opacity-0 transition-opacity" id="match-indicator">
+<span class="material-symbols-outlined text-[16px] text-badge-discount-text">check_circle</span>
+<span class="font-caption text-caption text-badge-discount-text font-semibold">PIN Matches</span>
+</div>
+</div>
+<!-- Masked PIN Confirmation 6-Box Cells -->
+<div class="grid grid-cols-6 gap-2 relative">
+<div class="pin-box-2 h-12 rounded-xl bg-surface-canvas flex items-center justify-center shadow-sm">
+<span class="w-2.5 h-2.5 rounded-full bg-surface-dim pin-dot-2"></span>
+</div>
+<div class="pin-box-2 h-12 rounded-xl bg-surface-canvas flex items-center justify-center shadow-sm">
+<span class="w-2.5 h-2.5 rounded-full bg-surface-dim pin-dot-2"></span>
+</div>
+<div class="pin-box-2 h-12 rounded-xl bg-surface-canvas flex items-center justify-center shadow-sm">
+<span class="w-2.5 h-2.5 rounded-full bg-surface-dim pin-dot-2"></span>
+</div>
+<div class="pin-box-2 h-12 rounded-xl bg-surface-canvas flex items-center justify-center shadow-sm">
+<span class="w-2.5 h-2.5 rounded-full bg-surface-dim pin-dot-2"></span>
+</div>
+<div class="pin-box-2 h-12 rounded-xl bg-surface-canvas flex items-center justify-center shadow-sm">
+<span class="w-2.5 h-2.5 rounded-full bg-surface-dim pin-dot-2"></span>
+</div>
+<div class="pin-box-2 h-12 rounded-xl bg-surface-canvas flex items-center justify-center shadow-sm">
+<span class="w-2.5 h-2.5 rounded-full bg-surface-dim pin-dot-2"></span>
+</div>
+<!-- Invisible overlay input capturing confirmation keystrokes -->
+<input aria-label="Confirm 6-digit PIN" class="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10" id="hidden-pin-2" inputmode="numeric" maxlength="6" type="password">
+</div>
+</div>
+<!-- Security guarantee banner -->
+<div class="flex items-center gap-2 pt-1">
+<span class="material-symbols-outlined text-[18px] text-primary">verified_user</span>
+<p class="font-caption text-caption text-text-secondary">
+          Your PIN is encrypted and securely stored.
+        </p>
+</div>
+</div>
+<!-- Micro Benefit Card: Why VEMTAP uses PINs -->
+<div class="bg-surface-tint-blue rounded-xl p-space-sm flex items-center gap-space-sm">
+<div class="w-10 h-10 rounded-lg bg-surface-canvas flex items-center justify-center text-primary shadow-sm flex-shrink-0">
+<span class="material-symbols-outlined text-[22px]">loyalty</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-label-sm text-label-sm text-text-primary font-semibold truncate">Instant Claim Verification</span>
+<span class="font-caption text-caption text-secondary line-clamp-2">Never wait for SMS codes at checkout. One tap with your PIN redeems offers instantly.</span>
+</div>
+</div>
+<!-- Floating / Sticky Action Container -->
+<div class="pt-space-xs flex flex-col gap-space-sm">
+<button class="w-full h-[54px] bg-primary-container text-on-primary font-button-primary text-button-primary rounded-xl flex items-center justify-center gap-2 active:scale-[0.99] transition-transform shadow-md" id="submit-profile-btn" type="button">
+<span>Complete Setup</span>
+<span class="material-symbols-outlined text-[20px]">arrow_forward</span>
+</button>
+<!-- Next Step Micro Prompt -->
+<button class="w-full flex items-center justify-center gap-1.5 py-2 group active:opacity-75 transition-opacity" type="button">
+<span class="font-label-sm text-label-sm text-text-secondary">Next:</span>
+<span class="font-label-sm text-label-sm text-primary font-medium group-hover:underline">
+          Set up your location to discover deals near you →
+        </span>
+</button>
+</div>
+</div>
+<script>
+    (function() {
+      const pin1Input = document.getElementById('hidden-pin-1');
+      const pin2Input = document.getElementById('hidden-pin-2');
+      const dots1 = document.querySelectorAll('.pin-dot-1');
+      const boxes1 = document.querySelectorAll('.pin-box-1');
+      const dots2 = document.querySelectorAll('.pin-dot-2');
+      const boxes2 = document.querySelectorAll('.pin-box-2');
+      const counter1 = document.getElementById('pin1-counter');
+      const matchIndicator = document.getElementById('match-indicator');
+
+      function updatePins() {
+        const val1 = (pin1Input.value || '').slice(0, 6);
+        const val2 = (pin2Input.value || '').slice(0, 6);
+
+        // Update Pin 1 Dots
+        dots1.forEach((dot, idx) => {
+          if (idx < val1.length) {
+            dot.classList.remove('bg-surface-dim');
+            dot.classList.add('bg-primary-container', 'scale-125');
+            boxes1[idx].classList.add('bg-surface-tint-blue');
+          } else {
+            dot.classList.add('bg-surface-dim');
+            dot.classList.remove('bg-primary-container', 'scale-125');
+            boxes1[idx].classList.remove('bg-surface-tint-blue');
+          }
+        });
+        counter1.textContent = val1.length + ' / 6 entered';
+
+        // Update Pin 2 Dots
+        dots2.forEach((dot, idx) => {
+          if (idx < val2.length) {
+            dot.classList.remove('bg-surface-dim');
+            dot.classList.add('bg-primary-container', 'scale-125');
+            boxes2[idx].classList.add('bg-surface-tint-blue');
+          } else {
+            dot.classList.add('bg-surface-dim');
+            dot.classList.remove('bg-primary-container', 'scale-125');
+            boxes2[idx].classList.remove('bg-surface-tint-blue');
+          }
+        });
+
+        // Match Check
+        if (val1.length === 6 && val2.length === 6) {
+          if (val1 === val2) {
+            matchIndicator.classList.remove('opacity-0');
+            matchIndicator.querySelector('span:last-child').textContent = 'PIN Matches';
+            matchIndicator.querySelector('span:first-child').textContent = 'check_circle';
+            matchIndicator.querySelector('span:last-child').className = 'font-caption text-caption text-badge-discount-text font-semibold';
+            matchIndicator.querySelector('span:first-child').className = 'material-symbols-outlined text-[16px] text-badge-discount-text';
+          } else {
+            matchIndicator.classList.remove('opacity-0');
+            matchIndicator.querySelector('span:last-child').textContent = 'PINs do not match';
+            matchIndicator.querySelector('span:first-child').textContent = 'error';
+            matchIndicator.querySelector('span:last-child').className = 'font-caption text-caption text-error font-semibold';
+            matchIndicator.querySelector('span:first-child').className = 'material-symbols-outlined text-[16px] text-error';
+          }
+        } else {
+          matchIndicator.classList.add('opacity-0');
+        }
+      }
+
+      pin1Input.addEventListener('input', function(e) {
+        this.value = this.value.replace(/[^0-9]/g, '');
+        updatePins();
+        if (this.value.length === 6) {
+          pin2Input.focus();
+        }
+      });
+
+      pin2Input.addEventListener('input', function(e) {
+        this.value = this.value.replace(/[^0-9]/g, '');
+        updatePins();
+      });
+    })();
+  </script>
+</div></main></body></html>

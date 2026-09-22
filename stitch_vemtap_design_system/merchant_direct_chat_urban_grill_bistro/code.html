@@ -1,0 +1,234 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"><title>Authentication Welcome</title><link href="https://fonts.googleapis.com" rel="preconnect"><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{width:100%;margin:0;padding:0;min-height:100%;}body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "on-tertiary-container": "#fffaf9", "tertiary-fixed-dim": "#ffb599", "surface-dim": "#d3daef", "on-surface-variant": "#424655", "error-container": "#ffdad6", "on-primary": "#ffffff", "primary-fixed": "#d9e2ff", "border-subtle": "#E5E7EB", "surface-bright": "#f9f9ff", "on-surface": "#141b2b", "surface-container": "#e9edff", "on-error": "#ffffff", "border-active": "#BFDBFE", "secondary": "#4a5e88", "on-secondary-fixed-variant": "#32466f", "on-secondary-container": "#435881", "on-tertiary-fixed": "#370e00", "surface-canvas": "#FFFFFF", "on-background": "#141b2b", "on-secondary": "#ffffff", "tertiary-fixed": "#ffdbce", "text-tertiary": "#9CA3AF", "on-primary-fixed": "#001945", "surface": "#f9f9ff", "on-tertiary-fixed-variant": "#7f2b00", "text-secondary": "#4B5563", "inverse-surface": "#293040", "inverse-primary": "#b0c6ff", "surface-container-low": "#f1f3ff", "primary-fixed-dim": "#b0c6ff", "surface-subtle": "#F8FAFC", "on-secondary-fixed": "#001a41", "background": "#f9f9ff", "outline": "#727786", "tertiary": "#a13900", "text-primary": "#111827", "secondary-fixed-dim": "#b2c6f7", "badge-discount-text": "#059669", "surface-tint-blue": "#EEF5FF", "error": "#ba1a1a", "surface-variant": "#dce2f7", "on-error-container": "#93000a", "surface-container-lowest": "#ffffff", "on-tertiary": "#ffffff", "secondary-container": "#bacfff", "secondary-fixed": "#d8e2ff", "badge-discount-bg": "#ECFDF5", "surface-container-high": "#e1e8fd", "on-primary-container": "#fcfaff", "surface-tint": "#0058cb", "tertiary-container": "#c94a03", "inverse-on-surface": "#edf0ff", "surface-container-highest": "#dce2f7", "primary": "#0055c4", "outline-variant": "#c2c6d7", "on-primary-fixed-variant": "#00429b", "primary-container": "#066cf4" }, borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, spacing: { "space-sm": "0.75rem", "space-lg": "1.5rem", "space-3xl": "3rem", "space-xl": "2rem", "space-2xl": "2.5rem", "space-md": "1rem", "space-2xs": "0.25rem", "gutter": "1rem", "space-xs": "0.5rem", "margin": "1.5rem" }, fontFamily: { "heading-md": ["Inter"], "display-hero": ["Inter"], "button-primary": ["Inter"], "caption": ["Inter"], "label-sm": ["Inter"], "button-secondary": ["Inter"], "body-md": ["Inter"], "heading-lg": ["Inter"], "label-md": ["Inter"], "body-lg": ["Inter"], "display-hero-mobile": ["Inter"], "heading-sm": ["Inter"] }, fontSize: { "heading-md": ["22px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600" }], "display-hero": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.025em", "fontWeight": "700" }], "button-primary": ["16px", { "lineHeight": "20px", "letterSpacing": "-0.005em", "fontWeight": "600" }], "caption": ["12px", { "lineHeight": "16px", "fontWeight": "400" }], "label-sm": ["13px", { "lineHeight": "16px", "fontWeight": "500" }], "button-secondary": ["15px", { "lineHeight": "20px", "fontWeight": "500" }], "body-md": ["15px", { "lineHeight": "22px", "fontWeight": "400" }], "heading-lg": ["26px", { "lineHeight": "34px", "letterSpacing": "-0.015em", "fontWeight": "600" }], "label-md": ["14px", { "lineHeight": "18px", "fontWeight": "500" }], "body-lg": ["17px", { "lineHeight": "24px", "fontWeight": "400" }], "display-hero-mobile": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }], "heading-sm": ["18px", { "lineHeight": "24px", "fontWeight": "600" }] } } } };</script><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface-canvas text-text-primary antialiased min-h-screen flex flex-col pt-safe pb-safe"><main class="flex-1 flex flex-col relative w-full bg-surface-canvas"><div class="flex flex-col w-full">
+<!-- Pinned Header / Merchant Identity Deck -->
+<header class="sticky top-0 z-30 bg-surface-container-lowest/95 backdrop-blur-md shadow-sm">
+<div class="flex items-center justify-between px-margin py-space-xs">
+<div class="flex items-center space-x-space-sm min-w-0">
+<button aria-label="Go back" class="p-space-2xs text-on-surface-variant hover:text-on-surface transition-colors flex items-center justify-center -ml-space-2xs" type="button">
+<span class="material-symbols-outlined text-[24px]">arrow_back_ios_new</span>
+</button>
+<!-- Merchant Avatar & Online Dot -->
+<div class="relative flex-shrink-0">
+<img class="w-11 h-11 rounded-full object-cover shadow-sm" data-alt="Warm and modern restaurant logo for Urban Grill and Bistro, featuring golden grill marks and clean typography on a deep charcoal backdrop, modern upscale dining vibe" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD5EHdPBiqV-fejGdf7TrB-SpdnO9l8ryfjfECc9Msgcee0FrhjtKOsn2PseQB9YJKEEbOc85e66uibO6nAuUF6Waz3S9GzRgaIS0-3PD0OzNHLPujNJ926j0imnPdoI9TJMnq6JaYB0t966Cz-cZyMQrpIXpIbx5E3yMyVL08fy4b0CxhBVB-dsBgS0yaMcvCATo-54qmsimsTXjHs4U67SYR7MLASGIlfhXems1kWxMuZjNk3tpUerA">
+<span class="absolute bottom-0 right-0 w-3 h-3 bg-badge-discount-text rounded-full ring-2 ring-surface-container-lowest" title="Active now"></span>
+</div>
+<!-- Identity & Status -->
+<div class="flex flex-col min-w-0">
+<div class="flex items-center space-x-space-2xs">
+<h1 class="font-heading-sm text-heading-sm text-text-primary truncate">Urban Grill &amp; Bistro</h1>
+<span class="material-symbols-outlined text-primary text-[18px] flex-shrink-0" style="font-variation-settings: 'FILL' 1;" title="Verified Merchant">verified</span>
+</div>
+<div class="flex items-center space-x-1 text-badge-discount-text font-caption text-caption truncate">
+<span class="inline-block w-1.5 h-1.5 rounded-full bg-badge-discount-text"></span>
+<span class="font-medium">Active now</span>
+<span class="text-text-tertiary text-[10px]">•</span>
+<span class="text-text-secondary truncate">Replies in &lt; 5m</span>
+</div>
+</div>
+</div>
+<!-- Quick Actions Deck -->
+<div class="flex items-center space-x-1">
+<button aria-label="Call restaurant" class="w-10 h-10 rounded-full flex items-center justify-center text-text-secondary hover:text-primary hover:bg-surface-tint-blue transition-colors" type="button">
+<span class="material-symbols-outlined text-[22px]">call</span>
+</button>
+<button aria-label="More options" class="w-10 h-10 rounded-full flex items-center justify-center text-text-secondary hover:text-primary hover:bg-surface-tint-blue transition-colors" type="button">
+<span class="material-symbols-outlined text-[22px]">more_vert</span>
+</button>
+</div>
+</div>
+<!-- Attached Deal Context Banner (High utility deal pill) -->
+<div class="px-margin pb-space-xs">
+<div class="bg-surface-container-low rounded-xl p-space-sm shadow-sm">
+<div class="flex items-start justify-between gap-space-xs">
+<div class="flex items-start space-x-space-xs min-w-0">
+<div class="w-9 h-9 rounded-lg bg-surface-tint-blue text-primary flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">confirmation_number</span>
+</div>
+<div class="min-w-0 flex flex-col">
+<div class="flex items-center space-x-space-2xs flex-wrap gap-y-1">
+<span class="font-label-sm text-label-sm text-text-primary font-semibold truncate">Lunch Combo — 20% Off</span>
+<span class="px-1.5 py-0.5 rounded-full bg-badge-discount-bg text-badge-discount-text font-caption text-[11px] font-semibold">Save ₦2,400</span>
+</div>
+<p class="text-text-secondary font-caption text-caption mt-0.5">₦9,600 total • Active • Expires in 3 days</p>
+</div>
+</div>
+<button class="flex-shrink-0 flex items-center space-x-0.5 text-primary font-label-sm text-label-sm font-semibold hover:underline pt-0.5" type="button">
+<span>View QR</span>
+<span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</button>
+</div>
+<div class="mt-space-xs pt-space-xs flex items-center justify-between bg-surface-container-lowest rounded-lg px-space-sm py-1.5">
+<div class="flex items-center space-x-1.5">
+<span class="text-text-tertiary font-caption text-[11px] uppercase tracking-wide">Voucher Code:</span>
+<span class="font-label-sm text-label-sm font-bold text-text-primary tracking-wider" id="voucherCodeText">VT-48F2G1</span>
+</div>
+<button class="flex items-center space-x-1 text-primary hover:text-on-primary-fixed-variant transition-colors text-caption font-medium" id="copyCodeBtn" type="button">
+<span class="material-symbols-outlined text-[15px]" id="copyIcon">content_copy</span>
+<span id="copyFeedback">Copy</span>
+</button>
+</div>
+</div>
+</div>
+<!-- VEMTAP In-App Protection Strip -->
+<div class="px-margin pb-space-xs">
+<div class="flex items-center space-x-2 py-1.5 px-space-sm bg-surface-subtle rounded-lg text-text-secondary font-caption text-[11px] leading-tight">
+<span class="material-symbols-outlined text-[16px] text-primary flex-shrink-0" style="font-variation-settings: 'FILL' 1;">verified_user</span>
+<span class="truncate">Protected by VEMTAP Guarantee. Never share payment PINs.</span>
+</div>
+</div>
+</header>
+<!-- Message Stream Canvas -->
+<div class="flex flex-col space-y-space-md px-margin py-space-sm pb- space-y-reverse">
+<!-- Timeline Timestamp -->
+<div class="flex justify-center my-space-xs">
+<span class="bg-surface-container text-on-surface-variant font-caption text-caption px-space-sm py-0.5 rounded-full shadow-sm">
+        Today, 1:24 PM
+      </span>
+</div>
+<!-- Automated Deal Attachment Notice -->
+<div class="flex justify-center">
+<div class="max-w-[85%] bg-surface-container-low rounded-xl px-space-sm py-space-xs text-center shadow-sm">
+<div class="flex items-center justify-center space-x-1 text-primary font-label-sm text-label-sm font-semibold mb-0.5">
+<span class="material-symbols-outlined text-[16px]">share</span>
+<span>Voucher Attached to Chat</span>
+</div>
+<p class="font-caption text-caption text-text-secondary leading-snug">
+          Voucher <span class="font-semibold text-text-primary">VT-48F2G1</span> shared with merchant for Urban Grill &amp; Bistro (Apo Boulevard, Abuja).
+        </p>
+</div>
+</div>
+<!-- Message 1: Customer (Sent, Right-aligned) -->
+<div class="flex flex-col items-end space-y-1 pl-space-xl">
+<div class="bg-primary text-on-primary rounded-2xl rounded-tr-sm p-space-sm shadow-md">
+<p class="font-body-md text-body-md leading-relaxed">
+          Hello! I claimed the 20% Lunch Combo voucher. Do I need to book a table ahead for today around 2:30 PM, or can I just walk in with the voucher QR code?
+        </p>
+</div>
+<div class="flex items-center space-x-1 pr-1">
+<span class="font-caption text-[11px] text-text-tertiary">1:25 PM</span>
+<span class="material-symbols-outlined text-[14px] text-primary" style="font-variation-settings: 'FILL' 1;">done_all</span>
+</div>
+</div>
+<!-- Message 2: Merchant Reply (Received, Left-aligned) -->
+<div class="flex items-start space-x-space-xs pr-space-xl">
+<img class="w-8 h-8 rounded-full object-cover flex-shrink-0 mt-1 shadow-sm" data-alt="Small thumbnail circular logo of Urban Grill and Bistro restaurant Abuja" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCqx_chQxFA1JDezBmai9JKaK2_VSbVcWG08duHTy9WqIStdgSnRn6pcaz-5rHrhL1pgP9lY438PWJMvFXMaclxaL6e0Sy3PsldCXnXOqaU6fTRhjAM2JLQSuSfCZKOfBp9_RpV3csZb5vvbOyeLETSLCGFJ61C0C18Y37Yr4Z_IM012MMWw6T0K1JWaP53ulQqOLC6WWW4qGhB3beje45UjVg29rMTim6FMJ3yRGbjKEQ68j11aGrORg">
+<div class="flex flex-col space-y-1">
+<div class="bg-surface-container-lowest text-text-primary rounded-2xl rounded-tl-sm p-space-sm shadow-sm">
+<div class="flex items-center space-x-1 mb-1">
+<span class="font-label-sm text-[12px] font-semibold text-text-secondary">Urban Grill &amp; Bistro</span>
+<span class="material-symbols-outlined text-primary text-[14px]" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+<p class="font-body-md text-body-md leading-relaxed">
+            Hi John! Welcome to Urban Grill &amp; Bistro. Walk-ins with the VEMTAP voucher are very welcome! We have plenty of indoor and terrace seating available right now.
+          </p>
+</div>
+<span class="font-caption text-[11px] text-text-tertiary pl-2">1:27 PM</span>
+</div>
+</div>
+<!-- Message 3: Merchant Follow-up (Received, Left-aligned) -->
+<div class="flex items-start space-x-space-xs pr-space-xl">
+<div class="w-8 flex-shrink-0"></div> <!-- Spacer aligns with avatar above -->
+<div class="flex flex-col space-y-1">
+<div class="bg-surface-container-lowest text-text-primary rounded-2xl rounded-tl-sm p-space-sm shadow-sm">
+<p class="font-body-md text-body-md leading-relaxed">
+            Just announce your code <span class="font-semibold text-primary bg-surface-tint-blue px-1.5 py-0.5 rounded">VT-48F2G1</span> to your server before placing your order so we apply the ₦2,400 discount immediately to your bill. See you soon! 🍔
+          </p>
+</div>
+<span class="font-caption text-[11px] text-text-tertiary pl-2">1:27 PM</span>
+</div>
+</div>
+<!-- Message 4: Customer Response (Sent, Right-aligned) -->
+<div class="flex flex-col items-end space-y-1 pl-space-xl">
+<div class="bg-primary text-on-primary rounded-2xl rounded-tr-sm p-space-sm shadow-md">
+<p class="font-body-md text-body-md leading-relaxed">
+          Awesome, thank you! On my way now.
+        </p>
+</div>
+<div class="flex items-center space-x-1 pr-1">
+<span class="font-caption text-[11px] text-text-tertiary">1:29 PM</span>
+<span class="material-symbols-outlined text-[14px] text-text-tertiary">check</span>
+</div>
+</div>
+</div>
+<!-- Sticky Bottom Controls Deck -->
+<footer class="sticky bottom-0 z-30 bg-surface-container-lowest/95 backdrop-blur-md shadow-lg pt-space-xs pb-space-sm px-margin flex flex-col space-y-space-xs">
+<!-- Suggested Smart Action Chips -->
+<div class="flex items-center space-x-space-xs overflow-x-auto py-1 -mx-margin px-margin no-scrollbar" style="scrollbar-width: none;">
+<button class="flex-shrink-0 bg-surface-subtle hover:bg-surface-tint-blue text-text-secondary hover:text-primary font-label-sm text-label-sm py-1.5 px-space-sm rounded-full transition-colors flex items-center space-x-1 shadow-sm" type="button">
+<span>Confirm table reservation</span>
+<span>🪑</span>
+</button>
+<button class="flex-shrink-0 bg-surface-subtle hover:bg-surface-tint-blue text-text-secondary hover:text-primary font-label-sm text-label-sm py-1.5 px-space-sm rounded-full transition-colors flex items-center space-x-1 shadow-sm" type="button">
+<span>Redeem voucher question</span>
+<span>🎫</span>
+</button>
+<button class="flex-shrink-0 bg-surface-subtle hover:bg-surface-tint-blue text-text-secondary hover:text-primary font-label-sm text-label-sm py-1.5 px-space-sm rounded-full transition-colors flex items-center space-x-1 shadow-sm" type="button">
+<span>Directions &amp; Parking</span>
+<span>📍</span>
+</button>
+<button class="flex-shrink-0 bg-surface-subtle hover:bg-surface-tint-blue text-text-secondary hover:text-primary font-label-sm text-label-sm py-1.5 px-space-sm rounded-full transition-colors flex items-center space-x-1 shadow-sm" type="button">
+<span>Dietary / Menu query</span>
+<span>🥗</span>
+</button>
+</div>
+<!-- Input Bar Interface -->
+<form class="flex items-center space-x-space-xs" onsubmit="event.preventDefault();">
+<!-- Media / Plus Affordance -->
+<button aria-label="Add attachment or image" class="w-11 h-11 rounded-full bg-surface-container-low text-text-secondary hover:text-primary flex items-center justify-center transition-colors flex-shrink-0" type="button">
+<span class="material-symbols-outlined text-[22px]">add</span>
+</button>
+<!-- Text Input Pill -->
+<div class="flex-1 flex items-center bg-surface-container-low rounded-full px-space-sm py-1.5 focus-within:bg-surface-container-lowest focus-within:shadow-sm transition-all">
+<input class="w-full bg-transparent border-none outline-none font-body-md text-body-md text-text-primary placeholder:text-text-tertiary px-1" id="chatInput" placeholder="Message Urban Grill &amp; Bistro..." type="text">
+<!-- Emoji / Camera Actions inside bar -->
+<button aria-label="Add emoji" class="text-text-tertiary hover:text-text-secondary transition-colors p-1 flex items-center" type="button">
+<span class="material-symbols-outlined text-[20px]">sentiment_satisfied</span>
+</button>
+</div>
+<!-- Action / Send Button -->
+<button aria-label="Send message" class="w-11 h-11 rounded-full bg-primary text-on-primary flex items-center justify-center shadow-md active:scale-95 transition-transform flex-shrink-0" id="sendMessageBtn" type="submit">
+<span class="material-symbols-outlined text-[20px] ml-0.5">send</span>
+</button>
+</form>
+</footer>
+</div>
+<script>
+  (function() {
+    const copyBtn = document.getElementById('copyCodeBtn');
+    const copyIcon = document.getElementById('copyIcon');
+    const copyFeedback = document.getElementById('copyFeedback');
+    const voucherText = document.getElementById('voucherCodeText')?.innerText || 'VT-48F2G1';
+
+    if (copyBtn) {
+      copyBtn.addEventListener('click', function() {
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(voucherText).then(onCopied).catch(fallback);
+        } else {
+          fallback();
+        }
+      });
+    }
+
+    function onCopied() {
+      if (copyIcon && copyFeedback) {
+        copyIcon.textContent = 'check';
+        copyFeedback.textContent = 'Copied!';
+        copyBtn.classList.add('text-badge-discount-text');
+        setTimeout(() => {
+          copyIcon.textContent = 'content_copy';
+          copyFeedback.textContent = 'Copy';
+          copyBtn.classList.remove('text-badge-discount-text');
+        }, 2000);
+      }
+    }
+
+    function fallback() {
+      onCopied();
+    }
+  })();
+</script></main></body></html>

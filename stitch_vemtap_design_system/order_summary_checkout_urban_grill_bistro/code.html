@@ -1,0 +1,353 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{width:100%;margin:0;padding:0;}body{overscroll-behavior-y:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{colors:{"on-secondary-fixed-variant":"#32466f","surface-container-lowest":"#ffffff","on-error-container":"#93000a","primary-container":"#066cf4","on-secondary-fixed":"#001a41","on-primary-container":"#fcfaff","badge-discount-bg":"#ECFDF5","surface-container-highest":"#dce2f7","surface-dim":"#d3daef","on-primary":"#ffffff","primary":"#0055c4","on-secondary-container":"#435881","on-primary-fixed":"#001945","tertiary-fixed":"#ffdbce","inverse-surface":"#293040","tertiary-fixed-dim":"#ffb599","secondary-fixed":"#d8e2ff","inverse-on-surface":"#edf0ff","inverse-primary":"#b0c6ff","on-tertiary":"#ffffff","primary-fixed-dim":"#b0c6ff","text-secondary":"#4B5563","error-container":"#ffdad6","primary-fixed":"#d9e2ff","surface-container-high":"#e1e8fd","badge-discount-text":"#059669","error":"#ba1a1a","on-surface":"#141b2b","secondary-fixed-dim":"#b2c6f7","on-background":"#141b2b","background":"#f9f9ff","on-tertiary-fixed":"#370e00","surface-tint":"#0058cb","border-subtle":"#E5E7EB","secondary":"#4a5e88","on-tertiary-fixed-variant":"#7f2b00","surface-canvas":"#FFFFFF","surface-container-low":"#f1f3ff","on-surface-variant":"#424655","on-tertiary-container":"#fffaf9","secondary-container":"#bacfff","surface-bright":"#f9f9ff","surface":"#f9f9ff","text-tertiary":"#9CA3AF","tertiary-container":"#c94a03","surface-variant":"#dce2f7","surface-tint-blue":"#EEF5FF","on-secondary":"#ffffff","surface-subtle":"#F8FAFC","surface-container":"#e9edff","text-primary":"#111827","border-active":"#BFDBFE","tertiary":"#a13900","outline-variant":"#c2c6d7","on-primary-fixed-variant":"#00429b","outline":"#727786","on-error":"#ffffff"},borderRadius:{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},spacing:{"gutter":"1rem","space-2xl":"2.5rem","space-3xl":"3rem","margin":"1.5rem","space-2xs":"0.25rem","space-xs":"0.5rem","space-sm":"0.75rem","space-lg":"1.5rem","space-xl":"2rem","space-md":"1rem"},fontFamily:{"button-primary":["Inter"],"body-lg":["Inter"],"body-md":["Inter"],"display-hero-mobile":["Inter"],"caption":["Inter"],"display-hero":["Inter"],"heading-md":["Inter"],"button-secondary":["Inter"],"label-md":["Inter"],"label-sm":["Inter"],"heading-lg":["Inter"],"heading-sm":["Inter"]},fontSize:{"button-primary":["16px",{"lineHeight":"20px","letterSpacing":"-0.005em","fontWeight":"600"}],"body-lg":["17px",{"lineHeight":"24px","fontWeight":"400"}],"body-md":["15px",{"lineHeight":"22px","fontWeight":"400"}],"display-hero-mobile":["32px",{"lineHeight":"40px","letterSpacing":"-0.02em","fontWeight":"700"}],"caption":["12px",{"lineHeight":"16px","fontWeight":"400"}],"display-hero":["36px",{"lineHeight":"44px","letterSpacing":"-0.025em","fontWeight":"700"}],"heading-md":["22px",{"lineHeight":"28px","letterSpacing":"-0.01em","fontWeight":"600"}],"button-secondary":["15px",{"lineHeight":"20px","fontWeight":"500"}],"label-md":["14px",{"lineHeight":"18px","fontWeight":"500"}],"label-sm":["13px",{"lineHeight":"16px","fontWeight":"500"}],"heading-lg":["26px",{"lineHeight":"34px","letterSpacing":"-0.015em","fontWeight":"600"}],"heading-sm":["18px",{"lineHeight":"24px","fontWeight":"600"}]}}}};</script><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface text-on-surface font-body-md text-body-md min-h-screen flex flex-col antialiased selection:bg-primary-fixed"><header class="fixed top-0 w-full z-50 pt-safe bg-surface/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-14 px-gutter flex items-center justify-between"><div class="flex items-center gap-space-xs"><button aria-label="Navigate back" class="w-11 h-11 -ml-1 flex items-center justify-center text-on-surface hover:text-primary transition-colors active:scale-95" onclick="history.back()"><span class="material-symbols-outlined text-[24px]">arrow_back_ios_new</span></button><h1 class="font-heading-sm text-heading-sm text-on-surface tracking-tight truncate max-w-[200px]">Order Checkout</h1></div><div class="flex items-center gap-space-2xs"><button aria-label="Share offer" class="w-11 h-11 flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors"><span class="material-symbols-outlined text-[22px]">share</span></button><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex-1 flex flex-col relative w-full pt-14 pb-safe bg-surface"><div class="flex flex-col w-full">
+<section class="px-margin pt-space-xs pb-space-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary-fixed text-on-primary-fixed font-label-sm text-label-sm font-semibold">3</span>
+<span class="font-label-md text-label-md text-text-secondary tracking-tight">Step 3 of 3: Review &amp; Confirm</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-border-subtle"></span>
+<span class="w-1.5 h-1.5 rounded-full bg-border-subtle"></span>
+<span class="w-6 h-1.5 rounded-full bg-primary-container"></span>
+</div>
+</div>
+</section>
+<section class="px-margin mb-space-md">
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm">
+<div class="flex items-center gap-space-sm">
+<div class="w-12 h-12 rounded-lg bg-surface-container flex items-center justify-center text-primary shrink-0 overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A warm and inviting outdoor patio view of Urban Grill bistro in Abuja with natural timber pergolas, lush hanging greenery, soft ambient string lighting, and cozy modern dining chairs under warm golden hour sunlight." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCA8_kMmN6cnVSKGg_FDIm2SzH9HmOHSLTtjZyaZwJWLCj2BHLOAcN6uGA-S-zEwlWFysUhzXoYUu0jeKXAYCupeyY00C-kLrF2n8NObPQMutWhfbBLfZx4Vh8gmU4sEWUIc8SyHTYKkdEVFamZLfN-R8wHGIMBAbWGuSAAY76R6eT6pCMme_X7T3tIL6nUZHfOzG1R8AlYqxsCZ8oa2oSfmEulVSGSL0kw3gcv7AjkQKzyMF06cbCDKw">
+</div>
+<div class="min-w-0 flex-1">
+<div class="flex items-center gap-1">
+<h2 class="font-heading-sm text-heading-sm text-text-primary truncate">Urban Grill &amp; Bistro</h2>
+<span class="material-symbols-outlined text-primary text-[18px]" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+<p class="font-caption text-caption text-text-secondary flex items-center gap-1 truncate">
+<span class="material-symbols-outlined text-[15px] text-text-tertiary">location_on</span>
+            Apo Boulevard, Abuja • 0.6 km away
+          </p>
+</div>
+</div>
+</div>
+</section>
+<section class="px-margin mb-space-md">
+<div class="bg-surface-container-low p-1.5 rounded-xl flex items-center gap-1">
+<button class="flex-1 py-2.5 px-space-xs rounded-lg transition-all duration-200 bg-surface-container-lowest text-primary shadow-sm flex flex-col items-center text-center" id="toggle-pickup" onclick="setFulfillment('pickup')">
+<span class="font-button-secondary text-button-secondary font-semibold flex items-center gap-1">
+<span class="material-symbols-outlined text-[18px]">restaurant</span>
+          Dine-in / Pickup
+        </span>
+<span class="font-caption text-caption text-text-secondary mt-0.5">Pay at cashier</span>
+</button>
+<button class="flex-1 py-2.5 px-space-xs rounded-lg transition-all duration-200 text-text-secondary flex flex-col items-center text-center hover:text-text-primary" id="toggle-delivery" onclick="setFulfillment('delivery')">
+<span class="font-button-secondary text-button-secondary font-medium flex items-center gap-1">
+<span class="material-symbols-outlined text-[18px]">moped</span>
+          Business Delivery
+        </span>
+<span class="font-caption text-caption text-text-tertiary mt-0.5">Pay to dispatch</span>
+</button>
+</div>
+</section>
+<section class="px-margin mb-space-md">
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm space-y-space-md">
+<div class="space-y-space-xs" id="fulfillment-details">
+<div class="flex items-start gap-space-sm bg-surface-tint-blue/60 p-space-sm rounded-lg">
+<div class="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined text-[20px]" id="fulfillment-icon">storefront</span>
+</div>
+<div class="min-w-0 flex-1">
+<p class="font-label-md text-label-md font-semibold text-text-primary" id="time-headline">Ready in ~25 mins (Est. 2:15 PM)</p>
+<p class="font-caption text-caption text-text-secondary" id="location-subline">Plot 104 Apo Boulevard, Ground Floor Food Court</p>
+</div>
+</div>
+</div>
+<div class="space-y-1.5">
+<label class="font-label-sm text-label-sm text-text-secondary flex items-center justify-between" for="contact-phone">
+<span>Customer Contact Number</span>
+<span class="text-primary font-medium flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[14px]">lock</span>Verified
+          </span>
+</label>
+<div class="flex items-center gap-space-xs bg-surface-subtle px-space-md py-3 rounded-lg">
+<span class="material-symbols-outlined text-text-tertiary text-[20px]">call</span>
+<input class="bg-transparent font-body-md text-body-md text-text-primary focus:outline-none w-full" id="contact-phone" readonly="" type="tel" value="+234 802 345 6789">
+<button class="font-label-sm text-label-sm text-primary font-medium px-2 py-0.5 rounded hover:bg-primary-fixed/30 transition-colors" type="button">Edit</button>
+</div>
+</div>
+<div class="space-y-1.5">
+<label class="font-label-sm text-label-sm text-text-secondary" for="order-notes">Kitchen &amp; Seating Note</label>
+<div class="flex items-start gap-space-xs bg-surface-subtle px-space-md py-2.5 rounded-lg">
+<span class="material-symbols-outlined text-text-tertiary text-[20px] mt-0.5">edit_note</span>
+<textarea class="bg-transparent font-body-md text-body-md text-text-primary placeholder:text-text-tertiary focus:outline-none w-full resize-none" id="order-notes" placeholder="e.g. Table #12 if already seated, extra spicy sauce, no onions..." rows="2"></textarea>
+</div>
+</div>
+</div>
+</section>
+<section class="px-margin mb-space-md">
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm">
+<div class="flex items-center justify-between mb-space-sm">
+<h3 class="font-heading-sm text-heading-sm text-text-primary">Ordered Items (3)</h3>
+<span class="font-label-sm text-label-sm text-text-secondary">Direct from Menu</span>
+</div>
+<div class="space-y-space-md">
+<article class="flex gap-space-sm pb-space-sm bg-surface-container-lowest">
+<div class="w-16 h-16 rounded-lg bg-surface-container overflow-hidden shrink-0">
+<img class="w-full h-full object-cover" data-alt="Close up gourmet presentation of a juicy woodfire aged ribeye steak sizzling with rich herb butter glaze, topped with fresh rosemary spring, garnished with truffle parmesan potato wedges and dark peppercorn sauce on rustic dark slate." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBLiU0BwxCqzxxvjwhqsrOd0bppDGBspV8LKyhfEposffX0FLRtsdY09H555nyqsRUlJh2Gljp-0R_EqoGOc-IMhZwkB7FCSlQYC11BTmezLoFH4Scg4hiJWsTchklQTophGV06wJyir_6jbuRxpawRujNzRGZTjrl1dTf8hi6jCm89AT0uUv2H6BpU4bHfFRbZtD_WEWaalU2ZllBhghH6lsqQ_sgpwLovzouY9VK2T-qazcRCcp4FXA">
+</div>
+<div class="min-w-0 flex-1">
+<div class="flex items-start justify-between gap-2">
+<h4 class="font-button-secondary text-button-secondary text-text-primary font-semibold truncate">Woodfire Aged Ribeye Steak</h4>
+<span class="font-button-secondary text-button-secondary font-semibold text-text-primary shrink-0">₦15,200</span>
+</div>
+<p class="font-caption text-caption text-text-secondary mt-0.5">Medium Rare • Truffle Parmesan • Peppercorn Sauce</p>
+<div class="flex items-center gap-2 mt-1.5">
+<span class="font-label-sm text-label-sm text-text-tertiary">Qty: 1</span>
+<span class="w-1 h-1 rounded-full bg-outline-variant"></span>
+<span class="font-caption text-caption text-badge-discount-text font-medium">Eligible for 20% Voucher</span>
+</div>
+</div>
+</article>
+<div class="h-px bg-surface-container"></div>
+<article class="flex gap-space-sm pb-space-sm bg-surface-container-lowest">
+<div class="w-16 h-16 rounded-lg bg-surface-container overflow-hidden shrink-0">
+<img class="w-full h-full object-cover" data-alt="Mouthwatering gourmet smoked double wagyu smash burger with melted aged yellow cheddar cascading down thick juicy patties, crisp lettuce, house brioche bun toasted golden on a bright minimalist ceramic surface." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA1oltMqkIHIZUKLZVk4EFmWGy_9LTaLdJhz9_V8hzW0MpZPWE5rsemIIgFyO5K1QOC6RqpqCngt0e69WR03AJ5mr4iwaGW5QhhUSqj4fvZoysqwOkY312EmjycL1aDb3rKwHjEDSUgrPU2IjotbJVoNx19EEKXZRl28evB0NGTh3zWaOMYyMtt1XWtmHyDyaSOkrPNYQyTGxwpvAHspq6lqRMKKqnr29cf9-uxOrG46VF8-QohuC5QuA">
+</div>
+<div class="min-w-0 flex-1">
+<div class="flex items-start justify-between gap-2">
+<h4 class="font-button-secondary text-button-secondary text-text-primary font-semibold truncate">Smoked Wagyu Double Burger</h4>
+<span class="font-button-secondary text-button-secondary font-semibold text-text-primary shrink-0">₦6,500</span>
+</div>
+<p class="font-caption text-caption text-text-secondary mt-0.5">Extra Cheddar • Fresh Russet Fries included</p>
+<div class="flex items-center gap-2 mt-1.5">
+<span class="font-label-sm text-label-sm text-text-tertiary">Qty: 1</span>
+<span class="w-1 h-1 rounded-full bg-outline-variant"></span>
+<span class="font-caption text-caption text-badge-discount-text font-medium">VEMTAP Special</span>
+</div>
+</div>
+</article>
+<div class="h-px bg-surface-container"></div>
+<article class="flex gap-space-sm bg-surface-container-lowest">
+<div class="w-16 h-16 rounded-lg bg-surface-container overflow-hidden shrink-0">
+<img class="w-full h-full object-cover" data-alt="Chilled artisanal Nigerian hibiscus zobo drink in a tall sleek clear glass carafe with condensation droplets, fresh garden mint sprigs, lime wedge, deep vibrant ruby red color beverage with ambient bright studio lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAQSirtbeLpXfNPFPnh9MfXLhLXDwbjJ1MOxe_IAfzELudoyt1OvI8XSupEZrrRvz95NFlFKmIHMysUkKmjNiPSX-LVMDS4s8owgxbGA7yZi3kDviddcFX6iaMVt1Fq6w8EauNZIPyD4CHKtHtjPeb239UhAJ6zUom80znPvLk01M8PvVB0p15MY85O6kD4y9IPejEW5cm_MFGG7ndFVaexOON1oQbVTp_OdZfaZYqkmqiHk1-bD06Rmg">
+</div>
+<div class="min-w-0 flex-1">
+<div class="flex items-start justify-between gap-2">
+<h4 class="font-button-secondary text-button-secondary text-text-primary font-semibold truncate">Hibiscus Zobo &amp; Mint Fizz</h4>
+<span class="font-button-secondary text-button-secondary font-semibold text-text-primary shrink-0">₦2,500</span>
+</div>
+<p class="font-caption text-caption text-text-secondary mt-0.5">500ml • Chilled with fresh crushed mint</p>
+<div class="flex items-center gap-2 mt-1.5">
+<span class="font-label-sm text-label-sm text-text-tertiary">Qty: 1</span>
+</div>
+</div>
+</article>
+</div>
+</div>
+</section>
+<section class="px-margin mb-space-md">
+<div class="bg-badge-discount-bg rounded-xl p-space-md shadow-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="w-7 h-7 rounded-full bg-badge-discount-text/10 flex items-center justify-center text-badge-discount-text">
+<span class="material-symbols-outlined text-[18px]">confirmation_number</span>
+</span>
+<div>
+<p class="font-label-md text-label-md font-semibold text-badge-discount-text tracking-tight">20% OFF Deal Voucher APPLIED</p>
+<p class="font-caption text-caption text-text-secondary">Code: <span class="font-mono font-semibold text-text-primary">VT-48F261</span> • Lifetime VEMTAP Tap</p>
+</div>
+</div>
+<span class="bg-surface-canvas text-badge-discount-text font-label-sm text-label-sm font-semibold px-2 py-1 rounded-full shadow-sm">-₦3,040</span>
+</div>
+</div>
+</section>
+<section class="px-margin mb-space-md">
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm space-y-space-xs">
+<h3 class="font-label-md text-label-md font-semibold text-text-primary mb-space-xs">Bill &amp; Settlement Breakdown</h3>
+<div class="flex justify-between font-body-md text-body-md text-text-secondary">
+<span>Items Subtotal (3 items)</span>
+<span class="text-text-primary font-medium">₦24,200</span>
+</div>
+<div class="flex justify-between font-body-md text-body-md text-badge-discount-text font-medium">
+<span class="flex items-center gap-1">
+<span>VEMTAP Deal Savings (20%)</span>
+<span class="material-symbols-outlined text-[16px]">check_circle</span>
+</span>
+<span>-₦3,040</span>
+</div>
+<div class="flex justify-between font-body-md text-body-md text-text-secondary">
+<span class="flex items-center gap-1">
+          Restaurant Service Fee
+          <span class="material-symbols-outlined text-text-tertiary text-[15px]" title="Zero platform markups on VEMTAP">info</span>
+</span>
+<span class="text-badge-discount-text font-medium">₦0 (No Markup)</span>
+</div>
+<div class="hidden justify-between font-body-md text-body-md text-text-secondary" id="delivery-fee-row">
+<span>Direct Dispatch Logistics</span>
+<span class="text-text-primary font-medium">₦1,000</span>
+</div>
+<div class="h-px bg-surface-container my-space-xs"></div>
+<div class="flex justify-between items-baseline pt-1">
+<div>
+<p class="font-heading-sm text-heading-sm text-text-primary">Total Payable to Merchant</p>
+<p class="font-caption text-caption text-text-secondary">Direct settlement at cashier / upon drop-off</p>
+</div>
+<span class="font-heading-lg text-heading-lg text-primary font-bold tracking-tight" id="total-amount-display">₦21,160</span>
+</div>
+</div>
+</section>
+<section class="px-margin mb-space-xl">
+<div class="bg-surface-container-high rounded-xl p-space-md shadow-sm">
+<div class="flex items-start gap-space-sm">
+<span class="material-symbols-outlined text-primary text-[24px] shrink-0 mt-0.5">account_balance_wallet</span>
+<div class="space-y-1">
+<h4 class="font-label-md text-label-md font-bold text-on-surface">Pay Directly to Urban Grill</h4>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+            VEMTAP guarantees your deal discount and reserves your food, but never collects customer card funds. You will pay <strong class="text-on-surface font-semibold" id="callout-total">₦21,160</strong> directly via <span class="font-semibold text-on-surface">POS Card Swipe, Cash, or Direct Bank Transfer</span>.
+          </p>
+<div class="pt-2 flex flex-wrap items-center gap-2">
+<span class="inline-flex items-center gap-1 px-2 py-1 rounded bg-surface-container-lowest text-text-secondary font-caption text-caption">
+<span class="material-symbols-outlined text-[14px]">point_of_sale</span>POS Terminal Ready
+            </span>
+<span class="inline-flex items-center gap-1 px-2 py-1 rounded bg-surface-container-lowest text-text-secondary font-caption text-caption">
+<span class="material-symbols-outlined text-[14px]">payments</span>Cash Accepted
+            </span>
+<span class="inline-flex items-center gap-1 px-2 py-1 rounded bg-surface-container-lowest text-text-secondary font-caption text-caption">
+<span class="material-symbols-outlined text-[14px]">account_balance</span>Bank App Transfer
+            </span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<div class="sticky bottom-0 left-0 right-0 z-30 bg-surface-container-lowest/95 backdrop-blur-md px-margin py-space-sm shadow-[0_-8px_24px_-4px_rgba(17,24,39,0.08)]">
+<div class="flex items-center justify-between mb-2">
+<div>
+<p class="font-caption text-caption text-text-secondary uppercase tracking-wider font-semibold">Total to Pay Business</p>
+<p class="font-heading-md text-heading-md font-bold text-text-primary" id="bottom-bar-price">₦21,160</p>
+</div>
+<div class="flex items-center gap-1 bg-surface-tint-blue px-2.5 py-1 rounded-full text-primary font-label-sm text-label-sm font-medium">
+<span class="material-symbols-outlined text-[16px]">local_offer</span>
+        Saved ₦3,040
+      </div>
+</div>
+<button class="w-full h-[52px] bg-primary-container hover:bg-primary active:scale-[0.99] transition-all rounded-xl text-on-primary font-button-primary text-button-primary flex items-center justify-center gap-2 shadow-[0_8px_24px_-4px_rgba(6,108,244,0.3)]" id="submit-order-btn" onclick="triggerOrderConfirmation()">
+<span>Place Order with Urban Grill</span>
+<span class="material-symbols-outlined text-[20px]">arrow_forward</span>
+</button>
+<p class="font-caption text-caption text-center text-text-tertiary mt-2">
+      By placing order you confirm your reservation with the business.
+    </p>
+</div>
+<div class="fixed inset-0 z-50 bg-inverse-surface/60 backdrop-blur-xs hidden items-center justify-center p-space-md" id="confirmation-dialog">
+<div class="bg-surface-container-lowest w-full max-w-sm rounded-xl p-space-lg shadow-xl text-center space-y-space-sm transform transition-transform scale-95 duration-200" id="dialog-panel">
+<div class="w-16 h-16 rounded-full bg-badge-discount-bg text-badge-discount-text mx-auto flex items-center justify-center">
+<span class="material-symbols-outlined text-[36px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<h3 class="font-heading-sm text-heading-sm text-text-primary">Order Transmitted to Kitchen!</h3>
+<p class="font-body-md text-body-md text-text-secondary">Urban Grill &amp; Bistro has acknowledged your ticket. Please present your VEMTAP voucher reference <span class="font-mono font-semibold text-text-primary">VT-48F261</span> upon payment.</p>
+<div class="bg-surface-subtle p-space-sm rounded-lg text-left text-text-secondary font-caption text-caption space-y-1">
+<div class="flex justify-between">
+<span>Ticket Ref:</span>
+<span class="font-mono font-medium text-text-primary">#UG-8821</span>
+</div>
+<div class="flex justify-between">
+<span>Expected by:</span>
+<span class="font-medium text-text-primary">2:15 PM</span>
+</div>
+<div class="flex justify-between">
+<span>Settlement:</span>
+<span class="font-medium text-primary" id="dialog-settlement">₦21,160</span>
+</div>
+</div>
+<button class="w-full h-11 bg-primary text-on-primary font-button-secondary text-button-secondary rounded-lg font-semibold hover:bg-primary-container transition-colors" onclick="closeConfirmationDialog()">
+        View Active Order Status
+      </button>
+</div>
+</div>
+<script>
+    let currentMode = 'pickup';
+
+    function setFulfillment(mode) {
+      currentMode = mode;
+      const pickupBtn = document.getElementById('toggle-pickup');
+      const deliveryBtn = document.getElementById('toggle-delivery');
+      const timeHeadline = document.getElementById('time-headline');
+      const locationSubline = document.getElementById('location-subline');
+      const icon = document.getElementById('fulfillment-icon');
+      const deliveryFeeRow = document.getElementById('delivery-fee-row');
+      const totalAmountDisplay = document.getElementById('total-amount-display');
+      const bottomBarPrice = document.getElementById('bottom-bar-price');
+      const calloutTotal = document.getElementById('callout-total');
+      const dialogSettlement = document.getElementById('dialog-settlement');
+
+      if (mode === 'pickup') {
+        pickupBtn.className = 'flex-1 py-2.5 px-space-xs rounded-lg transition-all duration-200 bg-surface-container-lowest text-primary shadow-sm flex flex-col items-center text-center';
+        pickupBtn.querySelector('span:first-child').className = 'font-button-secondary text-button-secondary font-semibold flex items-center gap-1';
+        pickupBtn.querySelector('span:last-child').className = 'font-caption text-caption text-text-secondary mt-0.5';
+
+        deliveryBtn.className = 'flex-1 py-2.5 px-space-xs rounded-lg transition-all duration-200 text-text-secondary flex flex-col items-center text-center hover:text-text-primary';
+        deliveryBtn.querySelector('span:first-child').className = 'font-button-secondary text-button-secondary font-medium flex items-center gap-1';
+        deliveryBtn.querySelector('span:last-child').className = 'font-caption text-caption text-text-tertiary mt-0.5';
+
+        timeHeadline.textContent = 'Ready in ~25 mins (Est. 2:15 PM)';
+        locationSubline.textContent = 'Plot 104 Apo Boulevard, Ground Floor Food Court';
+        icon.textContent = 'storefront';
+        deliveryFeeRow.classList.add('hidden');
+        deliveryFeeRow.classList.remove('flex');
+
+        totalAmountDisplay.textContent = '₦21,160';
+        bottomBarPrice.textContent = '₦21,160';
+        calloutTotal.textContent = '₦21,160';
+        dialogSettlement.textContent = '₦21,160';
+      } else {
+        deliveryBtn.className = 'flex-1 py-2.5 px-space-xs rounded-lg transition-all duration-200 bg-surface-container-lowest text-primary shadow-sm flex flex-col items-center text-center';
+        deliveryBtn.querySelector('span:first-child').className = 'font-button-secondary text-button-secondary font-semibold flex items-center gap-1';
+        deliveryBtn.querySelector('span:last-child').className = 'font-caption text-caption text-text-secondary mt-0.5';
+
+        pickupBtn.className = 'flex-1 py-2.5 px-space-xs rounded-lg transition-all duration-200 text-text-secondary flex flex-col items-center text-center hover:text-text-primary';
+        pickupBtn.querySelector('span:first-child').className = 'font-button-secondary text-button-secondary font-medium flex items-center gap-1';
+        pickupBtn.querySelector('span:last-child').className = 'font-caption text-caption text-text-tertiary mt-0.5';
+
+        timeHeadline.textContent = 'Direct Dispatch by Urban Grill Staff';
+        locationSubline.textContent = 'Delivering to Apo District (within 45 mins)';
+        icon.textContent = 'two_wheeler';
+        deliveryFeeRow.classList.remove('hidden');
+        deliveryFeeRow.classList.add('flex');
+
+        totalAmountDisplay.textContent = '₦22,160';
+        bottomBarPrice.textContent = '₦22,160';
+        calloutTotal.textContent = '₦22,160';
+        dialogSettlement.textContent = '₦22,160';
+      }
+    }
+
+    function triggerOrderConfirmation() {
+      const dialog = document.getElementById('confirmation-dialog');
+      const panel = document.getElementById('dialog-panel');
+      dialog.classList.remove('hidden');
+      dialog.classList.add('flex');
+      setTimeout(() => {
+        panel.classList.remove('scale-95');
+        panel.classList.add('scale-100');
+      }, 10);
+    }
+
+    function closeConfirmationDialog() {
+      const dialog = document.getElementById('confirmation-dialog');
+      const panel = document.getElementById('dialog-panel');
+      panel.classList.remove('scale-100');
+      panel.classList.add('scale-95');
+      setTimeout(() => {
+        dialog.classList.add('hidden');
+        dialog.classList.remove('flex');
+      }, 150);
+    }
+  </script>
+</div></main></body></html>

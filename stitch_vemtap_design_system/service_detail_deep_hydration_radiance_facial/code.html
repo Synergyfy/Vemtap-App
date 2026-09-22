@@ -1,0 +1,290 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{width:100%;margin:0;padding:0;}body{overscroll-behavior-y:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{colors:{"on-secondary-fixed-variant":"#32466f","surface-container-lowest":"#ffffff","on-error-container":"#93000a","primary-container":"#066cf4","on-secondary-fixed":"#001a41","on-primary-container":"#fcfaff","badge-discount-bg":"#ECFDF5","surface-container-highest":"#dce2f7","surface-dim":"#d3daef","on-primary":"#ffffff","primary":"#0055c4","on-secondary-container":"#435881","on-primary-fixed":"#001945","tertiary-fixed":"#ffdbce","inverse-surface":"#293040","tertiary-fixed-dim":"#ffb599","secondary-fixed":"#d8e2ff","inverse-on-surface":"#edf0ff","inverse-primary":"#b0c6ff","on-tertiary":"#ffffff","primary-fixed-dim":"#b0c6ff","text-secondary":"#4B5563","error-container":"#ffdad6","primary-fixed":"#d9e2ff","surface-container-high":"#e1e8fd","badge-discount-text":"#059669","error":"#ba1a1a","on-surface":"#141b2b","secondary-fixed-dim":"#b2c6f7","on-background":"#141b2b","background":"#f9f9ff","on-tertiary-fixed":"#370e00","surface-tint":"#0058cb","border-subtle":"#E5E7EB","secondary":"#4a5e88","on-tertiary-fixed-variant":"#7f2b00","surface-canvas":"#FFFFFF","surface-container-low":"#f1f3ff","on-surface-variant":"#424655","on-tertiary-container":"#fffaf9","secondary-container":"#bacfff","surface-bright":"#f9f9ff","surface":"#f9f9ff","text-tertiary":"#9CA3AF","tertiary-container":"#c94a03","surface-variant":"#dce2f7","surface-tint-blue":"#EEF5FF","on-secondary":"#ffffff","surface-subtle":"#F8FAFC","surface-container":"#e9edff","text-primary":"#111827","border-active":"#BFDBFE","tertiary":"#a13900","outline-variant":"#c2c6d7","on-primary-fixed-variant":"#00429b","outline":"#727786","on-error":"#ffffff"},borderRadius:{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},spacing:{"gutter":"1rem","space-2xl":"2.5rem","space-3xl":"3rem","margin":"1.5rem","space-2xs":"0.25rem","space-xs":"0.5rem","space-sm":"0.75rem","space-lg":"1.5rem","space-xl":"2rem","space-md":"1rem"},fontFamily:{"button-primary":["Inter"],"body-lg":["Inter"],"body-md":["Inter"],"display-hero-mobile":["Inter"],"caption":["Inter"],"display-hero":["Inter"],"heading-md":["Inter"],"button-secondary":["Inter"],"label-md":["Inter"],"label-sm":["Inter"],"heading-lg":["Inter"],"heading-sm":["Inter"]},fontSize:{"button-primary":["16px",{"lineHeight":"20px","letterSpacing":"-0.005em","fontWeight":"600"}],"body-lg":["17px",{"lineHeight":"24px","fontWeight":"400"}],"body-md":["15px",{"lineHeight":"22px","fontWeight":"400"}],"display-hero-mobile":["32px",{"lineHeight":"40px","letterSpacing":"-0.02em","fontWeight":"700"}],"caption":["12px",{"lineHeight":"16px","fontWeight":"400"}],"display-hero":["36px",{"lineHeight":"44px","letterSpacing":"-0.025em","fontWeight":"700"}],"heading-md":["22px",{"lineHeight":"28px","letterSpacing":"-0.01em","fontWeight":"600"}],"button-secondary":["15px",{"lineHeight":"20px","fontWeight":"500"}],"label-md":["14px",{"lineHeight":"18px","fontWeight":"500"}],"label-sm":["13px",{"lineHeight":"16px","fontWeight":"500"}],"heading-lg":["26px",{"lineHeight":"34px","letterSpacing":"-0.015em","fontWeight":"600"}],"heading-sm":["18px",{"lineHeight":"24px","fontWeight":"600"}]}}}};</script><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface text-on-surface font-body-md text-body-md min-h-screen flex flex-col antialiased selection:bg-primary-fixed"><header class="fixed top-0 w-full z-50 pt-safe bg-surface/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-14 px-gutter flex items-center justify-between"><div class="flex items-center gap-space-xs"><button aria-label="Navigate back" class="w-11 h-11 -ml-1 flex items-center justify-center text-on-surface hover:text-primary transition-colors active:scale-95" onclick="history.back()"><span class="material-symbols-outlined text-[24px]">arrow_back_ios_new</span></button><h1 class="font-heading-sm text-heading-sm text-on-surface tracking-tight truncate max-w-[200px]">Deal Detail</h1></div><div class="flex items-center gap-space-2xs"><button aria-label="Share offer" class="w-11 h-11 flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors"><span class="material-symbols-outlined text-[22px]">share</span></button><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex-1 flex flex-col relative w-full pt-14 pb-safe bg-surface"><div class="flex flex-col w-full pb-32">
+<!-- Top Visual Gallery Section -->
+<div class="relative w-full aspect-[4/3] bg-surface-container-high overflow-hidden">
+<div class="w-full h-full bg-cover bg-center transition-transform duration-700 ease-out" data-alt="Close up serene photograph of a woman receiving an aesthetic deep hydration radiance facial at a luxury spa. Soft morning sunlight, botanical mist, pristine white linen, fresh natural radiant skin, subtle gold and warm neutral ambient tones with serene spa atmosphere." id="hero-carousel-item" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAl7yheUR6DwX6PXu-LZ4cNT9HwzgJoFViDeFGFfamoR5iUd4Hoh5BS-4gQUhekn4wuKFsjSj0cfzjUGRiy0ycA9Rxr-DV9yqJgHQfu9oqwJnyvcrsk0grPxsoPNo5lLDVm50v6UJhHRmert518Bjwq47lwOAok7ppdHLhxh3SmjTTN65AlD59t7JmuWa2c-ywpvrz8fUMiiwTCfp02UKUgbk9qnm3ZKMyN_pErr5w34UTR9HFMdiIkng')">
+<div class="absolute inset-0 bg-gradient-to-t from-inverse-surface/80 via-transparent to-black/25"></div>
+</div>
+<!-- Category Floating Pill -->
+<div class="absolute top-4 left-4 z-10">
+<span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-container-lowest/90 backdrop-blur-md text-primary font-label-sm text-label-sm shadow-sm">
+<span class="material-symbols-outlined text-[16px]">spa</span>
+        Aesthetic Skin Care
+      </span>
+</div>
+<!-- Gallery Control Dots -->
+<div class="absolute bottom-4 left-0 right-0 flex justify-center items-center gap-1.5 z-10" id="gallery-dots">
+<span class="w-6 h-1.5 rounded-full bg-surface-container-lowest transition-all duration-300"></span>
+<span class="w-1.5 h-1.5 rounded-full bg-surface-container-lowest/50 transition-all duration-300"></span>
+<span class="w-1.5 h-1.5 rounded-full bg-surface-container-lowest/50 transition-all duration-300"></span>
+</div>
+</div>
+<!-- Content Stream -->
+<div class="px-margin flex flex-col gap-space-lg -mt-3 relative z-20">
+<!-- Card 1: Core Service Overview -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col gap-space-sm">
+<!-- Merchant Chip -->
+<div class="inline-flex items-center gap-1.5 text-on-surface-variant font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-primary text-[18px]">storefront</span>
+<span class="truncate font-button-secondary text-button-secondary text-text-primary">Glow &amp; Serenity Spa &amp; Salon</span>
+<span class="text-text-tertiary">•</span>
+<span class="text-text-secondary whitespace-nowrap">Maitama Heights (1.4 km)</span>
+</div>
+<!-- Service Title -->
+<h2 class="font-heading-lg text-heading-lg text-on-surface tracking-tight leading-tight">
+        Deep Hydration Radiance Facial
+      </h2>
+<!-- Badges Row -->
+<div class="flex items-center flex-wrap gap-space-xs pt-0.5">
+<div class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface-subtle text-text-secondary font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[16px] text-text-secondary">schedule</span>
+<span>60 Mins</span>
+</div>
+<div class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface-subtle text-on-surface font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[16px] text-amber-500" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="font-button-secondary text-button-secondary">4.9</span>
+<span class="text-text-tertiary">(96 reviews)</span>
+</div>
+<div class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface-subtle text-text-secondary font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[16px] text-text-secondary">group</span>
+<span>Unisex</span>
+</div>
+</div>
+<!-- Pricing Row -->
+<div class="pt-2 flex items-baseline justify-between">
+<div class="flex items-baseline gap-2">
+<span class="font-display-hero-mobile text-display-hero-mobile text-primary tracking-tight font-bold">₦16,000</span>
+<span class="font-body-md text-body-md text-text-tertiary line-through">₦20,000</span>
+</div>
+<div class="px-2.5 py-1 rounded-full bg-badge-discount-bg text-badge-discount-text font-label-sm text-label-sm font-semibold">
+          Save 20% with VEMTAP
+        </div>
+</div>
+</div>
+<!-- Card 2: Treatment Process Steps -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col gap-space-md">
+<div class="flex items-center justify-between">
+<h3 class="font-heading-sm text-heading-sm text-on-surface">What's Included</h3>
+<span class="text-primary font-label-sm text-label-sm">5 Steps Protocol</span>
+</div>
+<div class="relative flex flex-col gap-space-md pl-2">
+<!-- Connecting subtle track -->
+<div class="absolute left-[19px] top-3 bottom-5 w-0.5 bg-surface-container-high"></div>
+<!-- Step 1 -->
+<div class="relative flex items-start gap-3.5">
+<div class="w-6 h-6 rounded-full bg-primary text-on-primary flex items-center justify-center font-label-sm text-label-sm shrink-0 z-10 shadow-sm">
+            1
+          </div>
+<div class="flex flex-col pt-0.5">
+<span class="font-button-secondary text-button-secondary text-on-surface">Deep pore ultrasonic cleansing</span>
+<span class="font-body-md text-body-md text-on-surface-variant">Purifying wash paired with soothing warm botanical steam.</span>
+</div>
+</div>
+<!-- Step 2 -->
+<div class="relative flex items-start gap-3.5">
+<div class="w-6 h-6 rounded-full bg-primary text-on-primary flex items-center justify-center font-label-sm text-label-sm shrink-0 z-10 shadow-sm">
+            2
+          </div>
+<div class="flex flex-col pt-0.5">
+<span class="font-button-secondary text-button-secondary text-on-surface">Gentle diamond-tip micro-exfoliation</span>
+<span class="font-body-md text-body-md text-on-surface-variant">Buffs away dead cells to prep the dermal layer for nutrients.</span>
+</div>
+</div>
+<!-- Step 3 -->
+<div class="relative flex items-start gap-3.5">
+<div class="w-6 h-6 rounded-full bg-primary text-on-primary flex items-center justify-center font-label-sm text-label-sm shrink-0 z-10 shadow-sm">
+            3
+          </div>
+<div class="flex flex-col pt-0.5">
+<span class="font-button-secondary text-button-secondary text-on-surface">Hyaluronic infusion &amp; cryo therapy</span>
+<span class="font-body-md text-body-md text-on-surface-variant">Cold-hammer lock-in seals moisture and tightens pores instantly.</span>
+</div>
+</div>
+<!-- Step 4 -->
+<div class="relative flex items-start gap-3.5">
+<div class="w-6 h-6 rounded-full bg-primary text-on-primary flex items-center justify-center font-label-sm text-label-sm shrink-0 z-10 shadow-sm">
+            4
+          </div>
+<div class="flex flex-col pt-0.5">
+<span class="font-button-secondary text-button-secondary text-on-surface">Lymphatic pressure-point massage</span>
+<span class="font-body-md text-body-md text-on-surface-variant">Focused neck and shoulder release to detox and de-stress.</span>
+</div>
+</div>
+<!-- Step 5 -->
+<div class="relative flex items-start gap-3.5">
+<div class="w-6 h-6 rounded-full bg-primary text-on-primary flex items-center justify-center font-label-sm text-label-sm shrink-0 z-10 shadow-sm">
+            5
+          </div>
+<div class="flex flex-col pt-0.5">
+<span class="font-button-secondary text-button-secondary text-on-surface">Custom collagen sheet &amp; SPF finish</span>
+<span class="font-body-md text-body-md text-on-surface-variant">Shields against UV and locks in an unmistakable dewy glow.</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Card 3: Enhancements / Add-ons -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<h3 class="font-heading-sm text-heading-sm text-on-surface">Enhance Your Session</h3>
+<span class="font-caption text-caption text-text-tertiary">Optional</span>
+</div>
+<p class="font-caption text-caption text-on-surface-variant -mt-1">Tailor your appointment with customized aesthetic boosters.</p>
+<div class="flex flex-col gap-2 pt-1" id="addons-container">
+<!-- Addon 1 -->
+<label class="flex items-start justify-between p-3 rounded-xl bg-surface-container-low cursor-pointer transition-all duration-150 active:scale-[0.99] select-none">
+<div class="flex items-start gap-3">
+<input class="addon-toggle mt-1 w-5 h-5 rounded accent-primary cursor-pointer" data-price="4000" type="checkbox">
+<div class="flex flex-col">
+<span class="font-button-secondary text-button-secondary text-on-surface">LED Light Therapy</span>
+<span class="font-caption text-caption text-on-surface-variant">Reduces redness &amp; accelerates collagen synthesis</span>
+</div>
+</div>
+<span class="font-label-md text-label-md text-primary font-semibold whitespace-nowrap pl-2">+₦4,000</span>
+</label>
+<!-- Addon 2 -->
+<label class="flex items-start justify-between p-3 rounded-xl bg-surface-container-low cursor-pointer transition-all duration-150 active:scale-[0.99] select-none">
+<div class="flex items-start gap-3">
+<input class="addon-toggle mt-1 w-5 h-5 rounded accent-primary cursor-pointer" data-price="3000" type="checkbox">
+<div class="flex flex-col">
+<span class="font-button-secondary text-button-secondary text-on-surface">Hydrating Eye &amp; Lip Contour</span>
+<span class="font-caption text-caption text-on-surface-variant">Plumps delicate lines and brightens dark eye zones</span>
+</div>
+</div>
+<span class="font-label-md text-label-md text-primary font-semibold whitespace-nowrap pl-2">+₦3,000</span>
+</label>
+<!-- Addon 3 -->
+<label class="flex items-start justify-between p-3 rounded-xl bg-surface-container-low cursor-pointer transition-all duration-150 active:scale-[0.99] select-none">
+<div class="flex items-start gap-3">
+<input class="addon-toggle mt-1 w-5 h-5 rounded accent-primary cursor-pointer" data-price="3500" type="checkbox">
+<div class="flex flex-col">
+<span class="font-button-secondary text-button-secondary text-on-surface">Aromatherapy Scalp Massage</span>
+<span class="font-caption text-caption text-on-surface-variant">15 mins organic lavender and rosemary tension release</span>
+</div>
+</div>
+<span class="font-label-md text-label-md text-primary font-semibold whitespace-nowrap pl-2">+₦3,500</span>
+</label>
+</div>
+</div>
+<!-- Card 4: Specialist / Therapist Selection -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<h3 class="font-heading-sm text-heading-sm text-on-surface">Therapist Selection</h3>
+<span class="font-caption text-caption text-text-secondary">Instant match</span>
+</div>
+<div class="flex gap-space-sm overflow-x-auto pb-1 pt-1 -mx-2 px-2 no-scrollbar" id="therapist-list">
+<!-- Therapist Option 1 (Selected default) -->
+<button class="therapist-btn flex flex-col items-center p-3 rounded-xl bg-surface-tint-blue text-center min-w-[130px] shrink-0 transition-transform active:scale-95 text-left" data-selected="true" type="button">
+<div class="w-12 h-12 rounded-full bg-primary text-on-primary flex items-center justify-center mb-2 shadow-sm">
+<span class="material-symbols-outlined text-[24px]">bolt</span>
+</div>
+<span class="font-button-secondary text-button-secondary text-on-surface font-semibold truncate w-full">Any Available</span>
+<span class="font-caption text-caption text-primary">Fastest Booking</span>
+</button>
+<!-- Therapist Option 2 -->
+<button class="therapist-btn flex flex-col items-center p-3 rounded-xl bg-surface-subtle text-center min-w-[130px] shrink-0 transition-transform active:scale-95 text-left" data-selected="false" type="button">
+<div class="relative w-12 h-12 rounded-full overflow-hidden mb-2 bg-surface-container-high">
+<img class="w-full h-full object-cover" data-alt="Professional warm portrait of Amara, an experienced African female aesthetician in pristine white medical spa uniform smiling gently against a clean soft clinic background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB18reJGUH9T_8snKmyIFtaIiMR49aB7Gs6wfA5dEb9Fpnsu6A0ookTH4jJfJWXYEw5bz48TZKmd-0rRZK1-Y_VT0LWzZ_Y3L9dwosl1W9-dPX6Ub5ujPFrNi5bXS65JikqIou7ph0fHjWeJlBv_JTTebWo030h46-fGrpw4U_4IrTeuJC3RUBXODEgJGbYb-JQsDWA6vOJhbXQ1Edn8UlCSif1yPTxm3fgaHDjAQxmvpBywNMQ-VvuuQ">
+</div>
+<span class="font-button-secondary text-button-secondary text-on-surface font-semibold truncate w-full">Amara K.</span>
+<span class="font-caption text-caption text-text-secondary truncate w-full">Lead Aesthetician</span>
+</button>
+<!-- Therapist Option 3 -->
+<button class="therapist-btn flex flex-col items-center p-3 rounded-xl bg-surface-subtle text-center min-w-[130px] shrink-0 transition-transform active:scale-95 text-left" data-selected="false" type="button">
+<div class="relative w-12 h-12 rounded-full overflow-hidden mb-2 bg-surface-container-high">
+<img class="w-full h-full object-cover" data-alt="Close up professional portrait of Chioma, an expert African skincare specialist with natural glowing skin wearing an aesthetic clinic coat." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA9v2TFrdvKRXGGF85l0t6M-KKJxARbic0PG92BPLB1xFkWPvHnDe89TVbObbjmfq0r-kkKPquWgUB3fPjIvFvXYZVIKfSKRWc0THMA1m6Mt_U-vwBYwaw5cNrIEO4GgBBkimpit5C4XGHvMCi5fbuVdPtb_LvASV5sCtc_4gz33L4l0fiZVwRqKmpPF0LIzhboFcny_6W-0hMwzR-swsIFvEFJhtKhnmhAs9D74hu9qDO0JOfkVCtRcA">
+</div>
+<span class="font-button-secondary text-button-secondary text-on-surface font-semibold truncate w-full">Chioma B.</span>
+<span class="font-caption text-caption text-text-secondary truncate w-full">Skin Specialist</span>
+</button>
+</div>
+</div>
+<!-- Card 5: Policies & Preparation Notes -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col gap-space-sm mb-4">
+<h3 class="font-heading-sm text-heading-sm text-on-surface">Important Information</h3>
+<div class="flex flex-col gap-3">
+<div class="flex items-start gap-2.5">
+<span class="material-symbols-outlined text-primary text-[20px] shrink-0 mt-0.5">timelapse</span>
+<span class="font-body-md text-body-md text-on-surface-variant">Please arrive <strong>10 minutes prior</strong> to your scheduled session to complete brief skin intake.</span>
+</div>
+<div class="flex items-start gap-2.5">
+<span class="material-symbols-outlined text-primary text-[20px] shrink-0 mt-0.5">verified_user</span>
+<span class="font-body-md text-body-md text-on-surface-variant"><strong>Cancellation policy:</strong> Free reschedule up to 2 hours before your appointment.</span>
+</div>
+<div class="flex items-start gap-2.5">
+<span class="material-symbols-outlined text-primary text-[20px] shrink-0 mt-0.5">qr_code_2</span>
+<span class="font-body-md text-body-md text-on-surface-variant"><strong>Redemption:</strong> Present your VEMTAP voucher confirmation code at the reception desk.</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Pinned Bottom Floating Deck -->
+<div class="fixed bottom-0 left-0 right-0 z-40 bg-surface-container-lowest/95 backdrop-blur-xl shadow-[0_-4px_24px_rgba(0,0,0,0.06)] pb-safe">
+<div class="max-w-[480px] mx-auto px-margin py-3 flex items-center justify-between gap-space-sm">
+<div class="flex flex-col min-w-0">
+<span class="font-caption text-caption text-text-secondary uppercase tracking-wider font-semibold">Total Price</span>
+<div class="flex items-baseline gap-1.5 truncate">
+<span class="font-heading-lg text-heading-lg text-primary tracking-tight font-bold" id="bottom-total-price">₦16,000</span>
+<span class="font-caption text-caption text-text-tertiary">• 60m</span>
+</div>
+</div>
+<button class="flex-1 max-w-[240px] h-[52px] bg-primary text-on-primary rounded-xl font-button-primary text-button-primary flex items-center justify-center gap-1.5 shadow-[0_8px_24px_-4px_rgba(6,108,244,0.3)] active:bg-primary-container active:scale-[0.98] transition-all" id="book-now-button" type="button">
+<span>Book Appointment</span>
+<span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+<script>
+  (function initServiceDetail() {
+    const basePrice = 16000;
+    const priceDisplay = document.getElementById('bottom-total-price');
+    const addonCheckboxes = document.querySelectorAll('.addon-toggle');
+    const therapistButtons = document.querySelectorAll('.therapist-btn');
+    const bookBtn = document.getElementById('book-now-button');
+
+    function calculateTotal() {
+      let addOnTotal = 0;
+      addonCheckboxes.forEach(cb => {
+        if (cb.checked) {
+          addOnTotal += parseInt(cb.getAttribute('data-price') || '0', 10);
+        }
+      });
+      const finalPrice = basePrice + addOnTotal;
+      if (priceDisplay) {
+        priceDisplay.textContent = '₦' + finalPrice.toLocaleString('en-US');
+      }
+    }
+
+    addonCheckboxes.forEach(cb => {
+      cb.addEventListener('change', calculateTotal);
+    });
+
+    therapistButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        therapistButtons.forEach(b => {
+          b.setAttribute('data-selected', 'false');
+          b.classList.remove('bg-surface-tint-blue');
+          b.classList.add('bg-surface-subtle');
+        });
+        btn.setAttribute('data-selected', 'true');
+        btn.classList.add('bg-surface-tint-blue');
+        btn.classList.remove('bg-surface-subtle');
+      });
+    });
+
+    if (bookBtn) {
+      bookBtn.addEventListener('click', () => {
+        bookBtn.classList.add('opacity-90', 'scale-[0.97]');
+        setTimeout(() => {
+          bookBtn.classList.remove('opacity-90', 'scale-[0.97]');
+        }, 150);
+      });
+    }
+  })();
+</script></main>
+</body></html>

@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_stack" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{width:100vw;margin:0;padding:0;}body{overscroll-behavior:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "on-tertiary": "#ffffff", "tertiary-fixed-dim": "#ffb599", "error-container": "#ffdad6", "on-primary-container": "#fcfaff", "background": "#f9f9ff", "on-error-container": "#93000a", "on-surface-variant": "#424655", "on-secondary-fixed-variant": "#32466f", "inverse-on-surface": "#edf0ff", "surface-container-highest": "#dce2f7", "tertiary-fixed": "#ffdbce", "surface-subtle": "#F8FAFC", "primary-fixed-dim": "#b0c6ff", "on-secondary-fixed": "#001a41", "secondary": "#4a5e88", "on-secondary": "#ffffff", "surface-tint": "#0058cb", "surface-container-lowest": "#ffffff", "border-subtle": "#E5E7EB", "inverse-surface": "#293040", "primary-container": "#066cf4", "surface-container-high": "#e1e8fd", "on-error": "#ffffff", "surface-container": "#e9edff", "surface-bright": "#f9f9ff", "outline": "#727786", "on-surface": "#141b2b", "error": "#ba1a1a", "surface-variant": "#dce2f7", "on-secondary-container": "#435881", "on-tertiary-fixed-variant": "#7f2b00", "primary-fixed": "#d9e2ff", "tertiary-container": "#c94a03", "on-primary-fixed": "#001945", "on-background": "#141b2b", "inverse-primary": "#b0c6ff", "on-tertiary-fixed": "#370e00", "border-active": "#BFDBFE", "secondary-container": "#bacfff", "secondary-fixed-dim": "#b2c6f7", "text-primary": "#111827", "tertiary": "#a13900", "on-primary": "#ffffff", "on-primary-fixed-variant": "#00429b", "surface-canvas": "#FFFFFF", "surface-container-low": "#f1f3ff", "text-secondary": "#4B5563", "badge-discount-bg": "#ECFDF5", "surface": "#f9f9ff", "badge-discount-text": "#059669", "surface-tint-blue": "#EEF5FF", "primary": "#0055c4", "outline-variant": "#c2c6d7", "secondary-fixed": "#d8e2ff", "text-tertiary": "#9CA3AF", "on-tertiary-container": "#fffaf9", "surface-dim": "#d3daef" }, borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, spacing: { "space-xl": "2rem", "space-3xl": "3rem", "space-lg": "1.5rem", "space-2xs": "0.25rem", "gutter": "1rem", "space-sm": "0.75rem", "space-xs": "0.5rem", "space-md": "1rem", "space-2xl": "2.5rem", "margin": "1.5rem" }, fontFamily: { "label-sm": ["Inter"], "label-md": ["Inter"], "heading-lg": ["Inter"], "display-hero": ["Inter"], "button-secondary": ["Inter"], "button-primary": ["Inter"], "display-hero-mobile": ["Inter"], "heading-sm": ["Inter"], "body-lg": ["Inter"], "body-md": ["Inter"], "heading-md": ["Inter"], "caption": ["Inter"] }, fontSize: { "label-sm": ["13px", { "lineHeight": "16px", "fontWeight": "500" }], "label-md": ["14px", { "lineHeight": "18px", "fontWeight": "500" }], "heading-lg": ["26px", { "lineHeight": "34px", "letterSpacing": "-0.015em", "fontWeight": "600" }], "display-hero": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.025em", "fontWeight": "700" }], "button-secondary": ["15px", { "lineHeight": "20px", "fontWeight": "500" }], "button-primary": ["16px", { "lineHeight": "20px", "letterSpacing": "-0.005em", "fontWeight": "600" }], "display-hero-mobile": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }], "heading-sm": ["18px", { "lineHeight": "24px", "fontWeight": "600" }], "body-lg": ["17px", { "lineHeight": "24px", "fontWeight": "400" }], "body-md": ["15px", { "lineHeight": "22px", "fontWeight": "400" }], "heading-md": ["22px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600" }], "caption": ["12px", { "lineHeight": "16px", "fontWeight": "400" }] } } } };</script><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface font-body-md text-body-md text-on-surface min-h-screen flex flex-col antialiased"><header class="fixed top-0 w-full z-50 pt-safe bg-surface-canvas/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-16 px-margin flex items-center justify-between"><div class="flex items-center gap-space-xs min-w-0"><button aria-label="Go back" class="w-11 h-11 -ml-space-xs flex items-center justify-center rounded-full text-on-surface hover:text-text-primary hover:bg-surface-container-low transition-colors" onclick="history.back()"><span class="material-symbols-outlined text-[22px]">arrow_back</span></button><h1 class="font-heading-sm text-heading-sm text-text-primary truncate tracking-tight">Product Assignment</h1></div><div class="flex items-center gap-space-xs"><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex-1 flex flex-col relative w-full pt-16 pb-safe bg-surface"><div class="flex flex-col w-full">
+<div class="px-margin pt-space-md pb-space-2xl space-y-space-lg">
+<!-- Item Summary Card -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm p-space-md flex items-center gap-space-md">
+<div class="w-16 h-16 rounded-lg overflow-hidden shrink-0 bg-surface-container">
+<img class="w-full h-full object-cover" data-alt="Gourmet prime woodfire aged ribeye steak cooked to medium rare with charred grill lines, garnished with fresh rosemary sprigs and Maldon flaky salt on a dark rustic slate presentation board with warm cinematic restaurant lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB8cD-H17QAO9FEIfrboS6Fl4mR52ukN-tHIZyMBooU46va9p8B4SUT7oJb-tMYAk2YQJV0vTOgoWjXUIvFoZO-7p6tnmfonoOAo6IIa9lNv1plWx4JpF78rd2uvlPrBoB9JgYNU2OljMq4GDtmeniIpaphl1ccce_w-XBCtqy4j4KXuNx50sZxcTduocQs99NVorVdZShNPQaXaW8e1vXIyLG7FESnO7B41JWa4DnkFjhzE-CymcjtYg"/>
+</div>
+<div class="min-w-0 flex-1">
+<div class="flex items-center gap-space-2xs text-text-tertiary">
+<span class="material-symbols-outlined text-[14px]">restaurant_menu</span>
+<span class="font-caption text-caption tracking-wide uppercase">Steaks &amp; Grills</span>
+</div>
+<h2 class="font-heading-sm text-heading-sm text-text-primary truncate">Woodfire Aged Ribeye Steak</h2>
+<div class="flex items-baseline gap-space-2xs mt-space-2xs">
+<span class="font-caption text-caption text-text-secondary">Base Default:</span>
+<span class="font-label-md text-label-md text-primary font-semibold">₦12,000</span>
+</div>
+</div>
+</div>
+<!-- Section 1: Where is this available? -->
+<div class="space-y-space-sm">
+<div class="flex items-center justify-between">
+<h3 class="font-heading-sm text-heading-sm text-text-primary">Where is this available?</h3>
+<span class="font-caption text-caption bg-surface-tint-blue text-primary px-space-xs py-space-2xs rounded-full font-medium">Step 4.4</span>
+</div>
+<div class="space-y-space-xs">
+<!-- Option 1: Selected locations (Checked) -->
+<label class="relative block p-space-md rounded-xl bg-surface-tint-blue shadow-sm cursor-pointer transition-all" id="opt-selected">
+<div class="flex items-start gap-space-sm">
+<div class="mt-0.5 w-5 h-5 rounded-full bg-primary flex items-center justify-center shrink-0">
+<span class="w-2 h-2 rounded-full bg-surface-container-lowest"></span>
+</div>
+<div class="min-w-0 flex-1">
+<span class="block font-label-md text-label-md text-text-primary font-semibold">Selected locations only</span>
+<p class="font-body-md text-caption text-text-secondary mt-space-2xs">
+                Specify which branches stock this item and customize branch-level prices
+              </p>
+</div>
+</div>
+</label>
+<!-- Option 2: All locations -->
+<label class="relative block p-space-md rounded-xl bg-surface-container-lowest shadow-sm cursor-pointer transition-all" id="opt-all">
+<div class="flex items-start gap-space-sm">
+<div class="mt-0.5 w-5 h-5 rounded-full bg-surface-container-highest flex items-center justify-center shrink-0">
+<span class="w-2 h-2 rounded-full bg-surface-container-highest"></span>
+</div>
+<div class="min-w-0 flex-1">
+<span class="block font-label-md text-label-md text-text-primary font-semibold">All locations (Current &amp; future branches)</span>
+<p class="font-body-md text-caption text-text-secondary mt-space-2xs">
+                Item is universally available at all business locations
+              </p>
+</div>
+</div>
+</label>
+</div>
+</div>
+<!-- Section 2: Branch Availability & Pricing Configuration -->
+<div class="space-y-space-sm">
+<div class="flex items-center justify-between">
+<div>
+<h3 class="font-heading-sm text-heading-sm text-text-primary">Branch Availability &amp; Pricing</h3>
+<p class="font-caption text-caption text-text-secondary mt-space-2xs">Configure availability, inventories, and regional surcharges</p>
+</div>
+<span class="font-label-sm text-label-sm px-space-xs py-space-2xs rounded-full bg-surface-container text-on-surface-variant font-medium">3 Branches</span>
+</div>
+<!-- Branch 1: Maitama Flagship -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm p-space-md space-y-space-md transition-all">
+<!-- Top bar: Name + Toggle -->
+<div class="flex items-start justify-between gap-space-sm">
+<div class="min-w-0">
+<div class="flex items-center gap-space-2xs">
+<span class="w-2 h-2 rounded-full bg-badge-discount-text"></span>
+<span class="font-label-sm text-label-sm text-badge-discount-text font-semibold uppercase">Active Terminal</span>
+</div>
+<h4 class="font-heading-sm text-heading-sm text-text-primary truncate mt-space-2xs">Maitama Flagship</h4>
+<span class="font-caption text-caption text-text-tertiary">Abuja, Federal Capital Territory</span>
+</div>
+<!-- Availability Switch (Checked) -->
+<button aria-checked="true" class="w-12 h-7 rounded-full bg-primary p-0.5 flex items-center justify-end transition-colors shrink-0" role="switch" type="button">
+<span class="w-6 h-6 rounded-full bg-surface-container-lowest shadow-md flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-[14px]" style="font-variation-settings: 'FILL' 1;">check</span>
+</span>
+</button>
+</div>
+<!-- Metadata Pill Row -->
+<div class="grid grid-cols-2 gap-space-xs">
+<div class="bg-surface-subtle p-space-xs rounded-lg flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-text-tertiary text-[18px]">inventory_2</span>
+<div class="min-w-0">
+<span class="block font-caption text-caption text-text-tertiary">In-Stock</span>
+<span class="font-label-sm text-label-sm text-text-primary font-medium">42 units in stock</span>
+</div>
+</div>
+<div class="bg-surface-subtle p-space-xs rounded-lg flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-text-tertiary text-[18px]">timer</span>
+<div class="min-w-0">
+<span class="block font-caption text-caption text-text-tertiary">Lead Prep</span>
+<span class="font-label-sm text-label-sm text-text-primary font-medium">15-20 mins</span>
+</div>
+</div>
+</div>
+<!-- Custom Pricing Accordion/Checkbox (Unchecked) -->
+<div class="bg-surface-container-low rounded-lg p-space-sm space-y-space-xs">
+<label class="flex items-center gap-space-sm cursor-pointer select-none">
+<div class="w-5 h-5 rounded bg-surface-container-lowest flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-outline-variant text-[16px]">check_box_outline_blank</span>
+</div>
+<div class="min-w-0 flex-1">
+<span class="font-label-md text-label-md text-text-primary font-medium">Use custom price for this branch</span>
+<p class="font-caption text-caption text-text-secondary">Using standard base catalog price</p>
+</div>
+<span class="font-label-md text-label-md text-text-primary font-semibold">₦12,000</span>
+</label>
+</div>
+</div>
+<!-- Branch 2: Victoria Island (Lagos) -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm p-space-md space-y-space-md transition-all">
+<!-- Top bar: Name + Toggle -->
+<div class="flex items-start justify-between gap-space-sm">
+<div class="min-w-0">
+<div class="flex items-center gap-space-2xs">
+<span class="w-2 h-2 rounded-full bg-badge-discount-text"></span>
+<span class="font-label-sm text-label-sm text-badge-discount-text font-semibold uppercase">Active Terminal</span>
+</div>
+<h4 class="font-heading-sm text-heading-sm text-text-primary truncate mt-space-2xs">Victoria Island</h4>
+<span class="font-caption text-caption text-text-tertiary">Lagos Island, Lagos</span>
+</div>
+<!-- Availability Switch (Checked) -->
+<button aria-checked="true" class="w-12 h-7 rounded-full bg-primary p-0.5 flex items-center justify-end transition-colors shrink-0" role="switch" type="button">
+<span class="w-6 h-6 rounded-full bg-surface-container-lowest shadow-md flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-[14px]" style="font-variation-settings: 'FILL' 1;">check</span>
+</span>
+</button>
+</div>
+<!-- Metadata Pill Row -->
+<div class="grid grid-cols-2 gap-space-xs">
+<div class="bg-surface-subtle p-space-xs rounded-lg flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-text-tertiary text-[18px]">inventory_2</span>
+<div class="min-w-0">
+<span class="block font-caption text-caption text-text-tertiary">In-Stock</span>
+<span class="font-label-sm text-label-sm text-text-primary font-medium">18 units in stock</span>
+</div>
+</div>
+<div class="bg-surface-subtle p-space-xs rounded-lg flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-text-tertiary text-[18px]">local_shipping</span>
+<div class="min-w-0">
+<span class="block font-caption text-caption text-text-tertiary">Fulfillment</span>
+<span class="font-label-sm text-label-sm text-text-primary font-medium">Cold Express</span>
+</div>
+</div>
+</div>
+<!-- Custom Pricing Section (Checked ON - Highlighted in Blue Tint) -->
+<div class="bg-surface-tint-blue rounded-xl p-space-md space-y-space-sm">
+<label class="flex items-center gap-space-sm cursor-pointer select-none">
+<div class="w-5 h-5 rounded bg-primary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-on-primary text-[16px]" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+<div class="min-w-0 flex-1">
+<span class="font-label-md text-label-md text-primary font-semibold">Use different price for selected location</span>
+<p class="font-caption text-caption text-text-secondary">Custom retail rate applied to local pos and apps</p>
+</div>
+</label>
+<!-- Custom Price Input Field -->
+<div class="space-y-space-2xs">
+<div class="relative flex items-center bg-surface-container-lowest rounded-lg shadow-sm">
+<span class="pl-space-md font-label-md text-label-md text-text-secondary font-semibold select-none">₦</span>
+<input class="w-full bg-transparent py-space-sm pl-space-xs pr-space-md font-heading-sm text-heading-sm text-text-primary focus:outline-none" type="text" value="14,000"/>
+<div class="pr-space-sm shrink-0">
+<span class="inline-flex items-center gap-space-2xs px-space-xs py-space-2xs rounded-full bg-badge-discount-bg text-badge-discount-text font-caption text-caption font-semibold">
+<span class="material-symbols-outlined text-[13px]">trending_up</span>
+                  +₦2,000 logistics adjustment
+                </span>
+</div>
+</div>
+</div>
+<!-- Active Deal Override Sub-card -->
+<div class="bg-surface-container-lowest rounded-lg p-space-sm flex items-center justify-between gap-space-sm shadow-sm">
+<div class="flex items-center gap-space-xs min-w-0">
+<div class="w-7 h-7 rounded-full bg-surface-tint-blue flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-primary text-[16px]">local_offer</span>
+</div>
+<div class="min-w-0">
+<span class="block font-label-sm text-label-sm text-text-primary font-medium truncate">Link to Lagos 15% Weekend Deal</span>
+<span class="block font-caption text-caption text-badge-discount-text">Auto-computes to ₦11,900 on Saturdays</span>
+</div>
+</div>
+<button aria-checked="true" class="w-9 h-5 rounded-full bg-primary p-0.5 flex items-center justify-end shrink-0 transition-colors" role="switch" type="button">
+<span class="w-4 h-4 rounded-full bg-surface-container-lowest shadow-sm"></span>
+</button>
+</div>
+</div>
+</div>
+<!-- Branch 3: Garki Express Hub (Inactive) -->
+<div class="bg-surface-container-low rounded-xl p-space-md space-y-space-sm opacity-75">
+<div class="flex items-start justify-between gap-space-sm">
+<div class="min-w-0">
+<div class="flex items-center gap-space-2xs">
+<span class="w-2 h-2 rounded-full bg-text-tertiary"></span>
+<span class="font-label-sm text-label-sm text-text-tertiary font-semibold uppercase">Disabled Hub</span>
+</div>
+<h4 class="font-heading-sm text-heading-sm text-text-secondary truncate mt-space-2xs">Garki Express Hub</h4>
+<span class="font-caption text-caption text-text-tertiary">Garki II, Abuja</span>
+</div>
+<!-- Availability Switch (Checked OFF) -->
+<button aria-checked="false" class="w-12 h-7 rounded-full bg-surface-container-highest p-0.5 flex items-center justify-start transition-colors shrink-0" role="switch" type="button">
+<span class="w-6 h-6 rounded-full bg-surface-container-lowest shadow-md flex items-center justify-center">
+<span class="material-symbols-outlined text-outline text-[14px]">close</span>
+</span>
+</button>
+</div>
+<div class="bg-surface-container rounded-lg p-space-sm flex items-start gap-space-xs">
+<span class="material-symbols-outlined text-text-tertiary text-[18px] shrink-0 mt-0.5">construction</span>
+<p class="font-caption text-caption text-text-secondary">
+            Branch is currently undergoing kitchen fitout. Item inactive.
+          </p>
+</div>
+</div>
+</div>
+<!-- Section 3: Online Order & POS Routing -->
+<div class="bg-surface-container-low rounded-xl p-space-md flex items-start gap-space-sm">
+<div class="w-8 h-8 rounded-full bg-surface-tint-blue flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-primary text-[18px]">sync_alt</span>
+</div>
+<div class="min-w-0 flex-1">
+<h5 class="font-label-md text-label-md text-text-primary font-semibold">Online Order &amp; POS Routing</h5>
+<p class="font-caption text-caption text-text-secondary mt-space-2xs leading-relaxed">
+          Orders placed on VEMTAP or registered at branch POS terminals will automatically debit local stock and apply the branch-specific price.
+        </p>
+</div>
+</div>
+<!-- Visual Location Distribution Insight Graphic -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm p-space-md space-y-space-sm">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-text-secondary">Live Network Capacity</span>
+<span class="font-label-sm text-label-sm text-primary font-semibold">60 Total Ribeye Steaks</span>
+</div>
+<!-- Mini Spark bar -->
+<div class="h-2 w-full rounded-full bg-surface-container-low overflow-hidden flex">
+<div class="bg-primary h-full" style="width: 70%;"></div>
+<div class="bg-secondary-container h-full" style="width: 30%;"></div>
+</div>
+<div class="flex items-center justify-between font-caption text-caption text-text-tertiary pt-space-2xs">
+<div class="flex items-center gap-space-2xs">
+<span class="w-2 h-2 rounded-full bg-primary"></span>
+<span>Maitama (70%)</span>
+</div>
+<div class="flex items-center gap-space-2xs">
+<span class="w-2 h-2 rounded-full bg-secondary-container"></span>
+<span>VI Lagos (30%)</span>
+</div>
+<div class="flex items-center gap-space-2xs">
+<span class="w-2 h-2 rounded-full bg-surface-container-highest"></span>
+<span>Garki (0%)</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Sticky Bottom Decks & Action CTA -->
+<div class="sticky bottom-0 w-full bg-surface-canvas/95 backdrop-blur-md px-margin py-space-md shadow-[0_-4px_20px_rgba(0,0,0,0.06)] z-40">
+<div class="space-y-space-xs max-w-screen-md mx-auto">
+<button class="w-full h-14 bg-primary-container text-on-primary rounded-xl font-button-primary text-button-primary shadow-lg flex items-center justify-center gap-space-xs active:scale-[0.98] transition-transform" type="button">
+<span class="material-symbols-outlined text-[20px]">save</span>
+<span>Save Location Assignment (2 Active Branches)</span>
+</button>
+<div class="flex items-center justify-center gap-space-2xs text-text-tertiary">
+<span class="material-symbols-outlined text-[14px]">lock_reset</span>
+<span class="font-caption text-caption">Changes push live instantly across connected terminals</span>
+</div>
+</div>
+</div>
+</div>
+<script>
+  // Simple micro-interactions for location scope radio toggle
+  const optSelected = document.getElementById('opt-selected');
+  const optAll = document.getElementById('opt-all');
+
+  if (optSelected && optAll) {
+    optSelected.addEventListener('click', () => {
+      optSelected.className = 'relative block p-space-md rounded-xl bg-surface-tint-blue shadow-sm cursor-pointer transition-all';
+      optAll.className = 'relative block p-space-md rounded-xl bg-surface-container-lowest shadow-sm cursor-pointer transition-all';
+    });
+
+    optAll.addEventListener('click', () => {
+      optAll.className = 'relative block p-space-md rounded-xl bg-surface-tint-blue shadow-sm cursor-pointer transition-all';
+      optSelected.className = 'relative block p-space-md rounded-xl bg-surface-container-lowest shadow-sm cursor-pointer transition-all';
+    });
+  }
+</script></main></body></html>
