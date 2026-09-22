@@ -18,7 +18,8 @@ type Variant =
   | 'caption'
   | 'button';
 
-type Tone = 'default' | 'secondary' | 'tertiary' | 'inverse' | 'brand' | 'error' | 'success';
+type Tone =
+  'default' | 'secondary' | 'tertiary' | 'inverse' | 'brand' | 'error' | 'success';
 
 export interface VemtapTextProps extends TextProps {
   variant?: Variant;
@@ -28,17 +29,17 @@ export interface VemtapTextProps extends TextProps {
 }
 
 const variantClasses: Record<Variant, string> = {
-  display: 'text-display font-bold tracking-tight',
-  displayMobile: 'text-display-mobile font-bold tracking-tight',
-  headingLg: 'text-heading-lg font-semibold tracking-tight',
-  headingMd: 'text-heading-md font-semibold tracking-tight',
-  headingSm: 'text-heading-sm font-semibold',
-  bodyLg: 'text-body-lg',
-  bodyMd: 'text-body-md',
-  labelMd: 'text-label-md font-medium',
-  labelSm: 'text-label-sm font-medium',
-  caption: 'text-caption',
-  button: 'text-button-md font-semibold',
+  display: 'font-sans-bold text-display tracking-tight',
+  displayMobile: 'font-sans-bold text-display-mobile tracking-tight',
+  headingLg: 'font-sans-semibold text-heading-lg tracking-tight',
+  headingMd: 'font-sans-semibold text-heading-md tracking-tight',
+  headingSm: 'font-sans-semibold text-heading-sm',
+  bodyLg: 'font-sans text-body-lg',
+  bodyMd: 'font-sans text-body-md',
+  labelMd: 'font-sans-medium text-label-md',
+  labelSm: 'font-sans-medium text-label-sm',
+  caption: 'font-sans text-caption',
+  button: 'font-sans-semibold text-button-md',
 };
 
 const toneClasses: Record<Tone, string> = {
@@ -66,12 +67,7 @@ export function VemtapText({
     <RNText
       allowFontScaling
       maxFontSizeMultiplier={1.8}
-      className={cn(
-        'font-sans',
-        variantClasses[variant],
-        toneClasses[tone],
-        className,
-      )}
+      className={cn('font-sans', variantClasses[variant], toneClasses[tone], className)}
       {...rest}
     >
       {children}

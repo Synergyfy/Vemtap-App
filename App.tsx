@@ -1,10 +1,26 @@
 import React, { useEffect, useState } from 'react';
-import { StatusBar, View, LogBox, StyleSheet } from 'react-native';
+import {
+  StatusBar,
+  View,
+  LogBox,
+  StyleSheet,
+  ActivityIndicator,
+  Text,
+} from 'react-native';
+import './global.css';
+import { useFonts } from 'expo-font';
+import {
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+} from '@expo-google-fonts/inter';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { cssInterop } from 'nativewind';
+import { colorScheme } from 'nativewind';
+import './src/theme/nativewind'; // must run before any screen uses className
 import { queryClient, queryCachePersister, PERSIST_BUSTER } from '@store/queryClient';
 import { ThemeProvider, useTheme } from '@theme/ThemeProvider';
 import { ErrorBoundary } from '@components/shared/ErrorBoundary';
@@ -21,9 +37,14 @@ import { initPushNotifications } from '@services/pushNotifications';
 import { analytics } from '@services/analytics';
 import { logger } from '@utils/logger';
 
-cssInterop(View, { className: 'style' });
+// Design system is light-only. Force light before first paint so NativeWind
+// never follows the OS dark scheme during boot (black screen after splash).
+colorScheme.set('light');
 
 const shellStyles = StyleSheet.create({ root: { flex: 1 } });
+const loadingTextStyle = StyleSheet.create({
+  loadingText: { color: '#066CF4', fontSize: 16 },
+});
 
 LogBox.ignoreLogs(['Non-serializable values were found in the navigation state']);
 
@@ -34,9 +55,7 @@ function Shell({ children }: { children: React.ReactNode }) {
 
   return (
     <View className="flex-1 bg-background">
-      <StatusBar
-        barStyle={theme === 'dark' ? 'light-content' : 'dark-content'}
-      />
+      <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} />
       {!isOnline ? <OfflineBanner /> : null}
       <View className="flex-1">{children}</View>
       <ToastHost toast={toast} />
@@ -46,6 +65,18 @@ function Shell({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   const [bootReady, setBootReady] = useState(false);
+  const [fontsLoaded, fontError] = useFonts({
+    Inter: Inter_400Regular,
+    'Inter-Medium': Inter_500Medium,
+    'Inter-SemiBold': Inter_600SemiBold,
+    'Inter-Bold': Inter_700Bold,
+  });
+  const [fontTimeout, setFontTimeout] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setFontTimeout(true), 8000);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     registerAuthBridge({
@@ -66,10 +97,19 @@ export default function App() {
     };
   }, []);
 
-  if (!bootReady) {
+  if (fontError) {
+    logger.error('app', 'Font loading failed', fontError);
+  }
+
+  if (!bootReady || (!fontsLoaded && !fontTimeout)) {
     return (
       <SafeAreaProvider>
-        <View className="flex-1 bg-background" />
+        <View className="flex-1 items-center justify-center bg-background">
+          <View className="flex-row items-center gap-3">
+            <ActivityIndicator size="large" color="#066CF4" />
+            <Text style={loadingTextStyle.loadingText}>Loading VEMTAP...</Text>
+          </View>
+        </View>
       </SafeAreaProvider>
     );
   }

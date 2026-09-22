@@ -243,3 +243,32 @@ jest.mock('@react-native-community/netinfo', () => ({
     type: 'wifi',
   })),
 }));
+
+jest.mock('expo-linear-gradient', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+
+  const LinearGradient = ({ children, ...props }) =>
+    React.createElement(View, props, children);
+  LinearGradient.displayName = 'LinearGradientMock';
+
+  return { LinearGradient };
+});
+
+jest.mock('expo-font', () => ({
+  useFonts: () => [true, null],
+  isLoaded: () => true,
+  loadAsync: jest.fn(async () => undefined),
+}));
+
+jest.mock('@expo-google-fonts/inter', () => {
+  const React = require('react');
+  return {
+    useFonts: () => [true, null],
+    Inter_400Regular: 1,
+    Inter_500Medium: 1,
+    Inter_600SemiBold: 1,
+    Inter_700Bold: 1,
+    Inter_800ExtraBold: 1,
+  };
+});

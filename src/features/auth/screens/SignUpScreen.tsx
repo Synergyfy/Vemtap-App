@@ -16,7 +16,11 @@ import { useRegister } from '@features/auth/hooks/useRegister';
 import type { AuthStackParamList } from '@navigation/types';
 
 cssInterop(View, { className: 'style' });
-cssInterop(ScrollView, { className: 'style' });
+cssInterop(ScrollView, {
+  className: 'style',
+  contentContainerClassName: 'contentContainerStyle',
+});
+cssInterop(SafeAreaView, { className: 'style' });
 
 const signUpSchema = z
   .object({
@@ -59,7 +63,10 @@ export function SignUpScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-surface">
-      <ScrollView contentContainerClassName="px-screen py-6 gap-6" keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerClassName="px-screen py-6 gap-6"
+        keyboardShouldPersistTaps="handled"
+      >
         <View className="gap-2 pt-4">
           <VemtapText variant="headingLg" accessibilityRole="header">
             Create your account

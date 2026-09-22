@@ -1,5 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo } from 'react';
-import { useColorScheme as useSystemColorScheme } from 'react-native';
+import React, { createContext, useCallback, useContext, useMemo } from 'react';
 import { colorScheme } from 'nativewind';
 import { useUiStore, type ThemePreference } from '@store/uiStore';
 
@@ -15,28 +14,24 @@ interface ThemeContextValue {
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 /**
- * Drives NativeWind dark mode by toggling the `dark` class on the root.
- * Works with `darkMode: 'class'` in tailwind.config.js.
+ * VEMTAP design system ships light tokens only for onboarding.
+ * Always resolve to light so OS dark mode / stale persisted values can
+ * never paint the app black.
  */
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const systemScheme = useSystemColorScheme();
-  const preference = useUiStore(state => state.themePreference);
   const setPreference = useUiStore(state => state.setThemePreference);
 
-  const theme: ResolvedTheme =
-    preference === 'system' ? (systemScheme === 'dark' ? 'dark' : 'light') : preference;
+  const theme: ResolvedTheme = 'light';
 
-  useEffect(() => {
-    colorScheme.set(theme);
-  }, [theme]);
+  colorScheme.set(theme);
 
   const toggleTheme = useCallback(() => {
-    setPreference(theme === 'dark' ? 'light' : 'dark');
-  }, [setPreference, theme]);
+    setPreference('light');
+  }, [setPreference]);
 
   const value = useMemo(
-    () => ({ theme, preference, setPreference, toggleTheme }),
-    [preference, setPreference, theme, toggleTheme],
+    () => ({ theme, preference: 'light' as ThemePreference, setPreference, toggleTheme }),
+    [setPreference, theme, toggleTheme],
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

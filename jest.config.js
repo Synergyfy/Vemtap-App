@@ -17,14 +17,11 @@ module.exports = {
     '^@theme/(.*)$': '<rootDir>/src/theme/$1',
     '^@app/(.*)$': '<rootDir>/src/$1',
     '\\.(css)$': '<rootDir>/__mocks__/styleMock.js',
+    '\\.(ttf|otf|png|jpg|jpeg)$': '<rootDir>/__mocks__/fontStub.js',
   },
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   transformIgnorePatterns: [
-    'node_modules/(?!(react-native|@react-native|react-native-.*|@react-navigation|nativewind|react-native-css-interop|@tanstack|zustand)/)',
+    'node_modules/(?!(react-native|@react-native|react-native-.*|@react-navigation|nativewind|react-native-css-interop|@tanstack|zustand|@expo-google-fonts|@expo/vector-icons|expo|expo-.*|expo-modules-core)/)',
   ],
-  collectCoverageFrom: [
-    'src/**/*.{ts,tsx}',
-    '!src/**/*.d.ts',
-    '!src/**/index.ts',
-  ],
+  collectCoverageFrom: ['src/**/*.{ts,tsx}', '!src/**/*.d.ts', '!src/**/index.ts'],
 };

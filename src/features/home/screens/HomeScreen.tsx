@@ -1,6 +1,5 @@
 import React, { useCallback } from 'react';
 import { View, FlatList, RefreshControl } from 'react-native';
-import { cssInterop } from 'nativewind';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -15,8 +14,6 @@ import { usePaginatedUsers } from '@features/home/hooks/usePaginatedUsers';
 import { useIsOnline } from '@hooks/useNetworkStatus';
 import type { RootStackParamList } from '@navigation/types';
 import { strings } from '@constants/strings';
-
-cssInterop(View, { className: 'style' });
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -61,8 +58,8 @@ export function HomeScreen() {
         <ErrorState
           description={(error as Error)?.message}
           onRetry={() => {
-          refetch().catch(() => undefined);
-        }}
+            refetch().catch(() => undefined);
+          }}
         />
       </SafeAreaView>
     );
@@ -71,7 +68,7 @@ export function HomeScreen() {
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top']}>
       {!isOnline ? <OfflineBanner /> : null}
-      <View className="px-screen pt-4 pb-6">
+      <View className="px-screen pb-6 pt-4">
         <VemtapText variant="headingLg">Discover</VemtapText>
         <VemtapText tone="secondary" className="mt-1">
           Deals and businesses around you.
@@ -114,9 +111,7 @@ export function HomeScreen() {
             }}
           />
         }
-        ListFooterComponent={
-          isFetchingNextPage ? <Loader className="py-4" /> : undefined
-        }
+        ListFooterComponent={isFetchingNextPage ? <Loader className="py-4" /> : undefined}
       />
 
       <View className="px-screen pb-4">

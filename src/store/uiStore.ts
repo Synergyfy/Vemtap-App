@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { devtools, persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export type ThemePreference = 'system' | 'light' | 'dark';
+export type ThemePreference = 'light'; // design system is light-only for now
 
 interface UiState {
   themePreference: ThemePreference;
@@ -18,10 +18,10 @@ export const useUiStore = create<UiState>()(
   devtools(
     persist(
       set => ({
-        themePreference: 'system',
+        themePreference: 'light',
         isOfflineBannerVisible: false,
         toast: null,
-        setThemePreference: themePreference => set({ themePreference }),
+        setThemePreference: () => {}, // light-only; no dark/system switching
         setOfflineBannerVisible: isOfflineBannerVisible =>
           set({ isOfflineBannerVisible }),
         showToast: (message, type = 'info') => set({ toast: { message, type } }),
@@ -30,7 +30,8 @@ export const useUiStore = create<UiState>()(
       {
         name: 'vemtap-ui',
         storage: createJSONStorage(() => AsyncStorage),
-        partialize: state => ({ themePreference: state.themePreference }),
+        // Only persist non-theme UI flags. Never rehydrate an old dark/system theme.
+        partialize: () => ({}),
       },
     ),
     { name: 'UiStore' },

@@ -11,7 +11,7 @@ export function TabIcon({ label, focused }: { label: string; focused: boolean })
     <View accessibilityElementsHidden importantForAccessibility="no">
       <RNText
         className={cn(
-          'text-caption font-semibold',
+          'font-sans-semibold text-caption',
           focused ? 'text-primary' : 'text-text-tertiary',
         )}
       >

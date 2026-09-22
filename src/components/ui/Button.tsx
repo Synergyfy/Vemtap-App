@@ -15,19 +15,19 @@ cssInterop(Pressable, { className: 'style' });
 const buttonVariants = tv({
   base: [
     'flex-row items-center justify-center rounded-cta',
-    'px-6 min-h-[52px]',
+    'min-h-[52px] px-6',
     'active:scale-[0.98]',
   ],
   variants: {
     variant: {
       primary: ['bg-primary active:bg-primary-600'],
-      secondary: ['bg-surface-tint border border-border-active active:bg-primary-100'],
-      outline: ['bg-transparent border border-border active:bg-surface-muted'],
+      secondary: ['border border-border-active bg-surface-tint active:bg-primary-100'],
+      outline: ['border border-border bg-transparent active:bg-surface-muted'],
       ghost: ['bg-transparent active:bg-surface-muted'],
       destructive: ['bg-error active:opacity-90'],
     },
     size: {
-      sm: ['min-h-[44px] px-4 rounded-field'],
+      sm: ['min-h-[44px] rounded-field px-4'],
       md: ['min-h-[52px] px-6'],
       lg: ['min-h-[56px] px-8'],
     },
@@ -36,7 +36,7 @@ const buttonVariants = tv({
       false: [],
     },
     isDisabled: {
-      true: ['opacity-50', 'active:opacity-50 active:scale-100'],
+      true: ['opacity-50', 'active:scale-100 active:opacity-50'],
       false: [],
     },
     isBusy: {
@@ -54,7 +54,7 @@ const buttonVariants = tv({
 });
 
 const labelVariants = tv({
-  base: ['font-semibold text-button-md text-center'],
+  base: ['text-center font-sans-semibold text-button-md'],
   variants: {
     variant: {
       primary: 'text-primary-foreground',
@@ -68,8 +68,7 @@ const labelVariants = tv({
 });
 
 export interface ButtonProps
-  extends Omit<PressableProps, 'disabled'>,
-    VariantProps<typeof buttonVariants> {
+  extends Omit<PressableProps, 'disabled'>, VariantProps<typeof buttonVariants> {
   label: string;
   loading?: boolean;
   disabled?: boolean;

@@ -3,7 +3,7 @@
   "slug": "vemtap",
   "version": "0.0.1",
   "orientation": "portrait",
-  "userInterfaceStyle": "automatic",
+  "userInterfaceStyle": "light",
   "ios": {
     "bundleIdentifier": "com.vemtap.app"
   },
@@ -15,5 +15,6 @@
       "projectId": "98b143dc-ace3-4494-99eb-880abec2d09c"
     }
   },
-  "owner": "sundayochuko"
+  "owner": "sundayochuko",
+  "plugins": ["expo-font"]
 }
