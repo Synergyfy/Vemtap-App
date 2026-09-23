@@ -4,7 +4,15 @@ import { WelcomeScreen } from '@features/auth/screens/WelcomeScreen';
 import { DiscoverDealsScreen } from '@features/auth/screens/DiscoverDealsScreen';
 import { StartVemtapScreen } from '@features/auth/screens/StartVemtapScreen';
 import { SignInScreen } from '@features/auth/screens/SignInScreen';
-import { SignUpScreen } from '@features/auth/screens/SignUpScreen';
+import { RegisterScreen } from '@features/auth/screens/RegisterScreen';
+import { OtpVerificationScreen } from '@features/auth/screens/OtpVerificationScreen';
+import { ProfileSetupScreen } from '@features/auth/screens/ProfileSetupScreen';
+import {
+  LocationPermissionScreen,
+  ManualLocationSearchScreen,
+  LocationConfirmationScreen,
+  DiscoveringNearbyDealsScreen,
+} from '@features/location/screens';
 import type { AuthStackParamList } from '@navigation/types';
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
@@ -18,7 +26,16 @@ export function AuthStack() {
       <Stack.Screen name="DiscoverDeals" component={DiscoverDealsScreen} />
       <Stack.Screen name="StartVemtap" component={StartVemtapScreen} />
       <Stack.Screen name="SignIn" component={SignInScreen} />
-      <Stack.Screen name="SignUp" component={SignUpScreen} />
+      <Stack.Screen name="Register" component={RegisterScreen} />
+      <Stack.Screen name="VerifyEmail" component={OtpVerificationScreen} />
+      <Stack.Screen name="ProfileSetup" component={ProfileSetupScreen} />
+      <Stack.Screen name="LocationPermission" component={LocationPermissionScreen} />
+      <Stack.Screen name="ManualLocationSearch" component={ManualLocationSearchScreen} />
+      <Stack.Screen name="LocationConfirmation" component={LocationConfirmationScreen} />
+      <Stack.Screen
+        name="DiscoveringNearbyDeals"
+        component={DiscoveringNearbyDealsScreen}
+      />
     </Stack.Navigator>
   );
 }

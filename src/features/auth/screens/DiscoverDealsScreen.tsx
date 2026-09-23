@@ -94,7 +94,7 @@ export function DiscoverDealsScreen() {
           <VemtapText
             variant="displayMobile"
             accessibilityRole="header"
-            className="text-center tracking-tight"
+            className="text-center text-heading-xl tracking-tight"
           >
             {strings.onboarding.discoverHeadline}
           </VemtapText>
@@ -113,7 +113,7 @@ export function DiscoverDealsScreen() {
           ))}
 
           {/* Peek card */}
-          <View className="w-full scale-[0.98] rounded-xl bg-surface-container-lowest/90 p-3 opacity-90 shadow-sm">
+          <View className="w-full scale-[0.98] rounded-xl bg-surface-container-lowest/90 p-3 opacity-90 shadow-onboard-sm">
             <View className="flex-row items-center gap-3">
               <View className="h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-surface-container">
                 <View className="h-full w-full items-center justify-center">
@@ -178,7 +178,7 @@ function ProgressDotsInline({ activeIndex }: { activeIndex: number }) {
           key={i}
           className={
             i === activeIndex
-              ? 'h-1.5 w-6 rounded-full bg-primary shadow-sm'
+              ? 'h-1.5 w-6 rounded-full bg-primary shadow-onboard-sm'
               : 'h-1.5 w-1.5 rounded-full bg-surface-container-highest'
           }
         />

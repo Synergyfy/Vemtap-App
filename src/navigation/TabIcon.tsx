@@ -1,22 +1,29 @@
 import React from 'react';
-import { View, Text as RNText } from 'react-native';
+import { View } from 'react-native';
 import { cssInterop } from 'nativewind';
-import { cn } from '@utils/cn';
+import { Icon, type IconName } from '@components/ui/Icon';
+import { colors } from '@theme/colors';
 
 cssInterop(View, { className: 'style' });
-cssInterop(RNText, { className: 'style' });
+
+const icons: Record<string, IconName> = {
+  Home: 'home',
+  Deals: 'localOffer',
+  Discover: 'explore',
+  Saved: 'bookmark',
+  Account: 'accountCircle',
+  Nearby: 'nearMe',
+  Claims: 'loyalty',
+};
 
 export function TabIcon({ label, focused }: { label: string; focused: boolean }) {
   return (
     <View accessibilityElementsHidden importantForAccessibility="no">
-      <RNText
-        className={cn(
-          'font-sans-semibold text-caption',
-          focused ? 'text-primary' : 'text-text-tertiary',
-        )}
-      >
-        {label}
-      </RNText>
+      <Icon
+        name={icons[label] ?? 'home'}
+        size={22}
+        color={focused ? colors.primary : colors.textSecondary}
+      />
     </View>
   );
 }

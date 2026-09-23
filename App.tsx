@@ -46,7 +46,14 @@ const loadingTextStyle = StyleSheet.create({
   loadingText: { color: '#066CF4', fontSize: 16 },
 });
 
-LogBox.ignoreLogs(['Non-serializable values were found in the navigation state']);
+LogBox.ignoreLogs([
+  'Non-serializable values were found in the navigation state',
+  // Android Expo Go / development: expo-notifications remote-push is unsupported
+  // and throws dismissible error dialogs — keep the boot clean.
+  'expo-notifications',
+  'Android Push notifications',
+  'remote notifications',
+]);
 
 function Shell({ children }: { children: React.ReactNode }) {
   const { theme } = useTheme();
@@ -88,6 +95,7 @@ export default function App() {
 
     const stopOffline = startOfflineReplay();
     refreshFeatureFlags().catch(() => undefined);
+    // Never block boot on notifications — Expo Go / missing native modules must not black-screen Android.
     initPushNotifications().catch(() => undefined);
     analytics.logEvent('app_open').catch(() => undefined);
 

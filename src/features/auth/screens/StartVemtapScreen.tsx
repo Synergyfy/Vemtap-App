@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from 'react';
-import { View, ScrollView, Animated, Easing } from 'react-native';
+import React, { useEffect, useMemo, useRef } from 'react';
+import { useWindowDimensions, View, ScrollView, Animated, Easing } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -11,6 +11,7 @@ import { OnboardingHeader } from '@components/onboarding/OnboardingHeader';
 import { colors } from '@theme/colors';
 import type { AuthStackParamList } from '@navigation/types';
 import { strings } from '@constants/strings';
+import { concentricCircle } from '@utils/radarLayout';
 
 cssInterop(View, { className: 'style' });
 cssInterop(ScrollView, {
@@ -24,7 +25,7 @@ type Nav = NativeStackNavigationProp<AuthStackParamList, 'StartVemtap'>;
 function categoryChip(position: string, children: React.ReactNode) {
   return (
     <View
-      className={`absolute ${position} flex-row items-center gap-1.5 rounded-full bg-surface-canvas px-3 py-1.5 shadow-md`}
+      className={`absolute ${position} flex-row items-center gap-1.5 rounded-full bg-surface-canvas px-3 py-1.5 shadow-onboard-md`}
     >
       {children}
     </View>
@@ -34,6 +35,22 @@ function categoryChip(position: string, children: React.ReactNode) {
 export function StartVemtapScreen() {
   const navigation = useNavigation<Nav>();
   const pulse = useRef(new Animated.Value(0)).current;
+  const { width } = useWindowDimensions();
+  // px-6 gutters + inner safety: never wider than the content column (slim 320pt phones).
+  const radarSize = Math.min(300, Math.max(220, width - 72));
+  const ring = useMemo(
+    () => ({
+      // Design base 300px: outer inset-0, 280 / 210 / 140, beacon 64
+      outer: radarSize,
+      r1: Math.round(radarSize * (280 / 300)),
+      r2: Math.round(radarSize * (210 / 300)),
+      r3: Math.round(radarSize * (140 / 300)),
+      beacon: Math.round(radarSize * (64 / 300)),
+      beaconCore: Math.round(radarSize * (52 / 300)),
+      glow: Math.round(radarSize * (80 / 300)),
+    }),
+    [radarSize],
+  );
 
   useEffect(() => {
     const loop = Animated.loop(
@@ -65,26 +82,32 @@ export function StartVemtapScreen() {
           showBack
           onBack={() => navigation.goBack()}
           showSkip
-          onSkip={() => navigation.navigate('SignUp')}
+          onSkip={() => navigation.navigate('Register')}
           center="progress"
           progress={{ activeIndex: 2, total: 3 }}
         />
       </View>
 
       <ScrollView contentContainerClassName="flex-grow px-6 pb-6">
-        {/* Radar graphic */}
+        {/* Radar graphic — concentric rings share one center on iOS + Android */}
         <View className="my-auto w-full items-center justify-center overflow-hidden py-6">
-          <View className="h-[300px] w-[300px] items-center justify-center">
+          <View style={{ height: ring.outer, width: ring.outer }}>
+            {/* Outer pulse */}
             <Animated.View
-              className="absolute h-[300px] w-[300px] rounded-full border border-primary/30"
-              style={{
-                transform: [{ scale: pulseScale }],
-                opacity: pulseOpacity,
-              }}
+              style={[
+                concentricCircle(ring.outer),
+                {
+                  backgroundColor: 'rgba(225, 232, 253, 0.4)',
+                  borderWidth: 1,
+                  borderColor: 'rgba(6, 108, 244, 0.3)',
+                  transform: [{ scale: pulseScale }],
+                  opacity: pulseOpacity,
+                },
+              ]}
             />
-            <View className="absolute h-[280px] w-[280px] rounded-full bg-surface-container-low" />
-            <View className="absolute h-[210px] w-[210px] rounded-full bg-surface-container" />
-            <View className="absolute h-[140px] w-[140px] rounded-full bg-surface-tint" />
+            <View style={[concentricCircle(ring.r1), { backgroundColor: '#F1F3FF' }]} />
+            <View style={[concentricCircle(ring.r2), { backgroundColor: '#E9EDFF' }]} />
+            <View style={[concentricCircle(ring.r3), { backgroundColor: '#EEF5FF' }]} />
 
             {/* Category tags */}
             {categoryChip(
@@ -123,29 +146,69 @@ export function StartVemtapScreen() {
             {categoryChip(
               '-bottom-1 left-1/2 -translate-x-6',
               <>
-                <Icon name="spa" size={15} color="#4A5E88" />
+                <Icon name="spa" size={15} color={colors.secondary} />
                 <VemtapText className="text-label-sm text-text">Services</VemtapText>
               </>,
             )}
 
-            {/* Center beacon */}
-            <View className="relative z-10 items-center justify-center">
+            {/* Center beacon — same concentric center as rings */}
+            <View
+              pointerEvents="none"
+              style={[
+                concentricCircle(ring.glow),
+                {
+                  backgroundColor: 'rgba(6, 108, 244, 0.2)',
+                  transform: [{ scale: 1.4 }],
+                },
+              ]}
+            />
+            <View
+              style={[
+                concentricCircle(ring.beacon),
+                {
+                  backgroundColor: '#FFFFFF',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: 6,
+                  shadowColor: '#066CF4',
+                  shadowOffset: { width: 0, height: 8 },
+                  shadowOpacity: 0.25,
+                  shadowRadius: 16,
+                  elevation: 8,
+                  zIndex: 10,
+                },
+              ]}
+            >
               <View
-                className="absolute h-20 w-20 rounded-full bg-primary/20"
-                style={{ transform: [{ scale: 1.4 }] }}
-              />
-              <View className="h-16 w-16 items-center justify-center rounded-full bg-surface-canvas p-1.5 shadow-xl">
-                <View className="shadow-inner h-full w-full items-center justify-center rounded-full bg-primary">
-                  <Icon name="nearMe" size={28} color="#FFFFFF" />
-                </View>
-              </View>
-              <View className="absolute -right-1 -top-1">
-                <View className="relative h-4 w-4">
-                  <View className="absolute inset-0 rounded-full bg-badge-discount-text opacity-70" />
-                  <View className="relative h-4 w-4 rounded-full bg-badge-discount-text" />
-                </View>
+                style={{
+                  width: ring.beaconCore,
+                  height: ring.beaconCore,
+                  borderRadius: ring.beaconCore / 2,
+                  backgroundColor: '#066CF4',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Icon name="nearMe" size={28} color="#FFFFFF" />
               </View>
             </View>
+            {/* Pulse indicator dot — offset from beacon edge */}
+            <View
+              style={{
+                position: 'absolute',
+                width: 16,
+                height: 16,
+                left: '50%',
+                top: '50%',
+                marginLeft: ring.beacon / 2 - 4,
+                marginTop: -ring.beacon / 2 - 4,
+                borderRadius: 8,
+                backgroundColor: '#059669',
+                borderWidth: 2,
+                borderColor: '#FFFFFF',
+                zIndex: 11,
+              }}
+            />
           </View>
         </View>
 
@@ -154,7 +217,7 @@ export function StartVemtapScreen() {
           <VemtapText
             variant="displayMobile"
             accessibilityRole="header"
-            className="px-2 text-center tracking-tight"
+            className="px-2 text-center text-heading-xl tracking-tight"
           >
             {strings.onboarding.startHeadline}
           </VemtapText>
@@ -171,10 +234,10 @@ export function StartVemtapScreen() {
           <Button
             label={strings.common.getStarted}
             size="lg"
-            className="rounded-2xl bg-primary shadow-lg"
+            className="rounded-2xl bg-primary shadow-onboard-lg"
             rightIcon={<Icon name="forward" size={20} color="#FFFFFF" />}
-            onPress={() => navigation.navigate('SignUp')}
-            accessibilityHint="Continues to location permission"
+            onPress={() => navigation.navigate('Register')}
+            accessibilityHint="Continues to account registration"
           />
 
           {/* Secondary business entry (kept subtle per design brief) */}

@@ -17,7 +17,13 @@ export const linking: LinkingOptions<RootStackParamList> = {
         screens: {
           Welcome: 'welcome',
           SignIn: 'sign-in',
-          SignUp: 'sign-up',
+          Register: 'register',
+          VerifyEmail: 'verify-email',
+          ProfileSetup: 'profile-setup',
+          LocationPermission: 'location-permission',
+          ManualLocationSearch: 'location-search',
+          LocationConfirmation: 'location-confirm',
+          DiscoveringNearbyDeals: 'discovering',
         },
       },
       AppStack: {
@@ -25,14 +31,16 @@ export const linking: LinkingOptions<RootStackParamList> = {
           Tabs: {
             screens: {
               Home: 'home',
+              Deals: 'deals',
               Discover: 'discover',
-              Claims: 'claims',
+              Saved: 'saved',
               Account: 'account',
             },
           },
           Profile: 'profile/:id?',
           Settings: 'settings',
           DealDetail: 'deals/:dealId',
+          DealFilters: 'deals/filters',
         },
       },
       DealDetail: 'deals/:dealId',

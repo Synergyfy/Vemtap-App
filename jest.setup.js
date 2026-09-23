@@ -244,6 +244,36 @@ jest.mock('@react-native-community/netinfo', () => ({
   })),
 }));
 
+jest.mock('react-native-svg', () => {
+  const React = require('react');
+  const { View, Image } = require('react-native');
+
+  const create = name => {
+    const Comp = ({ children, ...props }) => React.createElement(View, props, children);
+    Comp.displayName = name;
+    return Comp;
+  };
+
+  const SvgUri = ({ uri, ...props }) =>
+    React.createElement(Image, { source: { uri }, ...props });
+  SvgUri.displayName = 'SvgUriMock';
+
+  return {
+    __esModule: true,
+    default: create('SvgMock'),
+    Svg: create('SvgMock'),
+    SvgUri,
+    Path: create('PathMock'),
+    Circle: create('CircleMock'),
+    Rect: create('RectMock'),
+    Defs: create('DefsMock'),
+    LinearGradient: create('LinearGradientMock'),
+    Stop: create('StopMock'),
+    G: create('GMock'),
+    Text: create('TextMock'),
+  };
+});
+
 jest.mock('expo-linear-gradient', () => {
   const React = require('react');
   const { View } = require('react-native');
@@ -261,8 +291,36 @@ jest.mock('expo-font', () => ({
   loadAsync: jest.fn(async () => undefined),
 }));
 
-jest.mock('@expo-google-fonts/inter', () => {
+jest.mock('react-native-maps', () => {
   const React = require('react');
+  const { View } = require('react-native');
+
+  const MapView = React.forwardRef((props, ref) => {
+    React.useImperativeHandle(ref, () => ({
+      animateToRegion: jest.fn(),
+      fitToElements: jest.fn(),
+      getCamera: jest.fn(),
+    }));
+    return React.createElement(View, { ...props, ref });
+  });
+  MapView.displayName = 'MapViewMock';
+
+  const Marker = ({ children, ...props }) => React.createElement(View, props, children);
+  Marker.displayName = 'MarkerMock';
+
+  return {
+    __esModule: true,
+    default: MapView,
+    Marker,
+    Polygon: Marker,
+    Polyline: Marker,
+    Circle: Marker,
+    PROVIDER_DEFAULT: 'default',
+    PROVIDER_GOOGLE: 'google',
+  };
+});
+
+jest.mock('@expo-google-fonts/inter', () => {
   return {
     useFonts: () => [true, null],
     Inter_400Regular: 1,

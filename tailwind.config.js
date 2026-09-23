@@ -22,17 +22,23 @@ module.exports = {
           foreground: '#FFFFFF',
           container: '#066CF4',
           'on-container': '#FCFAFF',
+          fixed: '#D9E2FF',
         },
         secondary: {
           DEFAULT: '#4A5E88',
           foreground: '#FFFFFF',
           container: '#BACFFF',
+          fixed: '#D8E2FF',
         },
         tertiary: {
           DEFAULT: '#A13900',
           container: '#C94A03',
           'on-container': '#FFFAF9',
+          fixed: '#FFB599',
         },
+        'inverse-surface': '#293040',
+        'inverse-on-surface': '#EDF0FF',
+        'on-secondary-container': '#435881',
         background: {
           DEFAULT: '#F9F9FF',
           dark: '#0B1220',
@@ -95,6 +101,7 @@ module.exports = {
         inter: ['Inter'],
       },
       fontSize: {
+        micro: ['11px', { lineHeight: '14px' }],
         caption: ['12px', { lineHeight: '16px' }],
         'label-sm': ['13px', { lineHeight: '16px' }],
         'label-md': ['14px', { lineHeight: '18px' }],
@@ -104,6 +111,7 @@ module.exports = {
         'heading-sm': ['18px', { lineHeight: '24px' }],
         'heading-md': ['22px', { lineHeight: '28px' }],
         'heading-lg': ['26px', { lineHeight: '34px' }],
+        'heading-xl': ['30px', { lineHeight: '38px' }],
         'display-mobile': ['32px', { lineHeight: '40px' }],
         display: ['36px', { lineHeight: '44px' }],
       },
@@ -121,6 +129,45 @@ module.exports = {
       maxWidth: {
         screen: '393px',
         'screen-lg': '768px',
+      },
+      // Soft, flat elevation only — never hard/3D pop-out shadows.
+      // Default scale = reduced (all screens). onboard-* = stronger, first 3 onboarding screens only.
+      // Cards need enough drop to read against bg-background (#F9F9FF) without looking heavy.
+      boxShadow: {
+        xs: '0 1px 3px rgba(15, 23, 42, 0.08)',
+        sm: '0 2px 6px rgba(15, 23, 42, 0.12)',
+        DEFAULT: '0 3px 8px rgba(15, 23, 42, 0.13)',
+        md: '0 4px 12px rgba(15, 23, 42, 0.15)',
+        lg: '0 6px 16px rgba(15, 23, 42, 0.16)',
+        xl: '0 8px 20px rgba(15, 23, 42, 0.17)',
+        '2xl': '0 10px 24px rgba(15, 23, 42, 0.19)',
+        inner: 'inset 0 1px 3px rgba(15, 23, 42, 0.07)',
+        none: 'none',
+        'onboard-sm': '0 3px 10px rgba(15, 23, 42, 0.18)',
+        'onboard-md': '0 6px 20px rgba(15, 23, 42, 0.22)',
+        'onboard-lg': '0 10px 28px rgba(15, 23, 42, 0.26)',
+        'onboard-xl': '0 14px 36px rgba(15, 23, 42, 0.30)',
+      },
+      // Android `elevation` for every boxShadow key above (keys must match 1:1).
+      // NativeWind reads theme("elevation")[boxShadowKey] when emitting `-rn-elevation`.
+      // Values MUST be unitless numeric strings — never `'2px'` (Android ignores those).
+      // Android-only: iOS uses boxShadow blur/opacity above; bump these to strengthen
+      // Android shadows without changing iOS. Without an entry, NativeWind falls back
+      // to blur radius (wrong for our soft scale; can emit `px` for onboard-*).
+      elevation: {
+        xs: '3',
+        sm: '6',
+        DEFAULT: '8',
+        md: '12',
+        lg: '14',
+        xl: '16',
+        '2xl': '18',
+        inner: '0',
+        none: '0',
+        'onboard-sm': '6',
+        'onboard-md': '9',
+        'onboard-lg': '12',
+        'onboard-xl': '16',
       },
       screens: {
         tablet: '768px',

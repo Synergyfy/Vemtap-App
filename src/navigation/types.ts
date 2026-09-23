@@ -14,7 +14,13 @@ export type AuthStackParamList = {
   DiscoverDeals: undefined;
   StartVemtap: undefined;
   SignIn: undefined;
-  SignUp: undefined;
+  Register: undefined;
+  VerifyEmail: { email: string };
+  ProfileSetup: { email: string };
+  LocationPermission: undefined;
+  ManualLocationSearch: undefined;
+  LocationConfirmation: { area?: string };
+  DiscoveringNearbyDeals: undefined;
 };
 
 export type AppStackParamList = {
@@ -22,12 +28,14 @@ export type AppStackParamList = {
   Profile: undefined;
   Settings: undefined;
   DealDetail: { dealId: string };
+  DealFilters: undefined;
 };
 
 export type MainTabParamList = {
   Home: undefined;
+  Deals: undefined;
   Discover: undefined;
-  Claims: undefined;
+  Saved: undefined;
   Account: undefined;
 };
 

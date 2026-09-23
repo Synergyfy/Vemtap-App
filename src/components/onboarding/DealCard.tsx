@@ -42,11 +42,13 @@ export function DealCard({ deal, className }: DealCardProps) {
   const tag = deal.tag ? tagStyles[deal.tag.kind] : null;
 
   return (
-    <View className={cn('w-full rounded-xl bg-surface p-3.5 shadow-md', className)}>
+    <View
+      className={cn('w-full rounded-xl bg-surface p-3.5 shadow-onboard-md', className)}
+    >
       <View className="flex-row gap-3">
         <View className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg bg-surface-container">
           <LocalSvg source={deal.imageSource} />
-          <View className="absolute left-1.5 top-1.5 rounded-full bg-badge-discount-bg px-1.5 py-0.5 shadow-sm">
+          <View className="absolute left-1.5 top-1.5 rounded-full bg-badge-discount-bg px-1.5 py-0.5 shadow-onboard-sm">
             <VemtapText className="font-sans-bold text-caption text-badge-discount-text">
               {deal.badgeLabel}
             </VemtapText>

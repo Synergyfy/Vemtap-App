@@ -47,8 +47,8 @@ export function WelcomeScreen() {
         </View>
 
         {/* Phone mockup visual */}
-        <View className="my-auto flex-col items-center justify-center rounded-[32px] bg-white py-6 shadow shadow-black">
-          <View className="relative w-full max-w-[340px] flex-col justify-between overflow-hidden rounded-[32px] bg-surface-canvas p-3 shadow-xl">
+        <View className="my-auto flex-col items-center justify-center rounded-[32px] bg-white py-6 shadow-onboard-md">
+          <View className="relative w-full max-w-[340px] flex-col justify-between overflow-hidden rounded-[32px] bg-surface-canvas p-3 shadow-onboard-xl">
             {/* Bezel top */}
             <View className="w-full flex-row items-center justify-between px-2 pb-2 pt-1">
               <View className="flex-row items-center gap-2">
@@ -70,7 +70,7 @@ export function WelcomeScreen() {
             <View className="relative h-[155px] w-full overflow-hidden rounded-2xl">
               <LocalSvg source={outdoorBistro} />
               <View className="absolute inset-0 bg-on-background/30" />
-              <View className="absolute left-2.5 top-2.5 flex-row items-center gap-1 rounded-full bg-badge-discount-bg px-2.5 py-1 shadow-sm">
+              <View className="absolute left-2.5 top-2.5 flex-row items-center gap-1 rounded-full bg-badge-discount-bg px-2.5 py-1 shadow-onboard-sm">
                 <Icon name="offer" size={14} color={colors.badgeDiscountText} />
                 <VemtapText className="font-sans-semibold text-caption text-badge-discount-text">
                   {strings.onboarding.welcomeBogo}
@@ -88,7 +88,7 @@ export function WelcomeScreen() {
                     </VemtapText>
                   </View>
                 </View>
-                <View className="h-8 w-8 items-center justify-center rounded-full bg-primary shadow-md">
+                <View className="h-8 w-8 items-center justify-center rounded-full bg-primary shadow-onboard-md">
                   <Icon name="forward" size={18} color="#FFFFFF" />
                 </View>
               </View>
@@ -96,7 +96,7 @@ export function WelcomeScreen() {
 
             {/* Floating micro cards */}
             <View className="mt-10 flex-row gap-2">
-              <View className="flex-1 flex-row items-center gap-2 rounded-xl bg-surface-subtle p-2.5 shadow-sm">
+              <View className="flex-1 flex-row items-center gap-2 rounded-xl bg-surface-subtle p-2.5 shadow-onboard-sm">
                 <View className="h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-container">
                   <Icon name="storefront" size={20} color={colors.primary} />
                 </View>
@@ -109,7 +109,7 @@ export function WelcomeScreen() {
                   </VemtapText>
                 </View>
               </View>
-              <View className="flex-1 flex-row items-center gap-2 rounded-xl bg-surface-subtle p-2.5 shadow-sm">
+              <View className="flex-1 flex-row items-center gap-2 rounded-xl bg-surface-subtle p-2.5 shadow-onboard-sm">
                 <View className="h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-tint">
                   <Icon name="bag" size={20} color={colors.primary} />
                 </View>
@@ -126,13 +126,13 @@ export function WelcomeScreen() {
           </View>
 
           {/* Accent floating badges */}
-          <View className="absolute -right-1 top-5 z-10 -rotate-3 flex-row items-center gap-1 rounded-full bg-surface-canvas px-3 py-1.5 shadow-lg">
+          <View className="absolute -right-1 top-5 z-10 -rotate-3 flex-row items-center gap-1 rounded-full bg-surface-canvas px-3 py-1.5 shadow-onboard-lg">
             <Icon name="verified" size={16} color={colors.badgeDiscountText} />
             <VemtapText className="font-sans-semibold text-caption text-text">
               {strings.onboarding.welcomeVerified}
             </VemtapText>
           </View>
-          <View className="absolute -left-3 bottom-6 z-10 rotate-3 flex-row items-center gap-1 rounded-full bg-surface-canvas px-3 py-1.5 shadow-lg">
+          <View className="absolute -left-3 bottom-6 z-10 rotate-3 flex-row items-center gap-1 rounded-full bg-surface-canvas px-3 py-1.5 shadow-onboard-lg">
             <Icon name="nearMe" size={16} color={colors.primary} />
             <VemtapText className="font-sans-semibold text-caption text-text">
               {strings.onboarding.welcomePickup}
@@ -143,9 +143,9 @@ export function WelcomeScreen() {
         {/* Copy */}
         <View className="mt-2 w-full flex-col items-center text-center">
           <VemtapText
-            variant="display"
+            variant="displayMobile"
             accessibilityRole="header"
-            className="text-center"
+            className="text-center text-heading-xl"
           >
             {strings.onboarding.welcomeHeadline}
           </VemtapText>

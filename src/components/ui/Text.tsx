@@ -8,6 +8,7 @@ cssInterop(RNText, { className: 'style' });
 type Variant =
   | 'display'
   | 'displayMobile'
+  | 'headingXl'
   | 'headingLg'
   | 'headingMd'
   | 'headingSm'
@@ -31,6 +32,7 @@ export interface VemtapTextProps extends TextProps {
 const variantClasses: Record<Variant, string> = {
   display: 'font-sans-bold text-display tracking-tight',
   displayMobile: 'font-sans-bold text-display-mobile tracking-tight',
+  headingXl: 'font-sans-semibold text-heading-xl tracking-tight',
   headingLg: 'font-sans-semibold text-heading-lg tracking-tight',
   headingMd: 'font-sans-semibold text-heading-md tracking-tight',
   headingSm: 'font-sans-semibold text-heading-sm',

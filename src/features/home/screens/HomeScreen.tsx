@@ -1,122 +1,158 @@
-import React, { useCallback } from 'react';
-import { View, FlatList, RefreshControl } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { ScrollView, View } from 'react-native';
+import { cssInterop } from 'nativewind';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { VemtapText } from '@components/ui/Text';
-import { Card } from '@components/ui/Card';
-import { Button } from '@components/ui/Button';
-import { EmptyState } from '@components/shared/EmptyState';
-import { ErrorState } from '@components/shared/ErrorState';
-import { Loader } from '@components/ui/Loader';
-import { OfflineBanner } from '@components/shared/OfflineBanner';
-import { usePaginatedUsers } from '@features/home/hooks/usePaginatedUsers';
 import { useIsOnline } from '@hooks/useNetworkStatus';
-import type { RootStackParamList } from '@navigation/types';
+import { OfflineBanner } from '@components/shared/OfflineBanner';
+import { HomeHeader } from '@components/home/HomeHeader';
+import { HomeSearchBar } from '@components/home/HomeSearchBar';
+import { CategoryChips } from '@components/home/CategoryChips';
+import { SectionHeader } from '@components/home/SectionHeader';
+import { FeaturedDealCard } from '@components/home/FeaturedDealCard';
+import { NearbyDealListCard } from '@components/home/NearbyDealListCard';
+import { NearbyDealGridCard } from '@components/home/NearbyDealGridCard';
+import { TrendingDealCard } from '@components/home/TrendingDealCard';
+import { BusinessRow } from '@components/home/BusinessRow';
+import { PopularProductCard } from '@components/home/PopularProductCard';
+import { EnrollmentPrompt } from '@components/home/EnrollmentPrompt';
+import { TwoColumnGrid } from '@components/shared/TwoColumnGrid';
+import { ViewToggle, type DealsViewMode } from '@components/home/ViewToggle';
 import { strings } from '@constants/strings';
+import {
+  featuredDeal as featuredDealSeed,
+  nearbyDeals as nearbyDealsSeed,
+  nearbyBusinesses,
+  popularProducts,
+  trendingDeals,
+} from '@features/home/data/homeFeed';
 
-type Nav = NativeStackNavigationProp<RootStackParamList>;
+cssInterop(View, { className: 'style' });
+cssInterop(SafeAreaView, { className: 'style' });
+cssInterop(ScrollView, {
+  className: 'style',
+  contentContainerClassName: 'contentContainerStyle',
+});
 
 export function HomeScreen() {
-  const navigation = useNavigation<Nav>();
   const isOnline = useIsOnline();
-  const {
-    users,
-    isLoading,
-    isError,
-    error,
-    refetch,
-    isRefetching,
-    loadMore,
-    hasNextPage,
-    isFetchingNextPage,
-  } = usePaginatedUsers({ perPage: 20 });
+  const [viewMode, setViewMode] = useState<DealsViewMode>('list');
+  const [featured, setFeatured] = useState(featuredDealSeed);
+  const [nearbyDeals, setNearbyDeals] = useState(nearbyDealsSeed);
 
-  const handleOpenProfile = useCallback(() => {
-    navigation.navigate('AppStack', { screen: 'Profile' });
-  }, [navigation]);
+  const toggleFeaturedLike = useCallback((id: string) => {
+    setFeatured(prev => (prev.id === id ? { ...prev, liked: !prev.liked } : prev));
+  }, []);
 
-  const handleEndReached = useCallback(() => {
-    if (hasNextPage) {
-      loadMore();
-    }
-  }, [hasNextPage, loadMore]);
-
-  if (isLoading) {
-    return (
-      <SafeAreaView className="flex-1 bg-background">
-        {!isOnline ? <OfflineBanner /> : null}
-        <Loader label={strings.common.loading} />
-      </SafeAreaView>
+  const toggleNearbyLike = useCallback((id: string) => {
+    setNearbyDeals(prev =>
+      prev.map(deal => (deal.id === id ? { ...deal, liked: !deal.liked } : deal)),
     );
-  }
-
-  if (isError) {
-    return (
-      <SafeAreaView className="flex-1 bg-background">
-        {!isOnline ? <OfflineBanner /> : null}
-        <ErrorState
-          description={(error as Error)?.message}
-          onRetry={() => {
-            refetch().catch(() => undefined);
-          }}
-        />
-      </SafeAreaView>
-    );
-  }
+  }, []);
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={['top']}>
-      {!isOnline ? <OfflineBanner /> : null}
-      <View className="px-screen pb-6 pt-4">
-        <VemtapText variant="headingLg">Discover</VemtapText>
-        <VemtapText tone="secondary" className="mt-1">
-          Deals and businesses around you.
-        </VemtapText>
-      </View>
+    <View className="flex-1 bg-background">
+      {/* Status bar + navbar share solid white so the iPhone inset blends with the header. */}
+      <SafeAreaView edges={['top']} className="bg-surface">
+        {!isOnline ? <OfflineBanner /> : null}
+        <HomeHeader />
+      </SafeAreaView>
 
-      <FlatList
-        data={users}
-        keyExtractor={item => item.id}
-        contentContainerClassName="px-screen pb-8 gap-3"
-        renderItem={({ item }) => (
-          <Card>
-            <VemtapText variant="headingSm">{item.displayName ?? item.email}</VemtapText>
-            <VemtapText tone="secondary" className="mt-1">
-              {item.email}
-            </VemtapText>
-          </Card>
-        )}
-        onEndReachedThreshold={0.4}
-        onEndReached={handleEndReached}
-        windowSize={7}
-        initialNumToRender={8}
-        maxToRenderPerBatch={8}
-        removeClippedSubviews
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefetching}
-            onRefresh={() => {
-              refetch().catch(() => undefined);
-            }}
-          />
-        }
-        ListEmptyComponent={
-          <EmptyState
-            title="No results"
-            description="Try again in a moment."
-            actionLabel={strings.common.retry}
-            onAction={() => {
-              refetch().catch(() => undefined);
-            }}
-          />
-        }
-        ListFooterComponent={isFetchingNextPage ? <Loader className="py-4" /> : undefined}
-      />
+      <ScrollView
+        contentContainerClassName="px-6 pb-8 pt-4 gap-6"
+        showsVerticalScrollIndicator={false}
+      >
+        <View className="gap-4">
+          <HomeSearchBar />
+          <CategoryChips categories={strings.home.categories} />
+        </View>
 
-      <View className="px-screen pb-4">
-        <Button label="Open profile" variant="outline" onPress={handleOpenProfile} />
-      </View>
-    </SafeAreaView>
+        <View className="flex-col gap-3.5">
+          <SectionHeader
+            title={strings.home.featured}
+            badge={strings.home.promoted}
+            seeAllLabel={strings.home.seeAll}
+          />
+          <FeaturedDealCard deal={featured} onToggleLike={toggleFeaturedLike} />
+        </View>
+
+        <View className="flex-col gap-3.5">
+          <SectionHeader
+            title={strings.home.dealsNearYou}
+            seeAllLabel={strings.home.seeAll}
+          >
+            <ViewToggle
+              mode={viewMode}
+              onChange={setViewMode}
+              listLabel={strings.home.listView}
+              gridLabel={strings.home.gridView}
+            />
+          </SectionHeader>
+
+          {viewMode === 'list' ? (
+            <View className="flex-col gap-3.5">
+              {nearbyDeals.map(deal => (
+                <NearbyDealListCard
+                  key={deal.id}
+                  deal={deal}
+                  onToggleLike={toggleNearbyLike}
+                />
+              ))}
+            </View>
+          ) : (
+            <TwoColumnGrid
+              items={nearbyDeals}
+              keyExtractor={deal => deal.id}
+              renderItem={deal => (
+                <NearbyDealGridCard deal={deal} onToggleLike={toggleNearbyLike} />
+              )}
+            />
+          )}
+        </View>
+
+        <View className="flex-col gap-3.5">
+          <SectionHeader
+            title={strings.home.trending}
+            emoji="🔥"
+            seeAllLabel={strings.home.seeAll}
+          />
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            className="-mx-6"
+            contentContainerClassName="px-6 gap-3.5 pb-2"
+          >
+            {trendingDeals.map(deal => (
+              <TrendingDealCard key={deal.id} deal={deal} />
+            ))}
+          </ScrollView>
+        </View>
+
+        <View className="flex-col gap-3.5">
+          <SectionHeader
+            title={strings.home.businessesAround}
+            seeAllLabel={strings.home.seeAll}
+          />
+          <View className="flex-col gap-3">
+            {nearbyBusinesses.map(business => (
+              <BusinessRow key={business.id} business={business} />
+            ))}
+          </View>
+        </View>
+
+        <View className="flex-col gap-3.5">
+          <SectionHeader
+            title={strings.home.popularNearYou}
+            seeAllLabel={strings.home.seeAll}
+          />
+          <TwoColumnGrid
+            items={popularProducts}
+            keyExtractor={product => product.id}
+            renderItem={product => <PopularProductCard product={product} />}
+          />
+        </View>
+
+        <EnrollmentPrompt />
+      </ScrollView>
+    </View>
   );
 }
