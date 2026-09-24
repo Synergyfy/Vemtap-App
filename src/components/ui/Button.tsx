@@ -25,6 +25,7 @@ const buttonVariants = tv({
       outline: ['border border-border bg-transparent active:bg-surface-muted'],
       ghost: ['bg-transparent active:bg-surface-muted'],
       destructive: ['bg-error active:opacity-90'],
+      success: ['bg-success active:opacity-90'],
     },
     size: {
       sm: ['min-h-[44px] rounded-field px-4'],
@@ -62,6 +63,7 @@ const labelVariants = tv({
       outline: 'text-text',
       ghost: 'text-text',
       destructive: 'text-error-foreground',
+      success: 'text-success-foreground',
     },
   },
   defaultVariants: { variant: 'primary' },

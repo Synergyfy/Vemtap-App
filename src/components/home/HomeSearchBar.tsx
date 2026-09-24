@@ -15,6 +15,9 @@ export interface HomeSearchBarProps {
   placeholder?: string;
   filterLabel?: string;
   onFilterPress?: () => void;
+  value?: string;
+  onChangeText?: (value: string) => void;
+  showFilter?: boolean;
 }
 
 export function HomeSearchBar({
@@ -22,6 +25,9 @@ export function HomeSearchBar({
   placeholder,
   filterLabel,
   onFilterPress,
+  value,
+  onChangeText,
+  showFilter = true,
 }: HomeSearchBarProps) {
   const isOutlined = variant === 'outlined';
   const label = placeholder ?? strings.home.searchPlaceholder;
@@ -46,19 +52,23 @@ export function HomeSearchBar({
           accessibilityLabel={label}
           placeholder={label}
           placeholderTextColor={colors.textTertiary}
+          value={value}
+          onChangeText={onChangeText}
           className="min-w-0 flex-1 bg-transparent p-0 font-sans text-body-md text-text"
         />
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={a11yFilter}
-          className={cn(
-            isOutlined ? 'h-8 w-8 items-center justify-center rounded-lg' : 'p-1',
-          )}
-          hitSlop={8}
-          onPress={onFilterPress}
-        >
-          <Icon name="tune" size={isOutlined ? 20 : 22} color={colors.textSecondary} />
-        </Pressable>
+        {showFilter ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={a11yFilter}
+            className={cn(
+              isOutlined ? 'h-8 w-8 items-center justify-center rounded-lg' : 'p-1',
+            )}
+            hitSlop={8}
+            onPress={onFilterPress}
+          >
+            <Icon name="tune" size={isOutlined ? 20 : 22} color={colors.textSecondary} />
+          </Pressable>
+        ) : null}
       </View>
     </View>
   );

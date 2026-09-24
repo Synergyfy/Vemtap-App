@@ -1,16 +1,18 @@
 import React from 'react';
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { VemtapText } from '@components/ui/Text';
 import { cn } from '@utils/cn';
 
 cssInterop(View, { className: 'style' });
+cssInterop(Pressable, { className: 'style' });
 
 export interface SectionHeaderProps {
   title: string;
   badge?: string;
   emoji?: string;
   seeAllLabel: string;
+  onSeeAll?: () => void;
   className?: string;
   children?: React.ReactNode;
 }
@@ -20,6 +22,7 @@ export function SectionHeader({
   badge,
   emoji,
   seeAllLabel,
+  onSeeAll,
   className,
   children,
 }: SectionHeaderProps) {
@@ -43,13 +46,20 @@ export function SectionHeader({
       </View>
       <View className="shrink-0 flex-row items-center gap-2.5">
         {children}
-        <VemtapText
-          variant="labelMd"
-          className="font-sans-semibold text-label-md text-primary"
+        <Pressable
           accessibilityRole="link"
+          accessibilityLabel={`${seeAllLabel} ${title}`}
+          disabled={!onSeeAll}
+          onPress={onSeeAll}
+          className="min-h-11 justify-center"
         >
-          {seeAllLabel}
-        </VemtapText>
+          <VemtapText
+            variant="labelMd"
+            className="font-sans-semibold text-label-md text-primary"
+          >
+            {seeAllLabel}
+          </VemtapText>
+        </Pressable>
       </View>
     </View>
   );

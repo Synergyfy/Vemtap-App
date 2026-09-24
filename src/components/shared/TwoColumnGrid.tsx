@@ -24,9 +24,9 @@ export function TwoColumnGrid<T>({
   return (
     <View className="flex-col gap-3">
       {rows.map(row => (
-        <View key={keyExtractor(row[0])} className="flex-row gap-3">
+        <View key={keyExtractor(row[0])} className="flex-row items-start gap-3">
           {row.map(item => (
-            <View key={keyExtractor(item)} className="min-w-0 flex-1">
+            <View key={keyExtractor(item)} className="min-w-0 flex-1 self-start">
               {renderItem(item)}
             </View>
           ))}

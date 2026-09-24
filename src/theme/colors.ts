@@ -30,6 +30,7 @@ export const colors = {
   inverseSurface: '#293040',
   inverseOnSurface: '#EDF0FF',
   onSecondaryContainer: '#435881',
+  onSecondaryFixed: '#001A41',
   badgeDiscountBg: '#ECFDF5',
   badgeDiscountText: '#059669',
   error: '#BA1A1A',

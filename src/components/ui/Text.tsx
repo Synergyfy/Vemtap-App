@@ -16,6 +16,7 @@ type Variant =
   | 'bodyMd'
   | 'labelMd'
   | 'labelSm'
+  | 'micro'
   | 'caption'
   | 'button';
 
@@ -40,6 +41,7 @@ const variantClasses: Record<Variant, string> = {
   bodyMd: 'font-sans text-body-md',
   labelMd: 'font-sans-medium text-label-md',
   labelSm: 'font-sans-medium text-label-sm',
+  micro: 'font-sans text-micro',
   caption: 'font-sans text-caption',
   button: 'font-sans-semibold text-button-md',
 };

@@ -13,10 +13,23 @@ cssInterop(Pressable, { className: 'style' });
 export interface RegistrationHeaderProps {
   title: string;
   onBack: () => void;
+  showShareAction?: boolean;
+  onShare?: () => void;
+  showMoreAction?: boolean;
+  onMore?: () => void;
+  largeTitle?: boolean;
 }
 
 /** Fixed chrome header from customer_registration_step_* HTML (back · title · avatar). */
-export function RegistrationHeader({ title, onBack }: RegistrationHeaderProps) {
+export function RegistrationHeader({
+  title,
+  onBack,
+  showShareAction = false,
+  onShare,
+  showMoreAction = false,
+  onMore,
+  largeTitle = false,
+}: RegistrationHeaderProps) {
   return (
     <View
       className="w-full flex-row items-center justify-between bg-surface px-6 pb-3 pt-2"
@@ -33,14 +46,42 @@ export function RegistrationHeader({ title, onBack }: RegistrationHeaderProps) {
       </Pressable>
       <VemtapText
         accessibilityRole="header"
-        variant="headingSm"
-        className="max-w-[200px] text-center"
+        variant={largeTitle ? 'headingXl' : 'headingSm'}
+        className={
+          largeTitle
+            ? 'max-w-[200px] text-center text-heading-xl'
+            : 'max-w-[200px] text-center'
+        }
         numberOfLines={1}
       >
         {title}
       </VemtapText>
-      <View className="h-8 w-8 items-center justify-center rounded-full bg-primary">
-        <Icon name="person" size={18} color="#FFFFFF" />
+      <View className="flex-row items-center justify-end gap-1">
+        {showShareAction ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={strings.deals.dealShare}
+            hitSlop={8}
+            className="h-11 w-11 items-center justify-center rounded-full active:bg-surface-container-high"
+            onPress={onShare}
+          >
+            <Icon name="share" size={22} color={colors.textSecondary} />
+          </Pressable>
+        ) : null}
+        {showMoreAction ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={strings.common.more}
+            hitSlop={8}
+            className="h-11 w-11 items-center justify-center rounded-full active:bg-surface-container-high"
+            onPress={onMore}
+          >
+            <Icon name="more" size={22} color={colors.textSecondary} />
+          </Pressable>
+        ) : null}
+        <View className="h-8 w-8 items-center justify-center rounded-full bg-primary shadow-sm">
+          <Icon name="person" size={18} color={colors.surface} />
+        </View>
       </View>
     </View>
   );

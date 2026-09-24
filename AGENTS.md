@@ -97,6 +97,26 @@ Built for **Expo Go (SDK 57)** — do not reintroduce native-only modules.
     shared in `src/components/shared/`, generic in `src/components/ui/*`) before using it
     twice in a screen or across screens. Screens compose components — they do not
     re-implement them.
+18. **All bottom sheets use the shared delayed-fade animation.** Build every bottom sheet
+    with `src/components/shared/BottomSheet.tsx`; do not use a bare `Modal` or duplicate
+    sheet animation logic. The scrim must remain transparent initially, fade to the design
+    token after a short `120ms` delay, and the sheet must animate upward independently.
+    On dismissal, animate both the scrim and sheet out before calling `onClose`; support
+    Android back dismissal through `onRequestClose`. Sheet titles and headings must match
+    the Stitch HTML type scale for supporting content, but the primary bottom-sheet title
+    must always use `variant="headingXl"` **and** `text-heading-xl` in `className`.
+    Never rely on the sheet's default heading size.
+19. **Every new-screen request must run the Stitch + reuse audit first.** Before implementing one
+    or many screens, locate each matching `code.html` and `screen.png`, classify every screen as
+    page/modal/bottom sheet, and inventory its cards, rows, headers, tabs, badges, controls, and
+    copy against existing `src/components/*` primitives. Reuse those primitives and centralized
+    `Text`, `Button`, `Icon`, colors, fonts, sheets, and maps. When multiple requested screens
+    share a pattern, create one reusable component and compose it everywhere; never copy a card,
+    text style, button, font, color token, or layout implementation into multiple screens.
+    Multi-screen requests must also verify all screens together for consistent hierarchy,
+    responsive behavior, and cross-platform parity. If the user says screens are not to be wired,
+    create/export the components only—do not add routes, deep links, navigator registrations, or
+    hidden navigation side effects.
 
 ## Key files
 
@@ -104,6 +124,7 @@ Built for **Expo Go (SDK 57)** — do not reintroduce native-only modules.
   (`Welcome`, `DiscoverDeals`, `StartVemtap`).
 - `src/features/auth/screens/*` — Welcome / Discover Deals / Start VEMTAP screens.
 - `src/components/onboarding/*` — `OnboardingHeader`, `ProgressDots`, `DealCard`.
+- `src/components/shared/BottomSheet.tsx` — shared delayed-fade bottom sheet primitive.
 - `tailwind.config.js` + `src/theme/colors.ts` — color tokens; `src/components/ui/Text.tsx` —
   Inter weight families (`font-sans`, `font-sans-medium`, `font-sans-semibold`, `font-sans-bold`).
 

@@ -1,11 +1,27 @@
 import React, { useCallback, useState } from 'react';
-import { Image, Pressable, ScrollView, Share, StyleSheet, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { Button } from '@components/ui/Button';
+import { LocationMapView } from '@components/shared/LocationMapView';
+import {
+  ClaimAuthModalSheet,
+  ClaimConfirmationSheet,
+  ClaimIdentitySheet,
+  ClaimTermsSheet,
+  DealCommentsSheet,
+  DealShareSheet,
+  GiftConfirmSheet,
+  GiftDetailsSheet,
+  RecipientDetailsSheet,
+  RecipientSummarySheet,
+  RecipientVerificationSheet,
+  type ClaimDealData,
+  type RecipientData,
+} from '@features/dealDetail/components';
 import { colors } from '@theme/colors';
 import { navbarBottomShadow } from '@theme/shadows';
 import type { AppStackParamList } from '@navigation/types';
@@ -20,6 +36,24 @@ cssInterop(SafeAreaView, { className: 'style' });
 cssInterop(Pressable, { className: 'style' });
 
 type Props = NativeStackScreenProps<AppStackParamList, 'DealDetail'>;
+type ClaimFlowStep =
+  | 'confirmation'
+  | 'auth'
+  | 'identity'
+  | 'recipient'
+  | 'verification'
+  | 'summary'
+  | 'gift'
+  | 'giftConfirm'
+  | 'terms'
+  | null;
+
+const apoRegion = {
+  latitude: 9.0765,
+  longitude: 7.3986,
+  latitudeDelta: 0.012,
+  longitudeDelta: 0.012,
+};
 
 type DealDetailProps = {
   title: string;
@@ -42,6 +76,25 @@ export function DealDetailScreen({ route, navigation }: Props) {
   const [saved, setSaved] = useState(false);
   const [liked, setLiked] = useState(false);
   const [claimed, setClaimed] = useState(false);
+  const [commentsVisible, setCommentsVisible] = useState(false);
+  const [shareVisible, setShareVisible] = useState(false);
+  const [claimStep, setClaimStep] = useState<ClaimFlowStep>(null);
+  const [claimingAs, setClaimingAs] = useState('john@email.com');
+  const [recipient, setRecipient] = useState<RecipientData>({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+  });
+  const [giftRecipient, setGiftRecipient] = useState<RecipientData & { message: string }>(
+    {
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: '',
+      message: '',
+    },
+  );
 
   const deal = dealsGrid.find(item => item.id === route.params.dealId) ?? dealsGrid[0];
   const details: DealDetailProps = {
@@ -60,16 +113,33 @@ export function DealDetailScreen({ route, navigation }: Props) {
     comments: 32,
   };
 
+  const claimData: ClaimDealData = {
+    title: details.title,
+    merchant: deal.merchant.split(' • ')[0],
+    price: details.price,
+    priceWas: details.priceWas,
+    save: details.save,
+    badge: details.badge,
+    image: deal.image,
+  };
+
   const handleShare = useCallback(() => {
-    Share.share({
-      title: `${details.title} at ${deal.merchant}`,
-      message: 'Claim this exclusive deal on VEMTAP.',
-    }).catch(() => undefined);
-  }, [deal.merchant, details.title]);
+    setShareVisible(true);
+  }, []);
 
   const handleClaim = useCallback(() => {
+    if (claimed) {
+      navigation.navigate('MyClaimedDeal', { dealId: deal.id });
+      return;
+    }
+    setClaimStep('confirmation');
+  }, [claimed, deal.id, navigation]);
+
+  const completeClaim = useCallback(() => {
     setClaimed(true);
-  }, []);
+    setClaimStep(null);
+    navigation.navigate('DealClaimedSuccess', { dealId: deal.id });
+  }, [deal.id, navigation]);
 
   return (
     <View className="flex-1 bg-background">
@@ -239,12 +309,14 @@ export function DealDetailScreen({ route, navigation }: Props) {
                 </VemtapText>
               </View>
             </View>
-            <View style={styles.mapPanel}>
-              <View style={styles.mapRoadOne} />
-              <View style={styles.mapRoadTwo} />
-              <View style={styles.mapPin}>
-                <Icon name="locationOn" size={22} color={colors.primary} />
-              </View>
+            <LocationMapView
+              region={apoRegion}
+              style={styles.mapPanel}
+              scrollEnabled={false}
+              zoomEnabled={false}
+              pitchEnabled={false}
+              rotateEnabled={false}
+            >
               <View style={styles.addressBadge}>
                 <Icon name="locationOn" size={16} color={colors.primary} />
                 <VemtapText
@@ -254,7 +326,7 @@ export function DealDetailScreen({ route, navigation }: Props) {
                   {details.address}
                 </VemtapText>
               </View>
-            </View>
+            </LocationMapView>
           </View>
 
           <View style={styles.infoRows}>
@@ -263,14 +335,16 @@ export function DealDetailScreen({ route, navigation }: Props) {
               iconBackground="bg-surface-tint"
               title="How to Claim"
               subtitle="Show dynamic QR code at billing counter"
-              onPress={() => undefined}
+              onPress={() => navigation.navigate('HowToClaim', { dealId: deal.id })}
             />
             <InfoRow
               icon="info"
               iconBackground="bg-surface-container"
               title="Terms & Conditions"
               subtitle="Valid 12 PM - 4 PM weekdays only"
-              onPress={() => undefined}
+              onPress={() =>
+                navigation.navigate('DealTermsConditions', { dealId: deal.id })
+              }
             />
           </View>
 
@@ -291,7 +365,12 @@ export function DealDetailScreen({ route, navigation }: Props) {
               </VemtapText>
             </Pressable>
             <View style={styles.divider} />
-            <Pressable accessibilityRole="button" style={styles.engagementButton}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Open comments"
+              onPress={() => setCommentsVisible(true)}
+              style={styles.engagementButton}
+            >
               <Icon name="comment" size={18} color={colors.textSecondary} />
               <VemtapText className="font-sans-semibold text-label-md text-text-secondary">
                 {details.comments}
@@ -345,6 +424,100 @@ export function DealDetailScreen({ route, navigation }: Props) {
           </VemtapText>
         </View>
       </View>
+
+      <ClaimConfirmationSheet
+        visible={claimStep === 'confirmation'}
+        onClose={() => setClaimStep(null)}
+        onConfirm={() => setClaimStep('auth')}
+        deal={claimData}
+      />
+      <ClaimAuthModalSheet
+        visible={claimStep === 'auth'}
+        onClose={() => setClaimStep(null)}
+        onContinue={() => setClaimStep('identity')}
+        deal={claimData}
+      />
+      <ClaimIdentitySheet
+        visible={claimStep === 'identity'}
+        onClose={() => setClaimStep(null)}
+        onForMe={() => {
+          setClaimingAs('john@email.com');
+          setClaimStep('terms');
+        }}
+        onGift={() => setClaimStep('gift')}
+        onRecipient={() => setClaimStep('recipient')}
+        deal={claimData}
+      />
+      <RecipientDetailsSheet
+        visible={claimStep === 'recipient'}
+        onClose={() => setClaimStep(null)}
+        onBack={() => setClaimStep('identity')}
+        onContinue={data => {
+          setRecipient(data);
+          setClaimingAs(data.email);
+          setClaimStep('verification');
+        }}
+      />
+      <RecipientVerificationSheet
+        visible={claimStep === 'verification'}
+        onClose={() => setClaimStep(null)}
+        onBack={() => setClaimStep('recipient')}
+        onContinue={() => setClaimStep('summary')}
+        email={recipient.email}
+      />
+      <RecipientSummarySheet
+        visible={claimStep === 'summary'}
+        onClose={() => setClaimStep(null)}
+        onEdit={() => setClaimStep('recipient')}
+        onContinue={() => setClaimStep('terms')}
+        recipient={recipient}
+        deal={claimData}
+      />
+      <GiftDetailsSheet
+        visible={claimStep === 'gift'}
+        onClose={() => setClaimStep(null)}
+        onContinue={data => {
+          setGiftRecipient(data);
+          setClaimingAs(data.email);
+          setClaimStep('giftConfirm');
+        }}
+        deal={claimData}
+      />
+      <GiftConfirmSheet
+        visible={claimStep === 'giftConfirm'}
+        onClose={() => setClaimStep(null)}
+        onBack={() => setClaimStep('gift')}
+        onConfirm={() => {
+          setClaimStep(null);
+          navigation.navigate('GiftDealSentSuccess', {
+            dealId: deal.id,
+            recipient: giftRecipient,
+          });
+        }}
+        recipient={giftRecipient}
+        deal={claimData}
+      />
+      <ClaimTermsSheet
+        visible={claimStep === 'terms'}
+        onClose={() => setClaimStep(null)}
+        onComplete={completeClaim}
+        deal={claimData}
+        claimingAs={claimingAs}
+      />
+
+      <DealCommentsSheet
+        visible={commentsVisible}
+        onClose={() => setCommentsVisible(false)}
+        dealTitle={details.title}
+        merchant={deal.merchant.split(' • ')[0]}
+        commentCount={details.comments}
+      />
+      <DealShareSheet
+        visible={shareVisible}
+        onClose={() => setShareVisible(false)}
+        deal={deal}
+        shareUrl={`https://vemtap.com/deals/${deal.id}`}
+      />
     </View>
   );
 }
@@ -541,23 +714,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  mapRoadOne: {
-    position: 'absolute',
-    height: 12,
-    left: 0,
-    right: 0,
-    top: 42,
-    backgroundColor: colors.surface,
-  },
-  mapRoadTwo: {
-    position: 'absolute',
-    width: 12,
-    top: 0,
-    bottom: 0,
-    left: '55%',
-    backgroundColor: colors.surface,
-  },
-  mapPin: { alignItems: 'center', justifyContent: 'center' },
   addressBadge: {
     position: 'absolute',
     left: 8,

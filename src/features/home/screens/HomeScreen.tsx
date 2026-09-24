@@ -33,7 +33,11 @@ cssInterop(ScrollView, {
   contentContainerClassName: 'contentContainerStyle',
 });
 
-export function HomeScreen() {
+export interface HomeScreenProps {
+  onOpenDiscover?: () => void;
+}
+
+export function HomeScreen({ onOpenDiscover }: HomeScreenProps) {
   const isOnline = useIsOnline();
   const [viewMode, setViewMode] = useState<DealsViewMode>('list');
   const [featured, setFeatured] = useState(featuredDealSeed);
@@ -79,6 +83,7 @@ export function HomeScreen() {
           <SectionHeader
             title={strings.home.dealsNearYou}
             seeAllLabel={strings.home.seeAll}
+            onSeeAll={onOpenDiscover}
           >
             <ViewToggle
               mode={viewMode}

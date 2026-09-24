@@ -13,10 +13,24 @@ cssInterop(Pressable, { className: 'style' });
 
 export interface CategoryChipsProps {
   categories: readonly string[];
+  activeCategory?: string;
+  onChangeCategory?: (category: string) => void;
 }
 
-export function CategoryChips({ categories }: CategoryChipsProps) {
-  const [active, setActive] = useState(categories[0] ?? '');
+export function CategoryChips({
+  categories,
+  activeCategory,
+  onChangeCategory,
+}: CategoryChipsProps) {
+  const [internalActive, setInternalActive] = useState(categories[0] ?? '');
+  const active = activeCategory ?? internalActive;
+
+  const selectCategory = (category: string) => {
+    if (activeCategory === undefined) {
+      setInternalActive(category);
+    }
+    onChangeCategory?.(category);
+  };
 
   return (
     <ScrollView
@@ -32,7 +46,7 @@ export function CategoryChips({ categories }: CategoryChipsProps) {
             key={category}
             accessibilityRole="button"
             accessibilityState={{ selected: isActive }}
-            onPress={() => setActive(category)}
+            onPress={() => selectCategory(category)}
             className={cn(
               'h-9 shrink-0 items-center justify-center rounded-full px-4 shadow-sm',
               isActive ? 'bg-primary-container' : 'bg-surface-container-lowest',

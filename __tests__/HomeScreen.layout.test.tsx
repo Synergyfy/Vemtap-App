@@ -9,6 +9,28 @@ jest.mock('@hooks/useNetworkStatus', () => ({
 }));
 
 describe('HomeScreen Deals Near You layout', () => {
+  it('pushes Deals Discovery while keeping Home active', async () => {
+    const screen = await render(
+      <NavigationContainer>
+        <TabNavigator />
+      </NavigationContainer>,
+    );
+
+    await fireEvent.press(screen.getByLabelText('See All Deals Near You'));
+
+    expect(await screen.findByText('Showing 6 deals')).toBeTruthy();
+    expect(screen.getByText('Prime 3-Course Lunch Combo & Drinks')).toBeTruthy();
+    expect(screen.getByLabelText(/Home, tab/i).props.accessibilityState).toMatchObject({
+      selected: true,
+    });
+    expect(
+      screen.getByLabelText(/Discover, tab/i).props.accessibilityState,
+    ).toMatchObject({ selected: false });
+    expect(screen.getByLabelText(/Deals, tab/i)).toBeTruthy();
+    expect(screen.getByLabelText(/Saved, tab/i)).toBeTruthy();
+    expect(screen.getByLabelText(/Account, tab/i)).toBeTruthy();
+  });
+
   it('toggles Deals without losing its tab and root navigation context', async () => {
     const screen = await render(
       <NavigationContainer>

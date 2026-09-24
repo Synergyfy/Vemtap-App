@@ -4,6 +4,19 @@ import { TabNavigator } from '@navigation/TabNavigator';
 import { ProfileScreen } from '@features/profile/screens/ProfileScreen';
 import { DealFiltersScreen } from '@features/deals/screens/DealFiltersScreen';
 import { DealDetailScreen } from '@features/dealDetail/screens/DealDetailScreen';
+import { DealTermsConditionsScreen } from '@features/dealDetail/screens/DealTermsConditionsScreen';
+import { HowToClaimScreen } from '@features/howToClaim/screens/HowToClaimScreen';
+import { DealClaimedSuccessScreen } from '@features/claimedDeal/screens/DealClaimedSuccessScreen';
+import { MyClaimedDealScreen } from '@features/claimedDeal/screens/MyClaimedDealScreen';
+import { MerchantChatScreen } from '@features/merchantChat/screens/MerchantChatScreen';
+import { GiftDealSentSuccessScreen } from '@features/giftDeal/screens/GiftDealSentSuccessScreen';
+import { ProductDetailScreen } from '@features/order/screens/ProductDetailScreen';
+import { OrderCheckoutScreen } from '@features/order/screens/OrderCheckoutScreen';
+import { OrderPlacedScreen } from '@features/order/screens/OrderPlacedScreen';
+import { ServiceDetailScreen } from '@features/booking/screens/ServiceDetailScreen';
+import { ScheduleAppointmentScreen } from '@features/booking/screens/ScheduleAppointmentScreen';
+import { BookingCheckoutScreen } from '@features/booking/screens/BookingCheckoutScreen';
+import { BookingConfirmedScreen } from '@features/booking/screens/BookingConfirmedScreen';
 import type { AppStackParamList } from '@navigation/types';
 
 const Stack = createNativeStackNavigator<AppStackParamList>();
@@ -19,6 +32,19 @@ export function AppStack() {
       />
       <Stack.Screen name="DealFilters" component={DealFiltersScreen} />
       <Stack.Screen name="DealDetail" component={DealDetailScreen} />
+      <Stack.Screen name="DealTermsConditions" component={DealTermsConditionsScreen} />
+      <Stack.Screen name="HowToClaim" component={HowToClaimScreen} />
+      <Stack.Screen name="DealClaimedSuccess" component={DealClaimedSuccessScreen} />
+      <Stack.Screen name="MyClaimedDeal" component={MyClaimedDealScreen} />
+      <Stack.Screen name="MerchantChat" component={MerchantChatScreen} />
+      <Stack.Screen name="GiftDealSentSuccess" component={GiftDealSentSuccessScreen} />
+      <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
+      <Stack.Screen name="OrderCheckout" component={OrderCheckoutScreen} />
+      <Stack.Screen name="OrderPlaced" component={OrderPlacedScreen} />
+      <Stack.Screen name="ServiceDetail" component={ServiceDetailScreen} />
+      <Stack.Screen name="ScheduleAppointment" component={ScheduleAppointmentScreen} />
+      <Stack.Screen name="BookingCheckout" component={BookingCheckoutScreen} />
+      <Stack.Screen name="BookingConfirmed" component={BookingConfirmedScreen} />
     </Stack.Navigator>
   );
 }
