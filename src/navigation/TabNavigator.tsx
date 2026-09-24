@@ -74,8 +74,12 @@ function HomeFeedScreen() {
     () => () => navigation.push('DealsDiscovery'),
     [navigation],
   );
+  const onOpenDeal = useMemo(
+    () => (dealId: string) => navigation.navigate('DealDetail', { dealId }),
+    [navigation],
+  );
 
-  return <HomeScreen onOpenDiscover={onOpenDiscover} />;
+  return <HomeScreen onOpenDiscover={onOpenDiscover} onOpenDeal={onOpenDeal} />;
 }
 
 function HomeDealsDiscoveryScreen() {

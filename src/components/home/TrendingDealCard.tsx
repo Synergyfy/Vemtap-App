@@ -1,5 +1,5 @@
 import React from 'react';
-import { Image, View } from 'react-native';
+import { Image, Pressable, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
@@ -7,10 +7,22 @@ import type { TrendingDeal } from '@features/home/data/homeFeed';
 import { colors } from '@theme/colors';
 
 cssInterop(View, { className: 'style' });
+cssInterop(Pressable, { className: 'style' });
 
-export function TrendingDealCard({ deal }: { deal: TrendingDeal }) {
+export function TrendingDealCard({
+  deal,
+  onOpenDetail,
+}: {
+  deal: TrendingDeal;
+  onOpenDetail?: (id: string) => void;
+}) {
   return (
-    <View className="w-[260px] shrink-0 overflow-hidden rounded-2xl border border-border bg-surface-canvas shadow-md">
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`View ${deal.title}`}
+      onPress={() => onOpenDetail?.(deal.id)}
+      className="w-[260px] shrink-0 overflow-hidden rounded-2xl border border-border bg-surface-canvas shadow-md"
+    >
       <View className="relative h-32 w-full overflow-hidden bg-surface-container">
         <Image source={deal.image} className="h-full w-full" resizeMode="cover" />
         <View className="absolute left-2.5 top-2.5 rounded-full bg-badge-discount-bg px-2 py-0.5">
@@ -58,6 +70,6 @@ export function TrendingDealCard({ deal }: { deal: TrendingDeal }) {
           </View>
         </View>
       </View>
-    </View>
+    </Pressable>
   );
 }

@@ -6,7 +6,18 @@ import { Icon, type IconName } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { colors } from '@theme/colors';
 import { strings } from '@constants/strings';
-import type { DealGridItem } from '@features/deals/data/dealsFeed';
+import type { ImageSourcePropType } from 'react-native';
+
+type DealShareData = {
+  id: string;
+  image: ImageSourcePropType;
+  merchant: string;
+  title: string;
+  price: string;
+  priceWas: string;
+  save: string;
+  badge?: string;
+};
 
 cssInterop(View, { className: 'style' });
 cssInterop(Pressable, { className: 'style' });
@@ -14,7 +25,7 @@ cssInterop(Pressable, { className: 'style' });
 export interface DealShareSheetProps {
   visible: boolean;
   onClose: () => void;
-  deal: DealGridItem;
+  deal: DealShareData;
   shareUrl: string;
 }
 

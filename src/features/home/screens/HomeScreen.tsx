@@ -35,9 +35,10 @@ cssInterop(ScrollView, {
 
 export interface HomeScreenProps {
   onOpenDiscover?: () => void;
+  onOpenDeal?: (dealId: string) => void;
 }
 
-export function HomeScreen({ onOpenDiscover }: HomeScreenProps) {
+export function HomeScreen({ onOpenDiscover, onOpenDeal }: HomeScreenProps) {
   const isOnline = useIsOnline();
   const [viewMode, setViewMode] = useState<DealsViewMode>('list');
   const [featured, setFeatured] = useState(featuredDealSeed);
@@ -46,6 +47,8 @@ export function HomeScreen({ onOpenDiscover }: HomeScreenProps) {
   const toggleFeaturedLike = useCallback((id: string) => {
     setFeatured(prev => (prev.id === id ? { ...prev, liked: !prev.liked } : prev));
   }, []);
+
+  const openDeal = useCallback((dealId: string) => onOpenDeal?.(dealId), [onOpenDeal]);
 
   const toggleNearbyLike = useCallback((id: string) => {
     setNearbyDeals(prev =>
@@ -76,7 +79,11 @@ export function HomeScreen({ onOpenDiscover }: HomeScreenProps) {
             badge={strings.home.promoted}
             seeAllLabel={strings.home.seeAll}
           />
-          <FeaturedDealCard deal={featured} onToggleLike={toggleFeaturedLike} />
+          <FeaturedDealCard
+            deal={featured}
+            onToggleLike={toggleFeaturedLike}
+            onOpenDetail={openDeal}
+          />
         </View>
 
         <View className="flex-col gap-3.5">
@@ -100,6 +107,7 @@ export function HomeScreen({ onOpenDiscover }: HomeScreenProps) {
                   key={deal.id}
                   deal={deal}
                   onToggleLike={toggleNearbyLike}
+                  onOpenDetail={openDeal}
                 />
               ))}
             </View>
@@ -108,7 +116,11 @@ export function HomeScreen({ onOpenDiscover }: HomeScreenProps) {
               items={nearbyDeals}
               keyExtractor={deal => deal.id}
               renderItem={deal => (
-                <NearbyDealGridCard deal={deal} onToggleLike={toggleNearbyLike} />
+                <NearbyDealGridCard
+                  deal={deal}
+                  onToggleLike={toggleNearbyLike}
+                  onOpenDetail={openDeal}
+                />
               )}
             />
           )}
@@ -127,7 +139,7 @@ export function HomeScreen({ onOpenDiscover }: HomeScreenProps) {
             contentContainerClassName="px-6 gap-3.5 pb-2"
           >
             {trendingDeals.map(deal => (
-              <TrendingDealCard key={deal.id} deal={deal} />
+              <TrendingDealCard key={deal.id} deal={deal} onOpenDetail={openDeal} />
             ))}
           </ScrollView>
         </View>

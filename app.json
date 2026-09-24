@@ -6,7 +6,10 @@
   "orientation": "portrait",
   "userInterfaceStyle": "light",
   "ios": {
-    "bundleIdentifier": "com.vemtap.app"
+    "bundleIdentifier": "com.vemtap.app",
+    "infoPlist": {
+      "ITSAppUsesNonExemptEncryption": false
+    }
   },
   "android": {
     "package": "com.vemtap.app",
@@ -16,12 +19,7 @@
       }
     }
   },
-  "extra": {
-    "eas": {
-      "projectId": "98b143dc-ace3-4494-99eb-880abec2d09c"
-    }
-  },
-  "owner": "sundayochuko",
+  "owner": "vemtap",
   "plugins": [
     [
       "expo-splash-screen",
@@ -34,5 +32,10 @@
     ],
     "expo-font",
     "expo-notifications"
-  ]
+  ],
+  "extra": {
+    "eas": {
+      "projectId": "77c2bfe7-536a-4c0a-8d2a-639044ab58b0"
+    }
+  }
 }

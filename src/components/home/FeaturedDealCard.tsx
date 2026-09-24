@@ -13,14 +13,24 @@ cssInterop(Pressable, { className: 'style' });
 export interface FeaturedDealCardProps {
   deal: FeaturedDeal;
   onToggleLike?: (id: string) => void;
+  onOpenDetail?: (id: string) => void;
 }
 
-export function FeaturedDealCard({ deal, onToggleLike }: FeaturedDealCardProps) {
+export function FeaturedDealCard({
+  deal,
+  onToggleLike,
+  onOpenDetail,
+}: FeaturedDealCardProps) {
   const liked = deal.liked === true;
   const likeCount = deal.likes + (liked ? 1 : 0);
 
   return (
-    <View className="w-full overflow-hidden rounded-2xl border border-border bg-surface-canvas shadow-md">
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`View ${deal.title}`}
+      onPress={() => onOpenDetail?.(deal.id)}
+      className="w-full overflow-hidden rounded-2xl border border-border bg-surface-canvas shadow-md"
+    >
       <View className="relative aspect-video w-full overflow-hidden bg-surface-container">
         <Image source={deal.image} className="h-full w-full" resizeMode="cover" />
         <View className="absolute left-3 top-3 rounded-full bg-badge-discount-bg px-2.5 py-1 shadow-sm">
@@ -105,6 +115,6 @@ export function FeaturedDealCard({ deal, onToggleLike }: FeaturedDealCardProps) 
           </Pressable>
         </View>
       </View>
-    </View>
+    </Pressable>
   );
 }

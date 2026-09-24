@@ -12,14 +12,24 @@ cssInterop(Pressable, { className: 'style' });
 export interface NearbyDealGridCardProps {
   deal: NearbyDeal;
   onToggleLike?: (id: string) => void;
+  onOpenDetail?: (id: string) => void;
 }
 
-export function NearbyDealGridCard({ deal, onToggleLike }: NearbyDealGridCardProps) {
+export function NearbyDealGridCard({
+  deal,
+  onToggleLike,
+  onOpenDetail,
+}: NearbyDealGridCardProps) {
   const liked = deal.liked === true;
   const likeCount = deal.likes + (liked ? 1 : 0);
 
   return (
-    <View className="w-full overflow-hidden rounded-2xl border border-border bg-surface-canvas shadow-md">
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`View ${deal.title}`}
+      onPress={() => onOpenDetail?.(deal.id)}
+      className="w-full overflow-hidden rounded-2xl border border-border bg-surface-canvas shadow-md"
+    >
       <View className="relative aspect-square w-full overflow-hidden bg-surface-container">
         <Image source={deal.image} className="h-full w-full" resizeMode="cover" />
         <View className="absolute left-2 top-2 rounded-full bg-badge-discount-bg px-2 py-0.5 shadow-sm">
@@ -91,6 +101,6 @@ export function NearbyDealGridCard({ deal, onToggleLike }: NearbyDealGridCardPro
           </View>
         </View>
       </View>
-    </View>
+    </Pressable>
   );
 }

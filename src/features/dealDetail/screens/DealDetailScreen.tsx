@@ -25,7 +25,7 @@ import {
 import { colors } from '@theme/colors';
 import { navbarBottomShadow } from '@theme/shadows';
 import type { AppStackParamList } from '@navigation/types';
-import { dealsGrid } from '@features/deals/data/dealsFeed';
+import { resolveDeal } from '@features/dealDetail/data/dealResolver';
 
 cssInterop(View, { className: 'style' });
 cssInterop(ScrollView, {
@@ -96,21 +96,20 @@ export function DealDetailScreen({ route, navigation }: Props) {
     },
   );
 
-  const deal = dealsGrid.find(item => item.id === route.params.dealId) ?? dealsGrid[0];
+  const deal = resolveDeal(route.params.dealId);
   const details: DealDetailProps = {
     title: deal.title,
-    badge: deal.leftBadge.label,
-    endsIn: deal.rightBadge.kind === 'timer' ? 'Ends in 3 days' : 'Ends in 3 days',
+    badge: deal.badge,
+    endsIn: 'Ends in 3 days',
     distance: deal.distance,
-    location: deal.merchant.split(' • ')[1] ?? 'Apo, Abuja',
+    location: deal.location,
     price: deal.price,
     priceWas: deal.priceWas,
     save: deal.save,
-    description:
-      'Enjoy our signature lunch combo at a special price. Includes a double gourmet smash burger, seasoned potato wedges, and your choice of chilled beverage. Prepared fresh daily at our Apo branch with top quality local ingredients.',
-    address: 'Plot 422, Cadastral Zone, Apo',
-    likes: deal.id === 'urban-grill-lunch' ? 248 : 184,
-    comments: 32,
+    description: deal.description,
+    address: deal.address,
+    likes: deal.likes,
+    comments: deal.comments,
   };
 
   const claimData: ClaimDealData = {
