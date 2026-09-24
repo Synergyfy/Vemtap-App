@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, ScrollView, Pressable } from 'react-native';
+import { Image, View, ScrollView, Pressable } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -12,8 +12,10 @@ import { ProgressDots } from '@components/onboarding/ProgressDots';
 import { colors } from '@theme/colors';
 import type { AuthStackParamList } from '@navigation/types';
 import { strings } from '@constants/strings';
+import vemtapLogo from '@assets/images/vemtap-logo.png';
 import outdoorBistro from '../../../../assets/images/outdoor-bistro.svg';
 
+cssInterop(Image, { className: 'style' });
 cssInterop(View, { className: 'style' });
 cssInterop(ScrollView, {
   className: 'style',
@@ -33,10 +35,12 @@ export function WelcomeScreen() {
         {/* Brand header */}
         <View className="w-full flex-row items-center justify-between pt-1">
           <View className="flex-row items-center gap-1.5">
-            <VemtapText className="font-sans-bold text-2xl tracking-wider text-primary">
-              VEMTAP
-            </VemtapText>
-            <View className="h-2 w-2 rounded-full bg-primary" />
+            <Image
+              source={vemtapLogo}
+              accessibilityLabel="VEMTAP"
+              className="h-10 w-32"
+              resizeMode="contain"
+            />
           </View>
           <View className="flex-row items-center gap-1 rounded-full bg-surface-container-high px-3 py-1">
             <Icon name="bolt" size={15} color={colors.primary} />

@@ -2,6 +2,7 @@
   "name": "Vemtap",
   "slug": "vemtap",
   "version": "0.0.1",
+  "icon": "./src/assets/images/vemtap-logo-icon.png",
   "orientation": "portrait",
   "userInterfaceStyle": "light",
   "ios": {
@@ -21,5 +22,17 @@
     }
   },
   "owner": "sundayochuko",
-  "plugins": ["expo-font", "expo-notifications"]
+  "plugins": [
+    [
+      "expo-splash-screen",
+      {
+        "image": "./src/assets/images/vemtap-square-logo.png",
+        "imageWidth": 200,
+        "resizeMode": "contain",
+        "backgroundColor": "#FFFFFF"
+      }
+    ],
+    "expo-font",
+    "expo-notifications"
+  ]
 }
