@@ -1,4 +1,5 @@
 import type { NavigatorScreenParams } from '@react-navigation/native';
+import type { BusinessProfileSummary } from '@features/discover/data/discoverData';
 
 export type RootStackParamList = {
   AuthStack: undefined;
@@ -83,6 +84,7 @@ export type HomeStackParamList = {
 
 export type DiscoverStackParamList = {
   DiscoverHome: undefined;
+  BusinessProfile: { business: BusinessProfileSummary };
   UrbanGrillProfile: undefined;
   UrbanGrillProductsCatalogue: undefined;
   UrbanGrillMenu: undefined;

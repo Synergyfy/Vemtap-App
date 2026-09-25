@@ -3,10 +3,14 @@ import {
   createBottomTabNavigator,
   type BottomTabNavigationProp,
 } from '@react-navigation/bottom-tabs';
-import { useNavigation } from '@react-navigation/native';
+import {
+  useNavigation,
+  useRoute,
+  type CompositeNavigationProp,
+  type RouteProp,
+} from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { CompositeNavigationProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HomeScreen } from '@features/home/screens/HomeScreen';
 import { ProfileScreen } from '@features/profile/screens/ProfileScreen';
@@ -18,6 +22,7 @@ import { UrbanGrillMenuScreen } from '@features/discover/screens/UrbanGrillMenuS
 import { UrbanGrillAllDealsScreen } from '@features/discover/screens/UrbanGrillAllDealsScreen';
 import { GlowSerenityProfileScreen } from '@features/discover/screens/GlowSerenityProfileScreen';
 import { GlowSerenityServicesScreen } from '@features/discover/screens/GlowSerenityServicesScreen';
+import { BusinessProfileScreen } from '@features/discover/screens/BusinessProfileScreen';
 import { TabIcon } from '@navigation/TabIcon';
 import { CenteredTabButton } from '@navigation/CenteredTabButton';
 import type {
@@ -26,6 +31,7 @@ import type {
   HomeStackParamList,
   MainTabParamList,
 } from '@navigation/types';
+import { businesses } from '@features/discover/data/discoverData';
 import { strings } from '@constants/strings';
 import { tabBarTopShadow } from '@theme/shadows';
 
@@ -123,10 +129,9 @@ function DiscoverHomeScreen() {
   const navigation = useNavigation<DiscoverStackNavigation>();
   const onOpenBusiness = useMemo(
     () => (businessId: string) => {
-      if (businessId === 'urban-grill') {
-        navigation.push('UrbanGrillProfile');
-      } else if (businessId === 'glow-serenity') {
-        navigation.push('GlowSerenityProfile');
+      const business = businesses.find(item => item.id === businessId);
+      if (business) {
+        navigation.push('BusinessProfile', { business });
       }
     },
     [navigation],
@@ -141,6 +146,14 @@ function DiscoverHomeScreen() {
       onOpenAccount={() => navigation.navigate('Tabs', { screen: 'Account' })}
       onOpenEnrollment={() => undefined}
     />
+  );
+}
+
+function BusinessProfileTabScreen() {
+  const navigation = useNavigation<DiscoverStackNavigation>();
+  const route = useRoute<RouteProp<DiscoverStackParamList, 'BusinessProfile'>>();
+  return (
+    <BusinessProfileScreen business={route.params.business} onBack={navigation.goBack} />
   );
 }
 
@@ -230,6 +243,7 @@ function DiscoverTabScreen() {
   return (
     <DiscoverStack.Navigator screenOptions={{ headerShown: false }}>
       <DiscoverStack.Screen name="DiscoverHome" component={DiscoverHomeScreen} />
+      <DiscoverStack.Screen name="BusinessProfile" component={BusinessProfileTabScreen} />
       <DiscoverStack.Screen
         name="UrbanGrillProfile"
         component={UrbanGrillProfileTabScreen}

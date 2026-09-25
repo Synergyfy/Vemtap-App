@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, ScrollView } from 'react-native';
+import { Image, View, ScrollView } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -12,11 +12,13 @@ import { DealCard, type Deal } from '@components/onboarding/DealCard';
 import { colors } from '@theme/colors';
 import type { AuthStackParamList } from '@navigation/types';
 import { strings } from '@constants/strings';
-import urbanBurger from '../../../../assets/images/urban-burger.svg';
-import marketPizza from '../../../../assets/images/market-pizza.svg';
-import cornerCoffee from '../../../../assets/images/corner-coffee.svg';
+import urbanBurger from '../../../../assets/images/deal-bistro-burger.jpg';
+import glowSalon from '../../../../assets/images/deal-glow-salon.jpg';
+import soleDistrict from '../../../../assets/images/deal-sole-district.jpg';
+import artisanCafe from '../../../../assets/images/deal-artisan-cafe.jpg';
 
 cssInterop(View, { className: 'style' });
+cssInterop(Image, { className: 'style' });
 cssInterop(ScrollView, {
   className: 'style',
   contentContainerClassName: 'contentContainerStyle',
@@ -52,7 +54,7 @@ const deals: Deal[] = [
     distance: '1.2 km away',
     rating: 4.8,
     ratingCount: 92,
-    imageSource: marketPizza,
+    imageSource: glowSalon,
   },
   {
     id: 'sole-district',
@@ -66,7 +68,7 @@ const deals: Deal[] = [
     distance: '0.8 km away',
     rating: 5.0,
     ratingCount: 310,
-    imageSource: cornerCoffee,
+    imageSource: soleDistrict,
   },
 ];
 
@@ -115,10 +117,13 @@ export function DiscoverDealsScreen() {
           {/* Peek card */}
           <View className="w-full scale-[0.98] rounded-xl bg-surface-container-lowest/90 p-3 opacity-90 shadow-onboard-sm">
             <View className="flex-row items-center gap-3">
-              <View className="h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-surface-container">
-                <View className="h-full w-full items-center justify-center">
-                  <Icon name="cafe" size={24} color={colors.primary} />
-                </View>
+              <View className="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-surface-container">
+                <Image
+                  source={artisanCafe}
+                  resizeMode="cover"
+                  accessibilityLabel={strings.onboarding.discoverPeekImageAlt}
+                  className="h-full w-full"
+                />
               </View>
               <View className="min-w-0 flex-1">
                 <View className="flex-row items-center justify-between gap-2">
@@ -149,18 +154,18 @@ export function DiscoverDealsScreen() {
             {strings.onboarding.discoverTip}
           </VemtapText>
         </View>
-
-        <View className="w-full flex-col items-center pt-4">
-          <Button
-            label={strings.common.next}
-            size="lg"
-            className="rounded-2xl bg-primary"
-            rightIcon={<Icon name="forward" size={19} color="#FFFFFF" />}
-            onPress={() => navigation.navigate('StartVemtap')}
-            accessibilityHint="Continues to the final onboarding step"
-          />
-        </View>
       </ScrollView>
+
+      <View className="border-t border-border bg-surface px-6 pb-4 pt-3">
+        <Button
+          label={strings.common.next}
+          size="lg"
+          className="rounded-2xl bg-primary"
+          rightIcon={<Icon name="forward" size={19} color="#FFFFFF" />}
+          onPress={() => navigation.navigate('StartVemtap')}
+          accessibilityHint="Continues to the final onboarding step"
+        />
+      </View>
     </SafeAreaView>
   );
 }

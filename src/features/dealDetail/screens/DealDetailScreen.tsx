@@ -26,6 +26,7 @@ import { colors } from '@theme/colors';
 import { navbarBottomShadow } from '@theme/shadows';
 import type { AppStackParamList } from '@navigation/types';
 import { resolveDeal } from '@features/dealDetail/data/dealResolver';
+import { businesses } from '@features/discover/data/discoverData';
 
 cssInterop(View, { className: 'style' });
 cssInterop(ScrollView, {
@@ -97,6 +98,18 @@ export function DealDetailScreen({ route, navigation }: Props) {
   );
 
   const deal = resolveDeal(route.params.dealId);
+  const businessId = deal.id.startsWith('urban-grill')
+    ? 'urban-grill'
+    : deal.id.startsWith('glow-')
+      ? 'glow-serenity'
+      : deal.id.includes('sky-lounge')
+        ? 'sky-lounge'
+        : deal.id.startsWith('sole-district')
+          ? 'sole-district'
+          : deal.id.startsWith('cafe-neo')
+            ? 'cafe-neo'
+            : null;
+  const business = businesses.find(item => item.id === businessId);
   const details: DealDetailProps = {
     title: deal.title,
     badge: deal.badge,
@@ -125,6 +138,18 @@ export function DealDetailScreen({ route, navigation }: Props) {
   const handleShare = useCallback(() => {
     setShareVisible(true);
   }, []);
+
+  const handleOpenBusiness = useCallback(() => {
+    if (business) {
+      navigation.navigate('Tabs', {
+        screen: 'Discover',
+        params: {
+          screen: 'BusinessProfile',
+          params: { business },
+        },
+      });
+    }
+  }, [business, navigation]);
 
   const handleClaim = useCallback(() => {
     if (claimed) {
@@ -208,7 +233,12 @@ export function DealDetailScreen({ route, navigation }: Props) {
         </View>
 
         <View className="px-6 pt-6">
-          <View style={styles.merchantRow}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Open business page for ${deal.merchant.split(' • ')[0]}`}
+            onPress={handleOpenBusiness}
+            style={styles.merchantRow}
+          >
             <View style={styles.merchantAvatar}>
               <Icon name="restaurant" size={24} color={colors.primary} />
             </View>
@@ -227,15 +257,10 @@ export function DealDetailScreen({ route, navigation }: Props) {
                 Restaurant • {details.distance} away • {details.location}
               </VemtapText>
             </View>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="View merchant profile"
-              onPress={() => navigation.navigate('Profile')}
-              style={styles.profileButton}
-            >
+            <View style={styles.profileButton}>
               <Icon name="forward" size={18} color={colors.secondary} />
-            </Pressable>
-          </View>
+            </View>
+          </Pressable>
 
           <VemtapText
             accessibilityRole="header"

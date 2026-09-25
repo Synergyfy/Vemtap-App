@@ -43,8 +43,19 @@ export const Input = React.forwardRef<React.ComponentRef<typeof TextInput>, Inpu
           {label}
         </VemtapText>
       ) : null}
-      <View className="relative justify-center">
-        {leadingIcon ? (
+      <View
+        className={cn(
+          Platform.OS === 'android'
+            ? 'h-[52px] flex-row items-center overflow-hidden rounded-field border bg-surface'
+            : 'relative justify-center',
+          error ? 'border-error' : 'border-border',
+          className,
+        )}
+      >
+        {Platform.OS === 'android' && leadingIcon ? (
+          <View className="pl-4 pr-1">{leadingIcon}</View>
+        ) : null}
+        {Platform.OS !== 'android' && leadingIcon ? (
           <View
             className="absolute bottom-0 left-4 top-0 z-10 justify-center"
             pointerEvents="none"
@@ -57,32 +68,41 @@ export const Input = React.forwardRef<React.ComponentRef<typeof TextInput>, Inpu
           accessibilityLabel={accessibilityLabel ?? label}
           aria-invalid={Boolean(error)}
           className={cn(
-            'h-[52px] rounded-field border bg-surface text-body-md text-text',
-            leadingIcon ? 'pl-11 pr-4' : 'px-4',
-            trailingIcon ? 'pr-12' : null,
+            Platform.OS === 'android'
+              ? 'h-full min-w-0 flex-1 border-0 bg-transparent text-body-md text-text'
+              : 'h-[52px] rounded-field border bg-surface text-body-md text-text',
+            Platform.OS === 'android'
+              ? leadingIcon
+                ? 'pl-1 pr-4'
+                : 'px-4'
+              : leadingIcon
+                ? 'pl-11 pr-4'
+                : 'px-4',
+            Platform.OS === 'android' && trailingIcon ? 'pr-0' : null,
             'placeholder:text-text-tertiary',
-            error
-              ? 'border-error'
-              : 'border-border focus:border-primary focus:ring-2 focus:ring-primary/15',
             className,
           )}
-          // Android TextInput can ignore className padding under an absolute
-          // leading icon — force inset so typed text never sits under the icon.
           style={
-            Platform.OS === 'android' && (leadingIcon || trailingIcon)
-              ? [
-                  {
-                    paddingLeft: leadingIcon ? 44 : 16,
-                    paddingRight: trailingIcon ? 48 : 16,
-                  },
-                  style,
-                ]
+            Platform.OS === 'android'
+              ? [{ textAlignVertical: 'center', includeFontPadding: false }, style]
               : style
           }
           underlineColorAndroid="transparent"
           {...rest}
         />
-        {trailingIcon ? (
+        {Platform.OS === 'android' && trailingIcon ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={trailingIconLabel}
+            hitSlop={8}
+            disabled={!onTrailingIconPress}
+            className="px-4"
+            onPress={onTrailingIconPress}
+          >
+            {trailingIcon}
+          </Pressable>
+        ) : null}
+        {Platform.OS !== 'android' && trailingIcon ? (
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={trailingIconLabel}

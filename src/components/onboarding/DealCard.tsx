@@ -1,13 +1,13 @@
 import React from 'react';
-import { View, type ImageSourcePropType } from 'react-native';
+import { Image, View, type ImageSourcePropType } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { VemtapText } from '@components/ui/Text';
 import { Icon } from '@components/ui/Icon';
-import { LocalSvg } from '@components/ui/LocalSvg';
 import { colors } from '@theme/colors';
 import { cn } from '@utils/cn';
 
 cssInterop(View, { className: 'style' });
+cssInterop(Image, { className: 'style' });
 
 export type DealBadgeKind = 'discount' | 'special';
 export type DealTagKind = 'hot' | 'trending' | 'exclusive';
@@ -47,7 +47,11 @@ export function DealCard({ deal, className }: DealCardProps) {
     >
       <View className="flex-row gap-3">
         <View className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg bg-surface-container">
-          <LocalSvg source={deal.imageSource} />
+          <Image
+            source={deal.imageSource}
+            resizeMode="cover"
+            className="absolute inset-0 h-full w-full"
+          />
           <View className="absolute left-1.5 top-1.5 rounded-full bg-badge-discount-bg px-1.5 py-0.5 shadow-onboard-sm">
             <VemtapText className="font-sans-bold text-caption text-badge-discount-text">
               {deal.badgeLabel}

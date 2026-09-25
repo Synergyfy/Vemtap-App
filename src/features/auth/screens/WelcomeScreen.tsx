@@ -7,13 +7,12 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { VemtapText } from '@components/ui/Text';
 import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
-import { LocalSvg } from '@components/ui/LocalSvg';
 import { ProgressDots } from '@components/onboarding/ProgressDots';
 import { colors } from '@theme/colors';
 import type { AuthStackParamList } from '@navigation/types';
 import { strings } from '@constants/strings';
 import vemtapLogo from '@assets/images/vemtap-logo.png';
-import outdoorBistro from '../../../../assets/images/outdoor-bistro.svg';
+import welcomeHero from '../../../../assets/images/onboarding-welcome-hero.jpg';
 
 cssInterop(Image, { className: 'style' });
 cssInterop(View, { className: 'style' });
@@ -72,7 +71,12 @@ export function WelcomeScreen() {
 
             {/* Hero visual mosaic */}
             <View className="relative h-[155px] w-full overflow-hidden rounded-2xl">
-              <LocalSvg source={outdoorBistro} />
+              <Image
+                source={welcomeHero}
+                resizeMode="cover"
+                accessibilityLabel={strings.onboarding.welcomeHeroAlt}
+                className="absolute inset-0 h-full w-full"
+              />
               <View className="absolute inset-0 bg-on-background/30" />
               <View className="absolute left-2.5 top-2.5 flex-row items-center gap-1 rounded-full bg-badge-discount-bg px-2.5 py-1 shadow-onboard-sm">
                 <Icon name="offer" size={14} color={colors.badgeDiscountText} />
@@ -130,13 +134,13 @@ export function WelcomeScreen() {
           </View>
 
           {/* Accent floating badges */}
-          <View className="absolute -right-1 top-5 z-10 -rotate-3 flex-row items-center gap-1 rounded-full bg-surface-canvas px-3 py-1.5 shadow-onboard-lg">
+          <View className="absolute -right-3 -top-2 z-10 -rotate-3 flex-row items-center gap-1 rounded-full bg-surface-canvas px-3 py-1.5 shadow-onboard-lg">
             <Icon name="verified" size={16} color={colors.badgeDiscountText} />
             <VemtapText className="font-sans-semibold text-caption text-text">
               {strings.onboarding.welcomeVerified}
             </VemtapText>
           </View>
-          <View className="absolute -left-3 bottom-6 z-10 rotate-3 flex-row items-center gap-1 rounded-full bg-surface-canvas px-3 py-1.5 shadow-onboard-lg">
+          <View className="absolute -bottom-2 -left-5 z-10 rotate-3 flex-row items-center gap-1 rounded-full bg-surface-canvas px-3 py-1.5 shadow-onboard-lg">
             <Icon name="nearMe" size={16} color={colors.primary} />
             <VemtapText className="font-sans-semibold text-caption text-text">
               {strings.onboarding.welcomePickup}

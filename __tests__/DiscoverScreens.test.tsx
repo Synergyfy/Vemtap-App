@@ -48,7 +48,7 @@ test('keeps Discover active when Urban Grill profile is pushed', async () => {
   await fireEvent.press(await screen.findByLabelText(/Discover, tab/i));
   await fireEvent.press(await screen.findByLabelText('View Urban Grill & Bistro'));
 
-  expect(await screen.findByText('Urban Grill & Bistro')).toBeTruthy();
+  expect((await screen.findAllByText('Urban Grill & Bistro')).length).toBeGreaterThan(0);
   expect(screen.getByLabelText(/Discover, tab/i).props.accessibilityState).toMatchObject({
     selected: true,
   });
@@ -66,7 +66,7 @@ test('opens Glow profile while Discover remains selected', async () => {
   await fireEvent.press(await screen.findByLabelText(/Discover, tab/i));
   await fireEvent.press(await screen.findByLabelText('View Glow & Serenity Spa'));
 
-  expect(await screen.findByText('Glow & Serenity Spa & Salon')).toBeTruthy();
+  expect((await screen.findAllByText('Glow & Serenity Spa')).length).toBeGreaterThan(0);
   expect(screen.getByLabelText(/Discover, tab/i).props.accessibilityState).toMatchObject({
     selected: true,
   });

@@ -3,6 +3,7 @@ import { Image, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react
 import { cssInterop } from 'nativewind';
 import { BottomSheet } from '@components/shared/BottomSheet';
 import { Icon } from '@components/ui/Icon';
+import { GoogleLogo } from '@components/ui/GoogleLogo';
 import { VemtapText } from '@components/ui/Text';
 import { Button } from '@components/ui/Button';
 import { colors } from '@theme/colors';
@@ -213,7 +214,7 @@ export function ClaimAuthModalSheet({
         </VemtapText>
         <Button
           label={strings.deals.claimFlow.continueGoogle}
-          leftIcon={<Icon name="google" size={20} color={colors.text} />}
+          leftIcon={<GoogleLogo size={20} />}
           onPress={onContinue}
         />
         <View style={styles.divider}>

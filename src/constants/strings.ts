@@ -38,11 +38,15 @@ export const strings = {
     welcomeThermometer: 'Artisan Gourmet & Co.',
     welcomeThermometerLoc: '0.4 km • Lekki Phase 1',
     welcomeBogo: '35% OFF TODAY',
+    welcomeHeroAlt:
+      'Modern upscale boutique store in Victoria Island Lagos Nigeria, vibrant African contemporary fashion accessories on display with sunlit glass storefront.',
     alreadyHaveAccount: 'Already have an account?',
     discoverHeadline: 'Discover Deals\nNear You',
     discoverSubtitle:
       'See offers from businesses around your location and find something worth buying nearby.',
     discoverTip: 'Deals refresh in real-time as you move around town',
+    discoverPeekImageAlt:
+      'Steaming pour over specialty coffee and flaky butter croissant on a minimalist wooden table inside an inviting neighborhood modern cafe.',
     startHeadline: "Let's find what's\nnear you.",
     startSubtitle: 'Discover deals, products and businesses around your location.',
     ownABusiness: 'Own a business?',
@@ -110,6 +114,8 @@ export const strings = {
     profileTitle: 'Tell us about yourself',
     profileSubtitle:
       'Complete your profile and set your security PIN to access your account and claimed deals.',
+    profileRequiredFields: 'All fields marked with * are required.',
+    profileConsent: 'I agree to the VEMTAP Privacy Policy and Terms of Service.',
     profilePersonalInfo: 'Personal Information',
     profileFirstName: 'First name',
     profileFirstNamePlaceholder: 'e.g. John',
@@ -724,6 +730,17 @@ export const strings = {
         imageAlt:
           'Upscale high-end sneaker boutique and designer streetwear showroom with illuminated glass floating shelves, clean architectural spotlighting, curated designer shoes and minimalist industrial concrete fixtures.',
         deal: '1 Active Deal (Save up to ₦12,000)',
+      },
+      skyLounge: {
+        name: 'The Sky Lounge & Grill',
+        category: 'Restaurant & Gourmet Dining',
+        rating: '4.8',
+        reviews: 128,
+        distance: '2.4 km away',
+        location: 'Maitama Heights, Abuja',
+        imageAlt:
+          'Upscale rooftop sunset dining setting with golden-hour city views, curated tasting plates and elegant lounge seating.',
+        deal: '1 Active Deal (Save up to ₦22,500)',
       },
       cafeNeo: {
         name: 'Cafe Neo Artisanal',

@@ -1,5 +1,5 @@
 import React, { useCallback, useRef, useState } from 'react';
-import { Pressable, ScrollView, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
@@ -21,8 +21,22 @@ cssInterop(SafeAreaView, { className: 'style' });
 cssInterop(Pressable, { className: 'style' });
 cssInterop(TextInput, { className: 'style' });
 
+const styles = StyleSheet.create({
+  filledPinBackground: { opacity: 1 },
+  hiddenPinState: { opacity: 0 },
+});
+
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'ProfileSetup'>;
 type Rt = RouteProp<AuthStackParamList, 'ProfileSetup'>;
+
+function RequiredLabel({ children }: { children: string }) {
+  return (
+    <VemtapText className="font-sans-medium text-label-sm text-text-secondary">
+      {children}
+      <VemtapText className="text-error"> *</VemtapText>
+    </VemtapText>
+  );
+}
 
 function PinBoxes({
   value,
@@ -43,9 +57,7 @@ function PinBoxes({
   return (
     <View className="gap-2 pt-1">
       <View className="flex-row items-center justify-between">
-        <VemtapText className="font-sans-medium text-label-sm text-text">
-          {label}
-        </VemtapText>
+        <RequiredLabel>{label}</RequiredLabel>
         {counter ? (
           <VemtapText className="text-caption text-text-tertiary">{counter}</VemtapText>
         ) : null}
@@ -73,15 +85,18 @@ function PinBoxes({
             return (
               <View
                 key={slotId}
-                className={`h-12 flex-1 items-center justify-center rounded-xl shadow-sm ${
-                  filled ? 'bg-surface-tint' : 'bg-surface-canvas'
-                }`}
+                className="h-12 flex-1 items-center justify-center overflow-hidden rounded-xl bg-surface-canvas shadow-sm"
               >
                 <View
-                  className={`h-2.5 w-2.5 rounded-full ${
-                    filled ? 'scale-125 bg-primary' : 'bg-surface-dim'
-                  }`}
+                  pointerEvents="none"
+                  className="absolute inset-0 rounded-xl bg-surface-tint"
+                  style={filled ? styles.filledPinBackground : styles.hiddenPinState}
                 />
+                {filled ? (
+                  <Icon name="visibilityOff" size={19} color={colors.primary} />
+                ) : (
+                  <View className="h-2.5 w-2.5 rounded-full bg-surface-dim" />
+                )}
               </View>
             );
           })}
@@ -113,6 +128,7 @@ export function ProfileSetupScreen() {
   const [phone, setPhone] = useState('');
   const [pin1, setPin1] = useState('');
   const [pin2, setPin2] = useState('');
+  const [hasAcceptedPolicy, setHasAcceptedPolicy] = useState(false);
 
   const match: 'match' | 'mismatch' | null =
     pin1.length === 6 && pin2.length === 6
@@ -130,14 +146,22 @@ export function ProfileSetupScreen() {
   }, []);
 
   const canSubmit =
-    firstName.trim().length > 0 && lastName.trim().length > 0 && match === 'match';
+    firstName.trim().length > 0 &&
+    lastName.trim().length > 0 &&
+    phone.replace(/\D/g, '').length >= 7 &&
+    match === 'match' &&
+    hasAcceptedPolicy;
 
   const onComplete = useCallback(() => {
+    if (!canSubmit) {
+      return;
+    }
+
     navigation.reset({
       index: 0,
       routes: [{ name: 'LocationPermission' }],
     });
-  }, [navigation]);
+  }, [canSubmit, navigation]);
 
   return (
     <SafeAreaView className="flex-1 bg-surface-canvas" edges={['top', 'bottom']}>
@@ -181,6 +205,9 @@ export function ProfileSetupScreen() {
           <VemtapText tone="secondary" className="mt-1">
             {strings.auth.profileSubtitle}
           </VemtapText>
+          <VemtapText className="mt-2 text-caption text-text-tertiary">
+            {strings.auth.profileRequiredFields}
+          </VemtapText>
         </View>
 
         <View className="gap-6 pb-12">
@@ -197,9 +224,7 @@ export function ProfileSetupScreen() {
 
             <View className="flex-row gap-3">
               <View className="min-w-0 flex-1 gap-1.5">
-                <VemtapText className="font-sans-medium text-label-sm text-text-secondary">
-                  {strings.auth.profileFirstName}
-                </VemtapText>
+                <RequiredLabel>{strings.auth.profileFirstName}</RequiredLabel>
                 <TextInput
                   value={firstName}
                   onChangeText={setFirstName}
@@ -212,9 +237,7 @@ export function ProfileSetupScreen() {
                 />
               </View>
               <View className="min-w-0 flex-1 gap-1.5">
-                <VemtapText className="font-sans-medium text-label-sm text-text-secondary">
-                  {strings.auth.profileLastName}
-                </VemtapText>
+                <RequiredLabel>{strings.auth.profileLastName}</RequiredLabel>
                 <TextInput
                   value={lastName}
                   onChangeText={setLastName}
@@ -229,9 +252,7 @@ export function ProfileSetupScreen() {
             </View>
 
             <View className="gap-1.5">
-              <VemtapText className="font-sans-medium text-label-sm text-text-secondary">
-                {strings.auth.profilePhone}
-              </VemtapText>
+              <RequiredLabel>{strings.auth.profilePhone}</RequiredLabel>
               <View className="h-[50px] flex-row items-center gap-2 rounded-xl bg-surface-subtle px-3 shadow-sm">
                 <View className="flex-row items-center gap-1.5 rounded-lg bg-surface-canvas px-2.5 py-1.5 shadow-sm">
                   <View className="h-3.5 w-5 overflow-hidden rounded-sm">
@@ -316,6 +337,27 @@ export function ProfileSetupScreen() {
             </View>
           </View>
 
+          <Pressable
+            accessibilityRole="checkbox"
+            accessibilityLabel={strings.auth.profileConsent}
+            accessibilityState={{ checked: hasAcceptedPolicy }}
+            className="flex-row items-start gap-2 px-1 py-1"
+            onPress={() => setHasAcceptedPolicy(value => !value)}
+          >
+            <View
+              className={
+                hasAcceptedPolicy
+                  ? 'mt-0.5 h-5 w-5 items-center justify-center rounded-md bg-primary'
+                  : 'mt-0.5 h-5 w-5 items-center justify-center rounded-md border border-border-active bg-surface-canvas'
+              }
+            >
+              {hasAcceptedPolicy ? <Icon name="check" size={14} color="#FFFFFF" /> : null}
+            </View>
+            <VemtapText className="flex-1 text-caption leading-relaxed text-text-secondary">
+              {strings.auth.profileConsent}
+            </VemtapText>
+          </Pressable>
+
           {/* Actions */}
           <View className="gap-3 pt-2">
             <Button
@@ -324,12 +366,17 @@ export function ProfileSetupScreen() {
               rightIcon={<Icon name="arrowForward" size={20} color="#FFFFFF" />}
               onPress={onComplete}
             />
-            <View className="flex-row items-center justify-center gap-1.5 py-2">
-              <VemtapText className="text-label-sm text-text-secondary">
+            <View className="items-center gap-1 px-3 py-2">
+              <VemtapText className="text-center text-label-sm text-text-secondary">
                 {strings.auth.profileNextLabel}
               </VemtapText>
-              <Pressable accessibilityRole="button" hitSlop={8} onPress={onComplete}>
-                <VemtapText className="font-sans-medium text-label-sm text-primary">
+              <Pressable
+                accessibilityRole="button"
+                hitSlop={8}
+                className="max-w-full items-center"
+                onPress={onComplete}
+              >
+                <VemtapText className="text-center font-sans-medium text-label-sm text-primary">
                   {strings.auth.profileNextLocation}
                 </VemtapText>
               </Pressable>

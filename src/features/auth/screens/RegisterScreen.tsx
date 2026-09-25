@@ -9,6 +9,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { VemtapText } from '@components/ui/Text';
 import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
+import { GoogleLogo } from '@components/ui/GoogleLogo';
 import { TextField } from '@components/forms/TextField';
 import { emailSchema } from '@utils/validators';
 import { z } from 'zod';
@@ -110,7 +111,7 @@ export function RegisterScreen() {
           accessibilityLabel={strings.auth.registerContinueWithGoogle}
           className="mb-3 h-[52px] w-full flex-row items-center justify-center gap-3 rounded-cta bg-surface shadow-sm active:scale-[0.99]"
         >
-          <Icon name="google" size={20} color={colors.surfaceDark} />
+          <GoogleLogo size={20} />
           <VemtapText className="font-sans-medium text-button-md text-text">
             {strings.auth.registerContinueWithGoogle}
           </VemtapText>

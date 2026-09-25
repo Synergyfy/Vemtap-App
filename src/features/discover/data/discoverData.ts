@@ -1,3 +1,4 @@
+import { featuredDeal } from '@features/home/data/homeFeed';
 import { strings } from '@constants/strings';
 
 export type DiscoverCategory =
@@ -84,6 +85,23 @@ export const businesses: readonly BusinessProfileSummary[] = [
     status: {
       label: strings.discoverFeed.statuses.vemtapExclusive,
       icon: 'exclusive',
+    },
+  },
+  {
+    id: 'sky-lounge',
+    name: strings.discoverFeed.businesses.skyLounge.name,
+    category: strings.discoverFeed.businesses.skyLounge.category,
+    categoryFilter: 'Food & Dining',
+    imageUri: featuredDeal.image.uri,
+    imageAlt: strings.discoverFeed.businesses.skyLounge.imageAlt,
+    rating: strings.discoverFeed.businesses.skyLounge.rating,
+    reviews: strings.discoverFeed.businesses.skyLounge.reviews,
+    distance: strings.discoverFeed.businesses.skyLounge.distance,
+    location: strings.discoverFeed.businesses.skyLounge.location,
+    activeDealLabel: strings.discoverFeed.businesses.skyLounge.deal,
+    status: {
+      label: strings.discoverFeed.statuses.verifiedPartner,
+      icon: 'verified',
     },
   },
   {

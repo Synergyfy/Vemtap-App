@@ -1,0 +1,8 @@
+node_modules
+.git
+.expo
+dist
+coverage
+stitch_vemtap_design_system
+docs
+*.log
