@@ -1,13 +1,40 @@
 import type { NavigatorScreenParams } from '@react-navigation/native';
 import type { BusinessProfileSummary } from '@features/discover/data/discoverData';
 
+export type BusinessSetupStackParamList = {
+  BusinessIntroduction: undefined;
+  BusinessProfileBasicInfo: undefined;
+  BusinessProfileBranding: undefined;
+  BusinessProfileContactChannels: undefined;
+  BusinessLocation: undefined;
+  BusinessLocations: undefined;
+  AddBranchLocation: undefined;
+  AddProductsOrServices: undefined;
+  AddServiceBasics: undefined;
+  AddServiceDurationPricing: undefined;
+  AddServiceAvailabilityRules: undefined;
+  ReviewServiceSummary: undefined;
+  ServicePublished: undefined;
+  AddProductLocationPricing: undefined;
+  AddProductBasics: undefined;
+  AddProductPricingVariants: undefined;
+  AddProductBranchAvailability: undefined;
+  ReviewProductSummary: undefined;
+  ProductPublished: undefined;
+  ProductMakeDeal: undefined;
+  CreateDealAutoImported: undefined;
+  CreateDealStep2: undefined;
+  CreateDealStep3: undefined;
+  BusinessQrReady: undefined;
+};
+
 export type RootStackParamList = {
   AuthStack: undefined;
   AppStack: NavigatorScreenParams<AppStackParamList> | undefined;
   Onboarding: undefined;
   LocationPermission: undefined;
   DealDetail: { dealId: string };
-  BusinessSetup: undefined;
+  BusinessSetup: NavigatorScreenParams<BusinessSetupStackParamList> | undefined;
 };
 
 export type AuthStackParamList = {
@@ -34,6 +61,7 @@ export type BookingDraft = {
 
 export type AppStackParamList = {
   Tabs: NavigatorScreenParams<MainTabParamList> | undefined;
+  BusinessSetup: NavigatorScreenParams<BusinessSetupStackParamList> | undefined;
   Profile: undefined;
   Settings: undefined;
   DealDetail: { dealId: string };
@@ -93,12 +121,30 @@ export type DiscoverStackParamList = {
   GlowSerenityServices: undefined;
 };
 
+export type AccountStackParamList = {
+  AccountDashboard: undefined;
+  MyDeals: undefined;
+  OrdersBookings: undefined;
+  Messages: undefined;
+  More: undefined;
+  Activity: undefined;
+  Rewards: undefined;
+  SavingsHistory: undefined;
+  Notifications: undefined;
+  AccountSettings: undefined;
+  EditProfile: undefined;
+  ClaimedDealPass: { dealId?: string } | undefined;
+  OrderDetail: { orderNumber?: string } | undefined;
+  BookingDetail: { bookingNumber?: string } | undefined;
+  Conversation: { merchant?: string } | undefined;
+};
+
 export type MainTabParamList = {
   Home: NavigatorScreenParams<HomeStackParamList> | undefined;
   Deals: undefined;
   Discover: NavigatorScreenParams<DiscoverStackParamList> | undefined;
   Saved: undefined;
-  Account: undefined;
+  Account: NavigatorScreenParams<AccountStackParamList> | undefined;
 };
 
 declare global {

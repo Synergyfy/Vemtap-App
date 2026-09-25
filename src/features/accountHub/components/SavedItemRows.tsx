@@ -1,5 +1,5 @@
 import React from 'react';
-import { Image, Pressable, View } from 'react-native';
+import { Image, Pressable, View, type ImageSourcePropType } from 'react-native';
 import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
@@ -136,7 +136,7 @@ export function SavedItemRow({
         </View>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="{copy.removeBookmark}"
+          accessibilityLabel={copy.removeBookmark}
           onPress={onRemove}
           className="absolute right-3 top-3 h-9 w-9 items-center justify-center rounded-full bg-surface shadow-sm"
         >
@@ -202,7 +202,7 @@ function BookmarkButton({ onPress }: { onPress?: () => void }) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel="{copy.removeBookmark}"
+      accessibilityLabel={copy.removeBookmark}
       onPress={onPress}
       className="h-8 w-8 shrink-0 items-center justify-center"
     >
@@ -220,7 +220,7 @@ export function SavedBusinessRow({
   view,
   onPress,
 }: {
-  image: string;
+  image: ImageSourcePropType;
   name: string;
   meta: string;
   rating: string;
@@ -231,11 +231,7 @@ export function SavedBusinessRow({
   return (
     <View className="w-60 justify-between rounded-card bg-surface p-4 shadow-sm">
       <View className="flex-row items-start justify-between gap-2">
-        <Image
-          source={{ uri: image }}
-          className="h-12 w-12 rounded-field"
-          resizeMode="cover"
-        />
+        <Image source={image} className="h-12 w-12 rounded-field" resizeMode="cover" />
         <View className="flex-row items-center gap-1 rounded-full bg-surface-container-low px-2 py-0.5">
           <Icon name="star" size={14} color={colors.tertiaryContainer} />
           <VemtapText variant="caption" className="font-sans-bold">

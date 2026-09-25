@@ -5,34 +5,54 @@ import { Button } from '@components/ui/Button';
 import { Icon, type IconName } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { colors } from '@theme/colors';
+import { navbarBottomShadow } from '@theme/shadows';
 
 cssInterop(View, { className: 'style' });
 cssInterop(Pressable, { className: 'style' });
 cssInterop(TextInput, { className: 'style' });
 
+const hubHeaderTitleClasses = {
+  headingXl: 'text-heading-xl',
+  headingMd: 'text-heading-md',
+  headingSm: 'text-heading-sm',
+} as const;
+
 export function HubHeader({
   title,
+  leadingIcon,
+  titleVariant = 'headingSm',
   actionNames = [],
   actionLabels = [],
   onActions = [],
   accountAction,
 }: {
   title: string;
+  leadingIcon?: IconName;
+  titleVariant?: keyof typeof hubHeaderTitleClasses;
   actionNames?: IconName[];
   actionLabels?: string[];
   onActions?: Array<(() => void) | undefined>;
   accountAction?: () => void;
 }) {
   return (
-    <View className="flex-row items-center justify-between bg-surface px-4 py-2">
-      <VemtapText
-        accessibilityRole="header"
-        variant="headingXl"
-        className="text-heading-xl"
-      >
-        {title}
-      </VemtapText>
-      <View className="flex-row items-center gap-1">
+    <View
+      className="flex-row items-center justify-between bg-surface px-4 py-2"
+      style={navbarBottomShadow}
+    >
+      <View className="min-w-0 flex-1 flex-row items-center gap-2">
+        {leadingIcon ? (
+          <Icon name={leadingIcon} size={20} color={colors.primary} />
+        ) : null}
+        <VemtapText
+          accessibilityRole="header"
+          variant={titleVariant}
+          className={hubHeaderTitleClasses[titleVariant]}
+          numberOfLines={1}
+        >
+          {title}
+        </VemtapText>
+      </View>
+      <View className="shrink-0 flex-row items-center gap-1">
         {actionNames.map((name, index) => (
           <Pressable
             key={name}
@@ -102,11 +122,19 @@ export function StatusPillTabs({
   labels,
   selected,
   onSelect,
+  variant = 'solid',
 }: {
   labels: readonly string[];
   selected: number;
   onSelect: (index: number) => void;
+  variant?: 'solid' | 'subtle';
 }) {
+  const activeClass =
+    variant === 'subtle'
+      ? 'shrink-0 rounded-full bg-surface-tint-blue px-4 py-2 shadow-sm'
+      : 'shrink-0 rounded-full bg-primary px-4 py-2 shadow-sm';
+  const activeTextClass =
+    variant === 'subtle' ? 'text-primary' : 'text-primary-foreground';
   return (
     <View className="flex-row gap-2">
       {labels.map((label, index) => (
@@ -117,15 +145,13 @@ export function StatusPillTabs({
           onPress={() => onSelect(index)}
           className={
             index === selected
-              ? 'shrink-0 rounded-full bg-primary px-4 py-2 shadow-sm'
+              ? activeClass
               : 'shrink-0 rounded-full bg-surface-container-high px-4 py-2'
           }
         >
           <VemtapText
             variant="labelMd"
-            className={
-              index === selected ? 'text-primary-foreground' : 'text-text-secondary'
-            }
+            className={index === selected ? activeTextClass : 'text-text-secondary'}
           >
             {label}
           </VemtapText>
@@ -212,61 +238,6 @@ export function ImageBadge({
           {badge}
         </VemtapText>
       </View>
-    </View>
-  );
-}
-
-export function HubBottomBar({
-  active,
-  onNavigate,
-  mode = 'consumer',
-}: {
-  active: 'home' | 'deals' | 'discover' | 'saved' | 'account';
-  onNavigate?: (destination: string) => void;
-  mode?: 'consumer' | 'dashboard';
-}) {
-  const items: { key: typeof active; label: string; icon: IconName; badge?: string }[] =
-    mode === 'dashboard'
-      ? [
-          { key: 'home', label: 'Home', icon: 'home' },
-          { key: 'deals', label: 'My Deals', icon: 'voucher', badge: '3' },
-          { key: 'discover', label: 'Messages', icon: 'message', badge: '1' },
-          { key: 'saved', label: 'Orders', icon: 'badge' },
-          { key: 'account', label: 'More', icon: 'more' },
-        ]
-      : [
-          { key: 'home', label: 'Home', icon: 'home' },
-          { key: 'deals', label: 'My Deals', icon: 'voucher', badge: '3' },
-          { key: 'discover', label: 'Discover', icon: 'explore' },
-          { key: 'saved', label: 'Saved', icon: 'bookmark' },
-          { key: 'account', label: 'Account', icon: 'accountCircle' },
-        ];
-  return (
-    <View className="flex-row items-center justify-around border-t border-border bg-surface px-2 pb-2 pt-1">
-      {items.map(item => {
-        const selected = item.key === active;
-        return (
-          <Pressable
-            key={item.key}
-            accessibilityRole="tab"
-            accessibilityState={{ selected }}
-            onPress={() => onNavigate?.(item.key)}
-            className="min-h-12 min-w-14 items-center justify-center py-1"
-          >
-            <Icon
-              name={item.icon}
-              size={22}
-              color={selected ? colors.primary : colors.textSecondary}
-            />
-            <VemtapText
-              variant="micro"
-              className={selected ? 'text-primary' : 'text-text-secondary'}
-            >
-              {item.label}
-            </VemtapText>
-          </Pressable>
-        );
-      })}
     </View>
   );
 }

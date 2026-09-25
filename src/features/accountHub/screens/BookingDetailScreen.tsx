@@ -239,9 +239,11 @@ export function BookingDetailScreen({
           </View>
         </View>
         <View className="gap-3 rounded-card bg-surface p-4 shadow-sm">
-          <View className="flex-row justify-between">
-            <VemtapText variant="headingSm">{copy.location}</VemtapText>
-            <VemtapText variant="labelSm" tone="secondary">
+          <View className="flex-row justify-between gap-2">
+            <VemtapText variant="headingSm" className="min-w-0 flex-1" numberOfLines={2}>
+              {copy.location}
+            </VemtapText>
+            <VemtapText variant="labelSm" tone="secondary" className="shrink-0">
               {copy.maitama}
             </VemtapText>
           </View>

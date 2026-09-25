@@ -9,7 +9,11 @@ import { strings } from '@constants/strings';
 cssInterop(View, { className: 'style' });
 cssInterop(Pressable, { className: 'style' });
 
-export function EnrollmentPrompt() {
+export interface EnrollmentPromptProps {
+  onOpenBusinessSetup?: () => void;
+}
+
+export function EnrollmentPrompt({ onOpenBusinessSetup }: EnrollmentPromptProps) {
   return (
     <View className="flex-row items-center justify-between gap-3 rounded-2xl bg-surface-tint-blue p-4 shadow-md">
       <View className="min-w-0 flex-1 flex-col">
@@ -18,6 +22,7 @@ export function EnrollmentPrompt() {
         </VemtapText>
         <Pressable
           accessibilityRole="link"
+          onPress={onOpenBusinessSetup}
           className="flex-row items-center gap-1 py-0.5"
         >
           <VemtapText variant="labelMd" className="font-sans-semibold text-primary">

@@ -106,8 +106,8 @@ export function UrbanOrderDetailScreen({
           </View>
           <VemtapText
             accessibilityRole="header"
-            variant="headingXl"
-            className="text-heading-xl"
+            variant="headingLg"
+            className="text-heading-lg"
           >
             {strings.urbanOrderDetail.heading}
           </VemtapText>
@@ -253,7 +253,8 @@ export function UrbanOrderDetailScreen({
                 <VemtapText
                   variant="labelSm"
                   tone={action.active ? 'brand' : 'default'}
-                  className={action.active ? 'font-sans-semibold' : 'font-sans-medium'}
+                  numberOfLines={1}
+                  className={`text-center ${action.active ? 'font-sans-semibold' : 'font-sans-medium'}`}
                 >
                   {action.label}
                 </VemtapText>

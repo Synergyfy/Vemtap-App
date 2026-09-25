@@ -55,7 +55,7 @@ const buttonVariants = tv({
 });
 
 const labelVariants = tv({
-  base: ['text-center font-sans-semibold text-button-md'],
+  base: ['shrink text-center font-sans-semibold text-button-md'],
   variants: {
     variant: {
       primary: 'text-primary-foreground',
@@ -78,6 +78,7 @@ export interface ButtonProps
   rightIcon?: React.ReactNode;
   className?: string;
   labelClassName?: string;
+  labelNumberOfLines?: number;
 }
 
 /**
@@ -97,6 +98,7 @@ export function Button({
   fullWidth = true,
   className,
   labelClassName,
+  labelNumberOfLines = 2,
   onPress,
   ...rest
 }: ButtonProps) {
@@ -135,7 +137,7 @@ export function Button({
           {leftIcon || null}
           <VemtapText
             className={cn(labelVariants({ variant }), labelClassName)}
-            numberOfLines={1}
+            numberOfLines={labelNumberOfLines}
           >
             {label}
           </VemtapText>

@@ -1,10 +1,6 @@
 import React, { useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import {
-  StandaloneBottomNav,
-  type StandaloneNavKey,
-} from '@components/shared/StandaloneBottomNav';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
@@ -20,7 +16,6 @@ export interface OrdersBookingsHubScreenProps {
   onContactKitchen?: () => void;
   onTrackOrder?: () => void;
   onNavigate?: (action: string) => void;
-  onSelectNav?: (key: StandaloneNavKey) => void;
 }
 
 export function OrdersBookingsHubScreen({
@@ -30,7 +25,6 @@ export function OrdersBookingsHubScreen({
   onContactKitchen,
   onTrackOrder,
   onNavigate,
-  onSelectNav,
 }: OrdersBookingsHubScreenProps) {
   const insets = useSafeAreaInsets();
   const [mode, setMode] = useState<'orders' | 'bookings'>('orders');
@@ -45,18 +39,18 @@ export function OrdersBookingsHubScreen({
         className="flex-row items-center justify-between bg-surface px-6 pb-3 pt-2"
         style={[navbarBottomShadow, { paddingTop: Math.max(insets.top, 8) }]}
       >
-        <View className="min-w-0 flex-row items-center gap-2">
+        <View className="min-w-0 flex-1 flex-row items-center gap-2">
           <Icon name="shoppingBag" size={24} color={colors.primary} />
           <VemtapText
             accessibilityRole="header"
-            variant="headingXl"
-            className="text-heading-xl"
+            variant="headingSm"
+            className="text-heading-sm"
             numberOfLines={1}
           >
             {strings.ordersHub.title}
           </VemtapText>
         </View>
-        <View className="flex-row items-center">
+        <View className="shrink-0 flex-row items-center">
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={strings.ordersHub.search}
@@ -410,11 +404,6 @@ export function OrdersBookingsHubScreen({
           <Icon name="arrowForward" size={20} color={colors.textSecondary} />
         </Pressable>
       </ScrollView>
-      <StandaloneBottomNav
-        active="orders"
-        onSelect={onSelectNav}
-        bottomInset={insets.bottom}
-      />
     </View>
   );
 }

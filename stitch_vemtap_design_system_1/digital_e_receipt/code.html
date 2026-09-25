@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_stack" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "on-primary-fixed-variant": "#00429b", "surface-variant": "#dce2f7", "primary-container": "#066cf4", "on-primary-fixed": "#001945", "on-secondary-fixed-variant": "#32466f", "error-container": "#ffdad6", "on-primary-container": "#fcfaff", "inverse-primary": "#b0c6ff", "on-tertiary": "#ffffff", "on-background": "#141b2b", "surface-container-lowest": "#ffffff", "primary-fixed": "#d9e2ff", "inverse-on-surface": "#edf0ff", "on-surface-variant": "#424655", "tertiary-fixed-dim": "#ffb599", "on-error-container": "#93000a", "primary-fixed-dim": "#b0c6ff", "surface-subtle": "#F8FAFC", "border-active": "#BFDBFE", "secondary": "#4a5e88", "surface-tint-blue": "#EEF5FF", "primary": "#0055c4", "outline-variant": "#c2c6d7", "on-secondary-container": "#435881", "on-secondary-fixed": "#001a41", "on-secondary": "#ffffff", "on-tertiary-fixed-variant": "#7f2b00", "on-surface": "#141b2b", "surface-container-low": "#f1f3ff", "border-subtle": "#E5E7EB", "tertiary-container": "#c94a03", "text-primary": "#111827", "on-tertiary-fixed": "#370e00", "secondary-fixed-dim": "#b2c6f7", "secondary-container": "#bacfff", "surface-tint": "#0058cb", "badge-discount-text": "#059669", "surface-bright": "#f9f9ff", "secondary-fixed": "#d8e2ff", "on-tertiary-container": "#fffaf9", "tertiary": "#a13900", "on-primary": "#ffffff", "surface": "#f9f9ff", "surface-container": "#e9edff", "tertiary-fixed": "#ffdbce", "surface-canvas": "#FFFFFF", "surface-container-highest": "#dce2f7", "text-secondary": "#4B5563", "surface-container-high": "#e1e8fd", "text-tertiary": "#9CA3AF", "outline": "#727786", "surface-dim": "#d3daef", "error": "#ba1a1a", "inverse-surface": "#293040", "badge-discount-bg": "#ECFDF5", "on-error": "#ffffff", "background": "#f9f9ff" }, borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, spacing: { "space-xs": "0.5rem", "space-3xl": "3rem", "space-xl": "2rem", "space-2xs": "0.25rem", "space-sm": "0.75rem", "space-lg": "1.5rem", "gutter": "1rem", "space-md": "1rem", "space-2xl": "2.5rem", "margin": "1.5rem" }, fontFamily: { "caption": ["Inter"], "heading-sm": ["Inter"], "label-sm": ["Inter"], "display-hero-mobile": ["Inter"], "label-md": ["Inter"], "body-lg": ["Inter"], "display-hero": ["Inter"], "button-primary": ["Inter"], "heading-md": ["Inter"], "heading-lg": ["Inter"], "button-secondary": ["Inter"], "body-md": ["Inter"] }, fontSize: { "caption": ["12px", { "lineHeight": "16px", "fontWeight": "400" }], "heading-sm": ["18px", { "lineHeight": "24px", "fontWeight": "600" }], "label-sm": ["13px", { "lineHeight": "16px", "fontWeight": "500" }], "display-hero-mobile": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }], "label-md": ["14px", { "lineHeight": "18px", "fontWeight": "500" }], "body-lg": ["17px", { "lineHeight": "24px", "fontWeight": "400" }], "display-hero": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.025em", "fontWeight": "700" }], "button-primary": ["16px", { "lineHeight": "20px", "letterSpacing": "-0.005em", "fontWeight": "600" }], "heading-md": ["22px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600" }], "heading-lg": ["26px", { "lineHeight": "34px", "letterSpacing": "-0.015em", "fontWeight": "600" }], "button-secondary": ["15px", { "lineHeight": "20px", "fontWeight": "500" }], "body-md": ["15px", { "lineHeight": "22px", "fontWeight": "400" }] } } } };</script><style>@layer base{html,body{width:100%;margin:0;padding:0;min-height:100%;}body{overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface-canvas font-body-md text-body-md text-on-surface antialiased flex flex-col min-h-screen"><header class="fixed top-0 w-full z-50 pt-safe bg-surface-canvas/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-16 px-margin flex items-center justify-between"><div class="flex items-center gap-space-xs"><button aria-label="Go back" class="w-11 h-11 -ml-space-2xs rounded-full flex items-center justify-center text-on-surface hover:bg-surface-container-low transition-colors" onclick="history.back()" type="button"><span class="material-symbols-outlined text-[24px]">arrow_back</span></button><div class="flex flex-col"><h1 class="font-heading-sm text-heading-sm text-on-surface tracking-tight leading-tight">Digital E Receipt</h1></div></div><div class="flex items-center gap-space-xs"><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div><button aria-label="Close" class="w-11 h-11 -mr-space-2xs rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container-low transition-colors" type="button"><span class="material-symbols-outlined text-[22px]">close</span></button></div></div></header><main class="flex-1 flex flex-col relative w-full pt-16 bg-surface-canvas pb-safe"><div class="flex flex-col w-full">
+<!-- Interactive Toast Notification -->
+<div class="fixed top-20 left-1/2 -translate-x-1/2 z-50 transform -translate-y-16 opacity-0 transition-all duration-300 pointer-events-none px-space-md py-space-xs rounded-full bg-on-surface text-surface-canvas shadow-xl flex items-center gap-space-xs" id="toastNotification">
+<span class="material-symbols-outlined text-[18px] text-badge-discount-text">check_circle</span>
+<span class="font-label-md text-label-md text-surface-canvas" id="toastMsg">Sent successfully!</span>
+</div>
+<div class="px-margin pt-space-xs pb-space-2xl flex flex-col gap-space-lg">
+<!-- Merchant Quick Subheader Meta -->
+<div class="flex items-center justify-between px-space-2xs">
+<div class="flex items-center gap-space-2xs min-w-0">
+<span class="material-symbols-outlined text-[18px] text-primary">restaurant</span>
+<span class="font-label-md text-label-md text-text-primary font-semibold truncate">Urban Grill &amp; Bistro</span>
+<span class="text-text-tertiary">•</span>
+<span class="font-caption text-caption text-text-secondary truncate">Order #TK-108</span>
+</div>
+<div class="flex items-center gap-1 bg-badge-discount-bg text-badge-discount-text px-2 py-0.5 rounded-full shrink-0">
+<span class="w-1.5 h-1.5 rounded-full bg-badge-discount-text animate-pulse"></span>
+<span class="font-caption text-caption font-medium">Paid Just Now</span>
+</div>
+</div>
+<!-- 1. Success Hero Banner -->
+<div class="flex flex-col items-center text-center relative py-space-xs">
+<!-- Ambient Glow Behind Icon -->
+<div class="relative flex items-center justify-center mb-space-sm">
+<div class="absolute w-24 h-24 rounded-full bg-badge-discount-bg scale-125 opacity-80 blur-xl"></div>
+<div class="w-20 h-20 rounded-full bg-badge-discount-bg flex items-center justify-center relative shadow-sm">
+<div class="w-14 h-14 rounded-full bg-badge-discount-text flex items-center justify-center shadow-md">
+<span class="material-symbols-outlined text-surface-canvas text-[36px]" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+</div>
+</div>
+<span class="font-label-md text-label-md text-badge-discount-text font-semibold uppercase tracking-wider mb-space-2xs">Payment Confirmed</span>
+<h2 class="font-display-hero-mobile text-display-hero-mobile text-text-primary mb-space-2xs">₦31,768.00</h2>
+<div class="flex items-center justify-center gap-space-2xs text-text-secondary mb-space-xs">
+<span class="material-symbols-outlined text-[18px] text-primary">contactless</span>
+<span class="font-body-md text-body-md text-text-secondary">Contactless Card Tap</span>
+<span class="text-text-tertiary">·</span>
+<span class="font-body-md text-body-md text-text-secondary font-medium">Till 01 (Wuse II)</span>
+</div>
+<!-- Transaction Ref Chip -->
+<div class="bg-surface-subtle px-space-md py-space-2xs rounded-full flex items-center gap-space-2xs max-w-full">
+<span class="font-caption text-caption text-text-tertiary font-mono truncate">Ref: VEM-REC-894210 · Auth: #990214</span>
+<button aria-label="Copy reference ID" class="text-text-secondary hover:text-primary transition-colors flex items-center shrink-0" onclick="navigator.clipboard?.writeText('VEM-REC-894210'); showToast('Reference ID copied!');" type="button">
+<span class="material-symbols-outlined text-[16px]">content_copy</span>
+</button>
+</div>
+<p class="font-caption text-caption text-text-tertiary mt-1">Oct 17, 2024 · 2:14 PM</p>
+</div>
+<!-- 2. E-Receipt Card -->
+<div class="relative bg-surface-canvas rounded-xl shadow-[0_4px_20px_-2px_rgba(13,37,76,0.06),0_2px_8px_-1px_rgba(13,37,76,0.03)] overflow-hidden">
+<!-- Decorative Digital Receipt Edge Accent -->
+<div class="h-1.5 w-full bg-gradient-to-r from-primary via-primary-container to-badge-discount-text"></div>
+<div class="p-space-lg flex flex-col gap-space-md">
+<!-- Merchant Identity & Tax Header -->
+<div class="flex flex-col gap-1 pb-space-sm bg-surface-subtle -mx-space-lg -mt-space-lg p-space-md mb-space-xs">
+<div class="flex items-start justify-between gap-space-xs">
+<div>
+<h3 class="font-heading-sm text-heading-sm text-text-primary">Urban Grill &amp; Bistro</h3>
+<p class="font-caption text-caption text-text-secondary leading-snug">Plot 12 Ademola Adetokunbo Crescent, Wuse II, Abuja</p>
+</div>
+<div class="w-10 h-10 rounded-lg bg-surface-tint-blue flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-primary text-[22px]" style="font-variation-settings: 'FILL' 1;">storefront</span>
+</div>
+</div>
+<div class="flex items-center justify-between text-text-tertiary pt-space-2xs">
+<span class="font-caption text-caption font-mono">TIN: TIN-88492019-01</span>
+<span class="font-caption text-caption font-medium text-text-secondary">Emeka O. · Table 04 (Dine-in)</span>
+</div>
+</div>
+<!-- Section Label -->
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-text-tertiary uppercase tracking-wider font-semibold">Ordered Items</span>
+<span class="font-caption text-caption text-text-tertiary">4 Items</span>
+</div>
+<!-- Itemized List -->
+<div class="flex flex-col gap-space-md">
+<!-- Item 1 -->
+<div class="flex items-start justify-between gap-space-xs">
+<div class="flex flex-col min-w-0">
+<div class="flex items-baseline gap-space-2xs">
+<span class="font-label-md text-label-md text-text-primary font-semibold">1×</span>
+<span class="font-label-md text-label-md text-text-primary font-medium truncate">Woodfire Ribeye 250g</span>
+</div>
+<span class="font-caption text-caption text-text-tertiary pl-4">Medium Rare, Pepper sauce</span>
+</div>
+<span class="font-label-md text-label-md text-text-primary font-semibold shrink-0">₦16,000.00</span>
+</div>
+<!-- Item 2 -->
+<div class="flex items-start justify-between gap-space-xs">
+<div class="flex flex-col min-w-0">
+<div class="flex items-baseline gap-space-2xs">
+<span class="font-label-md text-label-md text-text-primary font-semibold">1×</span>
+<span class="font-label-md text-label-md text-text-primary font-medium truncate">Double Smash Burger</span>
+</div>
+<span class="font-caption text-caption text-text-tertiary pl-4">House sauce, pickles</span>
+</div>
+<span class="font-label-md text-label-md text-text-primary font-semibold shrink-0">₦6,500.00</span>
+</div>
+<!-- Item 3 -->
+<div class="flex items-start justify-between gap-space-xs">
+<div class="flex flex-col min-w-0">
+<div class="flex items-baseline gap-space-2xs">
+<span class="font-label-md text-label-md text-text-primary font-semibold">1×</span>
+<span class="font-label-md text-label-md text-text-primary font-medium truncate">Truffle Parm Fries</span>
+</div>
+<span class="font-caption text-caption text-text-tertiary pl-4">Large portion</span>
+</div>
+<span class="font-label-md text-label-md text-text-primary font-semibold shrink-0">₦3,200.00</span>
+</div>
+<!-- Item 4 -->
+<div class="flex items-start justify-between gap-space-xs">
+<div class="flex flex-col min-w-0">
+<div class="flex items-baseline gap-space-2xs">
+<span class="font-label-md text-label-md text-text-primary font-semibold">1×</span>
+<span class="font-label-md text-label-md text-text-primary font-medium truncate">Passionfruit Mojito</span>
+</div>
+<span class="font-caption text-caption text-text-tertiary pl-4">House craft signature</span>
+</div>
+<span class="font-label-md text-label-md text-text-primary font-semibold shrink-0">₦3,500.00</span>
+</div>
+</div>
+<!-- Subtle Separator Block -->
+<div class="h-3 flex items-center justify-between -mx-space-lg my-space-xs px-2 opacity-40">
+<div class="w-3 h-3 rounded-full bg-background -ml-3"></div>
+<div class="flex-1 border-t-2 border-dashed border-outline-variant mx-2"></div>
+<div class="w-3 h-3 rounded-full bg-background -mr-3"></div>
+</div>
+<!-- Financial Breakdown -->
+<div class="flex flex-col gap-space-xs">
+<div class="flex items-center justify-between">
+<span class="font-body-md text-body-md text-text-secondary">Subtotal</span>
+<span class="font-body-md text-body-md text-text-primary">₦29,200.00</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-2xs">
+<span class="font-body-md text-body-md text-badge-discount-text font-medium">VEMTAP Member Perk</span>
+<span class="bg-badge-discount-bg text-badge-discount-text font-caption text-caption px-1.5 py-0.5 rounded-full font-bold">5% OFF</span>
+</div>
+<span class="font-body-md text-body-md text-badge-discount-text font-medium">-₦1,572.00</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="font-body-md text-body-md text-text-secondary">VAT (7.5%)</span>
+<span class="font-body-md text-body-md text-text-primary">₦2,072.00</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-2xs">
+<span class="font-body-md text-body-md text-text-secondary">Staff Tip (15%)</span>
+<span class="font-caption text-caption text-text-tertiary">to Sunday M.</span>
+</div>
+<span class="font-body-md text-body-md text-text-primary font-medium">+₦4,140.00</span>
+</div>
+<!-- Total Highlight Bar -->
+<div class="bg-surface-tint-blue rounded-xl p-space-md mt-space-xs flex items-center justify-between">
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-primary font-bold uppercase tracking-wider">Net Total Paid</span>
+<span class="font-caption text-caption text-secondary">Card ending in •• 4092</span>
+</div>
+<span class="font-heading-md text-heading-md text-primary font-bold">₦31,768.00</span>
+</div>
+</div>
+</div>
+</div>
+<!-- 3. Rewards & Points Earned Banner -->
+<div class="bg-gradient-to-r from-primary to-primary-container rounded-xl p-space-md text-surface-canvas shadow-md flex items-center justify-between relative overflow-hidden">
+<!-- Background subtle particle effect -->
+<div class="absolute -right-4 -bottom-6 w-28 h-28 rounded-full bg-surface-canvas/10 blur-xl pointer-events-none"></div>
+<div class="flex items-center gap-space-md z-10 min-w-0">
+<div class="w-12 h-12 rounded-full bg-surface-canvas/20 backdrop-blur-sm flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-surface-canvas text-[26px]" style="font-variation-settings: 'FILL' 1;">stars</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-heading-sm text-heading-sm text-surface-canvas font-bold truncate">+318 Points Credited!</span>
+<p class="font-caption text-caption text-surface-canvas/90 truncate">New Balance: <strong class="text-surface-canvas font-bold">2,768 pts</strong> · VIP Member</p>
+</div>
+</div>
+<div class="bg-surface-canvas/20 px-space-xs py-1 rounded-full text-surface-canvas font-label-sm text-label-sm font-semibold shrink-0 z-10">
+        Tier Gold
+      </div>
+</div>
+<!-- 4. Instant Digital Dispatch & Sharing Box -->
+<div class="bg-surface-container-low rounded-xl p-space-md flex flex-col gap-space-md">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-2xs">
+<span class="material-symbols-outlined text-primary text-[20px]">send_to_mobile</span>
+<span class="font-heading-sm text-heading-sm text-text-primary">Send Copy of E-Receipt</span>
+</div>
+<span class="font-caption text-caption text-badge-discount-text font-medium flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">check_circle</span> Auto-queued
+        </span>
+</div>
+<!-- Pre-filled Toggle Pills -->
+<div class="flex flex-col gap-space-xs">
+<label class="flex items-center gap-space-sm p-space-xs bg-surface-canvas rounded-lg cursor-pointer transition-colors hover:bg-surface-subtle">
+<input checked="" class="w-5 h-5 rounded text-primary accent-primary" onchange="toggleReceiptPill(this, 'WhatsApp')" type="checkbox"/>
+<div class="flex items-center gap-space-xs min-w-0 flex-1">
+<span class="material-symbols-outlined text-[20px] text-badge-discount-text">chat</span>
+<span class="font-label-md text-label-md text-text-primary font-medium truncate">WhatsApp (+234 803 219 8831)</span>
+</div>
+<span class="font-caption text-caption text-text-tertiary">Default</span>
+</label>
+<label class="flex items-center gap-space-sm p-space-xs bg-surface-canvas rounded-lg cursor-pointer transition-colors hover:bg-surface-subtle">
+<input checked="" class="w-5 h-5 rounded text-primary accent-primary" onchange="toggleReceiptPill(this, 'Email')" type="checkbox"/>
+<div class="flex items-center gap-space-xs min-w-0 flex-1">
+<span class="material-symbols-outlined text-[20px] text-primary">mail</span>
+<span class="font-label-md text-label-md text-text-primary font-medium truncate">Email (michael.j@example.com)</span>
+</div>
+<span class="font-caption text-caption text-text-tertiary">Verified</span>
+</label>
+</div>
+<!-- Input for Custom Alternative Destination -->
+<div class="flex flex-col gap-1">
+<label class="font-caption text-caption text-text-secondary font-medium" for="customRecipientInput">Forward to another recipient:</label>
+<div class="flex items-center gap-space-2xs bg-surface-canvas rounded-xl p-1.5 focus-within:ring-2 focus-within:ring-primary shadow-sm">
+<span class="material-symbols-outlined text-text-tertiary text-[20px] pl-2">alternate_email</span>
+<input class="w-full bg-transparent px-2 py-1.5 text-text-primary font-body-md text-body-md outline-none placeholder:text-text-tertiary" id="customRecipientInput" placeholder="e.g. accounting@company.com" type="text"/>
+<button class="bg-primary hover:bg-on-primary-fixed-variant text-on-primary px-space-md py-2 rounded-lg font-button-secondary text-button-secondary font-medium transition-transform active:scale-95 shrink-0" onclick="sendCustomReceipt()" type="button">
+            Send
+          </button>
+</div>
+</div>
+<!-- Fast Action Buttons -->
+<div class="grid grid-cols-2 gap-space-xs pt-space-2xs">
+<button class="flex items-center justify-center gap-space-2xs h-11 bg-surface-canvas hover:bg-surface-subtle text-text-primary rounded-xl font-button-secondary text-button-secondary font-semibold transition-all active:scale-98 shadow-sm" onclick="handlePdfDownload()" type="button">
+<span class="material-symbols-outlined text-primary text-[20px]">download</span>
+<span>Download PDF</span>
+</button>
+<button class="flex items-center justify-center gap-space-2xs h-11 bg-surface-canvas hover:bg-surface-subtle text-text-primary rounded-xl font-button-secondary text-button-secondary font-semibold transition-all active:scale-98 shadow-sm" onclick="handleShareSheet()" type="button">
+<span class="material-symbols-outlined text-primary text-[20px]">ios_share</span>
+<span>Share Receipt</span>
+</button>
+</div>
+</div>
+<!-- 5. Merchant Follow-up / Experience Rating -->
+<div class="bg-surface-canvas rounded-xl p-space-md shadow-[0_4px_16px_-2px_rgba(13,37,76,0.04)] flex flex-col items-center text-center gap-space-xs">
+<span class="font-label-md text-label-md text-text-secondary">Rate your experience at</span>
+<h4 class="font-heading-sm text-heading-sm text-text-primary">Urban Grill &amp; Bistro</h4>
+<!-- Dynamic 5 Star Rating Micro-interaction -->
+<div class="flex items-center gap-1.5 py-space-xs" id="starRatingContainer">
+<button aria-label="1 star" class="w-10 h-10 rounded-full flex items-center justify-center text-tertiary-container hover:bg-surface-subtle active:scale-90 transition-transform" onclick="rateMerchant(1)" type="button">
+<span class="material-symbols-outlined text-[28px]" style="font-variation-settings: 'FILL' 1;">star</span>
+</button>
+<button aria-label="2 stars" class="w-10 h-10 rounded-full flex items-center justify-center text-tertiary-container hover:bg-surface-subtle active:scale-90 transition-transform" onclick="rateMerchant(2)" type="button">
+<span class="material-symbols-outlined text-[28px]" style="font-variation-settings: 'FILL' 1;">star</span>
+</button>
+<button aria-label="3 stars" class="w-10 h-10 rounded-full flex items-center justify-center text-tertiary-container hover:bg-surface-subtle active:scale-90 transition-transform" onclick="rateMerchant(3)" type="button">
+<span class="material-symbols-outlined text-[28px]" style="font-variation-settings: 'FILL' 1;">star</span>
+</button>
+<button aria-label="4 stars" class="w-10 h-10 rounded-full flex items-center justify-center text-tertiary-container hover:bg-surface-subtle active:scale-90 transition-transform" onclick="rateMerchant(4)" type="button">
+<span class="material-symbols-outlined text-[28px]" style="font-variation-settings: 'FILL' 1;">star</span>
+</button>
+<button aria-label="5 stars" class="w-10 h-10 rounded-full flex items-center justify-center text-tertiary-container hover:bg-surface-subtle active:scale-90 transition-transform" onclick="rateMerchant(5)" type="button">
+<span class="material-symbols-outlined text-[28px]" style="font-variation-settings: 'FILL' 1;">star</span>
+</button>
+</div>
+<p class="font-caption text-caption text-badge-discount-text font-medium min-h-[18px]" id="ratingFeedback">Tap a star to leave instant praise</p>
+</div>
+<!-- Final Primary CTA -->
+<div class="flex flex-col gap-space-sm pt-space-xs">
+<button class="w-full h-[52px] bg-primary-container hover:bg-primary active:scale-[0.98] text-surface-canvas rounded-[16px] font-button-primary text-button-primary font-semibold shadow-[0_8px_24px_-4px_rgba(6,108,244,0.28)] flex items-center justify-center gap-space-xs transition-all" onclick="handleFinishFlow()" type="button">
+<span>Done / Return to Home</span>
+<span class="material-symbols-outlined text-[20px]">arrow_forward</span>
+</button>
+<!-- Legal Compliance Footnote -->
+<div class="flex flex-col items-center gap-1 text-center pb-space-xs">
+<div class="flex items-center gap-1 text-text-tertiary">
+<span class="material-symbols-outlined text-[15px]">verified_user</span>
+<span class="font-caption text-caption">Government Compliant E-Receipt</span>
+</div>
+<p class="font-caption text-caption text-text-tertiary">Verified by VEMTAP Merchant Cloud · Session #894-WUSE</p>
+</div>
+</div>
+</div>
+</div>
+<script>
+  function showToast(message) {
+    const toast = document.getElementById('toastNotification');
+    const msg = document.getElementById('toastMsg');
+    if (!toast || !msg) return;
+    msg.textContent = message;
+    toast.classList.remove('-translate-y-16', 'opacity-0');
+    toast.classList.add('translate-y-0', 'opacity-100');
+    setTimeout(() => {
+      toast.classList.remove('translate-y-0', 'opacity-100');
+      toast.classList.add('-translate-y-16', 'opacity-0');
+    }, 2800);
+  }
+
+  function toggleReceiptPill(checkbox, type) {
+    if (checkbox.checked) {
+      showToast(type + ' dispatch enabled');
+    } else {
+      showToast(type + ' dispatch unselected');
+    }
+  }
+
+  function sendCustomReceipt() {
+    const input = document.getElementById('customRecipientInput');
+    if (!input || !input.value.trim()) {
+      showToast('Please enter an email or phone number');
+      return;
+    }
+    const target = input.value.trim();
+    input.value = '';
+    showToast('Receipt forwarded to ' + target);
+  }
+
+  function handlePdfDownload() {
+    showToast('Generating official PDF receipt...');
+    setTimeout(() => {
+      showToast('PDF downloaded: UrbanGrill_TK108.pdf');
+    }, 1200);
+  }
+
+  function handleShareSheet() {
+    if (navigator.share) {
+      navigator.share({
+        title: 'VEMTAP E-Receipt #TK-108',
+        text: 'Urban Grill & Bistro Receipt (₦31,768.00) via VEMTAP',
+        url: window.location.href,
+      }).catch(() => {
+        showToast('Receipt link copied to clipboard!');
+      });
+    } else {
+      showToast('Receipt share link copied!');
+    }
+  }
+
+  function rateMerchant(score) {
+    const feedback = document.getElementById('ratingFeedback');
+    const stars = document.getElementById('starRatingContainer').children;
+    for (let i = 0; i < stars.length; i++) {
+      const icon = stars[i].querySelector('.material-symbols-outlined');
+      if (i < score) {
+        stars[i].className = 'w-10 h-10 rounded-full flex items-center justify-center text-tertiary-container transition-transform';
+        icon.style.fontVariationSettings = "'FILL' 1";
+      } else {
+        stars[i].className = 'w-10 h-10 rounded-full flex items-center justify-center text-outline-variant transition-transform';
+        icon.style.fontVariationSettings = "'FILL' 0";
+      }
+    }
+    const remarks = [
+      'Thanks for the feedback. We will improve!',
+      'We appreciate your honesty.',
+      'Glad you enjoyed your meal!',
+      'Great! We will let Emeka & kitchen know.',
+      'Phenomenal! 5-star review saved for Urban Grill.'
+    ];
+    if (feedback) {
+      feedback.textContent = remarks[score - 1];
+    }
+    showToast(score + ' Star Rating Recorded!');
+  }
+
+  function handleFinishFlow() {
+    showToast('Returning to VEMTAP Home...');
+    setTimeout(() => {
+      if (window.history.length > 1) {
+        history.back();
+      }
+    }, 600);
+  }
+</script></main></body></html>

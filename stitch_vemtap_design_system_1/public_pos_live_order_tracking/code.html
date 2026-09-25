@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_stack" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{width:100vw;margin:0;padding:0;}body{overscroll-behavior:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "on-error": "#ffffff", "text-primary": "#111827", "surface-variant": "#dce2f7", "surface-canvas": "#FFFFFF", "text-secondary": "#4B5563", "inverse-primary": "#b0c6ff", "border-active": "#BFDBFE", "secondary-fixed": "#d8e2ff", "tertiary-fixed-dim": "#ffb599", "on-error-container": "#93000a", "secondary": "#4a5e88", "on-tertiary-fixed-variant": "#7f2b00", "badge-discount-text": "#059669", "on-surface": "#141b2b", "tertiary-container": "#c94a03", "error": "#ba1a1a", "tertiary-fixed": "#ffdbce", "surface-dim": "#d3daef", "on-primary-container": "#fcfaff", "on-surface-variant": "#424655", "surface-bright": "#f9f9ff", "surface-subtle": "#F8FAFC", "error-container": "#ffdad6", "on-tertiary": "#ffffff", "inverse-surface": "#293040", "secondary-container": "#bacfff", "on-secondary-fixed": "#001a41", "surface-tint-blue": "#EEF5FF", "surface-container-low": "#f1f3ff", "surface-container-high": "#e1e8fd", "on-secondary-fixed-variant": "#32466f", "on-tertiary-fixed": "#370e00", "on-primary-fixed": "#001945", "badge-discount-bg": "#ECFDF5", "text-tertiary": "#9CA3AF", "primary-fixed": "#d9e2ff", "on-background": "#141b2b", "primary-container": "#066cf4", "outline-variant": "#c2c6d7", "border-subtle": "#E5E7EB", "on-primary": "#ffffff", "secondary-fixed-dim": "#b2c6f7", "on-secondary-container": "#435881", "inverse-on-surface": "#edf0ff", "surface-container-highest": "#dce2f7", "outline": "#727786", "surface-container-lowest": "#ffffff", "primary": "#0055c4", "background": "#f9f9ff", "primary-fixed-dim": "#b0c6ff", "surface": "#f9f9ff", "surface-container": "#e9edff", "on-primary-fixed-variant": "#00429b", "on-secondary": "#ffffff", "tertiary": "#a13900", "surface-tint": "#0058cb", "on-tertiary-container": "#fffaf9" }, borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, spacing: { "margin": "1.5rem", "gutter": "1rem", "space-lg": "1.5rem", "space-sm": "0.75rem", "space-xl": "2rem", "space-md": "1rem", "space-3xl": "3rem", "space-2xl": "2.5rem", "space-xs": "0.5rem", "space-2xs": "0.25rem" }, fontFamily: { "heading-sm": ["Inter"], "heading-lg": ["Inter"], "button-primary": ["Inter"], "display-hero-mobile": ["Inter"], "label-md": ["Inter"], "body-lg": ["Inter"], "display-hero": ["Inter"], "label-sm": ["Inter"], "body-md": ["Inter"], "heading-md": ["Inter"], "caption": ["Inter"], "button-secondary": ["Inter"] }, fontSize: { "heading-sm": ["18px", { "lineHeight": "24px", "fontWeight": "600" }], "heading-lg": ["26px", { "lineHeight": "34px", "letterSpacing": "-0.015em", "fontWeight": "600" }], "button-primary": ["16px", { "lineHeight": "20px", "letterSpacing": "-0.005em", "fontWeight": "600" }], "display-hero-mobile": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }], "label-md": ["14px", { "lineHeight": "18px", "fontWeight": "500" }], "body-lg": ["17px", { "lineHeight": "24px", "fontWeight": "400" }], "display-hero": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.025em", "fontWeight": "700" }], "label-sm": ["13px", { "lineHeight": "16px", "fontWeight": "500" }], "body-md": ["15px", { "lineHeight": "22px", "fontWeight": "400" }], "heading-md": ["22px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600" }], "caption": ["12px", { "lineHeight": "16px", "fontWeight": "400" }], "button-secondary": ["15px", { "lineHeight": "20px", "fontWeight": "500" }] } } } };</script><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface text-on-surface font-body-md text-body-md flex flex-col min-h-screen"><header class="fixed top-0 w-full z-50 pt-safe bg-surface/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-16 px-gutter flex items-center justify-between"><div class="flex items-center gap-space-xs"><button class="w-11 h-11 flex items-center justify-center rounded-xl text-on-surface hover:bg-surface-container active:scale-95 transition-transform" onclick="history.back()"><span class="material-symbols-outlined text-[24px]">arrow_back</span></button><h1 class="font-heading-sm text-heading-sm text-text-primary">Public Pos Order Tracking</h1></div><div class="flex items-center gap-space-xs"><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex-1 flex flex-col relative w-full pt-16 pb-safe bg-surface"><div class="flex flex-col w-full px-margin pb-space-2xl space-y-space-lg">
+<!-- Status Hero -->
+<div class="relative overflow-hidden rounded-xl bg-surface-container p-space-lg text-center flex flex-col items-center shadow-sm">
+<div class="absolute -top-12 -right-12 w-36 h-36 bg-primary-fixed/30 rounded-full blur-2xl pointer-events-none"></div>
+<div class="absolute -bottom-10 -left-10 w-32 h-32 bg-badge-discount-bg/60 rounded-full blur-xl pointer-events-none"></div>
+<!-- Animated Ripple Badge -->
+<div class="relative flex items-center justify-center mb-space-md">
+<span class="absolute inline-flex h-16 w-16 animate-ping rounded-full bg-badge-discount-text/20 opacity-75"></span>
+<div class="relative w-14 h-14 rounded-full bg-badge-discount-bg flex items-center justify-center shadow-md">
+<span class="material-symbols-outlined text-badge-discount-text text-[30px]" style="font-variation-settings: 'FILL' 1;">restaurant</span>
+</div>
+</div>
+<!-- Confirmation Headings -->
+<h2 class="font-heading-lg text-heading-lg text-text-primary mb-space-2xs">Order Sent to Kitchen!</h2>
+<p class="font-body-md text-body-md text-text-secondary max-w-xs mb-space-md">
+      Urban Grill &amp; Bistro has received your ticket for <span class="font-label-md text-label-md text-text-primary">Table 04</span>.
+    </p>
+<!-- Prep Time Pill -->
+<div class="inline-flex items-center gap-space-2xs px-space-md py-space-xs rounded-full bg-surface-canvas shadow-sm">
+<span class="material-symbols-outlined text-primary text-[18px]">timer</span>
+<span class="font-caption text-caption text-text-secondary">Estimated Prep Time:</span>
+<span class="font-label-md text-label-md text-primary font-bold">15 - 20 mins</span>
+</div>
+</div>
+<!-- Real-Time Tracker Widget -->
+<div class="rounded-xl bg-surface-canvas p-space-lg shadow-sm">
+<div class="flex items-center justify-between mb-space-md">
+<div class="flex items-center gap-space-2xs">
+<span class="material-symbols-outlined text-primary text-[20px]">sync</span>
+<h3 class="font-heading-sm text-heading-sm text-text-primary">Live Preparation</h3>
+</div>
+<span class="font-caption text-caption px-space-xs py-space-2xs rounded-full bg-surface-tint-blue text-primary font-medium">Real-time sync</span>
+</div>
+<!-- Stepper Container -->
+<div class="relative flex flex-col space-y-space-md">
+<!-- Step 1: Completed -->
+<div class="flex items-start gap-space-md relative">
+<div class="flex flex-col items-center">
+<div class="w-8 h-8 rounded-full bg-badge-discount-bg text-badge-discount-text flex items-center justify-center shadow-sm z-10">
+<span class="material-symbols-outlined text-[18px]">check</span>
+</div>
+<div class="w-0.5 h-12 bg-badge-discount-text/30 -mb-2"></div>
+</div>
+<div class="flex-1 pt-1 min-w-0">
+<div class="flex items-baseline justify-between">
+<p class="font-label-md text-label-md text-text-primary font-semibold truncate">Order Received</p>
+<span class="font-caption text-caption text-text-tertiary">14:32</span>
+</div>
+<p class="font-caption text-caption text-text-secondary">Ticket sent to POS &amp; Kitchen Stream</p>
+</div>
+</div>
+<!-- Step 2: Active / Pulsing -->
+<div class="flex items-start gap-space-md relative">
+<div class="flex flex-col items-center">
+<div class="relative flex items-center justify-center z-10">
+<span class="absolute inline-flex h-8 w-8 animate-ping rounded-full bg-primary/30"></span>
+<div class="relative w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center shadow-md">
+<span class="material-symbols-outlined text-[18px]">soup_kitchen</span>
+</div>
+</div>
+<div class="w-0.5 h-12 bg-surface-container-highest -mb-2"></div>
+</div>
+<div class="flex-1 pt-1 min-w-0">
+<div class="flex items-baseline justify-between">
+<p class="font-label-md text-label-md text-primary font-semibold truncate">Accepted &amp; In Queue</p>
+<span class="font-caption text-caption text-primary font-medium">14:33</span>
+</div>
+<p class="font-caption text-caption text-text-secondary">Confirmed by Cashier Emeka O.</p>
+</div>
+</div>
+<!-- Step 3: Upcoming -->
+<div class="flex items-start gap-space-md relative">
+<div class="flex flex-col items-center">
+<div class="w-8 h-8 rounded-full bg-surface-container text-outline flex items-center justify-center z-10">
+<span class="material-symbols-outlined text-[16px]">skillet</span>
+</div>
+<div class="w-0.5 h-12 bg-surface-container-highest -mb-2"></div>
+</div>
+<div class="flex-1 pt-1 min-w-0">
+<p class="font-label-md text-label-md text-text-secondary truncate">Preparing in Kitchen</p>
+<p class="font-caption text-caption text-text-tertiary">Line chef is grilling and plating</p>
+</div>
+</div>
+<!-- Step 4: Final Upcoming -->
+<div class="flex items-start gap-space-md">
+<div class="w-8 h-8 rounded-full bg-surface-container text-outline flex items-center justify-center z-10">
+<span class="material-symbols-outlined text-[16px]">room_service</span>
+</div>
+<div class="flex-1 pt-1 min-w-0">
+<p class="font-label-md text-label-md text-text-secondary truncate">Ready &amp; Served</p>
+<p class="font-caption text-caption text-text-tertiary">Food being brought to Table 04</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Order Items & Receipt Summary -->
+<div class="rounded-xl bg-surface-canvas p-space-lg shadow-sm space-y-space-md">
+<div class="flex items-center justify-between pb-space-xs">
+<div>
+<h3 class="font-heading-sm text-heading-sm text-text-primary">Order Summary</h3>
+<p class="font-caption text-caption text-text-tertiary">Order #UG-1085 • Table 04</p>
+</div>
+<div class="text-right">
+<span class="font-caption text-caption px-space-xs py-space-2xs rounded-lg bg-surface-container text-text-secondary">Server: Emeka O.</span>
+</div>
+</div>
+<!-- Items List -->
+<div class="space-y-space-sm">
+<div class="flex items-center gap-space-sm p-space-xs rounded-xl bg-surface-subtle">
+<img class="w-14 h-14 rounded-lg object-cover" data-alt="Woodfire grilled ribeye steak with golden brown sear marks garnished with rosemary sprig on ceramic plate inside contemporary ambient lighting restaurant" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC3ea3Sb9PW8NvG1YdCzqoph7GRLDRz9SZemKeoDOn2m8YYxdYy730w5EjTAbdCgNO3x4aD9EzXY7rnOJoqnCjBuIJHWLJ63AyMfEz-4EUqYrCTUV0eDdFSMZMjjrI2wzap7I6dCvY5QHM8pt_cfbu2b6SIA-asOUWejIdOLoO73I9ZLA-3lifr959IzD_FtfzW07slCKIMwChb-l113pi_3elwnfAZuf0HS3nbTMzfqmMtMWEfOpxNbw"/>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between">
+<h4 class="font-label-md text-label-md text-text-primary font-medium truncate">1× Woodfire Ribeye Steak</h4>
+<span class="font-label-md text-label-md text-text-primary font-semibold">₦16,000</span>
+</div>
+<p class="font-caption text-caption text-text-secondary">Medium rare</p>
+</div>
+</div>
+<div class="flex items-center gap-space-sm p-space-xs rounded-xl bg-surface-subtle">
+<img class="w-14 h-14 rounded-lg object-cover" data-alt="Artisanal double smash burger with melted cheddar cheese toasted brioche bun sesame seeds warm bistro interior lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuASgg2Wph_QhN9hz_JxFMnfwJ8bN26EDM-CTJ5PVeSRTW93gG2GbhZ7CfmGuxbKxcBi7E7xijm8En2o3hQYnrA3qudaTayYLc4Xv3D4zwlBWMGOIQYdAEYgTItKLKVEyjZLnC32Scb7lNZhWT_jgEcMtGk8sGaftmCZ8RrPsHvJbNf2gH4VO3tRcFV2gg2ijPcqBclMOUa2ji5SAWHPUEcoGgi0rdKANdKiYBSbI4LGMWK8ag1FRyFwgw"/>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between">
+<h4 class="font-label-md text-label-md text-text-primary font-medium truncate">1× Double Smash Burger</h4>
+<span class="font-label-md text-label-md text-text-primary font-semibold">₦6,500</span>
+</div>
+<p class="font-caption text-caption text-text-secondary">No pickles</p>
+</div>
+</div>
+<div class="flex items-center gap-space-sm p-space-xs rounded-xl bg-surface-subtle">
+<img class="w-14 h-14 rounded-lg object-cover" data-alt="Vibrant tropical passionfruit mojito cocktail with fresh crushed mint lime wedges crushed ice served in tall textured highball glass" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBh2g5S16y0o48dRxDwnerGRql4ZXMlQAPG-spS2iFXouID3bZnnTqmx8YWaK4YxBnKh5k3Im1GuVaVsfpVp6mtds5LIzod2lPJ2qR3X-UCUcXaURreCiFN4EDTtUUWnNpCqlTO4RZzYyP1cB9T5c2z_SiikqJQ0-vgR80wlp3bEF4kzZfvmKLC3Et168Ktqym_tiK_4okOJOPpPQYjIsGqnYgFBvyQl6pYFLyKn5hjWyqySg_t5uZLQQ"/>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between">
+<h4 class="font-label-md text-label-md text-text-primary font-medium truncate">1× Passionfruit Mojito</h4>
+<span class="font-label-md text-label-md text-text-primary font-semibold">₦3,500</span>
+</div>
+<p class="font-caption text-caption text-text-secondary">Chilled, extra ice</p>
+</div>
+</div>
+</div>
+<!-- Settlement Card Detail -->
+<div class="rounded-xl bg-surface-container-low p-space-md flex flex-col space-y-space-2xs">
+<div class="flex justify-between items-center">
+<span class="font-body-md text-body-md text-text-secondary">Total Payable</span>
+<span class="font-heading-sm text-heading-sm text-text-primary font-bold">₦27,950</span>
+</div>
+<p class="font-caption text-caption text-text-tertiary">Direct settlement at table / counter upon completion</p>
+</div>
+</div>
+<!-- Quick Action Triggers -->
+<div class="flex flex-col space-y-space-sm pt-space-xs">
+<!-- Call Waiter Trigger -->
+<button class="w-full h-[52px] rounded-xl bg-surface-tint-blue text-primary font-button-primary text-button-primary flex items-center justify-center gap-space-xs active:scale-98 transition-transform shadow-sm" id="call-waiter-btn">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">notifications_active</span>
+<span>Call Waiter to Table 04</span>
+</button>
+<!-- Reopen Menu Button -->
+<button class="w-full h-[52px] rounded-xl bg-surface-container text-text-primary font-button-secondary text-button-secondary flex items-center justify-center gap-space-xs active:scale-98 transition-transform">
+<span class="material-symbols-outlined text-[20px]">add_circle</span>
+<span>Add More Items / Reopen Menu</span>
+</button>
+<!-- Attendant Modification Help Note -->
+<div class="flex items-center justify-center gap-space-2xs pt-space-xs text-center">
+<span class="material-symbols-outlined text-text-tertiary text-[16px]">info</span>
+<p class="font-caption text-caption text-text-secondary max-w-xs">
+        Need to modify your order? Please flag your table attendant or cashier directly.
+      </p>
+</div>
+</div>
+<!-- Toast Notification Overlay for Waiter Call -->
+<div class="hidden fixed bottom-6 left-6 right-6 z-40 bg-inverse-surface text-inverse-on-surface p-space-md rounded-xl shadow-lg flex items-center justify-between transition-all duration-300" id="waiter-toast">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-inverse-primary text-[22px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="font-label-md text-label-md text-inverse-on-surface">Attendant alerted for Table 04!</span>
+</div>
+<span class="font-caption text-caption text-inverse-primary">On the way</span>
+</div>
+</div>
+<script>
+  (function() {
+    const callBtn = document.getElementById('call-waiter-btn');
+    const toast = document.getElementById('waiter-toast');
+
+    if (callBtn && toast) {
+      callBtn.addEventListener('click', function() {
+        toast.classList.remove('hidden');
+        toast.classList.add('flex');
+        
+        callBtn.disabled = true;
+        const originalContent = callBtn.innerHTML;
+        callBtn.innerHTML = `
+          <span class="material-symbols-outlined text-[20px] animate-spin">autorenew</span>
+          <span>Waiter Notified</span>
+        `;
+
+        setTimeout(function() {
+          toast.classList.add('hidden');
+          toast.classList.remove('flex');
+          callBtn.disabled = false;
+          callBtn.innerHTML = originalContent;
+        }, 3200);
+      });
+    }
+  })();
+</script></main></body></html>

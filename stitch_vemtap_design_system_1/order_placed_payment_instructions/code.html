@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{width:100%;margin:0;padding:0;}body{overscroll-behavior-y:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{colors:{"on-secondary-fixed-variant":"#32466f","surface-container-lowest":"#ffffff","on-error-container":"#93000a","primary-container":"#066cf4","on-secondary-fixed":"#001a41","on-primary-container":"#fcfaff","badge-discount-bg":"#ECFDF5","surface-container-highest":"#dce2f7","surface-dim":"#d3daef","on-primary":"#ffffff","primary":"#0055c4","on-secondary-container":"#435881","on-primary-fixed":"#001945","tertiary-fixed":"#ffdbce","inverse-surface":"#293040","tertiary-fixed-dim":"#ffb599","secondary-fixed":"#d8e2ff","inverse-on-surface":"#edf0ff","inverse-primary":"#b0c6ff","on-tertiary":"#ffffff","primary-fixed-dim":"#b0c6ff","text-secondary":"#4B5563","error-container":"#ffdad6","primary-fixed":"#d9e2ff","surface-container-high":"#e1e8fd","badge-discount-text":"#059669","error":"#ba1a1a","on-surface":"#141b2b","secondary-fixed-dim":"#b2c6f7","on-background":"#141b2b","background":"#f9f9ff","on-tertiary-fixed":"#370e00","surface-tint":"#0058cb","border-subtle":"#E5E7EB","secondary":"#4a5e88","on-tertiary-fixed-variant":"#7f2b00","surface-canvas":"#FFFFFF","surface-container-low":"#f1f3ff","on-surface-variant":"#424655","on-tertiary-container":"#fffaf9","secondary-container":"#bacfff","surface-bright":"#f9f9ff","surface":"#f9f9ff","text-tertiary":"#9CA3AF","tertiary-container":"#c94a03","surface-variant":"#dce2f7","surface-tint-blue":"#EEF5FF","on-secondary":"#ffffff","surface-subtle":"#F8FAFC","surface-container":"#e9edff","text-primary":"#111827","border-active":"#BFDBFE","tertiary":"#a13900","outline-variant":"#c2c6d7","on-primary-fixed-variant":"#00429b","outline":"#727786","on-error":"#ffffff"},borderRadius:{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},spacing:{"gutter":"1rem","space-2xl":"2.5rem","space-3xl":"3rem","margin":"1.5rem","space-2xs":"0.25rem","space-xs":"0.5rem","space-sm":"0.75rem","space-lg":"1.5rem","space-xl":"2rem","space-md":"1rem"},fontFamily:{"button-primary":["Inter"],"body-lg":["Inter"],"body-md":["Inter"],"display-hero-mobile":["Inter"],"caption":["Inter"],"display-hero":["Inter"],"heading-md":["Inter"],"button-secondary":["Inter"],"label-md":["Inter"],"label-sm":["Inter"],"heading-lg":["Inter"],"heading-sm":["Inter"]},fontSize:{"button-primary":["16px",{"lineHeight":"20px","letterSpacing":"-0.005em","fontWeight":"600"}],"body-lg":["17px",{"lineHeight":"24px","fontWeight":"400"}],"body-md":["15px",{"lineHeight":"22px","fontWeight":"400"}],"display-hero-mobile":["32px",{"lineHeight":"40px","letterSpacing":"-0.02em","fontWeight":"700"}],"caption":["12px",{"lineHeight":"16px","fontWeight":"400"}],"display-hero":["36px",{"lineHeight":"44px","letterSpacing":"-0.025em","fontWeight":"700"}],"heading-md":["22px",{"lineHeight":"28px","letterSpacing":"-0.01em","fontWeight":"600"}],"button-secondary":["15px",{"lineHeight":"20px","fontWeight":"500"}],"label-md":["14px",{"lineHeight":"18px","fontWeight":"500"}],"label-sm":["13px",{"lineHeight":"16px","fontWeight":"500"}],"heading-lg":["26px",{"lineHeight":"34px","letterSpacing":"-0.015em","fontWeight":"600"}],"heading-sm":["18px",{"lineHeight":"24px","fontWeight":"600"}]}}}};</script><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface text-on-surface font-body-md text-body-md min-h-screen flex flex-col antialiased selection:bg-primary-fixed"><main class="flex-1 flex flex-col relative w-full pt-safe pb-safe bg-surface"><div class="flex flex-col w-full px-margin pb-space-2xl space-y-space-lg">
+<!-- Minimal Top Bar -->
+<header class="flex items-center justify-between py-space-sm">
+<div class="w-10"></div>
+<h1 class="font-heading-sm text-heading-sm text-on-surface text-center">Order Confirmation</h1>
+<button aria-label="Close to Home" class="w-10 h-10 flex items-center justify-center rounded-full bg-surface-container hover:bg-surface-container-high transition-colors active:scale-95" type="button">
+<span class="material-symbols-outlined text-on-surface">close</span>
+</button>
+</header>
+<!-- Success Hero Unit -->
+<section class="flex flex-col items-center text-center pt-space-xs space-y-space-sm">
+<!-- Animated Checkmark Icon with Glowing Halo -->
+<div class="relative flex items-center justify-center">
+<div class="absolute w-24 h-24 rounded-full bg-badge-discount-bg animate-ping opacity-60"></div>
+<div class="absolute w-20 h-20 rounded-full bg-surface-tint-blue"></div>
+<div class="relative w-16 h-16 rounded-full bg-badge-discount-bg flex items-center justify-center shadow-md">
+<span class="material-symbols-outlined text-badge-discount-text text-3xl" style="font-variation-settings: 'FILL' 1, 'wght' 700;">check_circle</span>
+</div>
+</div>
+<div class="space-y-space-2xs">
+<h2 class="font-heading-md text-heading-md text-on-surface font-semibold">Order Received by Urban Grill &amp; Bistro!</h2>
+<p class="font-body-md text-body-md text-text-secondary">Order <span class="font-semibold text-on-surface">#UG-92841</span> • Placed just now</p>
+</div>
+<!-- Status Badge -->
+<div class="inline-flex items-center space-x-space-xs px-space-md py-space-2xs rounded-full bg-surface-tint-blue shadow-sm">
+<span class="inline-block w-2.5 h-2.5 rounded-full bg-primary-container animate-pulse"></span>
+<span class="font-label-md text-label-md text-primary font-semibold">Merchant Preparing Your Order</span>
+<span class="font-caption text-caption text-secondary">(~20–25 mins)</span>
+</div>
+</section>
+<!-- Fulfillment Tabs & Instruction Guides -->
+<section class="space-y-space-sm">
+<div class="flex p-space-2xs rounded-xl bg-surface-container">
+<button class="flex-1 py-space-xs rounded-lg font-button-secondary text-button-secondary text-center transition-all bg-surface-canvas text-primary shadow-sm" id="tab-pickup-btn" onclick="switchFulfillment('pickup')" type="button">
+        Pickup / Dine-in <span class="font-caption text-caption text-badge-discount-text ml-1">(Active)</span>
+</button>
+<button class="flex-1 py-space-xs rounded-lg font-button-secondary text-button-secondary text-center text-text-secondary transition-all" id="tab-delivery-btn" onclick="switchFulfillment('delivery')" type="button">
+        If Delivery
+      </button>
+</div>
+<!-- Instruction Card: Dine-in / Pickup -->
+<div class="p-space-lg rounded-xl bg-surface-canvas shadow-sm space-y-space-md" id="content-pickup">
+<div class="flex items-center space-x-space-xs">
+<div class="w-8 h-8 rounded-full bg-surface-tint-blue flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-sm" style="font-variation-settings: 'FILL' 1;">restaurant</span>
+</div>
+<h3 class="font-heading-sm text-heading-sm text-on-surface">Dine-in or Counter Pickup Guide</h3>
+</div>
+<ol class="space-y-space-md">
+<li class="flex items-start space-x-space-sm">
+<span class="flex-shrink-0 w-6 h-6 rounded-full bg-surface-container-high text-primary font-label-sm text-label-sm font-bold flex items-center justify-center">1</span>
+<div class="flex-1">
+<p class="font-label-md text-label-md text-on-surface font-semibold">Arrive at the Bistro</p>
+<p class="font-caption text-caption text-text-secondary mt-0.5">Head to Urban Grill &amp; Bistro at Plot 104 Apo Boulevard, Garki District.</p>
+</div>
+</li>
+<li class="flex items-start space-x-space-sm">
+<span class="flex-shrink-0 w-6 h-6 rounded-full bg-surface-container-high text-primary font-label-sm text-label-sm font-bold flex items-center justify-center">2</span>
+<div class="flex-1">
+<p class="font-label-md text-label-md text-on-surface font-semibold">Identify Your Order</p>
+<p class="font-caption text-caption text-text-secondary mt-0.5">Show this digital confirmation screen or mention Order <span class="font-bold text-primary">#UG-92841</span> to the hostess or front cashier.</p>
+</div>
+</li>
+<li class="flex items-start space-x-space-sm">
+<span class="flex-shrink-0 w-6 h-6 rounded-full bg-badge-discount-bg text-badge-discount-text font-label-sm text-label-sm font-bold flex items-center justify-center">3</span>
+<div class="flex-1">
+<p class="font-label-md text-label-md text-on-surface font-semibold">Pay at the Counter: ₦21,160</p>
+<p class="font-caption text-caption text-text-secondary mt-0.5">Present payment directly to the cashier. Accepted: Physical Card (POS), Cash, or Instant Merchant Bank Transfer.</p>
+</div>
+</li>
+<li class="flex items-start space-x-space-sm">
+<span class="flex-shrink-0 w-6 h-6 rounded-full bg-surface-container-high text-primary font-label-sm text-label-sm font-bold flex items-center justify-center">4</span>
+<div class="flex-1">
+<p class="font-label-md text-label-md text-on-surface font-semibold">Collect &amp; Relish</p>
+<p class="font-caption text-caption text-text-secondary mt-0.5">Pick up your heat-sealed package or take a seat at your reserved table.</p>
+</div>
+</li>
+</ol>
+</div>
+<!-- Instruction Card: Delivery Guidance -->
+<div class="hidden p-space-lg rounded-xl bg-surface-canvas shadow-sm space-y-space-md" id="content-delivery">
+<div class="flex items-center space-x-space-xs">
+<div class="w-8 h-8 rounded-full bg-surface-tint-blue flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-sm" style="font-variation-settings: 'FILL' 1;">two_wheeler</span>
+</div>
+<h3 class="font-heading-sm text-heading-sm text-on-surface">Doorstep Delivery Instructions</h3>
+</div>
+<div class="space-y-space-sm">
+<div class="flex items-start space-x-space-sm p-space-sm rounded-lg bg-surface-subtle">
+<span class="material-symbols-outlined text-primary text-lg mt-0.5">phone_in_talk</span>
+<p class="font-body-md text-body-md text-text-secondary">The restaurant dispatch rider will call your mobile line (<span class="font-medium text-on-surface">+234 802 345 6789</span>) immediately upon approaching your gate or security post.</p>
+</div>
+<div class="flex items-start space-x-space-sm p-space-sm rounded-lg bg-badge-discount-bg">
+<span class="material-symbols-outlined text-badge-discount-text text-lg mt-0.5">payments</span>
+<div>
+<p class="font-label-md text-label-md text-badge-discount-text font-semibold">Payment Upon Delivery</p>
+<p class="font-caption text-caption text-on-surface-variant">Hand ₦21,160 to the courier via Cash or tap using their handheld wireless POS terminal before order handover.</p>
+</div>
+</div>
+<div class="flex items-start space-x-space-sm p-space-sm rounded-lg bg-surface-subtle">
+<span class="material-symbols-outlined text-secondary text-lg mt-0.5">security</span>
+<p class="font-body-md text-body-md text-text-secondary">Need to provide compound gate passes or specific drop-off notes? Dial the kitchen team directly below.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Merchant Direct Contact & Venue Support -->
+<section class="p-space-lg rounded-xl bg-surface-canvas shadow-sm space-y-space-md">
+<div class="flex items-center justify-between">
+<div>
+<h3 class="font-heading-sm text-heading-sm text-on-surface">Urban Grill &amp; Bistro</h3>
+<p class="font-caption text-caption text-text-secondary">Kitchen Desk • Orders Helpdesk</p>
+</div>
+<span class="inline-flex items-center px-space-xs py-0.5 rounded-full bg-badge-discount-bg text-badge-discount-text font-caption text-caption font-semibold">
+        Available Now
+      </span>
+</div>
+<!-- Quick Action Grid -->
+<div class="grid grid-cols-3 gap-space-xs">
+<a class="flex flex-col items-center justify-center p-space-sm rounded-lg bg-surface-subtle hover:bg-surface-container active:scale-95 transition-all text-center" href="tel:+2348023456789">
+<span class="material-symbols-outlined text-primary text-xl mb-1">call</span>
+<span class="font-label-sm text-label-sm text-on-surface font-semibold">Direct Call</span>
+</a>
+<button class="flex flex-col items-center justify-center p-space-sm rounded-lg bg-surface-subtle hover:bg-surface-container active:scale-95 transition-all text-center" type="button">
+<span class="material-symbols-outlined text-primary text-xl mb-1">chat</span>
+<span class="font-label-sm text-label-sm text-on-surface font-semibold">In-App Chat</span>
+</button>
+<a class="flex flex-col items-center justify-center p-space-sm rounded-lg bg-surface-subtle hover:bg-surface-container active:scale-95 transition-all text-center" href="https://wa.me/2348023456789" rel="noopener noreferrer" target="_blank">
+<span class="material-symbols-outlined text-badge-discount-text text-xl mb-1" style="font-variation-settings: 'FILL' 1;">forum</span>
+<span class="font-label-sm text-label-sm text-on-surface font-semibold">WhatsApp</span>
+</a>
+</div>
+<!-- Venue Address with Directions Link -->
+<div class="flex items-center justify-between pt-space-xs bg-surface-subtle p-space-sm rounded-lg">
+<div class="flex items-start space-x-space-xs min-w-0 pr-2">
+<span class="material-symbols-outlined text-primary text-lg mt-0.5 flex-shrink-0">location_on</span>
+<span class="font-caption text-caption text-text-secondary truncate">Plot 104 Apo Boulevard, Garki, Abuja</span>
+</div>
+<button class="flex-shrink-0 font-button-secondary text-button-secondary text-primary font-semibold hover:underline" type="button">
+        Directions
+      </button>
+</div>
+</section>
+<!-- Visual Delight: Map Preview Snippet -->
+<section class="rounded-xl overflow-hidden shadow-sm">
+<div class="w-full h-28 bg-cover bg-center flex items-end p-space-sm relative" data-location="Plot 104 Apo Boulevard, Abuja, Nigeria" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAzhZzFT3Gry5iHdZCpEQvkukGdJ_7K69oNSRrJGyum-Zc_a6VShzga5YmUHmQeWy0p3AyHsh0T6wZCEMRNpagbgjvaWNEFOV_yaEb4-moOELk0PVDthraM4eokB9PReJcbzcjOswMTrA7TTOea_LgJdFfl9vOihjwfyo8k8IF0o15t4i2QRZGrONyOxQd_-Gfowx_WEbO_KQwrol9aRmcMVbunpciSq6vXr3_6Tr3ZwM8-ayUxMud8rg')">
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+<div class="relative flex items-center space-x-space-xs text-on-primary">
+<span class="material-symbols-outlined text-sm">navigation</span>
+<span class="font-caption text-caption font-semibold">0.4 km away • 4 min drive</span>
+</div>
+</div>
+</section>
+<!-- Collapsible Order Summary Accordion -->
+<section class="rounded-xl bg-surface-canvas shadow-sm overflow-hidden">
+<button class="w-full flex items-center justify-between p-space-lg text-left bg-surface-canvas hover:bg-surface-subtle transition-colors" onclick="toggleAccordion()" type="button">
+<div class="space-y-0.5">
+<span class="font-heading-sm text-heading-sm text-on-surface">Order Details</span>
+<p class="font-caption text-caption text-text-secondary">3 items • Total <span class="font-semibold text-on-surface">₦21,160</span></p>
+</div>
+<div class="flex items-center space-x-space-xs">
+<span class="font-caption text-caption px-space-xs py-0.5 rounded bg-badge-discount-bg text-badge-discount-text font-semibold">VT-48F261 Applied</span>
+<span class="material-symbols-outlined text-on-surface-variant transition-transform duration-200" id="accordion-arrow">expand_more</span>
+</div>
+</button>
+<div class="hidden px-space-lg pb-space-lg space-y-space-sm bg-surface-canvas" id="accordion-panel">
+<!-- Item List -->
+<div class="space-y-space-xs pt-space-xs">
+<div class="flex items-center justify-between font-body-md text-body-md">
+<span class="text-on-surface">1x Flame-Grilled Suya Bistro Burger</span>
+<span class="text-on-surface font-medium">₦8,500</span>
+</div>
+<div class="flex items-center justify-between font-body-md text-body-md">
+<span class="text-on-surface">1x Smoked Jollof Platter &amp; Crispy Plantain</span>
+<span class="text-on-surface font-medium">₦9,800</span>
+</div>
+<div class="flex items-center justify-between font-body-md text-body-md">
+<span class="text-on-surface">2x Fresh Citrus Hibiscus Zobo</span>
+<span class="text-on-surface font-medium">₦4,860</span>
+</div>
+</div>
+<!-- Price Breakdown -->
+<div class="pt-space-xs space-y-1 bg-surface-subtle p-space-sm rounded-lg">
+<div class="flex justify-between font-caption text-caption text-text-secondary">
+<span>Subtotal</span>
+<span>₦23,160</span>
+</div>
+<div class="flex justify-between font-caption text-caption text-badge-discount-text font-semibold">
+<span>Loyalty Voucher Discount</span>
+<span>-₦2,000</span>
+</div>
+<div class="flex justify-between font-label-md text-label-md text-on-surface font-bold pt-1">
+<span>Total Payable to Cashier</span>
+<span class="text-primary">₦21,160</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Sticky Bottom Decks: Actions -->
+<div class="space-y-space-sm pt-space-xs">
+<button class="w-full h-14 rounded-xl bg-primary-container hover:bg-primary text-on-primary font-button-primary text-button-primary flex items-center justify-center space-x-space-xs shadow-lg active:scale-95 transition-all" type="button">
+<span class="material-symbols-outlined text-xl">forum</span>
+<span>Track Status / Chat with Merchant</span>
+</button>
+<button class="w-full h-11 rounded-xl bg-transparent text-text-secondary hover:text-on-surface font-button-secondary text-button-secondary flex items-center justify-center transition-colors" type="button">
+      Back to Home Discovery
+    </button>
+</div>
+</div>
+<script>
+  function switchFulfillment(type) {
+    const pickupBtn = document.getElementById('tab-pickup-btn');
+    const deliveryBtn = document.getElementById('tab-delivery-btn');
+    const pickupContent = document.getElementById('content-pickup');
+    const deliveryContent = document.getElementById('content-delivery');
+
+    if (type === 'pickup') {
+      pickupBtn.className = 'flex-1 py-space-xs rounded-lg font-button-secondary text-button-secondary text-center transition-all bg-surface-canvas text-primary shadow-sm';
+      deliveryBtn.className = 'flex-1 py-space-xs rounded-lg font-button-secondary text-button-secondary text-center text-text-secondary transition-all';
+      pickupContent.classList.remove('hidden');
+      deliveryContent.classList.add('hidden');
+    } else {
+      deliveryBtn.className = 'flex-1 py-space-xs rounded-lg font-button-secondary text-button-secondary text-center transition-all bg-surface-canvas text-primary shadow-sm';
+      pickupBtn.className = 'flex-1 py-space-xs rounded-lg font-button-secondary text-button-secondary text-center text-text-secondary transition-all';
+      deliveryContent.classList.remove('hidden');
+      pickupContent.classList.add('hidden');
+    }
+  }
+
+  function toggleAccordion() {
+    const panel = document.getElementById('accordion-panel');
+    const arrow = document.getElementById('accordion-arrow');
+    const isHidden = panel.classList.contains('hidden');
+
+    if (isHidden) {
+      panel.classList.remove('hidden');
+      arrow.classList.add('rotate-180');
+    } else {
+      panel.classList.add('hidden');
+      arrow.classList.remove('rotate-180');
+    }
+  }
+</script></main></body></html>

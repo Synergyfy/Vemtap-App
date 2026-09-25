@@ -4,7 +4,7 @@ import { cssInterop } from 'nativewind';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, type CompositeNavigationProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { VemtapText } from '@components/ui/Text';
 import { Button } from '@components/ui/Button';
@@ -15,7 +15,7 @@ import { emailSchema } from '@utils/validators';
 import { z } from 'zod';
 import { colors } from '@theme/colors';
 import { strings } from '@constants/strings';
-import type { AuthStackParamList } from '@navigation/types';
+import type { AuthStackParamList, RootStackParamList } from '@navigation/types';
 
 cssInterop(View, { className: 'style' });
 cssInterop(ScrollView, {
@@ -28,7 +28,10 @@ cssInterop(Pressable, { className: 'style' });
 const registerSchema = z.object({ email: emailSchema });
 type RegisterInput = z.infer<typeof registerSchema>;
 
-type Nav = NativeStackNavigationProp<AuthStackParamList, 'Register'>;
+type Nav = CompositeNavigationProp<
+  NativeStackNavigationProp<AuthStackParamList, 'Register'>,
+  NativeStackNavigationProp<RootStackParamList>
+>;
 
 /**
  * Conversion of stitch_vemtap_design_system/customer_registration_step_1_email/code.html
@@ -208,6 +211,7 @@ export function RegisterScreen() {
           accessibilityRole="button"
           accessibilityLabel={strings.auth.registerOwnBusiness}
           className="mt-6 flex-row items-center justify-between gap-3 rounded-cta border border-border-active bg-surface-tint p-4 active:bg-surface-container-low"
+          onPress={() => navigation.navigate('BusinessSetup')}
         >
           <View className="min-w-0 flex-1 flex-row items-center gap-3">
             <View className="h-10 w-10 items-center justify-center rounded-lg bg-surface-canvas shadow-sm">

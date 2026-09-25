@@ -132,6 +132,8 @@ export const strings = {
     profilePinCounter: (n: number) => `${n} / 6 entered`,
     profilePinMatches: 'PIN Matches',
     profilePinMismatch: 'PINs do not match',
+    showPin: 'Show PIN',
+    hidePin: 'Hide PIN',
     profilePinSecurity: 'Your PIN is encrypted and securely stored.',
     profileBenefitTitle: 'Instant Claim Verification',
     profileBenefitBody:
@@ -1757,6 +1759,11 @@ export const strings = {
     viewOptions: 'View Options',
     claim: 'Claim',
     businessesTitle: 'Saved Local Businesses (5)',
+    noDealsResultsTitle: 'No saved deals found',
+    noBusinessesResultsTitle: 'No saved businesses found',
+    noResultsBody:
+      'Try a different search term or clear your search to see everything again.',
+    clearSearch: 'Clear search',
     seeAll: 'See all',
     viewProfile: 'View Profile',
     activeTwo: '2 Deals Active',
@@ -1782,6 +1789,7 @@ export const strings = {
     location: 'Apo, Abuja',
     cart: 'Cart',
     notifications: 'Notifications',
+    account: 'Open account menu',
     campaign: 'FEATURED CAMPAIGN',
     weekend: 'Weekend Special',
     campaignTitle: 'Weekend Deals Are Here',

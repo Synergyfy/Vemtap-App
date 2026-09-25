@@ -156,13 +156,13 @@ export function NotificationsCenterScreen({
         contentContainerClassName="gap-5 px-4 pb-8 pt-3"
         showsVerticalScrollIndicator={false}
       >
-        <View className="flex-row items-center justify-between gap-3">
-          <View className="flex-row items-center gap-2">
-            <VemtapText variant="headingXl" className="text-heading-xl">
+        <View className="flex-row items-center justify-between gap-2">
+          <View className="min-w-0 flex-1 flex-row items-center gap-2">
+            <VemtapText variant="headingXl" className="text-heading-xl" numberOfLines={1}>
               {copy.inbox}
             </VemtapText>
             <View
-              className={`rounded-full px-2 py-0.5 shadow-sm ${unread ? 'bg-primary' : 'bg-surface-container-highest'}`}
+              className={`shrink-0 rounded-full px-2 py-0.5 shadow-sm ${unread ? 'bg-primary' : 'bg-surface-container-highest'}`}
             >
               <VemtapText
                 variant="caption"
@@ -204,14 +204,14 @@ export function NotificationsCenterScreen({
           </ScrollView>
         </View>
         {visible.length === 0 ? (
-          <View className="items-center px-4 py-12 text-center">
+          <View className="items-center px-4 py-12">
             <View className="h-16 w-16 items-center justify-center rounded-full bg-surface-container-high">
               <Icon name="doNotDisturb" size={32} color={colors.secondary} />
             </View>
-            <VemtapText variant="headingSm" className="mt-3">
+            <VemtapText variant="headingSm" className="mt-3 text-center">
               {copy.caughtUpTitle}
             </VemtapText>
-            <VemtapText tone="secondary" className="mt-1">
+            <VemtapText tone="secondary" className="mt-1 text-center">
               {copy.caughtUpBody}
             </VemtapText>
           </View>

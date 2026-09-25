@@ -3,7 +3,6 @@ import { Image, Pressable, ScrollView, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
-  HubBottomBar,
   HubHeader,
   HubSearchField,
   SectionLink,
@@ -38,7 +37,6 @@ export interface MyDealsHubScreenProps {
   onAccount?: () => void;
   onOpenDeal?: (dealId: string) => void;
   onViewGuidelines?: () => void;
-  onNavigate?: (destination: string) => void;
 }
 
 export function MyDealsHubScreen({
@@ -47,7 +45,6 @@ export function MyDealsHubScreen({
   onAccount,
   onOpenDeal,
   onViewGuidelines,
-  onNavigate,
 }: MyDealsHubScreenProps) {
   const [query, setQuery] = useState('');
   const [tab, setTab] = useState(0);
@@ -231,7 +228,6 @@ export function MyDealsHubScreen({
           </View>
         </Pressable>
       </ScrollView>
-      <HubBottomBar active="deals" onNavigate={onNavigate} />
     </SafeAreaView>
   );
 }
@@ -296,15 +292,16 @@ function ClaimedDealCard({
           </View>
         </View>
         <View className="min-w-0 flex-1">
-          <View className="mb-1 flex-row items-center justify-between">
+          <View className="mb-1 flex-row items-center justify-between gap-2">
             <View
-              className={`flex-row items-center gap-1 rounded-full px-2 py-0.5 ${statusTone === 'urgent' ? 'bg-tertiary-fixed' : 'bg-badge-discount-bg'}`}
+              className={`min-w-0 flex-row items-center gap-1 rounded-full px-2 py-0.5 ${statusTone === 'urgent' ? 'bg-tertiary-fixed' : 'bg-badge-discount-bg'}`}
             >
               <View
                 className={`h-1.5 w-1.5 rounded-full ${statusTone === 'urgent' ? 'bg-tertiary' : 'bg-badge-discount-text'}`}
               />
               <VemtapText
                 variant="micro"
+                numberOfLines={1}
                 className={
                   statusTone === 'urgent' ? 'text-tertiary' : 'text-badge-discount-text'
                 }
@@ -313,7 +310,7 @@ function ClaimedDealCard({
               </VemtapText>
             </View>
             {close ? (
-              <VemtapText variant="micro" className="text-tertiary-container">
+              <VemtapText variant="micro" className="shrink-0 text-tertiary-container">
                 {close}
               </VemtapText>
             ) : (
@@ -332,7 +329,7 @@ function ClaimedDealCard({
           <VemtapText variant="labelSm" className="font-sans-medium" numberOfLines={1}>
             {deal}
           </VemtapText>
-          <View className="mt-1 flex-row gap-2">
+          <View className="mt-1 flex-row flex-wrap items-center gap-2">
             <VemtapText variant="labelMd" className="font-sans-bold">
               {price}
             </VemtapText>
@@ -362,14 +359,14 @@ function ClaimedDealCard({
               </VemtapText>
             </View>
           </View>
-          <VemtapText variant="headingSm" className="font-sans-bold">
+          <VemtapText variant="headingSm" className="shrink-0 font-sans-bold">
             {price}
           </VemtapText>
         </View>
       ) : null}
       {expiry ? (
-        <View className="flex-row items-center justify-between rounded-lg bg-surface-subtle p-2">
-          <View className="flex-row gap-2">
+        <View className="flex-row items-center justify-between gap-2 rounded-lg bg-surface-subtle p-2">
+          <View className="min-w-0 flex-row flex-wrap items-center gap-2">
             <VemtapText variant="labelSm" className="font-sans-bold">
               {price}
             </VemtapText>
@@ -382,14 +379,14 @@ function ClaimedDealCard({
               {save}
             </VemtapText>
           </View>
-          <VemtapText variant="labelSm" className="text-tertiary">
+          <VemtapText variant="labelSm" className="shrink-0 text-tertiary">
             {expiry}
           </VemtapText>
         </View>
       ) : null}
       {code ? (
         <View className="flex-row items-center justify-between rounded-lg bg-surface-container-low px-3 py-2">
-          <View className="flex-row items-center gap-2">
+          <View className="min-w-0 flex-row items-center gap-2">
             <VemtapText variant="caption" tone="secondary">
               {copy.code}
             </VemtapText>
@@ -400,7 +397,7 @@ function ClaimedDealCard({
           <Pressable
             accessibilityRole="button"
             onPress={onCopy}
-            className="flex-row items-center gap-1"
+            className="shrink-0 flex-row items-center gap-1"
           >
             <Icon name="copy" size={15} color={colors.primary} />
             <VemtapText variant="labelSm" tone="brand">
@@ -417,11 +414,13 @@ function ClaimedDealCard({
           </VemtapText>
         </View>
       ) : null}
-      <View className="flex-row gap-2">
+      <View className="flex-row flex-wrap gap-2">
         {useLabel ? (
           <Button
             label={useLabel}
             size="sm"
+            fullWidth={false}
+            className="min-w-0 flex-1"
             leftIcon={<Icon name="qrCode" size={17} color={colors.surface} />}
             onPress={onOpen}
           />
@@ -431,6 +430,8 @@ function ClaimedDealCard({
             label={passLabel}
             variant="secondary"
             size="sm"
+            fullWidth={false}
+            className="min-w-0 flex-1"
             leftIcon={<Icon name="voucher" size={17} color={colors.primary} />}
             onPress={onOpen}
           />
@@ -439,6 +440,8 @@ function ClaimedDealCard({
           <Button
             label={copy.viewBookingPass}
             size="sm"
+            fullWidth={false}
+            className="min-w-0 flex-1"
             leftIcon={<Icon name="eventAvailable" size={17} color={colors.surface} />}
             onPress={onOpen}
           />

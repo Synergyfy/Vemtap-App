@@ -13,8 +13,12 @@ export function ProfileScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-background">
-      <ScrollView contentContainerClassName="px-screen py-6 gap-4">
-        <VemtapText variant="headingLg" accessibilityRole="header">
+      <ScrollView className="flex-1" contentContainerClassName="px-4 py-6 gap-4">
+        <VemtapText
+          variant="headingXl"
+          accessibilityRole="header"
+          className="text-heading-xl"
+        >
           Account
         </VemtapText>
 

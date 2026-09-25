@@ -12,7 +12,32 @@ Built for **Expo Go (SDK 57)** — do not reintroduce native-only modules.
 - **Design screens**: `stitch_vemtap_design_system/**/code.html` (with `screen.png` previews).
   The HTML is the specification; convert it to React Native screens.
 - **Design tokens**: `stitch_vemtap_design_system/vemtap_native_mobile/DESIGN.md`.
-- **Top-level brief**: `stitch_vemtap_design_system/design.md`.
+- **Business-batch specs**: `stitch_vemtap_design_system_1/**/code.html` (with `screen.png`); when
+  the same screen exists in both folders, the `_1` specification is the newer source of truth.
+
+## Mandatory reuse and single-source rule
+
+**This is a hard repository-wide requirement, not a style preference.** Before writing any UI,
+search `src/components/*`, `src/features/*/components/*`, and `src/constants/strings.ts` for an
+existing implementation. Reuse it; do not create a second version.
+
+- Never duplicate components, cards, chips, buttons, links, headers, rows, list items, inputs,
+  badges, tabs, empty states, loading states, toasts, icons, images, modals, bottom sheets, bottom
+  navigation, headers, or status-bar treatments.
+- Screens are composition surfaces. They must not re-implement markup, styling, animation, behavior,
+  or copy that belongs to a shared primitive.
+- A screen must not render its own header, bottom navigation, modal shell, or sheet animation when
+  the navigator or shared shell already owns that responsibility. There must be exactly one owner.
+- All user-facing text, accessibility labels, and empty/error/loading copy must come from
+  `src/constants/strings.ts`. Do not duplicate copy inside screens or components.
+- All modals must use the shared modal shell; all bottom sheets must use
+  `src/components/shared/BottomSheet.tsx`. Never use a bare `Modal` for a sheet or duplicate delayed
+  fade, scrim, dismissal, or Android-back behavior.
+- If a needed pattern is not available, extract the smallest reusable component first, then compose
+  it everywhere. Extend an existing primitive when possible; do not fork it per screen.
+- Visual differences do not justify duplication. If two patterns are intentionally different,
+  document the reason through a shared variant/props rather than copying the implementation.
+- Every screen conversion and UI review must include a duplicate-UI audit before completion.
 
 ## Design-system conversion rules
 
@@ -91,12 +116,21 @@ Built for **Expo Go (SDK 57)** — do not reintroduce native-only modules.
     **bottom sheet** — based on the HTML (sticky footers + close icon often mean a full
     screen; partial-height overlays with a scrim mean a sheet). Do not silently pick an
     presentation; recommend one and confirm if ambiguous.
-17. **Never duplicate UI.** If any card, chip, button, link, header, row, or other piece
-    of markup appears (or is likely to appear) in more than one place, extract it as a
-    reusable component under `src/components/*` (home primitives in `src/components/home/`,
-    shared in `src/components/shared/`, generic in `src/components/ui/*`) before using it
-    twice in a screen or across screens. Screens compose components — they do not
-    re-implement them.
+17. **Never duplicate UI — this is a hard repository-wide requirement.** If any card, chip,
+    button, link, header, row, list item, input, badge, tab, empty state, loading state, toast,
+    icon, image, modal, bottom sheet, bottom navigation, header, status-bar treatment, or any
+    other piece of markup appears (or is likely to appear) in more than one place, extract it
+    as a reusable component under `src/components/*` (home primitives in
+    `src/components/home/`, business primitives in `src/components/business/`, shared in
+    `src/components/shared/`, generic in `src/components/ui/*`) before using it twice in a
+    screen or across screens. Screens compose components — they do not re-implement them.
+    Do not fork a second version of an existing component, string, color token, animation,
+    modal shell, sheet behavior, or navigation bar. If two patterns look similar, extend the
+    existing component with a documented prop or variant instead of copying it. Copying a
+    second modal, text block, form section, or card is a bug even when the first version looks
+    close enough. This also covers copy, modal/sheet behavior, bottom navigation,
+    status-bar treatment, and any other repeated UI: **never fork a second version of an
+    existing component, string, or shell.**
 18. **All bottom sheets use the shared delayed-fade animation.** Build every bottom sheet
     with `src/components/shared/BottomSheet.tsx`; do not use a bare `Modal` or duplicate
     sheet animation logic. The scrim must remain transparent initially, fade to the design
@@ -117,6 +151,13 @@ Built for **Expo Go (SDK 57)** — do not reintroduce native-only modules.
     responsive behavior, and cross-platform parity. If the user says screens are not to be wired,
     create/export the components only—do not add routes, deep links, navigator registrations, or
     hidden navigation side effects.
+
+20. **Status-bar and safe-area ownership is global.** The iOS status-bar area must remain
+    completely white on every screen, including auth, onboarding, modal-backed flows, and
+    screens with a dark/hero header. The shared app shell owns the default status-bar treatment;
+    screens may opt into a variant only through a shared primitive. Do not add per-screen
+    status-bar colors, duplicate safe-area spacers, or let a background image/header bleed into
+    the status-bar area. Verify on iOS and Android after changes.
 
 ## Key files
 

@@ -1,0 +1,344 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"><title>VEMTAP</title><link href="https://fonts.googleapis.com" rel="preconnect"><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "on-tertiary-fixed": "#370e00", "surface-container-high": "#e1e8fd", "surface-bright": "#f9f9ff", "inverse-on-surface": "#edf0ff", "border-subtle": "#E5E7EB", "surface-tint": "#0058cb", "text-tertiary": "#9CA3AF", "tertiary": "#a13900", "on-error": "#ffffff", "on-secondary-fixed": "#001a41", "surface-container": "#e9edff", "on-secondary": "#ffffff", "secondary-fixed": "#d8e2ff", "primary-container": "#066cf4", "primary-fixed": "#d9e2ff", "inverse-primary": "#b0c6ff", "surface-variant": "#dce2f7", "error-container": "#ffdad6", "on-secondary-fixed-variant": "#32466f", "border-active": "#BFDBFE", "surface-dim": "#d3daef", "tertiary-container": "#c94a03", "text-primary": "#111827", "surface-tint-blue": "#EEF5FF", "on-primary-fixed-variant": "#00429b", "secondary-fixed-dim": "#b2c6f7", "on-tertiary": "#ffffff", "surface-subtle": "#F8FAFC", "badge-discount-text": "#059669", "on-error-container": "#93000a", "on-primary-fixed": "#001945", "background": "#f9f9ff", "outline": "#727786", "error": "#ba1a1a", "surface-container-lowest": "#ffffff", "on-primary": "#ffffff", "on-tertiary-fixed-variant": "#7f2b00", "on-secondary-container": "#435881", "on-background": "#141b2b", "surface-container-highest": "#dce2f7", "on-surface-variant": "#424655", "tertiary-fixed-dim": "#ffb599", "text-secondary": "#4B5563", "surface-canvas": "#FFFFFF", "surface-container-low": "#f1f3ff", "secondary": "#4a5e88", "on-surface": "#141b2b", "inverse-surface": "#293040", "surface": "#f9f9ff", "primary-fixed-dim": "#b0c6ff", "primary": "#0055c4", "tertiary-fixed": "#ffdbce", "on-tertiary-container": "#fffaf9", "badge-discount-bg": "#ECFDF5", "outline-variant": "#c2c6d7", "on-primary-container": "#fcfaff", "secondary-container": "#bacfff" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "space-lg": "1.5rem", "space-sm": "0.75rem", "space-xs": "0.5rem", "space-2xl": "2.5rem", "margin": "1.5rem", "space-md": "1rem", "gutter": "1rem", "space-xl": "2rem", "space-2xs": "0.25rem", "space-3xl": "3rem" }, "fontFamily": { "heading-md": ["Inter"], "body-md": ["Inter"], "button-primary": ["Inter"], "display-hero-mobile": ["Inter"], "heading-sm": ["Inter"], "heading-lg": ["Inter"], "button-secondary": ["Inter"], "display-hero": ["Inter"], "label-sm": ["Inter"], "body-lg": ["Inter"], "caption": ["Inter"], "label-md": ["Inter"] }, "fontSize": { "heading-md": ["22px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600" }], "body-md": ["15px", { "lineHeight": "22px", "fontWeight": "400" }], "button-primary": ["16px", { "lineHeight": "20px", "letterSpacing": "-0.005em", "fontWeight": "600" }], "display-hero-mobile": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }], "heading-sm": ["18px", { "lineHeight": "24px", "fontWeight": "600" }], "heading-lg": ["26px", { "lineHeight": "34px", "letterSpacing": "-0.015em", "fontWeight": "600" }], "button-secondary": ["15px", { "lineHeight": "20px", "fontWeight": "500" }], "display-hero": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.025em", "fontWeight": "700" }], "label-sm": ["13px", { "lineHeight": "16px", "fontWeight": "500" }], "body-lg": ["17px", { "lineHeight": "24px", "fontWeight": "400" }], "caption": ["12px", { "lineHeight": "16px", "fontWeight": "400" }], "label-md": ["14px", { "lineHeight": "18px", "fontWeight": "500" }] } } } };</script><style>@layer base { html, body { width: 100%; margin: 0; padding: 0; background-color: #f9f9ff; } body { overscroll-behavior-y: none; -webkit-tap-highlight-color: transparent; } .pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); } .pt-safe { padding-top: env(safe-area-inset-top, 0px); } } ::-webkit-scrollbar { display: none; }</style><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface font-body-md text-body-md text-on-surface min-h-screen flex flex-col antialiased selection:bg-secondary-container"><header class="fixed top-0 inset-x-0 z-50 bg-surface-canvas/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] pt-safe"><div class="h-6 px-margin flex items-center justify-between text-on-surface"><span class="font-label-sm text-label-sm font-semibold tracking-tight">9:41</span><div class="flex items-center gap-space-2xs"><span class="material-symbols-outlined text-[15px]">signal_cellular_alt</span><span class="material-symbols-outlined text-[15px]">wifi</span><span class="material-symbols-outlined text-[15px]">battery_full</span></div></div><div class="h-16 px-margin flex items-center justify-between"><div class="flex items-center gap-space-xs"><span class="font-heading-md text-heading-md text-on-surface tracking-tight font-bold">Deals</span></div><div class="flex items-center gap-space-sm"><button class="w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors"><span class="material-symbols-outlined text-[24px]">notifications</span></button><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex-1 flex flex-col relative w-full pt-22 pb-24 bg-surface"><div class="flex flex-col w-full">
+<!-- Sub-Header Status & Geo Line -->
+<div class="px-margin pt-space-xs pb-space-sm flex items-center justify-between">
+<div class="flex items-center gap-1.5 min-w-0">
+<span class="material-symbols-outlined text-primary text-[18px] shrink-0" style="font-variation-settings: 'FILL' 1;">location_on</span>
+<span class="font-label-md text-label-md font-semibold text-text-primary truncate">Deals around Apo, Abuja</span>
+<span class="font-caption text-caption text-text-tertiary shrink-0">• Within 5km</span>
+</div>
+<button aria-label="Filters" class="relative flex items-center justify-center w-9 h-9 rounded-full bg-surface-container hover:bg-surface-container-high transition-colors shrink-0 active:scale-95" type="button">
+<span class="material-symbols-outlined text-on-surface text-[20px]">tune</span>
+<span class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-primary text-on-primary font-caption text-caption font-bold flex items-center justify-center shadow-sm">3</span>
+</button>
+</div>
+<!-- Search Input Container -->
+<div class="px-margin mb-space-sm">
+<div class="flex items-center h-12 px-space-md rounded-xl bg-surface-container-low shadow-sm focus-within:bg-surface-canvas focus-within:shadow-[0_0_0_2px_#066cf4] transition-all">
+<span class="material-symbols-outlined text-text-secondary text-[22px] mr-space-xs">search</span>
+<input class="w-full bg-transparent font-body-md text-body-md text-text-primary placeholder:text-text-tertiary focus:outline-none" placeholder="Search deals (e.g. food, shoes, lunch, spa)..." type="text">
+<button aria-label="Voice search" class="w-8 h-8 rounded-full flex items-center justify-center text-text-secondary hover:text-text-primary transition-colors ml-1" type="button">
+<span class="material-symbols-outlined text-[20px]">mic</span>
+</button>
+</div>
+</div>
+<!-- Quick Sort / Order Pill Controls -->
+<div class="flex items-center gap-space-xs overflow-x-auto px-margin py-space-2xs no-scrollbar mb-space-2xs">
+<button class="h-9 px-space-md rounded-full bg-primary text-on-primary font-label-md text-label-md font-semibold shrink-0 shadow-sm flex items-center gap-1.5 transition-all active:scale-95" type="button">
+<span class="material-symbols-outlined text-[16px]">schedule</span>
+      Recent
+    </button>
+<button class="h-9 px-space-md rounded-full bg-surface-container text-text-secondary font-label-md text-label-md font-medium shrink-0 hover:bg-surface-container-high transition-colors flex items-center gap-1.5 active:scale-95" type="button">
+<span class="material-symbols-outlined text-[16px]">near_me</span>
+      Distance
+    </button>
+<button class="h-9 px-space-md rounded-full bg-surface-container text-text-secondary font-label-md text-label-md font-medium shrink-0 hover:bg-surface-container-high transition-colors flex items-center gap-1.5 active:scale-95" type="button">
+<span class="material-symbols-outlined text-[16px]">local_fire_department</span>
+      Popular
+    </button>
+<button class="h-9 px-space-md rounded-full bg-surface-container text-text-secondary font-label-md text-label-md font-medium shrink-0 hover:bg-surface-container-high transition-colors flex items-center gap-1.5 active:scale-95" type="button">
+<span class="material-symbols-outlined text-[16px]">timelapse</span>
+      Expiring Soon
+    </button>
+</div>
+<!-- Category Filter Chips -->
+<div class="flex items-center gap-space-xs overflow-x-auto px-margin py-space-xs no-scrollbar mb-space-xs">
+<button class="h-8 px-space-sm rounded-full bg-surface-tint-blue text-primary font-label-sm text-label-sm font-semibold shrink-0 shadow-xs" type="button">
+      All Deals
+    </button>
+<button class="h-8 px-space-sm rounded-full bg-surface-subtle text-text-secondary font-label-sm text-label-sm font-medium shrink-0 hover:bg-surface-container transition-colors" type="button">
+      Food &amp; Drinks
+    </button>
+<button class="h-8 px-space-sm rounded-full bg-surface-subtle text-text-secondary font-label-sm text-label-sm font-medium shrink-0 hover:bg-surface-container transition-colors" type="button">
+      Fashion &amp; Style
+    </button>
+<button class="h-8 px-space-sm rounded-full bg-surface-subtle text-text-secondary font-label-sm text-label-sm font-medium shrink-0 hover:bg-surface-container transition-colors" type="button">
+      Beauty &amp; Spa
+    </button>
+<button class="h-8 px-space-sm rounded-full bg-surface-subtle text-text-secondary font-label-sm text-label-sm font-medium shrink-0 hover:bg-surface-container transition-colors" type="button">
+      Electronics
+    </button>
+<button class="h-8 px-space-sm rounded-full bg-surface-subtle text-text-secondary font-label-sm text-label-sm font-medium shrink-0 hover:bg-surface-container transition-colors" type="button">
+      Health &amp; Fitness
+    </button>
+<button class="h-8 px-space-sm rounded-full bg-surface-subtle text-text-secondary font-label-sm text-label-sm font-medium shrink-0 hover:bg-surface-container transition-colors" type="button">
+      Services
+    </button>
+<button class="h-8 px-space-sm rounded-full bg-surface-subtle text-text-secondary font-label-sm text-label-sm font-medium shrink-0 hover:bg-surface-container transition-colors" type="button">
+      More...
+    </button>
+</div>
+<!-- Active Filter Status Bar -->
+<div class="px-margin mb-space-md">
+<div class="flex items-center justify-between px-space-sm py-2 rounded-lg bg-surface-container-high text-on-surface">
+<div class="flex items-center gap-1.5 overflow-hidden">
+<span class="inline-flex items-center justify-center px-1.5 py-0.5 rounded-full bg-primary text-on-primary font-caption text-caption font-semibold shrink-0">
+          Filters (3)
+        </span>
+<span class="font-caption text-caption text-text-secondary truncate">
+          Within 5 km • Food &amp; Drinks • 20%+ Off
+        </span>
+</div>
+<button class="font-caption text-caption font-semibold text-primary hover:text-on-primary-fixed-variant shrink-0 ml-2" type="button">
+        Clear
+      </button>
+</div>
+</div><div class="px-margin mb-space-sm flex items-center justify-between"><span class="font-label-sm text-label-sm font-semibold text-text-secondary">4 Deals available</span><div class="flex items-center p-0.5 rounded-lg bg-surface-container"><button aria-label="List view" class="flex items-center justify-center w-8 h-8 rounded-md bg-surface-canvas shadow-xs text-primary transition-all" type="button"><span class="material-symbols-outlined text-[18px]">view_agenda</span></button><button aria-label="Grid view" class="flex items-center justify-center w-8 h-8 rounded-md text-text-secondary hover:text-text-primary transition-all" type="button"><span class="material-symbols-outlined text-[18px]">grid_view</span></button></div></div>
+<!-- Deal Feed -->
+<div class="flex flex-col gap-space-lg px-margin pb-space-lg">
+<!-- Deal Card 1: Prime Lunch Combo -->
+<article class="bg-surface-canvas rounded-xl shadow-md overflow-hidden flex flex-col transition-all hover:shadow-lg">
+<div class="relative w-full h-48 bg-surface-container overflow-hidden">
+<img alt="Prime 3-Course Lunch Combo" class="w-full h-full object-cover" data-alt="Gourmet double beef burger with melted cheddar cheese, crispy bacon, artisanal brioche bun, and golden spiced potato wedges served on a modern rustic slate board in a stylish Abuja bistro setting with soft warm ambient lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDSilNVnoDb6EsvCA8tDf9s2JVAMcwijfDvwIOxGwZFEZNl621JtdrCLPlTxDeFkK-OKJdEJht7f8EgVROVov1Iw-a31YLKpyuYtTtP5cK21rnD3xPO4y27QL0ooRgJrKlAIur-ESX8ksRp66Bl841XwyKBOHb1_VoH-uvctf4YZcO59iO4cxCLK2a28AIVitYxub-nbIHNCu2TBV_s9rRPqbKIQLPz9DNZz_IocLCw-1wzbltbJfKPDA">
+<div class="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-badge-discount-bg text-badge-discount-text font-label-sm text-label-sm font-bold shadow-sm">
+          20% OFF
+        </div>
+<div class="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-inverse-surface/85 backdrop-blur-xs text-inverse-on-surface font-caption text-caption font-medium flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px] text-tertiary-fixed">hourglass_top</span>
+          Ends in 4h
+        </div>
+</div>
+<div class="p-space-md flex flex-col">
+<!-- Merchant Info -->
+<div class="flex items-center gap-1 mb-1">
+<span class="font-label-sm text-label-sm font-semibold text-text-secondary truncate">Urban Grill &amp; Bistro • Apo Boulevard</span>
+<span class="material-symbols-outlined text-primary text-[16px] shrink-0" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+<!-- Deal Title -->
+<h2 class="font-heading-sm text-heading-sm text-text-primary font-semibold leading-tight mb-2">
+          Prime 3-Course Lunch Combo &amp; Drinks
+        </h2>
+<!-- Pricing & Savings -->
+<div class="flex items-center gap-2 mb-2">
+<span class="font-heading-md text-heading-md text-text-primary font-bold">₦9,600</span>
+<span class="font-body-md text-body-md text-text-tertiary line-through">₦12,000</span>
+<span class="px-2 py-0.5 rounded-full bg-badge-discount-bg text-badge-discount-text font-caption text-caption font-semibold">
+            Save ₦2,400
+          </span>
+</div>
+<!-- Meta Line -->
+<div class="flex items-center justify-between font-caption text-caption text-text-secondary mb-space-md">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">location_on</span>
+<span class="">0.8 km away • Apo District</span>
+</div>
+<span class="text-tertiary font-medium">Expires today 6:00 PM</span>
+</div>
+<!-- Engagement Footer & Action -->
+<div class="pt-space-xs flex items-center justify-between">
+<div class="flex items-center gap-space-sm text-text-secondary font-caption text-caption">
+<button aria-label="248 likes" class="flex items-center gap-1 hover:text-error transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">favorite</span>
+<span class="">248</span>
+</button>
+<button aria-label="32 comments" class="flex items-center gap-1 hover:text-primary transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">chat_bubble</span>
+<span class="">32</span>
+</button>
+<button aria-label="Share deal" class="flex items-center hover:text-primary transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">share</span>
+</button>
+</div>
+<button class="h-10 px-space-md rounded-xl bg-primary text-on-primary font-button-secondary text-button-secondary font-semibold hover:bg-surface-tint active:scale-95 transition-all shadow-sm" type="button">
+            Claim Deal
+          </button>
+</div>
+</div>
+</article>
+<!-- Deal Card 2: Sneaker Drop -->
+<article class="bg-surface-canvas rounded-xl shadow-md overflow-hidden flex flex-col transition-all hover:shadow-lg">
+<div class="relative w-full h-48 bg-surface-container overflow-hidden">
+<img alt="Weekend Streetwear Drop" class="w-full h-full object-cover" data-alt="Exclusive premium designer streetwear sneakers resting on a minimalist concrete plinth inside an upscale luxury Abuja sneaker showroom with clean LED display backlighting and subtle shadows." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAT5ZLc4NQJ-D07mpP7t9FMmq21vRbxTpCD4Di6UGFmFQaNz9tRu7oOh3TVcK7MAwjHWDOUavP6xW4e3sta-gWWW6UD1xmaXxZdjfTMavfQoruqrVBsuNwiP0axSzHF7z9GehUnlsVa-XBHkab2NwJKdpiTmbNr6V9yLoxioYF2teXDGTTIZ5Tit_nAL7XoYPSxVK389Fv0KpXKjWPElTwUUDUVWQ42i0YJHDwpj8ZXuasY0PUFxi2ABw">
+<div class="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-badge-discount-bg text-badge-discount-text font-label-sm text-label-sm font-bold shadow-sm">
+          30% OFF
+        </div>
+<div class="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-surface-canvas/90 backdrop-blur-xs text-primary font-caption text-caption font-semibold">
+          Exclusive Deal
+        </div>
+</div>
+<div class="p-space-md flex flex-col">
+<!-- Merchant Info -->
+<div class="flex items-center gap-1 mb-1">
+<span class="font-label-sm text-label-sm font-semibold text-text-secondary truncate">Sole District Boutique • Area 11 Arcade</span>
+<span class="material-symbols-outlined text-tertiary-container text-[16px] shrink-0" style="font-variation-settings: 'FILL' 1;">local_fire_department</span>
+</div>
+<!-- Deal Title -->
+<h2 class="font-heading-sm text-heading-sm text-text-primary font-semibold leading-tight mb-2">
+          Weekend Streetwear Drop &amp; Sneaker Special
+        </h2>
+<!-- Pricing & Savings -->
+<div class="flex items-center gap-2 mb-2">
+<span class="font-heading-md text-heading-md text-text-primary font-bold">₦28,000</span>
+<span class="font-body-md text-body-md text-text-tertiary line-through">₦40,000</span>
+<span class="px-2 py-0.5 rounded-full bg-badge-discount-bg text-badge-discount-text font-caption text-caption font-semibold">
+            Save ₦12,000
+          </span>
+</div>
+<!-- Meta Line -->
+<div class="flex items-center justify-between font-caption text-caption text-text-secondary mb-space-md">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">location_on</span>
+<span class="">1.2 km away • Garki</span>
+</div>
+<span class="text-text-secondary font-medium">Valid until Sunday</span>
+</div>
+<!-- Engagement Footer & Action -->
+<div class="pt-space-xs flex items-center justify-between">
+<div class="flex items-center gap-space-sm text-text-secondary font-caption text-caption">
+<button aria-label="412 likes" class="flex items-center gap-1 hover:text-error transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">favorite</span>
+<span class="">412</span>
+</button>
+<button aria-label="58 comments" class="flex items-center gap-1 hover:text-primary transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">chat_bubble</span>
+<span class="">58</span>
+</button>
+<button aria-label="Share deal" class="flex items-center hover:text-primary transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">share</span>
+</button>
+</div>
+<button class="h-10 px-space-md rounded-xl bg-primary text-on-primary font-button-secondary text-button-secondary font-semibold hover:bg-surface-tint active:scale-95 transition-all shadow-sm" type="button">
+            Claim Deal
+          </button>
+</div>
+</div>
+</article>
+<!-- Deal Card 3: Wellness Spa -->
+<article class="bg-surface-canvas rounded-xl shadow-md overflow-hidden flex flex-col transition-all hover:shadow-lg">
+<div class="relative w-full h-48 bg-surface-container overflow-hidden">
+<img alt="Full Weekend Glow Facial and Massage" class="w-full h-full object-cover" data-alt="Peaceful luxury wellness spa room with smooth volcanic hot stones stacked beside amber bottles of essential aromatherapy oils, natural bamboo stems, and soft flickering candlelight in a serene tranquil atmosphere." src="https://lh3.googleusercontent.com/aida-public/AB6AXuATUYmH0_JpeZ5WqU44O8loq1vbBmgeVE5fXPLQBlTocMAtnZiWyingiBCqwd4pB2HrFjilQz2Hn9D5qXoa6v09jGYJoW4Eq96c47wCpUV4bmHR16UhGP0gxmaU5bi2HO7v9_eecjqBfOdRwQW8CC3JCTu2qRyIC4T9OenOCS6bnJ-XcHWj5ok8s0MFN8YNtTQ5us4dRtpYiNDbIq2TFyP6FLzgolFEKJUiF6NwYNdCnppPKaZYg2Utdg">
+<div class="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-badge-discount-bg text-badge-discount-text font-label-sm text-label-sm font-bold shadow-sm">
+          25% OFF
+        </div>
+<div class="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-surface-canvas/90 backdrop-blur-xs text-text-primary font-caption text-caption font-semibold">
+          Popular
+        </div>
+</div>
+<div class="p-space-md flex flex-col">
+<!-- Merchant Info -->
+<div class="flex items-center gap-1 mb-1">
+<span class="font-label-sm text-label-sm font-semibold text-text-secondary truncate">Glow &amp; Serenity Spa • Maitama Heights</span>
+</div>
+<!-- Deal Title -->
+<h2 class="font-heading-sm text-heading-sm text-text-primary font-semibold leading-tight mb-2">
+          Full Weekend Glow Facial, Sauna &amp; Massage
+        </h2>
+<!-- Pricing & Savings -->
+<div class="flex items-center gap-2 mb-2">
+<span class="font-heading-md text-heading-md text-text-primary font-bold">₦18,500</span>
+<span class="font-body-md text-body-md text-text-tertiary line-through">₦25,000</span>
+<span class="px-2 py-0.5 rounded-full bg-badge-discount-bg text-badge-discount-text font-caption text-caption font-semibold">
+            Save ₦6,500
+          </span>
+</div>
+<!-- Meta Line -->
+<div class="flex items-center justify-between font-caption text-caption text-text-secondary mb-space-md">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">location_on</span>
+<span class="">2.4 km away • Maitama</span>
+</div>
+<span class="text-text-secondary font-medium">Appointment needed</span>
+</div>
+<!-- Engagement Footer & Action -->
+<div class="pt-space-xs flex items-center justify-between">
+<div class="flex items-center gap-space-sm text-text-secondary font-caption text-caption">
+<button aria-label="184 likes" class="flex items-center gap-1 hover:text-error transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">favorite</span>
+<span class="">184</span>
+</button>
+<button aria-label="19 comments" class="flex items-center gap-1 hover:text-primary transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">chat_bubble</span>
+<span class="">19</span>
+</button>
+<button aria-label="Share deal" class="flex items-center hover:text-primary transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">share</span>
+</button>
+</div>
+<button class="h-10 px-space-md rounded-xl bg-primary text-on-primary font-button-secondary text-button-secondary font-semibold hover:bg-surface-tint active:scale-95 transition-all shadow-sm" type="button">
+            Claim Deal
+          </button>
+</div>
+</div>
+</article>
+<!-- Deal Card 4: Artisanal Cafe Neo -->
+<article class="bg-surface-canvas rounded-xl shadow-md overflow-hidden flex flex-col transition-all hover:shadow-lg">
+<div class="relative w-full h-48 bg-surface-container overflow-hidden">
+<img alt="Signature Cold Brew &amp; Pastry Box" class="w-full h-full object-cover" data-alt="Artisanal glass bottle of concentrated cold brew coffee paired with freshly baked golden flaky almond croissants and pastries served on a clean Scandinavian wood cafe table under soft natural morning sunlight." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD5aT4hxBnu4KdypiAsxFiLD6LnzxeRBhcXL5_UMJ_zqs5sUBZSj26pQBvXBwDRRQtkFEBaBN3blfsWvkLFZD6GgYk8fCqG4QsBTviyYH4BpEK8q09MYZleAghjI-XeMlqsGu4thjW6tX5oi_wvW0v0yWc4V2yycme1CNV96kD1Q76xJyCvNsg9O4un70AjK_moWc0nNFoLKSty4WgfxCtW1nVmqjSU8TuaOmneSH6dTclvBP2DZuf8yA">
+<div class="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm font-bold shadow-sm">
+          Buy 1 Get 1 Free
+        </div>
+<div class="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-badge-discount-bg text-badge-discount-text font-caption text-caption font-semibold">
+          15% OFF
+        </div>
+</div>
+<div class="p-space-md flex flex-col">
+<!-- Merchant Info -->
+<div class="flex items-center gap-1 mb-1">
+<span class="font-label-sm text-label-sm font-semibold text-text-secondary truncate">Cafe Neo Artisanal • Wuse II</span>
+</div>
+<!-- Deal Title -->
+<h2 class="font-heading-sm text-heading-sm text-text-primary font-semibold leading-tight mb-2">
+          Signature Cold Brew 1L &amp; Pastry Box
+        </h2>
+<!-- Pricing & Savings -->
+<div class="flex items-center gap-2 mb-2">
+<span class="font-heading-md text-heading-md text-text-primary font-bold">₦4,500</span>
+<span class="font-body-md text-body-md text-text-tertiary line-through">₦6,000</span>
+<span class="px-2 py-0.5 rounded-full bg-badge-discount-bg text-badge-discount-text font-caption text-caption font-semibold">
+            Save ₦1,500
+          </span>
+</div>
+<!-- Meta Line -->
+<div class="flex items-center justify-between font-caption text-caption text-text-secondary mb-space-md">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">location_on</span>
+<span class="">3.1 km away • Wuse II</span>
+</div>
+<span class="text-text-secondary font-medium">Walk-in welcome</span>
+</div>
+<!-- Engagement Footer & Action -->
+<div class="pt-space-xs flex items-center justify-between">
+<div class="flex items-center gap-space-sm text-text-secondary font-caption text-caption">
+<button aria-label="97 likes" class="flex items-center gap-1 hover:text-error transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">favorite</span>
+<span class="">97</span>
+</button>
+<button aria-label="14 comments" class="flex items-center gap-1 hover:text-primary transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">chat_bubble</span>
+<span class="">14</span>
+</button>
+<button aria-label="Share deal" class="flex items-center hover:text-primary transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">share</span>
+</button>
+</div>
+<button class="h-10 px-space-md rounded-xl bg-primary text-on-primary font-button-secondary text-button-secondary font-semibold hover:bg-surface-tint active:scale-95 transition-all shadow-sm" type="button">
+            Claim Deal
+          </button>
+</div>
+</div>
+</article>
+</div>
+</div>
+<script>
+  (function() {
+    // Highlight the 'deals' nav button in the shell
+    try {
+      const dealsNav = document.querySelector('nav a[data-path="deals"]');
+      if (dealsNav) {
+        dealsNav.classList.remove('text-text-secondary');
+        dealsNav.classList.add('text-primary', 'font-semibold');
+        const icon = dealsNav.querySelector('.material-symbols-outlined');
+        if (icon) {
+          icon.style.fontVariationSettings = "'FILL' 1";
+        }
+      }
+    } catch(e) {}
+  })();
+</script></main><nav class="fixed bottom-0 inset-x-0 z-50 pb-safe bg-surface-canvas/95 backdrop-blur-xl shadow-[0_-2px_12px_rgba(0,0,0,0.04)]" data-active-classes="text-primary-container font-semibold"><div class="flex justify-around items-center h-16 px-space-xs"><a class="flex flex-col items-center justify-center min-w-[56px] h-12 text-text-secondary hover:text-on-surface transition-colors gap-0.5" data-path="home" href="#"><span class="material-symbols-outlined text-[24px]">home</span><span class="font-caption text-caption">Home</span></a><a aria-current="page" class="flex flex-col items-center justify-center min-w-[56px] h-12 transition-colors gap-0.5 text-primary-container font-semibold" data-path="deals" href="#"><span class="material-symbols-outlined text-[24px]">local_offer</span><span class="font-caption text-caption">Deals</span></a><a class="flex flex-col items-center justify-center min-w-[56px] h-12 text-text-secondary hover:text-on-surface transition-colors gap-0.5" data-path="discover" href="#"><span class="material-symbols-outlined text-[24px]">explore</span><span class="font-caption text-caption">Discover</span></a><a class="flex flex-col items-center justify-center min-w-[56px] h-12 text-text-secondary hover:text-on-surface transition-colors gap-0.5" data-path="saved" href="#"><span class="material-symbols-outlined text-[24px]">bookmark</span><span class="font-caption text-caption">Saved</span></a><a class="flex flex-col items-center justify-center min-w-[56px] h-12 text-text-secondary hover:text-on-surface transition-colors gap-0.5" data-path="account" href="#"><span class="material-symbols-outlined text-[24px]">person</span><span class="font-caption text-caption">Account</span></a></div></nav>
+
+</body></html>

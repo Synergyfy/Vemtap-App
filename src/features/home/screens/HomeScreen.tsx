@@ -36,9 +36,14 @@ cssInterop(ScrollView, {
 export interface HomeScreenProps {
   onOpenDiscover?: () => void;
   onOpenDeal?: (dealId: string) => void;
+  onOpenBusinessSetup?: () => void;
 }
 
-export function HomeScreen({ onOpenDiscover, onOpenDeal }: HomeScreenProps) {
+export function HomeScreen({
+  onOpenDiscover,
+  onOpenDeal,
+  onOpenBusinessSetup,
+}: HomeScreenProps) {
   const isOnline = useIsOnline();
   const [viewMode, setViewMode] = useState<DealsViewMode>('list');
   const [featured, setFeatured] = useState(featuredDealSeed);
@@ -168,7 +173,7 @@ export function HomeScreen({ onOpenDiscover, onOpenDeal }: HomeScreenProps) {
           />
         </View>
 
-        <EnrollmentPrompt />
+        <EnrollmentPrompt onOpenBusinessSetup={onOpenBusinessSetup} />
       </ScrollView>
     </View>
   );

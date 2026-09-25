@@ -1,9 +1,8 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
-  HubBottomBar,
   HubHeader,
   HubSearchField,
   SectionLink,
@@ -13,10 +12,12 @@ import {
   SavedBusinessRow,
   SavedItemRow,
 } from '@features/accountHub/components/SavedItemRows';
+import { EmptyState } from '@components/shared/EmptyState';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
 import { colors } from '@theme/colors';
+import savedUrbanGrill from '../../../../assets/images/saved-urban-grill.jpg';
 
 cssInterop(View, { className: 'style' });
 cssInterop(ScrollView, {
@@ -34,8 +35,6 @@ const images = {
   gym: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBquk7YHLVuRq024QkpeKDgtgl6hGPl1i5DiYe1VoIiCqN6rPGgdsoP-_DvqP1i_8qCZdm1N6aNiTiOGaj3jIUa3db8bIwHC4D4_C4FxJuDgbuDgFr3CuZYjf3sPE46a3pzJumL5XwDMwtWGJTYg8b8b3MkSC-RYI4RKRi3RS19X80hRTIvOqtA4cwSlxyUuHUa5FD4DGQ5hbs-aOSXTcvuVxSDLEiN_boPuNnANnG0jOMv8989lHm7UA',
   coffee:
     'https://lh3.googleusercontent.com/aida-public/AB6AXuAtAFRkRGGgAgKe1e0zkb8v7JV0aGaVz7rpDU5OQIVvHvJ9rFF6aq1niKMZttYvhH_PTZbachjO5-tBYq5oWtJP0m_19BW8JZGSBFxTN9cnURBFz5Y4Qe1JyAxh3gaLJB8Qhdh5qh5IXYgmL2WeKRiR9SiKe_cbEWgg_vDjutuxuCYfCUmHYMOHfiP1Uj-xR7tXczDvPE9AVLLrUIJSN3lUNxz-Xha0MFfMRcnIQXf5LovfXb6QLVo20w',
-  grill:
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuCQ2xLLFarU_CJ5GizmVG77canYQ2vThEkY19D3dJHtBDIVdA_iOmvqEOWXaYzVKz6QkKkQG9zhSTD0gh8--5bi-rrKQHfE-TR1KjMiqBg9-wd5DS9-mvURKMDciJXNlVMQ87r8Nsj4NZB8BlPIeMC7aylaTUBD1Msxn--eFKb-__fF4VOcp64XlMS9cqByb8AM_WAsjzfUOswCQRZXGuZW1M4FT_4id0AHJy2_jJQ73cnNr1WQvW3nA',
   spa: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB5k7s5G6LTPqWkK54hEeQtQsaADh0uOoPEwM13cElgaf95sN0eVVjox2o16KcLyCFnXKkeWOQDfymheo8zssObuutewN-W0dctSZ6rs3fR6UrFjzOdWDZibheJ92UqEcouez2iWa9Sv_pqWu3Qcz621sHVtWmvKhy0yR9PEfnoljOELyMAfHsHO1fgWfPgsRIqFFLJ1jmiVB3C0yDoKCmBn60h8dIg5LuTPrnHoiEb46CN6eV6vQYZ0g',
   boutique:
     'https://lh3.googleusercontent.com/aida-public/AB6AXuDOZYNmSWjsJoMjN0MS6GA6NGyoOj48MmV1YbQ75zAWqyaOTBanee6R8u4L6ZEWI5Bb34wct-aD2GEl9IlrKNlkAFGsupBw9KJxQI7FTmsa_P3fdJJPOlfpZJv1F3PktKyOft5Cghy3gboC1AgYQQGGRc65YEuXSghqx7CBMEPEaufTqsbcAWjqwC5rkM7KZ7WXixwyPnbUULxHmS6CkQYYazpw6bwlABnZhv_2fO8oMwPiIB7IdTKTXw',
@@ -92,12 +91,38 @@ const dealEntries = [
   },
 ];
 
+const savedBusinesses = [
+  {
+    id: 'urban-grill',
+    image: savedUrbanGrill,
+    name: copy.businessEntries[0][0],
+    meta: copy.businessEntries[0][1],
+    rating: copy.businessEntries[0][2],
+    deals: copy.businessEntries[0][3],
+  },
+  {
+    id: 'glow-serenity',
+    image: { uri: images.spa },
+    name: copy.businessEntries[1][0],
+    meta: copy.businessEntries[1][1],
+    rating: copy.businessEntries[1][2],
+    deals: copy.businessEntries[1][3],
+  },
+  {
+    id: 'sole-district',
+    image: { uri: images.boutique },
+    name: copy.businessEntries[2][0],
+    meta: copy.businessEntries[2][1],
+    rating: copy.businessEntries[2][2],
+    deals: copy.businessEntries[2][3],
+  },
+];
+
 export interface SavedHubScreenProps {
   onNotifications?: () => void;
   onAccount?: () => void;
   onOpenDeal?: (dealId: string) => void;
   onOpenBusiness?: (businessId: string) => void;
-  onNavigate?: (destination: string) => void;
 }
 
 export function SavedHubScreen({
@@ -105,22 +130,35 @@ export function SavedHubScreen({
   onAccount,
   onOpenDeal,
   onOpenBusiness,
-  onNavigate,
 }: SavedHubScreenProps) {
   const [query, setQuery] = useState('');
-  const [tab, setTab] = useState(1);
-  const filtered = useMemo(() => {
-    const value = query.trim().toLowerCase();
-    if (!value) return dealEntries;
+  const [tab, setTab] = useState(0);
+  const normalizedQuery = query.trim().toLowerCase();
+
+  const filteredDeals = useMemo(() => {
+    if (!normalizedQuery) return dealEntries;
     return dealEntries.filter(item =>
-      `${item.business} ${item.title}`.toLowerCase().includes(value),
+      `${item.business} ${item.title} ${item.description ?? ''} ${item.discount}`
+        .toLowerCase()
+        .includes(normalizedQuery),
     );
-  }, [query]);
+  }, [normalizedQuery]);
+
+  const filteredBusinesses = useMemo(() => {
+    if (!normalizedQuery) return savedBusinesses;
+    return savedBusinesses.filter(item =>
+      `${item.name} ${item.meta} ${item.deals}`.toLowerCase().includes(normalizedQuery),
+    );
+  }, [normalizedQuery]);
+
+  const clearSearch = useCallback(() => setQuery(''), []);
 
   return (
-    <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-background">
+    <SafeAreaView edges={['top']} className="flex-1 bg-background">
       <HubHeader
         title={copy.title}
+        leadingIcon="localActivity"
+        titleVariant="headingSm"
         actionNames={['notifications']}
         actionLabels={[copy.notifications]}
         onActions={[onNotifications]}
@@ -134,7 +172,7 @@ export function SavedHubScreen({
         <View className="gap-3 px-4">
           <View className="flex-row items-center justify-between gap-2">
             <View className="min-w-0 flex-1 flex-row items-center gap-2">
-              <VemtapText variant="headingXl" className="text-heading-xl">
+              <VemtapText variant="headingMd" className="text-heading-md">
                 {copy.heading}
               </VemtapText>
               <View className="rounded-full bg-secondary-container px-2 py-0.5">
@@ -159,7 +197,12 @@ export function SavedHubScreen({
           showsHorizontalScrollIndicator={false}
           contentContainerClassName="gap-2 px-4"
         >
-          <StatusPillTabs labels={copy.tabs} selected={tab} onSelect={setTab} />
+          <StatusPillTabs
+            labels={copy.tabs}
+            selected={tab}
+            onSelect={setTab}
+            variant="subtle"
+          />
         </ScrollView>
         {tab !== 2 ? (
           <View className="gap-3 px-4">
@@ -172,24 +215,49 @@ export function SavedHubScreen({
                 {copy.available}
               </VemtapText>
             </View>
-            {filtered.map(item => (
-              <SavedItemRow
-                key={item.id}
-                {...item}
-                onOpen={() => onOpenDeal?.(item.id)}
+            {filteredDeals.length > 0 ? (
+              filteredDeals.map(item => (
+                <SavedItemRow
+                  key={item.id}
+                  {...item}
+                  onOpen={() => onOpenDeal?.(item.id)}
+                />
+              ))
+            ) : (
+              <EmptyState
+                title={copy.noDealsResultsTitle}
+                description={copy.noResultsBody}
+                actionLabel={normalizedQuery ? copy.clearSearch : undefined}
+                onAction={normalizedQuery ? clearSearch : undefined}
+                className="py-8"
               />
-            ))}
+            )}
           </View>
         ) : null}
-        {tab !== 1 ? <SavedBusinesses onOpenBusiness={onOpenBusiness} /> : null}
+        {tab !== 1 ? (
+          <SavedBusinesses
+            businesses={filteredBusinesses}
+            onOpenBusiness={onOpenBusiness}
+            onClearSearch={clearSearch}
+            hasQuery={Boolean(normalizedQuery)}
+          />
+        ) : null}
       </ScrollView>
-      <HubBottomBar active="saved" onNavigate={onNavigate} />
     </SafeAreaView>
   );
 }
 
-function SavedBusinesses({ onOpenBusiness }: { onOpenBusiness?: (id: string) => void }) {
-  const businesses = [images.grill, images.spa, images.boutique];
+function SavedBusinesses({
+  businesses,
+  onOpenBusiness,
+  onClearSearch,
+  hasQuery,
+}: {
+  businesses: typeof savedBusinesses;
+  onOpenBusiness?: (id: string) => void;
+  onClearSearch: () => void;
+  hasQuery: boolean;
+}) {
   return (
     <View className="gap-3">
       <View className="flex-row items-center justify-between px-4">
@@ -199,24 +267,34 @@ function SavedBusinesses({ onOpenBusiness }: { onOpenBusiness?: (id: string) => 
         </View>
         <SectionLink label={copy.seeAll} />
       </View>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerClassName="gap-4 px-4"
-      >
-        {copy.businessEntries.map((item, index) => (
-          <SavedBusinessRow
-            key={item[0]}
-            image={businesses[index]}
-            name={item[0]}
-            meta={item[1]}
-            rating={item[2]}
-            deals={item[3]}
-            view={copy.viewProfile}
-            onPress={() => onOpenBusiness?.(item[0])}
-          />
-        ))}
-      </ScrollView>
+      {businesses.length > 0 ? (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerClassName="gap-4 px-4"
+        >
+          {businesses.map(item => (
+            <SavedBusinessRow
+              key={item.id}
+              image={item.image}
+              name={item.name}
+              meta={item.meta}
+              rating={item.rating}
+              deals={item.deals}
+              view={copy.viewProfile}
+              onPress={() => onOpenBusiness?.(item.name)}
+            />
+          ))}
+        </ScrollView>
+      ) : (
+        <EmptyState
+          title={copy.noBusinessesResultsTitle}
+          description={copy.noResultsBody}
+          actionLabel={hasQuery ? copy.clearSearch : undefined}
+          onAction={hasQuery ? onClearSearch : undefined}
+          className="py-8"
+        />
+      )}
     </View>
   );
 }

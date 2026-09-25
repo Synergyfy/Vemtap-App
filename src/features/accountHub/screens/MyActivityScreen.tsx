@@ -97,12 +97,14 @@ export function MyActivityScreen({
           ))}
         </View>
         <View className="gap-3">
-          <View className="flex-row justify-between">
-            <View className="flex-row items-center gap-2">
+          <View className="flex-row justify-between gap-2">
+            <View className="min-w-0 flex-1 flex-row items-center gap-2">
               <Icon name="storefront" size={20} color={colors.primary} />
-              <VemtapText variant="headingSm">{copy.recentHeading}</VemtapText>
+              <VemtapText variant="headingSm" numberOfLines={2}>
+                {copy.recentHeading}
+              </VemtapText>
             </View>
-            <VemtapText variant="caption" tone="tertiary">
+            <VemtapText variant="caption" tone="tertiary" className="shrink-0">
               {copy.recentMeta}
             </VemtapText>
           </View>
@@ -123,12 +125,14 @@ export function MyActivityScreen({
           </View>
         </View>
         <View className="gap-3">
-          <View className="flex-row justify-between">
-            <View className="flex-row items-center gap-2">
+          <View className="flex-row justify-between gap-2">
+            <View className="min-w-0 flex-1 flex-row items-center gap-2">
               <Icon name="visibility" size={20} color={colors.primary} />
-              <VemtapText variant="headingSm">{copy.viewed}</VemtapText>
+              <VemtapText variant="headingSm" numberOfLines={2}>
+                {copy.viewed}
+              </VemtapText>
             </View>
-            <VemtapText variant="labelSm" tone="brand">
+            <VemtapText variant="labelSm" tone="brand" className="shrink-0">
               {copy.clear}
             </VemtapText>
           </View>
@@ -176,12 +180,14 @@ export function MyActivityScreen({
           </View>
         </View>
         <View className="gap-3">
-          <View className="flex-row justify-between">
-            <View className="flex-row items-center gap-2">
+          <View className="flex-row justify-between gap-2">
+            <View className="min-w-0 flex-1 flex-row items-center gap-2">
               <Icon name="comment" size={20} color={colors.primary} />
-              <VemtapText variant="headingSm">{copy.myReviews}</VemtapText>
+              <VemtapText variant="headingSm" numberOfLines={2}>
+                {copy.myReviews}
+              </VemtapText>
             </View>
-            <VemtapText variant="labelSm" tone="brand">
+            <VemtapText variant="labelSm" tone="brand" className="shrink-0">
               {copy.seeAll}
             </VemtapText>
           </View>
@@ -202,9 +208,17 @@ export function MyActivityScreen({
                 label={copy.receipt}
                 variant="secondary"
                 size="sm"
+                fullWidth={false}
+                className="min-w-0 flex-1"
                 onPress={onViewReceipt}
               />
-              <Button label={copy.review} size="sm" onPress={onWriteReview} />
+              <Button
+                label={copy.review}
+                size="sm"
+                fullWidth={false}
+                className="min-w-0 flex-1"
+                onPress={onWriteReview}
+              />
             </View>
           </View>
         </View>

@@ -1,26 +1,37 @@
 import React, { useEffect, useMemo, useRef } from 'react';
-import { useWindowDimensions, View, ScrollView, Animated, Easing } from 'react-native';
+import {
+  useWindowDimensions,
+  View,
+  ScrollView,
+  Animated,
+  Easing,
+  Pressable,
+} from 'react-native';
 import { cssInterop } from 'nativewind';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, type CompositeNavigationProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { VemtapText } from '@components/ui/Text';
 import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
 import { OnboardingHeader } from '@components/onboarding/OnboardingHeader';
 import { colors } from '@theme/colors';
-import type { AuthStackParamList } from '@navigation/types';
+import type { AuthStackParamList, RootStackParamList } from '@navigation/types';
 import { strings } from '@constants/strings';
 import { concentricCircle } from '@utils/radarLayout';
 
 cssInterop(View, { className: 'style' });
+cssInterop(Pressable, { className: 'style' });
 cssInterop(ScrollView, {
   className: 'style',
   contentContainerClassName: 'contentContainerStyle',
 });
 cssInterop(SafeAreaView, { className: 'style' });
 
-type Nav = NativeStackNavigationProp<AuthStackParamList, 'StartVemtap'>;
+type Nav = CompositeNavigationProp<
+  NativeStackNavigationProp<AuthStackParamList, 'StartVemtap'>,
+  NativeStackNavigationProp<RootStackParamList>
+>;
 
 function categoryChip(position: string, children: React.ReactNode) {
   return (
@@ -241,14 +252,19 @@ export function StartVemtapScreen() {
           />
 
           {/* Secondary business entry (kept subtle per design brief) */}
-          <View className="flex-row items-center justify-center px-3 py-3">
+          <Pressable
+            accessibilityRole="link"
+            accessibilityLabel={strings.onboarding.setUpBusiness}
+            onPress={() => navigation.navigate('BusinessSetup')}
+            className="flex-row items-center justify-center px-3 py-3"
+          >
             <VemtapText className="text-label-md text-text-secondary">
               {strings.onboarding.ownABusiness}{' '}
               <VemtapText className="font-sans-semibold text-label-md text-primary">
                 {strings.onboarding.setUpBusiness}
               </VemtapText>
             </VemtapText>
-          </View>
+          </Pressable>
         </View>
       </ScrollView>
     </SafeAreaView>

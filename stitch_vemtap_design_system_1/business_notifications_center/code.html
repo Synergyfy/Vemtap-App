@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_stack" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "background": "#f9f9ff", "tertiary-container": "#c94a03", "on-secondary": "#ffffff", "inverse-on-surface": "#edf0ff", "on-surface-variant": "#424655", "on-primary": "#ffffff", "on-primary-fixed-variant": "#00429b", "on-surface": "#141b2b", "on-primary-fixed": "#001945", "secondary-fixed-dim": "#b2c6f7", "tertiary-fixed-dim": "#ffb599", "on-secondary-fixed-variant": "#32466f", "border-active": "#BFDBFE", "text-tertiary": "#9CA3AF", "inverse-primary": "#b0c6ff", "primary": "#0055c4", "on-tertiary-fixed-variant": "#7f2b00", "primary-fixed-dim": "#b0c6ff", "surface": "#f9f9ff", "on-error": "#ffffff", "on-tertiary": "#ffffff", "primary-container": "#066cf4", "secondary-fixed": "#d8e2ff", "surface-subtle": "#F8FAFC", "surface-container-high": "#e1e8fd", "badge-discount-bg": "#ECFDF5", "on-primary-container": "#fcfaff", "surface-dim": "#d3daef", "error-container": "#ffdad6", "on-background": "#141b2b", "text-primary": "#111827", "inverse-surface": "#293040", "secondary-container": "#bacfff", "text-secondary": "#4B5563", "surface-canvas": "#FFFFFF", "surface-variant": "#dce2f7", "surface-tint": "#0058cb", "on-error-container": "#93000a", "primary-fixed": "#d9e2ff", "tertiary": "#a13900", "border-subtle": "#E5E7EB", "outline": "#727786", "surface-container-low": "#f1f3ff", "outline-variant": "#c2c6d7", "surface-bright": "#f9f9ff", "surface-container-highest": "#dce2f7", "surface-container": "#e9edff", "surface-container-lowest": "#ffffff", "on-secondary-container": "#435881", "on-tertiary-container": "#fffaf9", "on-secondary-fixed": "#001a41", "tertiary-fixed": "#ffdbce", "on-tertiary-fixed": "#370e00", "badge-discount-text": "#059669", "secondary": "#4a5e88", "surface-tint-blue": "#EEF5FF", "error": "#ba1a1a" }, borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, spacing: { "gutter": "1rem", "space-xs": "0.5rem", "space-md": "1rem", "space-lg": "1.5rem", "space-sm": "0.75rem", "margin": "1.5rem", "space-2xl": "2.5rem", "space-xl": "2rem", "space-3xl": "3rem", "space-2xs": "0.25rem" }, fontFamily: { "display-hero-mobile": ["Inter"], "label-md": ["Inter"], "caption": ["Inter"], "button-secondary": ["Inter"], "body-md": ["Inter"], "display-hero": ["Inter"], "body-lg": ["Inter"], "heading-md": ["Inter"], "button-primary": ["Inter"], "label-sm": ["Inter"], "heading-lg": ["Inter"], "heading-sm": ["Inter"] }, fontSize: { "display-hero-mobile": ["32px", { lineHeight: "40px", letterSpacing: "-0.02em", fontWeight: "700" }], "label-md": ["14px", { lineHeight: "18px", fontWeight: "500" }], "caption": ["12px", { lineHeight: "16px", fontWeight: "400" }], "button-secondary": ["15px", { lineHeight: "20px", fontWeight: "500" }], "body-md": ["15px", { lineHeight: "22px", fontWeight: "400" }], "display-hero": ["36px", { lineHeight: "44px", letterSpacing: "-0.025em", fontWeight: "700" }], "body-lg": ["17px", { lineHeight: "24px", fontWeight: "400" }], "heading-md": ["22px", { lineHeight: "28px", letterSpacing: "-0.01em", fontWeight: "600" }], "button-primary": ["16px", { lineHeight: "20px", letterSpacing: "-0.005em", fontWeight: "600" }], "label-sm": ["13px", { lineHeight: "16px", fontWeight: "500" }], "heading-lg": ["26px", { lineHeight: "34px", letterSpacing: "-0.015em", fontWeight: "600" }], "heading-sm": ["18px", { lineHeight: "24px", fontWeight: "600" }] } } } };</script><style>@layer base{html,body{width:100%;margin:0;padding:0;}body{overscroll-behavior:none;font-family:'Inter',sans-serif;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface text-on-surface antialiased flex flex-col min-h-screen"><header class="fixed top-0 w-full z-50 pt-safe bg-surface/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-16 px-margin flex items-center justify-between"><div class="flex items-center gap-space-xs"><button aria-label="Go back" class="min-h-[44px] min-w-[44px] -ml-2 flex items-center justify-center rounded-full text-on-surface hover:bg-surface-container-low transition-colors" onclick="history.back()" type="button"><span class="material-symbols-outlined text-[24px]">arrow_back_ios_new</span></button><h1 class="font-heading-md text-heading-md text-on-surface">Notification Center</h1></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></header><main class="flex-1 flex flex-col w-full bg-surface pt-16 pb-safe"><div class="flex flex-col w-full">
+<!-- Sub-header Quick Control Bar -->
+<div class="px-margin pt-space-sm pb-space-xs flex items-center justify-between">
+<div class="flex items-center gap-space-2xs">
+<span class="inline-flex w-2.5 h-2.5 rounded-full bg-primary animate-pulse"></span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">2 unread alerts</span>
+</div>
+<div class="flex items-center gap-space-sm">
+<button class="font-label-sm text-label-sm text-primary hover:text-primary-container font-semibold transition-colors focus:outline-none" id="markAllReadBtn" type="button">
+        Mark all as read
+      </button>
+<button aria-label="Notification settings" class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors focus:outline-none" type="button">
+<span class="material-symbols-outlined text-[18px]">tune</span>
+</button>
+</div>
+</div>
+<!-- Filter Pills / Segmented Tabs (Horizontal Scrollable) -->
+<div class="w-full overflow-x-auto no-scrollbar px-margin py-space-xs flex items-center gap-space-xs">
+<button class="filter-tab active flex items-center gap-space-2xs px-space-md py-space-xs rounded-full bg-surface-container-high text-primary font-label-md text-label-md transition-all shadow-sm flex-shrink-0" data-category="all">
+<span>All</span>
+<span class="px-space-2xs py-0.5 rounded-full bg-primary text-on-primary font-caption text-caption font-semibold">12</span>
+</button>
+<button class="filter-tab flex items-center gap-space-2xs px-space-md py-space-xs rounded-full bg-surface-container-low text-on-surface-variant hover:text-on-surface font-label-md text-label-md transition-all flex-shrink-0" data-category="pos">
+<span>Orders &amp; POS</span>
+<span class="px-space-2xs py-0.5 rounded-full bg-surface-container text-on-surface-variant font-caption text-caption">4</span>
+</button>
+<button class="filter-tab flex items-center gap-space-2xs px-space-md py-space-xs rounded-full bg-surface-container-low text-on-surface-variant hover:text-on-surface font-label-md text-label-md transition-all flex-shrink-0" data-category="campaigns">
+<span>Campaigns &amp; Deals</span>
+<span class="px-space-2xs py-0.5 rounded-full bg-surface-container text-on-surface-variant font-caption text-caption">5</span>
+</button>
+<button class="filter-tab flex items-center gap-space-2xs px-space-md py-space-xs rounded-full bg-surface-container-low text-on-surface-variant hover:text-on-surface font-label-md text-label-md transition-all flex-shrink-0" data-category="system">
+<span>System &amp; Account</span>
+<span class="px-space-2xs py-0.5 rounded-full bg-surface-container text-on-surface-variant font-caption text-caption">3</span>
+</button>
+</div>
+<!-- Notification Feed List -->
+<div class="flex flex-col gap-space-sm px-margin pt-space-xs pb-space-lg">
+<!-- Card 1: Deal Redemptions & Footfall (Unread) -->
+<article class="notification-item group relative rounded-xl bg-surface-container-lowest p-space-md shadow-sm transition-all hover:shadow-md cursor-pointer" data-category="campaigns" data-unread="true">
+<div class="flex items-start gap-space-sm">
+<!-- Visual Icon Badge -->
+<div class="relative flex-shrink-0 w-11 h-11 rounded-xl bg-surface-tint-blue flex items-center justify-center text-primary shadow-sm">
+<span class="material-symbols-outlined text-[24px]">local_fire_department</span>
+<span class="unread-dot absolute -top-1 -right-1 w-3 h-3 rounded-full bg-primary ring-2 ring-surface-container-lowest"></span>
+</div>
+<!-- Content Body -->
+<div class="flex-1 min-w-0 flex flex-col">
+<div class="flex items-center justify-between gap-space-xs">
+<span class="font-label-sm text-label-sm font-semibold text-primary uppercase tracking-wide">Deals &amp; Footfall</span>
+<span class="font-caption text-caption text-text-tertiary">12m ago</span>
+</div>
+<h2 class="font-heading-sm text-heading-sm text-on-surface mt-1 truncate">
+            Weekend Prime Lunch Combo Spiked!
+          </h2>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1 leading-snug">
+            14 new claims in the last 2 hours. Your Wuse II branch is seeing high lunch footfall.
+          </p>
+<!-- Branch Metric Micro-Snippet -->
+<div class="mt-space-sm rounded-lg bg-surface-container-low p-space-xs flex items-center justify-between">
+<div class="flex items-center gap-space-2xs text-on-surface font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-primary text-[18px]">trending_up</span>
+<span>Velocity: <strong>+38%</strong> vs last week</span>
+</div>
+<a class="font-button-secondary text-button-secondary text-primary font-semibold flex items-center gap-0.5 hover:underline" href="javascript:void(0)">
+              View Deal Velocity <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</a>
+</div>
+</div>
+</div>
+</article>
+<!-- Card 2: POS & Shift Alert (Unread) -->
+<article class="notification-item group relative rounded-xl bg-surface-container-lowest p-space-md shadow-sm transition-all hover:shadow-md cursor-pointer" data-category="pos" data-unread="true">
+<div class="flex items-start gap-space-sm">
+<!-- Visual Icon Badge (Emerald / Cash) -->
+<div class="relative flex-shrink-0 w-11 h-11 rounded-xl bg-badge-discount-bg flex items-center justify-center text-badge-discount-text shadow-sm">
+<span class="material-symbols-outlined text-[24px]">point_of_sale</span>
+<span class="unread-dot absolute -top-1 -right-1 w-3 h-3 rounded-full bg-primary ring-2 ring-surface-container-lowest"></span>
+</div>
+<div class="flex-1 min-w-0 flex flex-col">
+<div class="flex items-center justify-between gap-space-xs">
+<span class="font-label-sm text-label-sm font-semibold text-badge-discount-text uppercase tracking-wide">POS &amp; Shift Register</span>
+<span class="font-caption text-caption text-text-tertiary">1h ago</span>
+</div>
+<h2 class="font-heading-sm text-heading-sm text-on-surface mt-1 truncate">
+            Till #01 Shift Drawer Balanced
+          </h2>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1 leading-snug">
+            Cashier Emeka O. closed shift #402 with ₦342,850 gross sales and zero cash variance.
+          </p>
+<div class="mt-space-sm rounded-lg bg-surface-container-low p-space-xs flex items-center justify-between">
+<div class="flex items-center gap-space-2xs text-on-surface font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-badge-discount-text text-[18px]">verified</span>
+<span>Reconciled at 14:30</span>
+</div>
+<a class="font-button-secondary text-button-secondary text-primary font-semibold flex items-center gap-0.5 hover:underline" href="javascript:void(0)">
+              View Z-Report <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</a>
+</div>
+</div>
+</div>
+</article>
+<!-- Card 3: New Review Alert (Read) -->
+<article class="notification-item group relative rounded-xl bg-surface-container-lowest p-space-md shadow-sm transition-all hover:shadow-md cursor-pointer opacity-95" data-category="campaigns" data-unread="false">
+<div class="flex items-start gap-space-sm">
+<!-- Visual Icon Badge (Amber / Star) -->
+<div class="relative flex-shrink-0 w-11 h-11 rounded-xl bg-tertiary-fixed flex items-center justify-center text-on-tertiary-fixed shadow-sm">
+<span class="material-symbols-outlined text-[24px]">grade</span>
+</div>
+<div class="flex-1 min-w-0 flex flex-col">
+<div class="flex items-center justify-between gap-space-xs">
+<span class="font-label-sm text-label-sm font-semibold text-tertiary uppercase tracking-wide">Customer Feedback</span>
+<span class="font-caption text-caption text-text-tertiary">2h ago</span>
+</div>
+<div class="flex items-center gap-1 mt-1">
+<h2 class="font-heading-sm text-heading-sm text-on-surface truncate">
+              New 5★ Rating from Tunde Bakare
+            </h2>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1 leading-snug">
+            “The Ribeye was cooked to perfection, and tap redemption took literally two seconds.” Reply within 24h to boost your venue ranking.
+          </p>
+<div class="mt-space-sm flex items-center justify-between">
+<div class="flex items-center gap-0.5 text-tertiary">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+<a class="font-button-secondary text-button-secondary text-primary font-semibold flex items-center gap-0.5 hover:underline" href="javascript:void(0)">
+              Reply Now <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</a>
+</div>
+</div>
+</div>
+</article>
+<!-- Card 4: Billing & Subscription Notice (Read) -->
+<article class="notification-item group relative rounded-xl bg-surface-container-lowest p-space-md shadow-sm transition-all hover:shadow-md cursor-pointer opacity-95" data-category="system" data-unread="false">
+<div class="flex items-start gap-space-sm">
+<!-- Visual Icon Badge (Purple/Secondary container) -->
+<div class="relative flex-shrink-0 w-11 h-11 rounded-xl bg-secondary-container flex items-center justify-center text-on-secondary-container shadow-sm">
+<span class="material-symbols-outlined text-[24px]">credit_card</span>
+</div>
+<div class="flex-1 min-w-0 flex flex-col">
+<div class="flex items-center justify-between gap-space-xs">
+<span class="font-label-sm text-label-sm font-semibold text-secondary uppercase tracking-wide">Billing &amp; Subscription</span>
+<span class="font-caption text-caption text-text-tertiary">1d ago</span>
+</div>
+<h2 class="font-heading-sm text-heading-sm text-on-surface mt-1 truncate">
+            Growth Plan Renews in 5 Days
+          </h2>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1 leading-snug">
+            Your VEMTAP Growth subscription (₦5,000/mo) will renew on Oct 25 via linked Paystack card ending in •••• 4019.
+          </p>
+<div class="mt-space-sm flex items-center justify-between">
+<span class="font-caption text-caption text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-badge-discount-text">check_circle</span>
+              Auto-renew active
+            </span>
+<a class="font-button-secondary text-button-secondary text-secondary hover:text-on-surface font-semibold flex items-center gap-0.5" href="javascript:void(0)">
+              Manage Billing
+            </a>
+</div>
+</div>
+</div>
+</article>
+<!-- Card 5: Offline Sync Notice (Read) -->
+<article class="notification-item group relative rounded-xl bg-surface-container-lowest p-space-md shadow-sm transition-all hover:shadow-md cursor-pointer opacity-95" data-category="pos" data-unread="false">
+<div class="flex items-start gap-space-sm">
+<!-- Visual Icon Badge (Cloud/POS Sync) -->
+<div class="relative flex-shrink-0 w-11 h-11 rounded-xl bg-surface-container-high flex items-center justify-center text-primary shadow-sm">
+<span class="material-symbols-outlined text-[24px]">cloud_done</span>
+</div>
+<div class="flex-1 min-w-0 flex flex-col">
+<div class="flex items-center justify-between gap-space-xs">
+<span class="font-label-sm text-label-sm font-semibold text-primary uppercase tracking-wide">Till Sync &amp; Hardware</span>
+<span class="font-caption text-caption text-text-tertiary">2d ago</span>
+</div>
+<h2 class="font-heading-sm text-heading-sm text-on-surface mt-1 truncate">
+            Local Till Buffer Reconciled
+          </h2>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1 leading-snug">
+            52 queued transactions from Till 04 successfully synced to cloud HQ after telco recovery. No data collisions detected.
+          </p>
+</div>
+</div>
+</article>
+<!-- Empty State Fallback (Hidden by default, dynamically toggled if tab has zero alerts) -->
+<div class="hidden flex-col items-center justify-center py-space-2xl px-margin text-center" id="emptyNoticeState">
+<div class="w-16 h-16 rounded-full bg-surface-container flex items-center justify-center text-text-tertiary mb-space-sm">
+<span class="material-symbols-outlined text-[32px]">notifications_paused</span>
+</div>
+<h3 class="font-heading-sm text-heading-sm text-on-surface">All caught up here!</h3>
+<p class="font-body-md text-body-md text-on-surface-variant max-w-[260px] mt-1">
+        No new alerts matching this category. Your operations are currently smooth sailing.
+      </p>
+</div>
+</div>
+<!-- Delivery Preferences Banner / Bottom Sticky Trigger -->
+<div class="px-margin pb-space-xl pt-space-xs">
+<div class="rounded-2xl bg-surface-container-low p-space-md flex flex-col gap-space-sm shadow-sm">
+<div class="flex items-center gap-space-sm">
+<div class="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-on-primary flex-shrink-0 shadow-sm">
+<span class="material-symbols-outlined text-[20px]">notifications_active</span>
+</div>
+<div class="flex-1 min-w-0">
+<h3 class="font-heading-sm text-heading-sm text-on-surface leading-tight">Instant Dispatch</h3>
+<p class="font-caption text-caption text-on-surface-variant truncate">Critical Till &amp; Shift alerts to Telegram or WhatsApp</p>
+</div>
+</div>
+<button class="w-full h-[52px] rounded-xl bg-primary hover:bg-primary-container active:scale-[0.99] text-on-primary font-button-primary text-button-primary flex items-center justify-center gap-space-xs shadow-md transition-all" type="button">
+<span>Configure Push, SMS &amp; WhatsApp Alerts</span>
+<span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+</div>
+<!-- Small footer notice -->
+<div class="mt-space-sm text-center">
+<span class="font-caption text-caption text-text-tertiary">
+        VEMTAP Real-Time Dispatch Engine • Auto-sync active
+      </span>
+</div>
+</div>
+</div>
+<script>
+  // Tab filtering logic
+  const tabs = document.querySelectorAll('.filter-tab');
+  const items = document.querySelectorAll('.notification-item');
+  const emptyState = document.getElementById('emptyNoticeState');
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => {
+        t.classList.remove('bg-surface-container-high', 'text-primary', 'shadow-sm');
+        t.classList.add('bg-surface-container-low', 'text-on-surface-variant');
+        const badge = t.querySelector('span:last-child');
+        if (badge) {
+          badge.classList.remove('bg-primary', 'text-on-primary', 'font-semibold');
+          badge.classList.add('bg-surface-container', 'text-on-surface-variant');
+        }
+      });
+
+      tab.classList.add('bg-surface-container-high', 'text-primary', 'shadow-sm');
+      tab.classList.remove('bg-surface-container-low', 'text-on-surface-variant');
+      const activeBadge = tab.querySelector('span:last-child');
+      if (activeBadge) {
+        activeBadge.classList.add('bg-primary', 'text-on-primary', 'font-semibold');
+        activeBadge.classList.remove('bg-surface-container', 'text-on-surface-variant');
+      }
+
+      const category = tab.getAttribute('data-category');
+      let visibleCount = 0;
+
+      items.forEach(item => {
+        const itemCategory = item.getAttribute('data-category');
+        if (category === 'all' || itemCategory === category) {
+          item.style.display = 'block';
+          visibleCount++;
+        } else {
+          item.style.display = 'none';
+        }
+      });
+
+      if (visibleCount === 0) {
+        emptyState.classList.remove('hidden');
+        emptyState.classList.add('flex');
+      } else {
+        emptyState.classList.add('hidden');
+        emptyState.classList.remove('flex');
+      }
+    });
+  });
+
+  // Mark all as read micro-interaction
+  const markReadBtn = document.getElementById('markAllReadBtn');
+  if (markReadBtn) {
+    markReadBtn.addEventListener('click', () => {
+      const dots = document.querySelectorAll('.unread-dot');
+      dots.forEach(dot => {
+        dot.style.transform = 'scale(0)';
+        dot.style.transition = 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)';
+        setTimeout(() => dot.remove(), 250);
+      });
+
+      const unreadItems = document.querySelectorAll('[data-unread="true"]');
+      unreadItems.forEach(item => {
+        item.setAttribute('data-unread', 'false');
+      });
+
+      markReadBtn.textContent = 'All Caught Up';
+      markReadBtn.classList.remove('text-primary');
+      markReadBtn.classList.add('text-text-tertiary', 'pointer-events-none');
+    });
+  }
+</script></main></body></html>

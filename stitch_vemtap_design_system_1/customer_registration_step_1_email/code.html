@@ -1,0 +1,120 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"><title>Authentication Welcome</title><link href="https://fonts.googleapis.com" rel="preconnect"><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{width:100%;margin:0;padding:0;min-height:100%;}body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "on-tertiary-container": "#fffaf9", "tertiary-fixed-dim": "#ffb599", "surface-dim": "#d3daef", "on-surface-variant": "#424655", "error-container": "#ffdad6", "on-primary": "#ffffff", "primary-fixed": "#d9e2ff", "border-subtle": "#E5E7EB", "surface-bright": "#f9f9ff", "on-surface": "#141b2b", "surface-container": "#e9edff", "on-error": "#ffffff", "border-active": "#BFDBFE", "secondary": "#4a5e88", "on-secondary-fixed-variant": "#32466f", "on-secondary-container": "#435881", "on-tertiary-fixed": "#370e00", "surface-canvas": "#FFFFFF", "on-background": "#141b2b", "on-secondary": "#ffffff", "tertiary-fixed": "#ffdbce", "text-tertiary": "#9CA3AF", "on-primary-fixed": "#001945", "surface": "#f9f9ff", "on-tertiary-fixed-variant": "#7f2b00", "text-secondary": "#4B5563", "inverse-surface": "#293040", "inverse-primary": "#b0c6ff", "surface-container-low": "#f1f3ff", "primary-fixed-dim": "#b0c6ff", "surface-subtle": "#F8FAFC", "on-secondary-fixed": "#001a41", "background": "#f9f9ff", "outline": "#727786", "tertiary": "#a13900", "text-primary": "#111827", "secondary-fixed-dim": "#b2c6f7", "badge-discount-text": "#059669", "surface-tint-blue": "#EEF5FF", "error": "#ba1a1a", "surface-variant": "#dce2f7", "on-error-container": "#93000a", "surface-container-lowest": "#ffffff", "on-tertiary": "#ffffff", "secondary-container": "#bacfff", "secondary-fixed": "#d8e2ff", "badge-discount-bg": "#ECFDF5", "surface-container-high": "#e1e8fd", "on-primary-container": "#fcfaff", "surface-tint": "#0058cb", "tertiary-container": "#c94a03", "inverse-on-surface": "#edf0ff", "surface-container-highest": "#dce2f7", "primary": "#0055c4", "outline-variant": "#c2c6d7", "on-primary-fixed-variant": "#00429b", "primary-container": "#066cf4" }, borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, spacing: { "space-sm": "0.75rem", "space-lg": "1.5rem", "space-3xl": "3rem", "space-xl": "2rem", "space-2xl": "2.5rem", "space-md": "1rem", "space-2xs": "0.25rem", "gutter": "1rem", "space-xs": "0.5rem", "margin": "1.5rem" }, fontFamily: { "heading-md": ["Inter"], "display-hero": ["Inter"], "button-primary": ["Inter"], "caption": ["Inter"], "label-sm": ["Inter"], "button-secondary": ["Inter"], "body-md": ["Inter"], "heading-lg": ["Inter"], "label-md": ["Inter"], "body-lg": ["Inter"], "display-hero-mobile": ["Inter"], "heading-sm": ["Inter"] }, fontSize: { "heading-md": ["22px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600" }], "display-hero": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.025em", "fontWeight": "700" }], "button-primary": ["16px", { "lineHeight": "20px", "letterSpacing": "-0.005em", "fontWeight": "600" }], "caption": ["12px", { "lineHeight": "16px", "fontWeight": "400" }], "label-sm": ["13px", { "lineHeight": "16px", "fontWeight": "500" }], "button-secondary": ["15px", { "lineHeight": "20px", "fontWeight": "500" }], "body-md": ["15px", { "lineHeight": "22px", "fontWeight": "400" }], "heading-lg": ["26px", { "lineHeight": "34px", "letterSpacing": "-0.015em", "fontWeight": "600" }], "label-md": ["14px", { "lineHeight": "18px", "fontWeight": "500" }], "body-lg": ["17px", { "lineHeight": "24px", "fontWeight": "400" }], "display-hero-mobile": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }], "heading-sm": ["18px", { "lineHeight": "24px", "fontWeight": "600" }] } } } };</script></head><body class="bg-surface-canvas text-text-primary antialiased min-h-screen flex flex-col pt-safe pb-safe"><main class="flex-1 flex flex-col relative w-full bg-surface-canvas"><div class="flex flex-col w-full px-margin pb-space-xl">
+<!-- Top Navigation & Progress Bar -->
+<div class="flex items-center justify-between py-space-sm">
+<button aria-label="Go back" class="w-10 h-10 -ml-2 rounded-full flex items-center justify-center text-on-surface hover:bg-surface-container-low transition-colors duration-200 active:scale-95" onclick="window.history.back()" type="button">
+<span class="material-symbols-outlined text-[24px]">arrow_back_ios_new</span>
+</button>
+<div class="flex items-center gap-1.5 px-3 py-1 bg-surface-container-low rounded-full">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+<span class="font-caption text-caption text-text-secondary font-medium tracking-tight">Step 1 of 3</span>
+</div>
+<!-- Empty balancer to keep the pill centered -->
+<div class="w-10"></div>
+</div>
+<!-- Micro Progress Gauge -->
+<div class="w-full bg-surface-container-low h-1 rounded-full mt-2 mb-space-lg overflow-hidden">
+<div class="bg-primary h-full rounded-full transition-all duration-500 ease-out" style="width: 33.3%;"></div>
+</div>
+<!-- App Brand Header -->
+<div class="flex flex-col items-center text-center mt-2 mb-space-xl">
+<div class="w-12 h-12 rounded-2xl bg-surface-tint-blue flex items-center justify-center text-primary mb-space-md shadow-sm">
+<span class="material-symbols-outlined text-[28px]" style="font-variation-settings: 'FILL' 1;">local_mall</span>
+</div>
+<span class="font-label-sm text-label-sm font-bold tracking-widest text-primary uppercase mb-1">VEMTAP</span>
+<h1 class="font-heading-lg text-heading-lg text-text-primary tracking-tight mb-2">Welcome to VEMTAP</h1>
+<p class="font-body-md text-body-md text-text-secondary max-w-[280px]">
+      Create your account or sign in to save deals and claim exclusive offers near you.
+    </p>
+</div>
+<!-- Social Authentication Deck -->
+<div class="flex flex-col gap-3 w-full">
+<button class="w-full h-[52px] bg-surface-container-lowest text-text-primary rounded-xl flex items-center justify-center gap-3 shadow-sm hover:bg-surface-subtle active:scale-[0.99] transition-all duration-150 relative" id="google-auth-btn" type="button">
+<svg aria-hidden="true" class="w-5 h-5" viewBox="0 0 24 24">
+<path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"></path>
+<path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"></path>
+<path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"></path>
+<path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335"></path>
+</svg>
+<span class="font-button-secondary text-button-secondary font-medium">Continue with Google</span>
+</button>
+</div>
+<!-- Visual Divider -->
+<div class="flex items-center my-space-lg">
+<div class="flex-1 h-[1px] bg-surface-dim opacity-40"></div>
+<span class="px-3 font-caption text-caption text-text-tertiary tracking-wider font-medium uppercase">or</span>
+<div class="flex-1 h-[1px] bg-surface-dim opacity-40"></div>
+</div>
+<!-- Email Input Form -->
+<form class="flex flex-col w-full" id="auth-form" onsubmit="event.preventDefault(); handleContinue();">
+<div class="flex flex-col gap-1.5 mb-2">
+<label class="font-label-md text-label-md font-medium text-text-primary" for="email-field">
+        Enter your email to continue
+      </label>
+<div class="relative flex items-center">
+<div class="absolute left-4 pointer-events-none text-text-tertiary flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">mail</span>
+</div>
+<input autocomplete="email" class="w-full h-[52px] bg-surface-subtle text-text-primary rounded-xl pl-11 pr-4 font-body-md text-body-md placeholder:text-text-tertiary focus:outline-none focus:bg-surface-tint-blue/30 transition-all duration-150" id="email-field" inputmode="email" placeholder="name@example.com" required="" type="email">
+</div>
+</div>
+<p class="font-caption text-caption text-text-secondary flex items-start gap-1.5 mb-space-xl">
+<span class="material-symbols-outlined text-[15px] text-primary shrink-0 mt-0.5">verified_user</span>
+<span class="">We'll send you a 6-digit verification code to confirm your email.</span>
+</p>
+<!-- Primary Action Button -->
+<button class="w-full h-[52px] bg-primary-container text-on-primary font-button-primary text-button-primary rounded-xl flex items-center justify-center gap-2 shadow-sm hover:bg-primary active:scale-[0.98] transition-all duration-150 cursor-pointer" id="submit-btn" type="submit">
+<span class="">Continue</span>
+<span class="material-symbols-outlined text-[20px]">arrow_forward</span>
+</button><div class="text-center mt-space-md"><p class="font-body-md text-body-md text-text-secondary">Already have an account? <a href="#signin" class="text-primary font-bold hover:underline underline-offset-2 transition-colors">Sign In</a></p></div>
+</form>
+<!-- Legal & Trust Footer -->
+<div class="mt-space-2xl text-center px-2">
+<p class="font-caption text-caption text-text-secondary leading-relaxed">
+      By continuing, you agree to VEMTAP's 
+      <a class="text-primary font-medium underline underline-offset-2 hover:opacity-80 transition-opacity" href="#terms">Terms of Service</a> 
+      and 
+      <a class="text-primary font-medium underline underline-offset-2 hover:opacity-80 transition-opacity" href="#privacy">Privacy Policy</a>.
+    </p>
+<div class="flex items-center justify-center gap-1 mt-space-sm text-text-tertiary font-caption text-caption">
+<span class="material-symbols-outlined text-[14px]">lock</span>
+<span class="">256-bit encrypted authentication</span>
+</div>
+</div><div class="mt-space-xl pt-space-xs"><a href="#business-registration" class="w-full p-space-md bg-surface-tint-blue rounded-xl flex items-center justify-between gap-3 border border-border-active hover:bg-surface-container-low transition-colors duration-150 cursor-pointer group"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-lg bg-surface-canvas flex items-center justify-center text-primary shadow-sm shrink-0"><span class="material-symbols-outlined text-[20px]">storefront</span></div><div class="flex flex-col text-left"><span class="font-label-md text-label-md font-bold text-text-primary">Own a Business?</span><span class="font-caption text-caption text-text-secondary">Register your store &amp; publish offers</span></div></div><div class="flex items-center text-primary font-medium font-label-md text-label-md gap-1 shrink-0"><span class="group-hover:translate-x-0.5 transition-transform">Register Here</span><span class="material-symbols-outlined text-[18px]">arrow_forward</span></div></a></div>
+</div>
+<script>
+  function handleContinue() {
+    const input = document.getElementById('email-field');
+    const submitBtn = document.getElementById('submit-btn');
+    if (!input || !input.value.trim() || !input.checkValidity()) {
+      input?.focus();
+      return;
+    }
+    
+    // Tactile loading response
+    submitBtn.disabled = true;
+    submitBtn.classList.add('opacity-80');
+    submitBtn.innerHTML = `
+      <svg class="animate-spin -ml-1 mr-2 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+      <span>Sending code...</span>
+    `;
+
+    setTimeout(() => {
+      submitBtn.innerHTML = `
+        <span class="material-symbols-outlined text-[20px]">check_circle</span>
+        <span>Code Sent!</span>
+      `;
+    }, 1200);
+  }
+
+  document.getElementById('google-auth-btn')?.addEventListener('click', () => {
+    const btn = document.getElementById('google-auth-btn');
+    btn.classList.add('scale-95');
+    setTimeout(() => btn.classList.remove('scale-95'), 150);
+  });
+</script></main>
+
+</body></html>

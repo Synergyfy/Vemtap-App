@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_tab" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "text-secondary": "#4B5563", "tertiary-fixed": "#ffdbce", "border-subtle": "#E5E7EB", "on-secondary-container": "#435881", "inverse-surface": "#293040", "surface-container-low": "#f1f3ff", "surface": "#f9f9ff", "tertiary-container": "#c94a03", "on-surface": "#141b2b", "on-tertiary-fixed-variant": "#7f2b00", "surface-tint": "#0058cb", "border-active": "#BFDBFE", "on-secondary-fixed": "#001a41", "badge-discount-bg": "#ECFDF5", "secondary-container": "#bacfff", "surface-variant": "#dce2f7", "text-tertiary": "#9CA3AF", "error-container": "#ffdad6", "on-error-container": "#93000a", "background": "#f9f9ff", "tertiary": "#a13900", "primary-fixed": "#d9e2ff", "surface-container-highest": "#dce2f7", "surface-canvas": "#FFFFFF", "surface-container-lowest": "#ffffff", "on-tertiary-fixed": "#370e00", "surface-container": "#e9edff", "secondary-fixed-dim": "#b2c6f7", "primary-fixed-dim": "#b0c6ff", "inverse-primary": "#b0c6ff", "on-primary-fixed-variant": "#00429b", "primary-container": "#066cf4", "surface-container-high": "#e1e8fd", "primary": "#0055c4", "error": "#ba1a1a", "surface-dim": "#d3daef", "surface-bright": "#f9f9ff", "on-error": "#ffffff", "on-secondary": "#ffffff", "secondary-fixed": "#d8e2ff", "on-primary": "#ffffff", "outline": "#727786", "on-background": "#141b2b", "outline-variant": "#c2c6d7", "on-primary-fixed": "#001945", "badge-discount-text": "#059669", "surface-subtle": "#F8FAFC", "on-surface-variant": "#424655", "on-tertiary": "#ffffff", "on-tertiary-container": "#fffaf9", "on-primary-container": "#fcfaff", "surface-tint-blue": "#EEF5FF", "secondary": "#4a5e88", "text-primary": "#111827", "on-secondary-fixed-variant": "#32466f", "tertiary-fixed-dim": "#ffb599", "inverse-on-surface": "#edf0ff" }, borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, spacing: { "margin": "1.5rem", "space-sm": "0.75rem", "space-xs": "0.5rem", "gutter": "1rem", "space-xl": "2rem", "space-3xl": "3rem", "space-2xs": "0.25rem", "space-lg": "1.5rem", "space-md": "1rem", "space-2xl": "2.5rem" }, fontFamily: { "body-md": ["Inter"], "button-primary": ["Inter"], "label-sm": ["Inter"], "heading-sm": ["Inter"], "label-md": ["Inter"], "button-secondary": ["Inter"], "heading-lg": ["Inter"], "display-hero-mobile": ["Inter"], "body-lg": ["Inter"], "caption": ["Inter"], "display-hero": ["Inter"], "heading-md": ["Inter"] }, fontSize: { "body-md": ["15px", { "lineHeight": "22px", "fontWeight": "400" }], "button-primary": ["16px", { "lineHeight": "20px", "letterSpacing": "-0.005em", "fontWeight": "600" }], "label-sm": ["13px", { "lineHeight": "16px", "fontWeight": "500" }], "heading-sm": ["18px", { "lineHeight": "24px", "fontWeight": "600" }], "label-md": ["14px", { "lineHeight": "18px", "fontWeight": "500" }], "button-secondary": ["15px", { "lineHeight": "20px", "fontWeight": "500" }], "heading-lg": ["26px", { "lineHeight": "34px", "letterSpacing": "-0.015em", "fontWeight": "600" }], "display-hero-mobile": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }], "body-lg": ["17px", { "lineHeight": "24px", "fontWeight": "400" }], "caption": ["12px", { "lineHeight": "16px", "fontWeight": "400" }], "display-hero": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.025em", "fontWeight": "700" }], "heading-md": ["22px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600" }] } } } };</script><style>@layer base{html,body{width:100%;margin:0;padding:0;font-family:'Inter',sans-serif;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}}::-webkit-scrollbar{display:none;}</style><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface font-body-md text-body-md text-on-surface antialiased"><header class="fixed top-0 w-full z-50 pt-safe bg-surface/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-16 px-margin flex items-center justify-between gap-space-sm"><div class="flex items-center min-w-0 flex-1"><button class="min-h-[44px] px-space-xs flex items-center gap-space-2xs text-left max-w-full rounded-lg" type="button"><span class="material-symbols-outlined text-primary text-[20px] shrink-0">storefront</span><div class="flex flex-col min-w-0"><span class="font-caption text-caption text-text-secondary truncate">Branch Selector</span><div class="flex items-center gap-space-2xs"><span class="font-label-md text-label-md text-on-surface font-semibold truncate">All Locations (3)</span><span class="material-symbols-outlined text-on-surface-variant text-[16px] shrink-0">expand_more</span></div></div></button></div><div class="flex items-center gap-space-xs shrink-0"><button aria-label="Search" class="w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface" type="button"><span class="material-symbols-outlined text-[22px]">search</span></button><button aria-label="Notifications" class="w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface relative" type="button"><span class="material-symbols-outlined text-[22px]">notifications</span><span class="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-primary"></span></button><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex flex-col relative w-full pt-16 bg-surface min-h-screen"><div class="flex flex-col w-full pb-32">
+<div class="px-margin pt-space-md flex flex-col gap-space-sm">
+<div class="flex items-center justify-between gap-space-sm">
+<div class="flex flex-col min-w-0">
+<span class="font-heading-md text-heading-md text-on-surface font-semibold tracking-tight">Campaigns &amp; Deals</span>
+<span class="font-caption text-caption text-text-secondary">Track claims, boost discovery, manage reach</span>
+</div>
+<button class="h-10 px-space-md rounded-xl bg-primary-container text-on-primary-container font-label-md text-label-md font-semibold shadow-sm flex items-center gap-space-2xs active:scale-95 transition-transform shrink-0" type="button">
+<span class="material-symbols-outlined text-[18px]">add</span>
+<span>New Deal</span>
+</button>
+</div>
+<div class="flex items-center gap-space-xs mt-space-2xs">
+<div class="flex-1 flex items-center bg-surface-container-low px-space-sm py-2.5 rounded-xl text-on-surface shadow-sm">
+<span class="material-symbols-outlined text-text-tertiary text-[20px] mr-space-2xs">search</span>
+<input class="w-full bg-transparent border-0 outline-none font-body-md text-body-md text-on-surface placeholder:text-text-tertiary" placeholder="Search deals or branches..." type="text"/>
+</div>
+<button class="h-11 px-space-sm bg-surface-container-low rounded-xl text-on-surface flex items-center gap-space-2xs shadow-sm shrink-0" type="button">
+<span class="material-symbols-outlined text-primary text-[18px]">tune</span>
+<span class="font-label-sm text-label-sm font-semibold">Filter</span>
+</button>
+</div>
+<div class="flex items-center gap-space-2xs overflow-x-auto no-scrollbar py-space-2xs">
+<button class="h-9 px-space-md rounded-full bg-primary-container text-on-primary-container font-label-md text-label-md font-semibold flex items-center gap-space-2xs shrink-0 shadow-sm" type="button">
+<span class="material-symbols-outlined text-[16px]">local_fire_department</span>
+<span>Active (6)</span>
+</button>
+<button class="h-9 px-space-md rounded-full bg-surface-container-low text-text-secondary font-label-md text-label-md font-medium shrink-0 hover:text-on-surface" type="button">
+<span>Scheduled (2)</span>
+</button>
+<button class="h-9 px-space-md rounded-full bg-surface-container-low text-text-secondary font-label-md text-label-md font-medium shrink-0 hover:text-on-surface" type="button">
+<span>Expired (14)</span>
+</button>
+<button class="h-9 px-space-md rounded-full bg-surface-container-low text-text-secondary font-label-md text-label-md font-medium shrink-0 hover:text-on-surface" type="button">
+<span>Drafts (3)</span>
+</button>
+</div>
+</div>
+<div class="px-margin mt-space-sm">
+<div class="bg-gradient-to-br from-primary-fixed/50 via-surface-container-low to-surface-container p-space-md rounded-2xl shadow-sm relative overflow-hidden">
+<div class="flex items-center justify-between mb-space-xs">
+<div class="flex items-center gap-space-2xs">
+<span class="material-symbols-outlined text-primary text-[18px]">monitoring</span>
+<span class="font-label-sm text-label-sm font-semibold text-primary">Live Pulse · 3 Branches</span>
+</div>
+<span class="font-caption text-caption text-text-secondary bg-surface-canvas/80 px-2 py-0.5 rounded-full">Synced just now</span>
+</div>
+<div class="grid grid-cols-3 gap-space-2xs pt-space-xs">
+<div class="flex flex-col">
+<span class="font-heading-sm text-heading-sm font-bold text-on-surface">6</span>
+<span class="font-caption text-caption text-text-secondary">Active Deals</span>
+</div>
+<div class="flex flex-col">
+<span class="font-heading-sm text-heading-sm font-bold text-on-surface">1,480</span>
+<span class="font-caption text-caption text-text-secondary">Total Claims</span>
+</div>
+<div class="flex flex-col">
+<span class="font-heading-sm text-heading-sm font-bold text-badge-discount-text">₦1.8M</span>
+<span class="font-caption text-caption text-text-secondary">Gross Claimed</span>
+</div>
+</div>
+<div class="w-full bg-surface-canvas/60 h-1.5 rounded-full mt-space-sm overflow-hidden flex">
+<div class="bg-primary h-full rounded-full" style="width: 76%"></div>
+</div>
+<div class="flex items-center justify-between mt-space-2xs text-text-secondary">
+<span class="font-caption text-caption">Daily redemption target: 76% achieved</span>
+<span class="font-caption text-caption font-semibold text-primary">+18% vs last wk</span>
+</div>
+</div>
+</div>
+<div class="px-margin flex flex-col gap-space-md mt-space-md">
+<div class="bg-surface-canvas rounded-2xl shadow-sm overflow-hidden flex flex-col transition-all">
+<div class="relative w-full h-44 bg-surface-container-highest overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Close up gourmet food photography of a juicy woodfire grilled prime ribeye steak cooked to medium rare perfection with charred grill marks, sea salt crystals, fresh rosemary butter melt, alongside an artisan icy hibiscus craft mocktail on dark slate table in warm ambient restaurant light" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB7UD2KjuS73wFW5QtFqeO8fRDUFgc_lnbHptwAnJk5BAUua-CSZwIIbuoGevwysSzZR_3IxtQX8ushW2t--EtWpoOqS3VmsToACnG1W1aocbJ1vgz87fyokns3PhEuL22vbrWZmYo9ipWUjGVeqiq9MAM4Y5woyf3byq6CQmZEkzrRpvzNrTYRPsfpnK8FtDJT3HL-dWjvoF9DXE44Jw0349e1F5T_VHx1kQdAA7eycG34Zln0qyRiyA"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/10"></div>
+<div class="absolute top-3 left-3 flex items-center gap-space-2xs">
+<span class="px-2.5 py-1 rounded-full bg-badge-discount-bg text-badge-discount-text font-caption text-caption font-bold tracking-tight shadow-sm">
+            20% OFF
+          </span>
+<span class="px-2.5 py-1 rounded-full bg-tertiary-container/90 text-on-tertiary-container font-caption text-caption font-semibold flex items-center gap-1 shadow-sm backdrop-blur-md">
+<span class="material-symbols-outlined text-[14px]">local_fire_department</span>
+            High Demand
+          </span>
+</div>
+<div class="absolute top-3 right-3">
+<button aria-label="Deal options" class="w-8 h-8 rounded-full bg-black/40 backdrop-blur-md text-white flex items-center justify-center hover:bg-black/60" type="button">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+<div class="absolute bottom-3 left-3 right-3 flex items-center justify-between text-white">
+<div class="flex items-center gap-space-2xs font-caption text-caption">
+<span class="material-symbols-outlined text-[16px] text-badge-discount-bg">schedule</span>
+<span>Ends Sunday (Oct 20)</span>
+</div>
+<span class="font-caption text-caption bg-white/20 backdrop-blur-md px-2 py-0.5 rounded-full font-medium">128 claims · 89 redeemed</span>
+</div>
+</div>
+<div class="p-space-md flex flex-col gap-space-xs">
+<div class="flex items-start justify-between gap-space-xs">
+<div class="flex flex-col min-w-0">
+<span class="font-caption text-caption text-text-secondary uppercase tracking-wider font-semibold">Urban Grill &amp; Bistro · Combo</span>
+<span class="font-heading-sm text-heading-sm text-on-surface font-semibold truncate">Weekend Prime Lunch Combo</span>
+</div>
+<div class="flex flex-col items-end shrink-0">
+<span class="font-heading-sm text-heading-sm text-primary font-bold">₦9,600</span>
+<span class="font-caption text-caption text-text-tertiary line-through">₦12,000</span>
+</div>
+</div>
+<div class="flex items-center gap-space-2xs text-text-secondary">
+<span class="material-symbols-outlined text-[16px] text-primary">storefront</span>
+<span class="font-label-sm text-label-sm truncate">Wuse II, Garki &amp; Maitama (All 3 branches)</span>
+</div>
+<div class="bg-surface-subtle p-space-xs rounded-xl flex items-center justify-between mt-space-2xs">
+<div class="flex items-center gap-space-xs">
+<div class="w-8 h-8 rounded-lg bg-surface-tint-blue flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[18px]">redeem</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm font-semibold text-on-surface">Redemption Rate: 70%</span>
+<span class="font-caption text-caption text-text-secondary">39 vouchers unredeemed</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-text-tertiary text-[18px]">chevron_right</span>
+</div>
+<div class="flex items-center gap-space-xs pt-space-xs">
+<button class="flex-1 h-11 px-space-xs bg-tertiary-fixed text-on-tertiary-fixed font-button-secondary text-button-secondary font-semibold rounded-xl flex items-center justify-center gap-space-2xs active:scale-95 transition-transform shadow-sm" type="button">
+<span class="material-symbols-outlined text-tertiary text-[18px]">rocket_launch</span>
+<span>Boost Deal</span>
+</button>
+<button class="h-11 px-space-md bg-surface-container-low text-on-surface font-button-secondary text-button-secondary font-medium rounded-xl hover:bg-surface-container active:scale-95 transition-transform" type="button">
+            Edit
+          </button>
+<button class="h-11 px-space-md bg-surface-container-low text-on-surface-variant font-button-secondary text-button-secondary font-medium rounded-xl hover:bg-surface-container active:scale-95 transition-transform" type="button">
+            Pause
+          </button>
+</div>
+</div>
+</div>
+<div class="bg-surface-canvas rounded-2xl shadow-sm overflow-hidden flex flex-col transition-all">
+<div class="relative w-full h-44 bg-surface-container-highest overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Appetizing food photo of two smash burgers with lacy crispy edges, melted American cheese cascades, caramelized onions, house pickles and brioche buns on parchment paper inside a modern neon-lit diner aesthetic" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD89G-6IAWUjd_WIPzaJh4c-vL1GrMInTxfmhu_9j6HkvzZJoj0-lu5uBUb42mMcfHkGH-_Z-S0Lvb2pQ7DGdraW749rnRVQEvON45sMnakBnpi9qZrp-63lVs7ABl2hBjaIBDEmirC6iFT5IJn5DOOKAnnGiRLDQF4VZyt_cPY0ytWwG1OiuMs8vi_MI_lt681Bi0aZZQU1npUoeM9RJS350uF97yYR_eLh5QjhI8rtrAaHUzuWiFnfg"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/10"></div>
+<div class="absolute top-3 left-3 flex items-center gap-space-2xs">
+<span class="px-2.5 py-1 rounded-full bg-badge-discount-bg text-badge-discount-text font-caption text-caption font-bold tracking-tight shadow-sm">
+            50% BOGO
+          </span>
+<span class="px-2.5 py-1 rounded-full bg-primary-container text-on-primary-container font-caption text-caption font-semibold flex items-center gap-1 shadow-sm backdrop-blur-md">
+<span class="material-symbols-outlined text-[14px]">bolt</span>
+            Boost Active (+2.4k Views)
+          </span>
+</div>
+<div class="absolute top-3 right-3">
+<button aria-label="Deal options" class="w-8 h-8 rounded-full bg-black/40 backdrop-blur-md text-white flex items-center justify-center hover:bg-black/60" type="button">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+<div class="absolute bottom-3 left-3 right-3 flex items-center justify-between text-white">
+<div class="flex items-center gap-space-2xs font-caption text-caption">
+<span class="material-symbols-outlined text-[16px] text-badge-discount-bg">event_available</span>
+<span>Oct 17 – Nov 17, 2024</span>
+</div>
+<span class="font-caption text-caption bg-white/20 backdrop-blur-md px-2 py-0.5 rounded-full font-medium">412 claims</span>
+</div>
+</div>
+<div class="p-space-md flex flex-col gap-space-xs">
+<div class="flex items-start justify-between gap-space-xs">
+<div class="flex flex-col min-w-0">
+<span class="font-caption text-caption text-text-secondary uppercase tracking-wider font-semibold">Burger Bar Specials</span>
+<span class="font-heading-sm text-heading-sm text-on-surface font-semibold truncate">2-for-1 Smash Burger Thursday</span>
+</div>
+<div class="flex flex-col items-end shrink-0">
+<span class="font-heading-sm text-heading-sm text-primary font-bold">₦6,500</span>
+<span class="font-caption text-caption text-text-tertiary line-through">₦13,000</span>
+</div>
+</div>
+<div class="flex items-center gap-space-2xs text-text-secondary">
+<span class="material-symbols-outlined text-[16px] text-primary">pin_drop</span>
+<span class="font-label-sm text-label-sm truncate">Wuse II Branch only</span>
+</div>
+<div class="bg-surface-tint-blue/80 p-space-xs rounded-xl flex items-center justify-between mt-space-2xs">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-primary text-[20px]">trending_up</span>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm font-semibold text-primary">Rocket Boost Running</span>
+<span class="font-caption text-caption text-text-secondary">Generating 4x more nearby customer clicks</span>
+</div>
+</div>
+<span class="font-label-sm text-label-sm font-bold text-primary">2d left</span>
+</div>
+<div class="flex items-center gap-space-xs pt-space-xs">
+<button class="flex-1 h-11 px-space-xs bg-primary-fixed text-on-primary-fixed font-button-secondary text-button-secondary font-semibold rounded-xl flex items-center justify-center gap-space-2xs active:scale-95 transition-transform shadow-sm" type="button">
+<span class="material-symbols-outlined text-[18px]">query_stats</span>
+<span>Boost Stats</span>
+</button>
+<button class="h-11 px-space-md bg-surface-container-low text-on-surface font-button-secondary text-button-secondary font-medium rounded-xl hover:bg-surface-container active:scale-95 transition-transform" type="button">
+            Edit
+          </button>
+<button class="h-11 px-space-md bg-surface-container-low text-on-surface-variant font-button-secondary text-button-secondary font-medium rounded-xl hover:bg-surface-container active:scale-95 transition-transform" type="button">
+            Pause
+          </button>
+</div>
+</div>
+</div>
+<div class="bg-surface-canvas rounded-2xl shadow-sm overflow-hidden flex flex-col transition-all">
+<div class="relative w-full h-44 bg-surface-container-highest overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Atmospheric gastropub shot showcasing golden crispy truffle parmesan fries garnished with fresh micro parsley alongside a cold condensation-covered craft beer glass freshly poured from tap, moody amber lounge backdrop" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA3FoLQSsac2lKvRt0mQPCK6XLunud0l6ONuxlUPOkRKoP9It0qjuQ5pKiUDQ7RqOZ3b_iOcfK5S3f6IQ9GDt9l9rqyLHi8MhxLU_1VBAUpaneoWNaBs4Iytza8XZPdr1dDknC6d731y7WB6MCqY9ka1IksAmguIeKyi8DAGcG8-OUvOdVISoQHp7M1mD2C4Zx3j_WY1tSsLUYkKrBCKROHA2RJ-DDX4wryDh6VO_Kv9Cbu4hL3mpz_og"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/10"></div>
+<div class="absolute top-3 left-3 flex items-center gap-space-2xs">
+<span class="px-2.5 py-1 rounded-full bg-badge-discount-bg text-badge-discount-text font-caption text-caption font-bold tracking-tight shadow-sm">
+            22% OFF
+          </span>
+<span class="px-2.5 py-1 rounded-full bg-surface-canvas/90 text-on-surface font-caption text-caption font-semibold flex items-center gap-1 shadow-sm backdrop-blur-md">
+<span class="material-symbols-outlined text-[14px] text-badge-discount-text">check_circle</span>
+            Active
+          </span>
+</div>
+<div class="absolute top-3 right-3">
+<button aria-label="Deal options" class="w-8 h-8 rounded-full bg-black/40 backdrop-blur-md text-white flex items-center justify-center hover:bg-black/60" type="button">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+<div class="absolute bottom-3 left-3 right-3 flex items-center justify-between text-white">
+<div class="flex items-center gap-space-2xs font-caption text-caption">
+<span class="material-symbols-outlined text-[16px] text-badge-discount-bg">schedule</span>
+<span>Weekdays · 4:00 PM – 7:00 PM</span>
+</div>
+<span class="font-caption text-caption bg-white/20 backdrop-blur-md px-2 py-0.5 rounded-full font-medium">78 claims</span>
+</div>
+</div>
+<div class="p-space-md flex flex-col gap-space-xs">
+<div class="flex items-start justify-between gap-space-xs">
+<div class="flex flex-col min-w-0">
+<span class="font-caption text-caption text-text-secondary uppercase tracking-wider font-semibold">Craft Bar &amp; Bites</span>
+<span class="font-heading-sm text-heading-sm text-on-surface font-semibold truncate">After-Work Chill Pass</span>
+</div>
+<div class="flex flex-col items-end shrink-0">
+<span class="font-heading-sm text-heading-sm text-primary font-bold">₦4,200</span>
+<span class="font-caption text-caption text-text-tertiary line-through">₦5,400</span>
+</div>
+</div>
+<div class="flex items-center gap-space-2xs text-text-secondary">
+<span class="material-symbols-outlined text-[16px] text-primary">storefront</span>
+<span class="font-label-sm text-label-sm truncate">Maitama, Wuse II (2 branches)</span>
+</div>
+<div class="flex items-center gap-space-xs pt-space-xs mt-space-2xs">
+<button class="flex-1 h-11 px-space-xs bg-tertiary-fixed text-on-tertiary-fixed font-button-secondary text-button-secondary font-semibold rounded-xl flex items-center justify-center gap-space-2xs active:scale-95 transition-transform shadow-sm" type="button">
+<span class="material-symbols-outlined text-tertiary text-[18px]">rocket_launch</span>
+<span>Boost Deal</span>
+</button>
+<button class="h-11 px-space-md bg-surface-container-low text-on-surface font-button-secondary text-button-secondary font-medium rounded-xl hover:bg-surface-container active:scale-95 transition-transform" type="button">
+            Edit
+          </button>
+<button class="h-11 px-space-md bg-surface-container-low text-on-surface-variant font-button-secondary text-button-secondary font-medium rounded-xl hover:bg-surface-container active:scale-95 transition-transform" type="button">
+            Pause
+          </button>
+</div>
+</div>
+</div>
+</div>
+<div class="fixed bottom-20 left-0 right-0 px-margin z-40 flex flex-col items-center pointer-events-none">
+<button class="pointer-events-auto w-full h-[52px] bg-primary-container text-on-primary-container font-button-primary text-button-primary rounded-2xl flex items-center justify-center gap-space-xs shadow-lg active:scale-[0.98] transition-transform" type="button">
+<span class="material-symbols-outlined text-[22px]">add_circle</span>
+<span>Create New Deal</span>
+</button>
+</div>
+<div class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end justify-center" id="actionModal">
+<div class="w-full bg-surface-canvas rounded-t-3xl p-space-lg flex flex-col gap-space-sm animate-in slide-in-from-bottom duration-200">
+<div class="w-12 h-1 bg-border-subtle rounded-full mx-auto mb-space-2xs"></div>
+<div class="flex items-center justify-between pb-space-2xs">
+<span class="font-heading-sm text-heading-sm font-semibold text-on-surface">Deal Actions</span>
+<button class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-text-secondary" id="closeModal">
+<span class="material-symbols-outlined text-[18px]">close</span>
+</button>
+</div>
+<button class="flex items-center gap-space-sm p-space-xs rounded-xl hover:bg-surface-container-low text-left" type="button">
+<div class="w-10 h-10 rounded-xl bg-tertiary-fixed text-tertiary flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">rocket_launch</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md font-semibold text-on-surface">VEMTAP Boost Surge</span>
+<span class="font-caption text-caption text-text-secondary">Reach 5,000+ local consumers immediately</span>
+</div>
+</button>
+<button class="flex items-center gap-space-sm p-space-xs rounded-xl hover:bg-surface-container-low text-left" type="button">
+<div class="w-10 h-10 rounded-xl bg-surface-container-low text-on-surface flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">content_copy</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md font-semibold text-on-surface">Duplicate Campaign</span>
+<span class="font-caption text-caption text-text-secondary">Replicate pricing and visual assets</span>
+</div>
+</button>
+<button class="flex items-center gap-space-sm p-space-xs rounded-xl hover:bg-surface-container-low text-left" type="button">
+<div class="w-10 h-10 rounded-xl bg-surface-container-low text-on-surface flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">share</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md font-semibold text-on-surface">Share Direct Link</span>
+<span class="font-caption text-caption text-text-secondary">Send via WhatsApp, Instagram or SMS</span>
+</div>
+</button>
+<button class="flex items-center gap-space-sm p-space-xs rounded-xl hover:bg-error-container/20 text-left" type="button">
+<div class="w-10 h-10 rounded-xl bg-error-container text-on-error-container flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">stop_circle</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md font-semibold text-error">End Deal Permanently</span>
+<span class="font-caption text-caption text-text-secondary">Close voucher generation now</span>
+</div>
+</button>
+</div>
+</div>
+</div>
+<script>
+  (function() {
+    const dots = document.querySelectorAll('button[aria-label="Deal options"]');
+    const modal = document.getElementById('actionModal');
+    const closeBtn = document.getElementById('closeModal');
+
+    dots.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        modal.classList.remove('hidden');
+      });
+    });
+
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => {
+        modal.classList.add('hidden');
+      });
+    }
+
+    if (modal) {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          modal.classList.add('hidden');
+        }
+      });
+    }
+  })();
+</script></main><nav class="fixed bottom-0 w-full z-50 pb-safe bg-surface/80 backdrop-blur-xl shadow-[0_-1px_8px_rgba(0,0,0,0.04)]" data-active-classes="text-primary font-semibold"><div class="flex items-center justify-around h-16 px-space-xs"><a class="flex flex-col items-center justify-center w-14 h-full text-on-surface-variant hover:text-on-surface" data-path="dashboard" href="#"><span class="material-symbols-outlined text-[22px]">dashboard</span><span class="font-caption text-caption mt-0.5">Dashboard</span></a><a class="flex flex-col items-center justify-center w-14 h-full text-on-surface-variant hover:text-on-surface" data-path="orders" href="#"><span class="material-symbols-outlined text-[22px]">receipt_long</span><span class="font-caption text-caption mt-0.5">Orders</span></a><a class="flex flex-col items-center justify-center w-14 h-full text-on-surface-variant hover:text-on-surface" data-path="messages" href="#"><span class="material-symbols-outlined text-[22px]">chat_bubble</span><span class="font-caption text-caption mt-0.5">Messages</span></a><a aria-current="page" class="flex flex-col items-center justify-center w-14 h-full text-primary font-semibold" data-path="deals-management" href="#"><span class="material-symbols-outlined text-[22px]">store</span><span class="font-caption text-caption mt-0.5">Business</span></a><a class="flex flex-col items-center justify-center w-14 h-full text-on-surface-variant hover:text-on-surface" data-path="more-hub" href="#"><span class="material-symbols-outlined text-[22px]">more_horiz</span><span class="font-caption text-caption mt-0.5">More</span></a></div></nav></body></html>

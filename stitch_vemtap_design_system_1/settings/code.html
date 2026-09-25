@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base { html, body { width: 100%; margin: 0; padding: 0; } body { overscroll-behavior-y: none; } .pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); } .pt-safe { padding-top: env(safe-area-inset-top, 0px); } main > :first-child { margin-top: 0 !important; } main > :last-child { margin-bottom: 0 !important; } } ::-webkit-scrollbar { display: none; }</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "on-primary-container": "#fcfaff", "outline-variant": "#c2c6d7", "on-surface": "#141b2b", "surface-subtle": "#F8FAFC", "secondary": "#4a5e88", "on-background": "#141b2b", "inverse-primary": "#b0c6ff", "surface-bright": "#f9f9ff", "badge-discount-text": "#059669", "on-primary": "#ffffff", "tertiary-fixed": "#ffdbce", "tertiary-container": "#c94a03", "primary-fixed": "#d9e2ff", "primary-fixed-dim": "#b0c6ff", "surface-canvas": "#FFFFFF", "surface-tint": "#0058cb", "border-subtle": "#E5E7EB", "text-primary": "#111827", "background": "#f9f9ff", "surface-dim": "#d3daef", "primary": "#0055c4", "on-tertiary": "#ffffff", "on-tertiary-fixed-variant": "#7f2b00", "text-tertiary": "#9CA3AF", "on-error": "#ffffff", "surface-container-low": "#f1f3ff", "on-error-container": "#93000a", "inverse-on-surface": "#edf0ff", "surface-container-high": "#e1e8fd", "error-container": "#ffdad6", "inverse-surface": "#293040", "text-secondary": "#4B5563", "on-secondary": "#ffffff", "surface-tint-blue": "#EEF5FF", "on-primary-fixed-variant": "#00429b", "outline": "#727786", "primary-container": "#066cf4", "tertiary": "#a13900", "secondary-container": "#bacfff", "surface-container-lowest": "#ffffff", "border-active": "#BFDBFE", "surface-variant": "#dce2f7", "on-secondary-fixed": "#001a41", "secondary-fixed": "#d8e2ff", "on-secondary-fixed-variant": "#32466f", "surface-container": "#e9edff", "surface-container-highest": "#dce2f7", "tertiary-fixed-dim": "#ffb599", "on-primary-fixed": "#001945", "secondary-fixed-dim": "#b2c6f7", "on-surface-variant": "#424655", "on-tertiary-fixed": "#370e00", "error": "#ba1a1a", "surface": "#f9f9ff", "on-tertiary-container": "#fffaf9", "badge-discount-bg": "#ECFDF5", "on-secondary-container": "#435881" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "space-md": "1rem", "gutter": "1rem", "space-2xs": "0.25rem", "space-lg": "1.5rem", "space-2xl": "2.5rem", "space-xl": "2rem", "space-3xl": "3rem", "space-xs": "0.5rem", "margin": "1.5rem", "space-sm": "0.75rem" }, "fontFamily": { "heading-lg": ["Inter"], "button-secondary": ["Inter"], "caption": ["Inter"], "display-hero-mobile": ["Inter"], "button-primary": ["Inter"], "heading-md": ["Inter"], "display-hero": ["Inter"], "label-sm": ["Inter"], "heading-sm": ["Inter"], "body-lg": ["Inter"], "label-md": ["Inter"], "body-md": ["Inter"] }, "fontSize": { "heading-lg": ["26px", { "lineHeight": "34px", "letterSpacing": "-0.015em", "fontWeight": "600" }], "button-secondary": ["15px", { "lineHeight": "20px", "fontWeight": "500" }], "caption": ["12px", { "lineHeight": "16px", "fontWeight": "400" }], "display-hero-mobile": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }], "button-primary": ["16px", { "lineHeight": "20px", "letterSpacing": "-0.005em", "fontWeight": "600" }], "heading-md": ["22px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600" }], "display-hero": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.025em", "fontWeight": "700" }], "label-sm": ["13px", { "lineHeight": "16px", "fontWeight": "500" }], "heading-sm": ["18px", { "lineHeight": "24px", "fontWeight": "600" }], "body-lg": ["17px", { "lineHeight": "24px", "fontWeight": "400" }], "label-md": ["14px", { "lineHeight": "18px", "fontWeight": "500" }], "body-md": ["15px", { "lineHeight": "22px", "fontWeight": "400" }] } } } };</script><style>body { min-height: max(884px, 100dvh); }</style><meta content="mobile_stack" name="shell-type"/><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface font-body-md text-body-md text-on-surface antialiased"><header class="fixed top-0 w-full z-50 pt-safe bg-surface/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-14 px-margin flex items-center justify-between"><div class="flex items-center gap-space-xs"><button aria-label="Go Back" class="w-11 h-11 -ml-space-xs flex items-center justify-center rounded-full hover:bg-surface-variant/40 active:scale-95 transition-all text-on-surface" onclick="window.history.back()"><span class="material-symbols-outlined text-[26px]">chevron_left</span></button><h1 class="font-heading-sm text-heading-sm text-on-surface tracking-tight">Settings</h1></div><div class="flex items-center gap-space-xs"><div class="w-11 h-11"></div></div></div></header><main class="relative w-full pt-14 pb-safe bg-surface min-h-screen"><div class="flex flex-col w-full pb-10">
+<div class="px-margin pt-space-md pb-space-xs">
+<div class="flex items-center gap-space-md p-space-md rounded-xl bg-surface-container-lowest shadow-sm">
+<div class="relative w-14 h-14 rounded-full overflow-hidden shrink-0 bg-surface-container-high">
+<img class="w-full h-full object-cover" data-alt="Editorial close-up portrait of Zainab Ahmed, an elegant Nigerian woman with a warm genuine smile, glowing skin, soft neutral ambient studio lighting, shot on 85mm lens with subtle depth of field and premium modern aesthetic" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD1fydZAG8PQ-uRXqxiH5dXoRmzVoKgpkOMW_0vkI8Lgn5dXroa-YE67A3pkaFBR9B7ILQ2PosFk7iVR7mWC3vdbdFd_5ACqYIzvz8v2r1WL4RaBKoKIIQQcsOCWD8_TVbESJjgx1ESkK5xFQ4ZQ3KWZ-j1uCLoCvuIUSHQnmuUEHSFVZR02paj8GdaL9DEhdG9NmUS4gngwt4HK5z2ifUNdMJErI7XTdGmWC8ToqD2jbfWvi2C0BygTQ"/>
+<div class="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-badge-discount-text ring-2 ring-surface-container-lowest"></div>
+</div>
+<div class="flex flex-col min-w-0 flex-1">
+<div class="flex items-center gap-space-xs">
+<span class="font-heading-sm text-heading-sm text-text-primary truncate">Zainab Ahmed</span>
+<span class="material-symbols-outlined text-[18px] text-primary" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+<span class="font-caption text-caption text-text-secondary truncate">Member since Oct 2023 • Top Explorer</span>
+</div>
+<button aria-label="View QR Code" class="w-10 h-10 rounded-full flex items-center justify-center bg-surface-container hover:bg-surface-container-high active:scale-95 transition-all text-on-surface-variant">
+<span class="material-symbols-outlined text-[20px]">qr_code_2</span>
+</button>
+</div>
+</div>
+<div class="px-margin pt-space-lg pb-space-xs">
+<span class="font-label-sm text-label-sm text-text-tertiary uppercase tracking-wider px-space-2xs">Account</span>
+</div>
+<div class="px-margin">
+<div class="rounded-xl bg-surface-container-lowest shadow-sm overflow-hidden">
+<button class="w-full min-h-[56px] px-space-md py-space-sm flex items-center justify-between text-left hover:bg-surface-container-low active:bg-surface-container transition-colors group">
+<div class="flex items-center gap-space-md min-w-0">
+<div class="w-9 h-9 rounded-lg bg-surface-tint-blue flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined text-[20px]">person</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-label-md text-label-md text-text-primary">Personal Profile</span>
+<span class="font-caption text-caption text-text-secondary truncate">Name, avatar, bio info</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-[20px] text-outline-variant group-hover:text-text-secondary transition-colors shrink-0">chevron_right</span>
+</button>
+<div class="h-[1px] bg-surface-container-low mx-space-md"></div>
+<button class="w-full min-h-[56px] px-space-md py-space-sm flex items-center justify-between text-left hover:bg-surface-container-low active:bg-surface-container transition-colors group">
+<div class="flex items-center gap-space-md min-w-0">
+<div class="w-9 h-9 rounded-lg bg-surface-tint-blue flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined text-[20px]">mail</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-label-md text-label-md text-text-primary">Email Address</span>
+<span class="font-caption text-caption text-text-secondary truncate">zainab.ahmed@example.com</span>
+</div>
+</div>
+<div class="flex items-center gap-space-xs shrink-0">
+<span class="px-space-xs py-0.5 rounded-full bg-badge-discount-bg text-badge-discount-text font-caption text-[11px] font-semibold flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px]">check_circle</span>
+            Verified
+          </span>
+<span class="material-symbols-outlined text-[20px] text-outline-variant group-hover:text-text-secondary transition-colors">chevron_right</span>
+</div>
+</button>
+<div class="h-[1px] bg-surface-container-low mx-space-md"></div>
+<button class="w-full min-h-[56px] px-space-md py-space-sm flex items-center justify-between text-left hover:bg-surface-container-low active:bg-surface-container transition-colors group">
+<div class="flex items-center gap-space-md min-w-0">
+<div class="w-9 h-9 rounded-lg bg-surface-tint-blue flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined text-[20px]">call</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-label-md text-label-md text-text-primary">Phone Number</span>
+<span class="font-caption text-caption text-text-secondary truncate">+234 803 555 0192</span>
+</div>
+</div>
+<div class="flex items-center gap-space-xs shrink-0">
+<span class="px-space-xs py-0.5 rounded-full bg-badge-discount-bg text-badge-discount-text font-caption text-[11px] font-semibold flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px]">check_circle</span>
+            Verified
+          </span>
+<span class="material-symbols-outlined text-[20px] text-outline-variant group-hover:text-text-secondary transition-colors">chevron_right</span>
+</div>
+</button>
+<div class="h-[1px] bg-surface-container-low mx-space-md"></div>
+<button class="w-full min-h-[56px] px-space-md py-space-sm flex items-center justify-between text-left hover:bg-surface-container-low active:bg-surface-container transition-colors group">
+<div class="flex items-center gap-space-md min-w-0">
+<div class="w-9 h-9 rounded-lg bg-surface-tint-blue flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined text-[20px]">shield_lock</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-label-md text-label-md text-text-primary">PIN &amp; Security</span>
+<span class="font-caption text-caption text-text-secondary truncate">6-digit redemption PIN, Biometrics / Face ID</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-[20px] text-outline-variant group-hover:text-text-secondary transition-colors shrink-0">chevron_right</span>
+</button>
+</div>
+</div>
+<div class="px-margin pt-space-lg pb-space-xs">
+<span class="font-label-sm text-label-sm text-text-tertiary uppercase tracking-wider px-space-2xs">Notifications</span>
+</div>
+<div class="px-margin">
+<div class="rounded-xl bg-surface-container-lowest shadow-sm overflow-hidden">
+<button class="w-full min-h-[56px] px-space-md py-space-sm flex items-center justify-between text-left hover:bg-surface-container-low active:bg-surface-container transition-colors group">
+<div class="flex items-center gap-space-md min-w-0">
+<div class="w-9 h-9 rounded-lg bg-surface-tint-blue flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined text-[20px]">notifications_active</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-label-md text-label-md text-text-primary">Notification Preferences</span>
+<span class="font-caption text-caption text-text-secondary truncate">Push alerts, WhatsApp, Deal expiry warnings</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-[20px] text-outline-variant group-hover:text-text-secondary transition-colors shrink-0">chevron_right</span>
+</button>
+</div>
+</div>
+<div class="px-margin pt-space-lg pb-space-xs">
+<span class="font-label-sm text-label-sm text-text-tertiary uppercase tracking-wider px-space-2xs">Privacy &amp; Location</span>
+</div>
+<div class="px-margin">
+<div class="rounded-xl bg-surface-container-lowest shadow-sm overflow-hidden">
+<button class="w-full min-h-[56px] px-space-md py-space-sm flex items-center justify-between text-left hover:bg-surface-container-low active:bg-surface-container transition-colors group">
+<div class="flex items-center gap-space-md min-w-0">
+<div class="w-9 h-9 rounded-lg bg-surface-tint-blue flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined text-[20px]">lock_person</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-label-md text-label-md text-text-primary">Privacy Settings</span>
+<span class="font-caption text-caption text-text-secondary truncate">Account visibility, activity status</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-[20px] text-outline-variant group-hover:text-text-secondary transition-colors shrink-0">chevron_right</span>
+</button>
+<div class="h-[1px] bg-surface-container-low mx-space-md"></div>
+<button class="w-full min-h-[56px] px-space-md py-space-sm flex items-center justify-between text-left hover:bg-surface-container-low active:bg-surface-container transition-colors group">
+<div class="flex items-center gap-space-md min-w-0">
+<div class="w-9 h-9 rounded-lg bg-surface-tint-blue flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined text-[20px]">near_me</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-label-md text-label-md text-text-primary">Location Settings</span>
+<span class="font-caption text-caption text-text-secondary truncate">Apo, Abuja • Precise GPS • 5km radius</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-[20px] text-outline-variant group-hover:text-text-secondary transition-colors shrink-0">chevron_right</span>
+</button>
+</div>
+</div>
+<div class="px-margin pt-space-lg pb-space-xs">
+<span class="font-label-sm text-label-sm text-text-tertiary uppercase tracking-wider px-space-2xs">App Preferences</span>
+</div>
+<div class="px-margin">
+<div class="rounded-xl bg-surface-container-lowest shadow-sm overflow-hidden">
+<button class="w-full min-h-[56px] px-space-md py-space-sm flex items-center justify-between text-left hover:bg-surface-container-low active:bg-surface-container transition-colors group">
+<div class="flex items-center gap-space-md min-w-0">
+<div class="w-9 h-9 rounded-lg bg-surface-tint-blue flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined text-[20px]">language</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-label-md text-label-md text-text-primary">Language</span>
+<span class="font-caption text-caption text-text-secondary truncate">English (Nigeria)</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-[20px] text-outline-variant group-hover:text-text-secondary transition-colors shrink-0">chevron_right</span>
+</button>
+<div class="h-[1px] bg-surface-container-low mx-space-md"></div>
+<button class="w-full min-h-[56px] px-space-md py-space-sm flex items-center justify-between text-left hover:bg-surface-container-low active:bg-surface-container transition-colors group">
+<div class="flex items-center gap-space-md min-w-0">
+<div class="w-9 h-9 rounded-lg bg-surface-tint-blue flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined text-[20px]">palette</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-label-md text-label-md text-text-primary">Appearance</span>
+<span class="font-caption text-caption text-text-secondary truncate">System Light default</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-[20px] text-outline-variant group-hover:text-text-secondary transition-colors shrink-0">chevron_right</span>
+</button>
+<div class="h-[1px] bg-surface-container-low mx-space-md"></div>
+<button class="w-full min-h-[56px] px-space-md py-space-sm flex items-center justify-between text-left hover:bg-surface-container-low active:bg-surface-container transition-colors group">
+<div class="flex items-center gap-space-md min-w-0">
+<div class="w-9 h-9 rounded-lg bg-surface-tint-blue flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined text-[20px]">info</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-label-md text-label-md text-text-primary">About VEMTAP</span>
+<span class="font-caption text-caption text-text-secondary truncate">v1.4.2 (842) • One Tap. Lifetime Customer.</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-[20px] text-outline-variant group-hover:text-text-secondary transition-colors shrink-0">chevron_right</span>
+</button>
+<div class="h-[1px] bg-surface-container-low mx-space-md"></div>
+<button class="w-full min-h-[56px] px-space-md py-space-sm flex items-center justify-between text-left hover:bg-surface-container-low active:bg-surface-container transition-colors group">
+<div class="flex items-center gap-space-md min-w-0">
+<div class="w-9 h-9 rounded-lg bg-surface-tint-blue flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined text-[20px]">support_agent</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-label-md text-label-md text-text-primary">Help &amp; Support</span>
+<span class="font-caption text-caption text-text-secondary truncate">FAQs, Customer Care, Report an issue</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-[20px] text-outline-variant group-hover:text-text-secondary transition-colors shrink-0">chevron_right</span>
+</button>
+</div>
+</div>
+<div class="px-margin pt-space-lg pb-space-xs">
+<span class="font-label-sm text-label-sm text-text-tertiary uppercase tracking-wider px-space-2xs">Legal</span>
+</div>
+<div class="px-margin">
+<div class="rounded-xl bg-surface-container-lowest shadow-sm overflow-hidden">
+<button class="w-full min-h-[56px] px-space-md py-space-sm flex items-center justify-between text-left hover:bg-surface-container-low active:bg-surface-container transition-colors group">
+<div class="flex items-center gap-space-md min-w-0">
+<div class="w-9 h-9 rounded-lg bg-surface-container flex items-center justify-center text-on-surface-variant shrink-0">
+<span class="material-symbols-outlined text-[20px]">description</span>
+</div>
+<span class="font-label-md text-label-md text-text-primary">Terms &amp; Conditions</span>
+</div>
+<span class="material-symbols-outlined text-[20px] text-outline-variant group-hover:text-text-secondary transition-colors shrink-0">chevron_right</span>
+</button>
+<div class="h-[1px] bg-surface-container-low mx-space-md"></div>
+<button class="w-full min-h-[56px] px-space-md py-space-sm flex items-center justify-between text-left hover:bg-surface-container-low active:bg-surface-container transition-colors group">
+<div class="flex items-center gap-space-md min-w-0">
+<div class="w-9 h-9 rounded-lg bg-surface-container flex items-center justify-center text-on-surface-variant shrink-0">
+<span class="material-symbols-outlined text-[20px]">policy</span>
+</div>
+<span class="font-label-md text-label-md text-text-primary">Privacy Policy</span>
+</div>
+<span class="material-symbols-outlined text-[20px] text-outline-variant group-hover:text-text-secondary transition-colors shrink-0">chevron_right</span>
+</button>
+<div class="h-[1px] bg-surface-container-low mx-space-md"></div>
+<button class="w-full min-h-[56px] px-space-md py-space-sm flex items-center justify-between text-left hover:bg-surface-container-low active:bg-surface-container transition-colors group">
+<div class="flex items-center gap-space-md min-w-0">
+<div class="w-9 h-9 rounded-lg bg-surface-container flex items-center justify-center text-on-surface-variant shrink-0">
+<span class="material-symbols-outlined text-[20px]">handshake</span>
+</div>
+<span class="font-label-md text-label-md text-text-primary">Merchant Partnership Terms</span>
+</div>
+<span class="material-symbols-outlined text-[20px] text-outline-variant group-hover:text-text-secondary transition-colors shrink-0">chevron_right</span>
+</button>
+</div>
+</div>
+<div class="px-margin pt-space-xl flex flex-col items-center gap-space-sm">
+<button class="w-full h-[52px] rounded-xl bg-surface-container-lowest shadow-sm flex items-center justify-center gap-space-xs text-text-secondary hover:text-text-primary hover:bg-surface-container-low active:scale-[0.99] transition-all">
+<span class="material-symbols-outlined text-[20px] text-outline">logout</span>
+<span class="font-button-secondary text-button-secondary">Sign Out</span>
+</button>
+<button class="h-11 px-space-md flex items-center justify-center text-error hover:bg-error-container/20 rounded-lg active:scale-95 transition-all">
+<span class="font-label-sm text-label-sm">Delete Account</span>
+</button>
+</div>
+</div>
+<script>
+  document.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', function() {
+      this.classList.add('opacity-80');
+      setTimeout(() => this.classList.remove('opacity-80'), 150);
+    });
+  });
+</script></main></body></html>

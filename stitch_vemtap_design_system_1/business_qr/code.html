@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_tab" name="shell-type"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "on-error": "#ffffff", "surface-subtle": "#F8FAFC", "error": "#ba1a1a", "on-error-container": "#93000a", "surface-container-highest": "#dce2f7", "inverse-surface": "#293040", "surface-dim": "#d3daef", "surface-tint": "#0058cb", "on-primary-container": "#fcfaff", "badge-discount-text": "#059669", "surface-variant": "#dce2f7", "on-tertiary": "#ffffff", "on-background": "#141b2b", "outline": "#727786", "surface-container-lowest": "#ffffff", "surface-container": "#e9edff", "secondary-container": "#bacfff", "surface-tint-blue": "#EEF5FF", "on-secondary-fixed": "#001a41", "outline-variant": "#c2c6d7", "border-active": "#BFDBFE", "text-tertiary": "#9CA3AF", "surface-container-high": "#e1e8fd", "on-tertiary-fixed": "#370e00", "surface-bright": "#f9f9ff", "inverse-primary": "#b0c6ff", "tertiary-fixed-dim": "#ffb599", "surface-container-low": "#f1f3ff", "tertiary-fixed": "#ffdbce", "primary-fixed-dim": "#b0c6ff", "on-surface-variant": "#424655", "surface": "#f9f9ff", "tertiary-container": "#c94a03", "primary": "#0055c4", "inverse-on-surface": "#edf0ff", "on-secondary": "#ffffff", "primary-fixed": "#d9e2ff", "badge-discount-bg": "#ECFDF5", "on-tertiary-fixed-variant": "#7f2b00", "surface-canvas": "#FFFFFF", "text-primary": "#111827", "on-secondary-fixed-variant": "#32466f", "text-secondary": "#4B5563", "primary-container": "#066cf4", "secondary": "#4a5e88", "on-primary-fixed": "#001945", "background": "#f9f9ff", "on-secondary-container": "#435881", "secondary-fixed-dim": "#b2c6f7", "secondary-fixed": "#d8e2ff", "tertiary": "#a13900", "border-subtle": "#E5E7EB", "on-primary": "#ffffff", "on-surface": "#141b2b", "on-primary-fixed-variant": "#00429b", "on-tertiary-container": "#fffaf9", "error-container": "#ffdad6" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "margin": "1.5rem", "space-xl": "2rem", "space-sm": "0.75rem", "space-3xl": "3rem", "gutter": "1rem", "space-xs": "0.5rem", "space-2xs": "0.25rem", "space-md": "1rem", "space-lg": "1.5rem", "space-2xl": "2.5rem" }, "fontFamily": { "body-md": ["Inter"], "heading-lg": ["Inter"], "caption": ["Inter"], "label-sm": ["Inter"], "heading-sm": ["Inter"], "body-lg": ["Inter"], "button-secondary": ["Inter"], "label-md": ["Inter"], "button-primary": ["Inter"], "heading-md": ["Inter"], "display-hero-mobile": ["Inter"], "display-hero": ["Inter"] }, "fontSize": { "body-md": ["15px", { "lineHeight": "22px", "fontWeight": "400" }], "heading-lg": ["26px", { "lineHeight": "34px", "letterSpacing": "-0.015em", "fontWeight": "600" }], "caption": ["12px", { "lineHeight": "16px", "fontWeight": "400" }], "label-sm": ["13px", { "lineHeight": "16px", "fontWeight": "500" }], "heading-sm": ["18px", { "lineHeight": "24px", "fontWeight": "600" }], "body-lg": ["17px", { "lineHeight": "24px", "fontWeight": "400" }], "button-secondary": ["15px", { "lineHeight": "20px", "fontWeight": "500" }], "label-md": ["14px", { "lineHeight": "18px", "fontWeight": "500" }], "button-primary": ["16px", { "lineHeight": "20px", "letterSpacing": "-0.005em", "fontWeight": "600" }], "heading-md": ["22px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600" }], "display-hero-mobile": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }], "display-hero": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.025em", "fontWeight": "700" }] } } } };</script><style>@layer base{html,body{width:100%;margin:0;padding:0;}body{overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}.material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;display:inline-block;vertical-align:middle;line-height:1;}}::-webkit-scrollbar{display:none;}</style><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface font-body-md text-body-md text-on-surface min-h-screen flex flex-col antialiased selection:bg-primary-fixed"><header class="fixed top-0 w-full z-50 pt-safe bg-surface/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-16 px-margin flex items-center justify-between gap-space-sm"><div class="flex flex-col min-w-0 flex-1"><div class="flex items-center gap-space-2xs text-text-secondary"><span class="material-symbols-outlined text-[14px] text-primary">storefront</span><button class="flex items-center gap-space-2xs font-caption text-caption text-text-secondary hover:text-text-primary transition-colors text-left truncate"><span class="truncate max-w-[140px]">Downtown Flagship</span><span class="material-symbols-outlined text-[14px]">expand_more</span></button></div><h1 class="font-heading-sm text-heading-sm text-text-primary tracking-tight truncate">Business Qr</h1></div><div class="flex items-center gap-space-xs shrink-0"><button aria-label="Notifications" class="w-11 h-11 rounded-full flex items-center justify-center text-text-secondary hover:text-text-primary transition-colors hover:bg-surface-container-low"><span class="material-symbols-outlined text-[22px]">notifications</span></button><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center shadow-sm"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex-1 flex flex-col relative w-full pt-16 pb-24 bg-surface"><div class="flex flex-col w-full px-margin py-space-md gap-space-lg">
+<!-- Branch / Badge Context Subheader -->
+<div class="flex flex-col gap-space-2xs">
+<div class="flex items-center justify-between gap-space-xs">
+<div class="flex items-center gap-space-2xs">
+<span class="inline-flex items-center gap-1 bg-surface-tint-blue text-primary font-caption text-caption font-semibold px-2.5 py-1 rounded-full">
+<span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+          Master QR Active
+        </span>
+<span class="font-caption text-caption text-text-secondary">Downtown Hub • Urban Grill &amp; Bistro</span>
+</div>
+<button class="flex items-center gap-1 bg-surface-container-low hover:bg-surface-container text-primary font-label-sm text-label-sm font-medium px-3 py-1.5 rounded-full transition-colors active:scale-95" id="quickShareTopBtn">
+<span class="material-symbols-outlined text-[16px]">share</span>
+<span>Share</span>
+</button>
+</div>
+<p class="font-caption text-caption text-text-secondary">
+      Physical storefront anchor &amp; official digital bio link
+    </p>
+</div>
+<!-- Master QR Hero Presentation Card -->
+<div class="w-full bg-surface-container-lowest rounded-2xl p-space-lg shadow-md flex flex-col items-center text-center relative overflow-hidden">
+<!-- Subtle Ambient Backdrop Accent -->
+<div class="absolute -top-16 -right-16 w-36 h-36 bg-surface-tint-blue rounded-full blur-2xl pointer-events-none"></div>
+<div class="absolute -bottom-16 -left-16 w-36 h-36 bg-secondary-container/30 rounded-full blur-2xl pointer-events-none"></div>
+<!-- Merchant Header -->
+<div class="flex items-center gap-space-xs mb-space-md z-10">
+<div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center text-primary font-heading-sm text-heading-sm shadow-sm">
+<span class="material-symbols-outlined text-[24px]">restaurant</span>
+</div>
+<div class="flex flex-col text-left">
+<div class="flex items-center gap-1">
+<span class="font-heading-sm text-heading-sm text-text-primary leading-tight">Urban Grill &amp; Bistro</span>
+<span class="material-symbols-outlined text-primary text-[18px]" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+<span class="font-caption text-caption text-text-secondary">Official Storefront Presence</span>
+</div>
+</div>
+<!-- Scannable High-Fidelity Master QR Graphic -->
+<div class="relative bg-surface-container-lowest p-space-md rounded-xl shadow-sm mb-space-md flex flex-col items-center justify-center">
+<svg class="w-56 h-56" fill="none" viewbox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+<!-- Corner Markers - Top Left -->
+<rect fill="#0055c4" height="46" rx="10" width="46" x="10" y="10"></rect>
+<rect fill="#FFFFFF" height="32" rx="6" width="32" x="17" y="17"></rect>
+<rect fill="#0055c4" height="20" rx="4" width="20" x="23" y="23"></rect>
+<!-- Corner Markers - Top Right -->
+<rect fill="#0055c4" height="46" rx="10" width="46" x="144" y="10"></rect>
+<rect fill="#FFFFFF" height="32" rx="6" width="32" x="151" y="17"></rect>
+<rect fill="#0055c4" height="20" rx="4" width="20" x="157" y="23"></rect>
+<!-- Corner Markers - Bottom Left -->
+<rect fill="#0055c4" height="46" rx="10" width="46" x="10" y="144"></rect>
+<rect fill="#FFFFFF" height="32" rx="6" width="32" x="17" y="151"></rect>
+<rect fill="#0055c4" height="20" rx="4" width="20" x="23" y="157"></rect>
+<!-- Precise Data Grid Patterns -->
+<!-- Row lines & dots -->
+<circle cx="68" cy="18" fill="#141b2b" r="4.5"></circle>
+<circle cx="82" cy="18" fill="#141b2b" r="4.5"></circle>
+<circle cx="96" cy="18" fill="#141b2b" r="4.5"></circle>
+<circle cx="118" cy="18" fill="#141b2b" r="4.5"></circle>
+<circle cx="132" cy="18" fill="#141b2b" r="4.5"></circle>
+<circle cx="68" cy="32" fill="#141b2b" r="4.5"></circle>
+<circle cx="96" cy="32" fill="#141b2b" r="4.5"></circle>
+<circle cx="110" cy="32" fill="#141b2b" r="4.5"></circle>
+<circle cx="124" cy="32" fill="#141b2b" r="4.5"></circle>
+<circle cx="68" cy="46" fill="#141b2b" r="4.5"></circle>
+<circle cx="82" cy="46" fill="#141b2b" r="4.5"></circle>
+<circle cx="110" cy="46" fill="#141b2b" r="4.5"></circle>
+<circle cx="132" cy="46" fill="#141b2b" r="4.5"></circle>
+<!-- Mid section data -->
+<circle cx="18" cy="68" fill="#141b2b" r="4.5"></circle>
+<circle cx="32" cy="68" fill="#141b2b" r="4.5"></circle>
+<circle cx="46" cy="68" fill="#141b2b" r="4.5"></circle>
+<circle cx="60" cy="68" fill="#141b2b" r="4.5"></circle>
+<circle cx="140" cy="68" fill="#141b2b" r="4.5"></circle>
+<circle cx="154" cy="68" fill="#141b2b" r="4.5"></circle>
+<circle cx="168" cy="68" fill="#141b2b" r="4.5"></circle>
+<circle cx="182" cy="68" fill="#141b2b" r="4.5"></circle>
+<circle cx="18" cy="82" fill="#141b2b" r="4.5"></circle>
+<circle cx="46" cy="82" fill="#141b2b" r="4.5"></circle>
+<circle cx="154" cy="82" fill="#141b2b" r="4.5"></circle>
+<circle cx="182" cy="82" fill="#141b2b" r="4.5"></circle>
+<circle cx="18" cy="96" fill="#141b2b" r="4.5"></circle>
+<circle cx="32" cy="96" fill="#141b2b" r="4.5"></circle>
+<circle cx="60" cy="96" fill="#141b2b" r="4.5"></circle>
+<circle cx="140" cy="96" fill="#141b2b" r="4.5"></circle>
+<circle cx="168" cy="96" fill="#141b2b" r="4.5"></circle>
+<circle cx="18" cy="110" fill="#141b2b" r="4.5"></circle>
+<circle cx="46" cy="110" fill="#141b2b" r="4.5"></circle>
+<circle cx="60" cy="110" fill="#141b2b" r="4.5"></circle>
+<circle cx="154" cy="110" fill="#141b2b" r="4.5"></circle>
+<circle cx="182" cy="110" fill="#141b2b" r="4.5"></circle>
+<circle cx="18" cy="124" fill="#141b2b" r="4.5"></circle>
+<circle cx="32" cy="124" fill="#141b2b" r="4.5"></circle>
+<circle cx="140" cy="124" fill="#141b2b" r="4.5"></circle>
+<circle cx="168" cy="124" fill="#141b2b" r="4.5"></circle>
+<circle cx="182" cy="124" fill="#141b2b" r="4.5"></circle>
+<!-- Bottom right data patterns -->
+<circle cx="68" cy="154" fill="#141b2b" r="4.5"></circle>
+<circle cx="82" cy="154" fill="#141b2b" r="4.5"></circle>
+<circle cx="96" cy="154" fill="#141b2b" r="4.5"></circle>
+<circle cx="110" cy="154" fill="#141b2b" r="4.5"></circle>
+<circle cx="132" cy="154" fill="#141b2b" r="4.5"></circle>
+<circle cx="154" cy="154" fill="#141b2b" r="4.5"></circle>
+<circle cx="182" cy="154" fill="#141b2b" r="4.5"></circle>
+<circle cx="68" cy="168" fill="#141b2b" r="4.5"></circle>
+<circle cx="110" cy="168" fill="#141b2b" r="4.5"></circle>
+<circle cx="140" cy="168" fill="#141b2b" r="4.5"></circle>
+<circle cx="168" cy="168" fill="#141b2b" r="4.5"></circle>
+<circle cx="68" cy="182" fill="#141b2b" r="4.5"></circle>
+<circle cx="82" cy="182" fill="#141b2b" r="4.5"></circle>
+<circle cx="96" cy="182" fill="#141b2b" r="4.5"></circle>
+<circle cx="124" cy="182" fill="#141b2b" r="4.5"></circle>
+<circle cx="154" cy="182" fill="#141b2b" r="4.5"></circle>
+<circle cx="182" cy="182" fill="#141b2b" r="4.5"></circle>
+<!-- Center VEMTAP Core Badge Badge -->
+<rect fill="#0055c4" height="52" rx="14" width="52" x="74" y="74"></rect>
+<circle cx="100" cy="100" fill="#FFFFFF" r="19"></circle>
+<path d="M93 93L100 108L107 93" stroke="#0055c4" stroke-linecap="round" stroke-linejoin="round" stroke-width="4"></path>
+</svg>
+<!-- Subcode Pills inside card -->
+<div class="mt-space-sm flex items-center justify-between w-full bg-surface-subtle px-3 py-2 rounded-lg gap-2">
+<div class="flex flex-col items-start min-w-0">
+<span class="font-caption text-caption text-text-tertiary uppercase tracking-wider font-semibold">Shortcode URL</span>
+<span class="font-label-sm text-label-sm font-semibold text-text-primary truncate max-w-[150px]">vemtap.com/@urbangrill</span>
+</div>
+<div class="flex items-center gap-1">
+<span class="bg-surface-container-high text-primary font-caption text-caption px-2 py-0.5 rounded font-mono font-medium">VT-UB-8820</span>
+<button aria-label="Copy link" class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-primary hover:bg-surface-tint-blue active:scale-95 transition-all" id="copyCodeBtn">
+<span class="material-symbols-outlined text-[16px]" id="copyIcon">content_copy</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Tagline Value Prop -->
+<p class="font-label-sm text-label-sm text-text-secondary max-w-[280px]">
+      Scan to view menu, claim active deals, and earn instant visit points.
+    </p>
+</div>
+<!-- Quick Actions Carousel / Row -->
+<div class="flex items-center gap-space-sm overflow-x-auto pb-space-2xs -mx-margin px-margin no-scrollbar">
+<!-- Action 1: High-Res Download -->
+<button class="flex flex-col items-start p-space-sm bg-surface-container-lowest rounded-xl shadow-sm min-w-[140px] flex-shrink-0 hover:bg-surface-subtle transition-all active:scale-95 text-left">
+<div class="w-9 h-9 rounded-lg bg-surface-tint-blue text-primary flex items-center justify-center mb-space-2xs">
+<span class="material-symbols-outlined text-[20px]">download</span>
+</div>
+<span class="font-label-sm text-label-sm font-semibold text-text-primary">Download Kit</span>
+<span class="font-caption text-caption text-text-secondary">Vector PDF &amp; PNG</span>
+</button>
+<!-- Action 2: Order Acrylic Standee -->
+<button class="flex flex-col items-start p-space-sm bg-surface-container-lowest rounded-xl shadow-sm min-w-[150px] flex-shrink-0 hover:bg-surface-subtle transition-all active:scale-95 text-left relative overflow-hidden">
+<span class="absolute top-2 right-2 bg-badge-discount-bg text-badge-discount-text font-caption text-caption px-1.5 py-0.5 rounded-full font-semibold">
+        Arrives 48h
+      </span>
+<div class="w-9 h-9 rounded-lg bg-badge-discount-bg text-badge-discount-text flex items-center justify-center mb-space-2xs">
+<span class="material-symbols-outlined text-[20px]">store</span>
+</div>
+<span class="font-label-sm text-label-sm font-semibold text-text-primary">Order Standee</span>
+<span class="font-caption text-caption text-text-secondary">NFC + Matte Acrylic</span>
+</button>
+<!-- Action 3: Social Share -->
+<button class="flex flex-col items-start p-space-sm bg-surface-container-lowest rounded-xl shadow-sm min-w-[140px] flex-shrink-0 hover:bg-surface-subtle transition-all active:scale-95 text-left">
+<div class="w-9 h-9 rounded-lg bg-surface-container-high text-primary flex items-center justify-center mb-space-2xs">
+<span class="material-symbols-outlined text-[20px]">share_reviews</span>
+</div>
+<span class="font-label-sm text-label-sm font-semibold text-text-primary">Send to Socials</span>
+<span class="font-caption text-caption text-text-secondary">WhatsApp &amp; Instagram</span>
+</button>
+<!-- Action 4: Scan Analytics -->
+<button class="flex flex-col items-start p-space-sm bg-surface-container-lowest rounded-xl shadow-sm min-w-[140px] flex-shrink-0 hover:bg-surface-subtle transition-all active:scale-95 text-left">
+<div class="w-9 h-9 rounded-lg bg-surface-tint-blue text-primary flex items-center justify-center mb-space-2xs">
+<span class="material-symbols-outlined text-[20px]">insights</span>
+</div>
+<span class="font-label-sm text-label-sm font-semibold text-text-primary">Scan Insights</span>
+<span class="font-caption text-caption text-text-secondary">Live Heatmaps</span>
+</button>
+</div>
+<!-- Live Scan Performance Strip -->
+<div class="bg-surface-container-lowest rounded-2xl p-space-md shadow-sm flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-2xs">
+<span class="material-symbols-outlined text-primary text-[20px]">signal_cellular_alt</span>
+<h2 class="font-label-md text-label-md font-semibold text-text-primary">30-Day Master Scan Impact</h2>
+</div>
+<span class="font-caption text-caption text-text-secondary">Updated real-time</span>
+</div>
+<div class="grid grid-cols-3 gap-space-xs pt-space-2xs">
+<div class="flex flex-col p-space-xs bg-surface-subtle rounded-xl">
+<span class="font-caption text-caption text-text-secondary truncate">Total Scans</span>
+<span class="font-heading-sm text-heading-sm font-bold text-text-primary">1,420</span>
+<div class="flex items-center gap-0.5 text-badge-discount-text font-caption text-caption">
+<span class="material-symbols-outlined text-[14px]">arrow_upward</span>
+<span>+24%</span>
+</div>
+</div>
+<div class="flex flex-col p-space-xs bg-surface-subtle rounded-xl">
+<span class="font-caption text-caption text-text-secondary truncate">New Signups</span>
+<span class="font-heading-sm text-heading-sm font-bold text-text-primary">382</span>
+<div class="flex items-center gap-0.5 text-badge-discount-text font-caption text-caption">
+<span class="material-symbols-outlined text-[14px]">arrow_upward</span>
+<span>+18%</span>
+</div>
+</div>
+<div class="flex flex-col p-space-xs bg-surface-subtle rounded-xl">
+<span class="font-caption text-caption text-text-secondary truncate">Deal Claimed</span>
+<span class="font-heading-sm text-heading-sm font-bold text-primary">68%</span>
+<span class="font-caption text-caption text-text-secondary">Conv. rate</span>
+</div>
+</div>
+</div>
+<!-- Scan Destination & Routing Behavior -->
+<div class="bg-surface-container-lowest rounded-2xl p-space-md shadow-sm flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<div class="flex flex-col">
+<h2 class="font-label-md text-label-md font-semibold text-text-primary">Scan Destination Routing</h2>
+<span class="font-caption text-caption text-text-secondary">Choose where users land when scanning this Master QR</span>
+</div>
+<span class="material-symbols-outlined text-primary text-[20px]">alt_route</span>
+</div>
+<!-- Routing Option Cards -->
+<div class="flex flex-col gap-space-xs mt-space-2xs" id="routingContainer">
+<!-- Option 1: Auto Smart-Route (Selected by default) -->
+<label class="routing-option flex items-start gap-space-sm p-space-sm rounded-xl cursor-pointer bg-surface-tint-blue transition-all" data-route="auto">
+<div class="pt-0.5">
+<input checked="" class="w-4 h-4 text-primary focus:ring-primary accent-primary" name="qr_route" type="radio" value="auto"/>
+</div>
+<div class="flex-1 flex flex-col min-w-0">
+<div class="flex items-center gap-2">
+<span class="font-label-md text-label-md font-semibold text-text-primary">Auto Smart-Route</span>
+<span class="bg-badge-discount-bg text-badge-discount-text font-caption text-caption px-1.5 py-0.2 rounded font-semibold">Recommended</span>
+</div>
+<p class="font-caption text-caption text-text-secondary mt-0.5">
+            Dynamically opens the customer's nearest physical branch using live GPS &amp; active storefront availability.
+          </p>
+</div>
+</label>
+<!-- Option 2: Flagship Direct -->
+<label class="routing-option flex items-start gap-space-sm p-space-sm rounded-xl cursor-pointer bg-surface-subtle transition-all" data-route="flagship">
+<div class="pt-0.5">
+<input class="w-4 h-4 text-primary focus:ring-primary accent-primary" name="qr_route" type="radio" value="flagship"/>
+</div>
+<div class="flex-1 flex flex-col min-w-0">
+<span class="font-label-md text-label-md font-semibold text-text-primary">Main Branch (Downtown Flagship)</span>
+<p class="font-caption text-caption text-text-secondary mt-0.5">
+            Always drives patrons directly to the flagship Downtown profile and full a la carte ordering deck.
+          </p>
+</div>
+</label>
+<!-- Option 3: Direct to Active Deal -->
+<label class="routing-option flex items-start gap-space-sm p-space-sm rounded-xl cursor-pointer bg-surface-subtle transition-all" data-route="deals">
+<div class="pt-0.5">
+<input class="w-4 h-4 text-primary focus:ring-primary accent-primary" name="qr_route" type="radio" value="deals"/>
+</div>
+<div class="flex-1 flex flex-col min-w-0">
+<div class="flex items-center gap-2">
+<span class="font-label-md text-label-md font-semibold text-text-primary">Active Deals &amp; Promos</span>
+<span class="bg-tertiary-fixed text-tertiary font-caption text-caption px-1.5 py-0.2 rounded font-semibold">High Conversion</span>
+</div>
+<p class="font-caption text-caption text-text-secondary mt-0.5">
+            Immediate landing on “20% OFF Prime Lunch” with instant 1-tap Google/Apple Pay redemption.
+          </p>
+</div>
+</label>
+</div>
+</div>
+<!-- In-Store Placement & Physical Collateral Kit Preview -->
+<div class="bg-surface-container-lowest rounded-2xl p-space-md shadow-sm flex flex-col gap-space-md">
+<div class="flex items-center justify-between">
+<div class="flex flex-col">
+<h2 class="font-label-md text-label-md font-semibold text-text-primary">Physical Collateral &amp; Standees</h2>
+<span class="font-caption text-caption text-text-secondary">Turn counter space into customer lifetime value</span>
+</div>
+<span class="material-symbols-outlined text-text-secondary text-[22px]">layers</span>
+</div>
+<!-- Mini Visual Mockup Card -->
+<div class="w-full bg-surface-container-low rounded-xl p-space-md flex items-center gap-space-md overflow-hidden relative">
+<!-- Mockup Graphic: Acrylic Mini Standee -->
+<div class="w-24 h-28 bg-surface-canvas rounded-lg shadow-md p-1.5 flex flex-col items-center justify-between flex-shrink-0 relative">
+<div class="w-6 h-1.5 bg-primary/20 rounded-full"></div>
+<div class="w-12 h-12 bg-surface-container flex items-center justify-center rounded">
+<span class="material-symbols-outlined text-primary text-[28px]">qr_code_2</span>
+</div>
+<div class="flex items-center gap-0.5">
+<span class="material-symbols-outlined text-primary text-[10px]">contactless</span>
+<span class="text-[8px] font-caption text-text-primary font-bold">TAP OR SCAN</span>
+</div>
+<div class="w-full h-1 bg-primary rounded-full"></div>
+</div>
+<!-- Mockup Details -->
+<div class="flex flex-col min-w-0 justify-center">
+<span class="font-label-md text-label-md font-semibold text-text-primary">Frosted Matte Acrylic Kit</span>
+<p class="font-caption text-caption text-text-secondary mt-1">
+          Embedded with dual NTAG 215 NFC chips + UV-printed scratch-resistant Master QR.
+        </p>
+<span class="mt-2 text-primary font-label-sm text-label-sm font-semibold flex items-center gap-1">
+          Free with Merchant Pro Plan
+        </span>
+</div>
+</div>
+<!-- Standee Customization Action Button -->
+<button class="w-full h-[52px] bg-surface-tint-blue hover:bg-secondary-container/40 text-primary font-button-primary text-button-primary rounded-xl flex items-center justify-center gap-2 transition-all active:scale-[0.98]">
+<span class="material-symbols-outlined text-[20px]">palette</span>
+<span>Customize Standee (Logo &amp; Wi-Fi)</span>
+<span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+</div>
+<!-- Secondary Navigation Utility Link -->
+<div class="flex flex-col items-center justify-center pt-space-xs pb-space-md text-center">
+<a class="inline-flex items-center gap-1.5 font-label-sm text-label-sm text-text-secondary hover:text-primary transition-colors py-2 px-3 rounded-full hover:bg-surface-container-low" data-path="business-qr" href="#">
+<span>Need separate QR codes for tables, bar seats, or drive-thru?</span>
+<span class="text-primary font-semibold">Location QRs →</span>
+</a>
+</div>
+</div>
+<!-- Interactive Client-side Scripting -->
+<script>
+  // Copy Shortcode Micro-interaction
+  const copyBtn = document.getElementById('copyCodeBtn');
+  const copyIcon = document.getElementById('copyIcon');
+  if (copyBtn && copyIcon) {
+    copyBtn.addEventListener('click', () => {
+      navigator.clipboard?.writeText('https://vemtap.com/@urbangrill');
+      copyIcon.textContent = 'check';
+      copyIcon.classList.add('text-badge-discount-text');
+      setTimeout(() => {
+        copyIcon.textContent = 'content_copy';
+        copyIcon.classList.remove('text-badge-discount-text');
+      }, 2000);
+    });
+  }
+
+  // Routing Selection Micro-interaction
+  const routingLabels = document.querySelectorAll('.routing-option');
+  routingLabels.forEach(label => {
+    label.addEventListener('click', () => {
+      routingLabels.forEach(item => {
+        item.classList.remove('bg-surface-tint-blue');
+        item.classList.add('bg-surface-subtle');
+      });
+      label.classList.add('bg-surface-tint-blue');
+      label.classList.remove('bg-surface-subtle');
+      const radio = label.querySelector('input[type="radio"]');
+      if (radio) radio.checked = true;
+    });
+  });
+
+  // Share Dialog Integration Trigger
+  const quickShareBtn = document.getElementById('quickShareTopBtn');
+  if (quickShareBtn) {
+    quickShareBtn.addEventListener('click', () => {
+      if (navigator.share) {
+        navigator.share({
+          title: 'Urban Grill & Bistro on VEMTAP',
+          text: 'Scan or tap to explore our storefront, digital specials, and claim 20% off!',
+          url: 'https://vemtap.com/@urbangrill'
+        }).catch(() => {});
+      } else {
+        navigator.clipboard?.writeText('https://vemtap.com/@urbangrill');
+        quickShareBtn.innerHTML = '<span class="material-symbols-outlined text-[16px]">check</span><span>Copied!</span>';
+        setTimeout(() => {
+          quickShareBtn.innerHTML = '<span class="material-symbols-outlined text-[16px]">share</span><span>Share</span>';
+        }, 2000);
+      }
+    });
+  }
+</script></main><nav class="fixed bottom-0 w-full z-50 pb-safe bg-surface/90 backdrop-blur-xl shadow-[0_-2px_12px_rgba(0,0,0,0.03)]" data-active-classes="text-primary font-label-md"><div class="flex items-center justify-around h-16 px-space-xs"><a class="flex flex-col items-center justify-center min-w-[64px] min-h-[44px] gap-space-2xs text-text-secondary hover:text-text-primary transition-colors group" data-path="campaigns-marketing" href="#"><span class="material-symbols-outlined text-[22px]">campaign</span><span class="font-caption text-caption">Campaigns</span></a><a aria-current="page" class="flex flex-col items-center justify-center min-w-[64px] min-h-[44px] gap-space-2xs transition-colors group text-primary font-label-md" data-path="business-qr" href="#"><span class="material-symbols-outlined text-[22px]">qr_code_2</span><span class="font-caption text-caption">QR &amp; Tap</span></a><a class="flex flex-col items-center justify-center min-w-[64px] min-h-[44px] gap-space-2xs text-text-secondary hover:text-text-primary transition-colors group" data-path="analytics-footfall" href="#"><span class="material-symbols-outlined text-[22px]">monitoring</span><span class="font-caption text-caption">Analytics</span></a><a class="flex flex-col items-center justify-center min-w-[64px] min-h-[44px] gap-space-2xs text-text-secondary hover:text-text-primary transition-colors group" data-path="hub-more" href="#"><span class="material-symbols-outlined text-[22px]">apps</span><span class="font-caption text-caption">Hub</span></a></div></nav></body></html>

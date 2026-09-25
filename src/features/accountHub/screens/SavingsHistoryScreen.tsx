@@ -34,13 +34,13 @@ export function SavingsHistoryScreen({
         onAction={onShare}
       />
       <PageScroll>
-        <View className="flex-row items-center justify-between">
-          <View className="flex-row items-center gap-2">
-            <View className="h-2 w-2 rounded-full bg-badge-discount-text" />
-            <VemtapText variant="labelSm" tone="success">
+        <View className="flex-row items-center justify-between gap-2">
+          <View className="min-w-0 flex-row items-center gap-2">
+            <View className="h-2 w-2 shrink-0 rounded-full bg-badge-discount-text" />
+            <VemtapText variant="labelSm" tone="success" numberOfLines={1}>
               {copy.activeSaver}
             </VemtapText>
-            <VemtapText variant="caption" tone="tertiary">
+            <VemtapText variant="caption" tone="tertiary" numberOfLines={1}>
               {copy.synced}
             </VemtapText>
           </View>
@@ -85,11 +85,19 @@ export function SavingsHistoryScreen({
             <View className="h-2 overflow-hidden rounded-full bg-white/20">
               <View className="h-full w-[81%] rounded-full bg-success" />
             </View>
-            <View className="flex-row justify-between">
-              <VemtapText variant="caption" className="text-primary-foreground">
+            <View className="flex-row justify-between gap-2">
+              <VemtapText
+                variant="caption"
+                className="min-w-0 flex-1 text-primary-foreground"
+                numberOfLines={1}
+              >
                 {copy.reached}
               </VemtapText>
-              <VemtapText variant="caption" className="text-primary-foreground">
+              <VemtapText
+                variant="caption"
+                className="shrink-0 text-primary-foreground"
+                numberOfLines={1}
+              >
                 {copy.remaining}
               </VemtapText>
             </View>

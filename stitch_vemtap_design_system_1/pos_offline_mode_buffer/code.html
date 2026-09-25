@@ -1,0 +1,362 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"><meta content="mobile_stack" name="shell-type"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{width:100vw;margin:0;padding:0;}body{overscroll-behavior:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "surface-container-high": "#e1e8fd", "tertiary-fixed": "#ffdbce", "tertiary-fixed-dim": "#ffb599", "surface-canvas": "#FFFFFF", "on-tertiary": "#ffffff", "background": "#f9f9ff", "on-secondary-container": "#435881", "primary-container": "#066cf4", "surface-variant": "#dce2f7", "on-surface-variant": "#424655", "secondary-fixed": "#d8e2ff", "on-tertiary-fixed": "#370e00", "on-primary-fixed": "#001945", "tertiary-container": "#c94a03", "surface-container-lowest": "#ffffff", "surface-container-highest": "#dce2f7", "surface-container": "#e9edff", "on-secondary-fixed": "#001a41", "error-container": "#ffdad6", "surface-subtle": "#F8FAFC", "outline-variant": "#c2c6d7", "on-background": "#141b2b", "on-secondary-fixed-variant": "#32466f", "inverse-on-surface": "#edf0ff", "inverse-surface": "#293040", "on-tertiary-container": "#fffaf9", "primary-fixed-dim": "#b0c6ff", "secondary-container": "#bacfff", "surface": "#f9f9ff", "surface-tint-blue": "#EEF5FF", "badge-discount-bg": "#ECFDF5", "primary": "#0055c4", "border-subtle": "#E5E7EB", "surface-dim": "#d3daef", "on-primary-container": "#fcfaff", "on-primary": "#ffffff", "surface-tint": "#0058cb", "secondary": "#4a5e88", "border-active": "#BFDBFE", "tertiary": "#a13900", "inverse-primary": "#b0c6ff", "text-primary": "#111827", "primary-fixed": "#d9e2ff", "secondary-fixed-dim": "#b2c6f7", "text-tertiary": "#9CA3AF", "on-surface": "#141b2b", "surface-bright": "#f9f9ff", "on-primary-fixed-variant": "#00429b", "error": "#ba1a1a", "badge-discount-text": "#059669", "surface-container-low": "#f1f3ff", "text-secondary": "#4B5563", "on-secondary": "#ffffff", "outline": "#727786", "on-error": "#ffffff", "on-error-container": "#93000a", "on-tertiary-fixed-variant": "#7f2b00" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "space-lg": "1.5rem", "space-2xs": "0.25rem", "space-xs": "0.5rem", "space-md": "1rem", "margin": "1.5rem", "space-2xl": "2.5rem", "gutter": "1rem", "space-xl": "2rem", "space-3xl": "3rem", "space-sm": "0.75rem" }, "fontFamily": { "heading-md": ["Inter"], "button-secondary": ["Inter"], "display-hero-mobile": ["Inter"], "display-hero": ["Inter"], "button-primary": ["Inter"], "label-sm": ["Inter"], "body-md": ["Inter"], "label-md": ["Inter"], "body-lg": ["Inter"], "caption": ["Inter"], "heading-lg": ["Inter"], "heading-sm": ["Inter"] }, "fontSize": { "heading-md": ["22px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600" }], "button-secondary": ["15px", { "lineHeight": "20px", "fontWeight": "500" }], "display-hero-mobile": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }], "display-hero": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.025em", "fontWeight": "700" }], "button-primary": ["16px", { "lineHeight": "20px", "letterSpacing": "-0.005em", "fontWeight": "600" }], "label-sm": ["13px", { "lineHeight": "16px", "fontWeight": "500" }], "body-md": ["15px", { "lineHeight": "22px", "fontWeight": "400" }], "label-md": ["14px", { "lineHeight": "18px", "fontWeight": "500" }], "body-lg": ["17px", { "lineHeight": "24px", "fontWeight": "400" }], "caption": ["12px", { "lineHeight": "16px", "fontWeight": "400" }], "heading-lg": ["26px", { "lineHeight": "34px", "letterSpacing": "-0.015em", "fontWeight": "600" }], "heading-sm": ["18px", { "lineHeight": "24px", "fontWeight": "600" }] } } } };</script></head><body class="bg-surface text-on-surface flex flex-col min-h-screen"><header class="fixed top-0 w-full z-50 pt-safe bg-surface/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-16 px-margin flex items-center justify-between gap-space-xs"><div class="flex items-center gap-space-xs min-w-0"><button aria-label="Go Back" class="w-11 h-11 flex items-center justify-center rounded-xl bg-surface-container-low text-on-surface hover:text-primary transition-colors flex-shrink-0" onclick="history.back()"><span class="material-symbols-outlined text-[20px]">arrow_back</span></button><div class="flex flex-col min-w-0"><div class="flex items-center gap-space-2xs"><h1 class="font-heading-sm text-heading-sm text-on-surface truncate leading-tight">Active Checkout</h1><span class="px-space-xs py-0.5 rounded-full bg-badge-discount-bg text-badge-discount-text font-caption text-caption font-semibold flex items-center gap-1 flex-shrink-0"><span class="w-1.5 h-1.5 rounded-full bg-badge-discount-text"></span>Synced</span></div><div class="flex items-center gap-space-2xs text-text-secondary truncate"><span class="font-caption text-caption truncate">Downtown Store • Till #01</span></div></div></div><div class="flex items-center gap-space-xs flex-shrink-0"><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex flex-col relative w-full pt-16 pb-safe bg-surface min-h-screen"><div class="flex flex-col w-full px-margin pb-space-2xl space-y-space-md">
+<!-- Interactive Network Simulation Deck -->
+<section class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm">
+<div class="flex items-center justify-between gap-space-sm">
+<div class="flex items-center gap-space-xs min-w-0">
+<div class="relative flex h-3 w-3 flex-shrink-0" id="statusDotPulse">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-badge-discount-text opacity-75"></span>
+<span class="relative inline-flex rounded-full h-3 w-3 bg-badge-discount-text" id="statusDot"></span>
+</div>
+<div class="min-w-0">
+<p class="font-label-md text-label-md text-on-surface font-semibold truncate" id="networkStatusLabel">Online (Connected to VEMTAP Cloud)</p>
+<p class="font-caption text-caption text-text-secondary truncate" id="networkLatencyLabel">Latency: 28ms • TLS 1.3 AES-256</p>
+</div>
+</div>
+<div class="flex items-center gap-space-2xs flex-shrink-0">
+<label class="relative inline-flex items-center cursor-pointer select-none" for="offlineToggle">
+<input class="sr-only peer" id="offlineToggle" onchange="toggleNetworkMode(this.checked)" type="checkbox">
+<div class="w-12 h-7 bg-surface-container rounded-full peer peer-checked:bg-tertiary-container peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-surface-canvas after:rounded-full after:h-6 after:w-6 after:transition-all shadow-sm"></div>
+</label>
+</div>
+</div>
+<div class="mt-space-xs pt-space-xs flex items-center justify-between">
+<span class="font-caption text-caption text-text-secondary">Force Offline Mode for unstable cellular link</span>
+<span class="px-space-xs py-0.5 rounded-full bg-surface-container text-on-surface-variant font-caption text-caption font-medium" id="simulationTag">Auto Routing</span>
+</div>
+</section>
+<!-- Armed Buffer Hero Banner -->
+<section class="relative overflow-hidden bg-primary rounded-xl p-space-md shadow-md text-on-primary" id="heroBufferCard">
+<div class="absolute -right-6 -bottom-6 w-32 h-32 bg-primary-container/40 rounded-full blur-xl pointer-events-none"></div>
+<div class="relative z-10 flex flex-col space-y-space-sm">
+<div class="flex items-start justify-between">
+<div class="w-12 h-12 rounded-xl bg-on-primary/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-[28px] text-on-primary" id="shieldIcon" style="font-variation-settings: 'FILL' 1;">verified_user</span>
+</div>
+<div class="flex items-center gap-1.5 px-space-xs py-1 rounded-full bg-on-primary/15 font-caption text-caption font-semibold">
+<span class="material-symbols-outlined text-[14px]">storage</span>
+<span>SQLite SafeVault</span>
+</div>
+</div>
+<div>
+<h2 class="font-heading-md text-heading-md text-on-primary font-bold tracking-tight" id="cacheReadyHeading">Local Till Cache is 100% Armed &amp; Ready</h2>
+<p class="font-body-md text-body-md text-on-primary/90 mt-1">
+          Transactions made while offline are encrypted and queued locally, automatically syncing once connection restores.
+        </p>
+</div>
+<!-- Live Storage Meter -->
+<div class="bg-on-primary/10 rounded-lg p-space-xs flex flex-col space-y-1.5">
+<div class="flex justify-between items-center text-on-primary">
+<span class="font-caption text-caption font-medium">Local DB Health &amp; Integrity</span>
+<span class="font-caption text-caption font-bold">4.2 MB / 512 MB Available</span>
+</div>
+<div class="w-full bg-on-primary/20 h-2 rounded-full overflow-hidden">
+<div class="bg-badge-discount-bg h-full rounded-full transition-all duration-500" style="width: 100%"></div>
+</div>
+</div>
+</div>
+</section>
+<!-- Offline Buffer Metrics Bento -->
+<section class="flex flex-col space-y-space-xs">
+<div class="flex items-center justify-between px-space-2xs">
+<h3 class="font-heading-sm text-heading-sm text-on-surface">Offline Buffer Integrity</h3>
+<span class="font-caption text-caption text-text-secondary">Refreshed 2m ago</span>
+</div>
+<div class="grid grid-cols-2 gap-space-xs">
+<!-- Metric 1: Pending Queue -->
+<div class="col-span-2 bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex items-center justify-between">
+<div class="flex items-center gap-space-sm min-w-0">
+<div class="w-11 h-11 rounded-xl bg-badge-discount-bg text-badge-discount-text flex items-center justify-center flex-shrink-0" id="queueIconContainer">
+<span class="material-symbols-outlined text-[24px]" id="queueIcon">task_alt</span>
+</div>
+<div class="min-w-0">
+<p class="font-heading-sm text-heading-sm text-on-surface font-semibold truncate" id="queueCount">0 Transactions Pending</p>
+<p class="font-body-md text-body-md text-badge-discount-text font-medium truncate" id="queueSubtext">Everything backed up to cloud</p>
+</div>
+</div>
+<button aria-label="Refresh Queue" class="w-9 h-9 rounded-lg bg-surface-container-low text-on-surface-variant flex items-center justify-center active:scale-95 transition-transform" onclick="refreshQueueStatus()">
+<span class="material-symbols-outlined text-[18px]">sync</span>
+</button>
+</div>
+<!-- Metric 2: SKUs Cached -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col justify-between space-y-space-xs">
+<div class="flex items-center justify-between">
+<div class="w-9 h-9 rounded-lg bg-surface-container-high text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">category</span>
+</div>
+<span class="px-space-xs py-0.5 rounded-full bg-badge-discount-bg text-badge-discount-text font-caption text-caption font-semibold">Ready</span>
+</div>
+<div>
+<p class="font-heading-md text-heading-md text-on-surface font-bold">142</p>
+<p class="font-caption text-caption text-text-secondary">Catalog SKUs saved locally</p>
+</div>
+</div>
+<!-- Metric 3: Active Deals -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col justify-between space-y-space-xs">
+<div class="flex items-center justify-between">
+<div class="w-9 h-9 rounded-lg bg-tertiary-fixed text-tertiary flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">loyalty</span>
+</div>
+<span class="px-space-xs py-0.5 rounded-full bg-badge-discount-bg text-badge-discount-text font-caption text-caption font-semibold">Active</span>
+</div>
+<div>
+<p class="font-heading-md text-heading-md text-on-surface font-bold">6 Deals</p>
+<p class="font-caption text-caption text-text-secondary">Branch discounts verified offline</p>
+</div>
+</div>
+<!-- Metric 4: Offline Voucher Crypto Validation -->
+<div class="col-span-2 bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex items-center gap-space-sm">
+<div class="w-10 h-10 rounded-xl bg-secondary-fixed text-secondary flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-[22px]" style="font-variation-settings: 'FILL' 1;">key</span>
+</div>
+<div class="min-w-0 flex-1">
+<div class="flex items-center justify-between">
+<p class="font-label-md text-label-md text-on-surface font-semibold truncate">Offline Voucher Validation</p>
+<span class="font-caption text-caption text-primary font-semibold">Ed25519</span>
+</div>
+<p class="font-body-md text-body-md text-text-secondary truncate">Instant cryptographic signature verification enabled</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Offline Visual Anchor Gallery (Visual Richness) -->
+<section class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm space-y-space-xs">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-2xs">
+<span class="material-symbols-outlined text-primary text-[20px]">storefront</span>
+<h3 class="font-label-md text-label-md text-on-surface font-semibold">Branch Station Till Overview</h3>
+</div>
+<span class="font-caption text-caption text-badge-discount-text font-semibold flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-badge-discount-text"></span>
+        Hardware Ready
+      </span>
+</div>
+<div class="grid grid-cols-2 gap-space-xs pt-1">
+<div class="relative rounded-lg overflow-hidden h-28 bg-surface-container">
+<img class="w-full h-full object-cover" data-alt="Modern retail POS hardware terminal with touchscreen and receipt printer on polished store counter, professional lighting, crisp neutral background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDT0afFqv_yL8wg1nQ0nY7R83Sq1T7aXZT-GC6PWnkmsXRQctnw4V8ejQRRvkw-pkB-WMXXeKYd9kJwR-alDjCb2LCs3Sj-V_iKJTrOT2ep9y3BeqwxrXAhvcB8gV-Ksg5AD7ca2a4Iq3o6P0DhDirG3kkgACDw8zHbTPeg1NZLAKHH9WNwwaCDijp11n08SMFmg6JZpFm3xxQzYd6KS2NIYeq8wn7gpJy6uG_eVm3XECF-JR5jeF1hpA">
+<div class="absolute inset-0 bg-gradient-to-t from-on-background/70 to-transparent flex items-end p-space-xs">
+<span class="font-caption text-caption text-surface font-medium truncate">Till Terminal #01</span>
+</div>
+</div>
+<div class="relative rounded-lg overflow-hidden h-28 bg-surface-container">
+<img class="w-full h-full object-cover" data-alt="Close up of contactless payment NFC reader and customer loyalty card tap pad with soft blue indicator LED in sleek checkout setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBiI-I8JIUKcyASpmVnJzDEnzHnnwyCMsq-byWSOYEkK_dGkLCpZ3DBYIjAvKhomgBGcmo7cUbGwlNGxNjPfCyoA2SJghwcY-gH0iJvUKq5pWPl4-J_tlxwkZqwirhu0RuhNU_4SaDQyEcWmhzGs3mVwNzjjT3yIaFFO7g0yrxpcXw8ZMPYP9QQPXeqPcxDgWy-Z_F_mu4MZNBzGF1zahPT4hBiXGrw9HvXAHYO3EhOT0R0vbTS-DaR4g">
+<div class="absolute inset-0 bg-gradient-to-t from-on-background/70 to-transparent flex items-end p-space-xs">
+<span class="font-caption text-caption text-surface font-medium truncate">NFC &amp; QR Scanner</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Policies and Controls -->
+<section class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm space-y-space-md">
+<h3 class="font-heading-sm text-heading-sm text-on-surface">Policies &amp; Fallback Rules</h3>
+<!-- Limit Config -->
+<div class="flex items-center justify-between py-1">
+<div class="flex flex-col min-w-0 pr-space-xs">
+<span class="font-label-md text-label-md text-on-surface font-semibold">Maximum Offline Sale Limit</span>
+<span class="font-caption text-caption text-text-secondary">Safety ceiling per single offline transaction</span>
+</div>
+<div class="px-space-sm py-1.5 rounded-lg bg-surface-container text-on-surface font-heading-sm text-heading-sm font-bold flex-shrink-0">
+        ₦100,000
+      </div>
+</div>
+<div class="h-[1px] bg-border-subtle w-full opacity-60"></div>
+<!-- Fallback Channels List -->
+<div class="flex flex-col space-y-space-xs">
+<span class="font-label-md text-label-md text-on-surface font-semibold">Enabled Offline Fallback Rails</span>
+<div class="grid grid-cols-1 gap-2 pt-1">
+<div class="flex items-center justify-between p-space-xs rounded-lg bg-surface-subtle">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-text-secondary text-[20px]">payments</span>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface font-semibold">Cash Tender &amp; Change</span>
+<span class="font-caption text-caption text-text-secondary">Immediate cash register drawer trip</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-badge-discount-text text-[20px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<div class="flex items-center justify-between p-space-xs rounded-lg bg-surface-subtle">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-text-secondary text-[20px]">sms</span>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface font-semibold">Direct Till Bank Transfer</span>
+<span class="font-caption text-caption text-text-secondary">Auto USSD / SMS gateway matching</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-badge-discount-text text-[20px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<div class="flex items-center justify-between p-space-xs rounded-lg bg-surface-subtle">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-text-secondary text-[20px]">credit_card</span>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface font-semibold">Store-and-Forward POS Card</span>
+<span class="font-caption text-caption text-text-secondary">Chip cryptogram queued for upload</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-badge-discount-text text-[20px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+</div>
+</div>
+<div class="h-[1px] bg-border-subtle w-full opacity-60"></div>
+<!-- Auto Sync Policy Toggle -->
+<div class="flex items-center justify-between">
+<div class="flex flex-col min-w-0 pr-space-xs">
+<span class="font-label-md text-label-md text-on-surface font-semibold">Auto-Sync on Connectivity</span>
+<span class="font-caption text-caption text-text-secondary">Instantly dump buffer when 4G/WiFi reconnects</span>
+</div>
+<label class="relative inline-flex items-center cursor-pointer select-none">
+<input checked="" class="sr-only peer" type="checkbox">
+<div class="w-12 h-7 bg-surface-container rounded-full peer peer-checked:bg-primary peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-surface-canvas after:rounded-full after:h-6 after:w-6 after:transition-all shadow-sm"></div>
+</label>
+</div>
+</section>
+<!-- Interactive Action Center -->
+<section class="flex flex-col space-y-space-xs pt-space-xs">
+<!-- Primary CTA: Simulation Sale -->
+<button class="w-full h-14 bg-primary text-on-primary rounded-xl font-button-primary text-button-primary font-semibold flex items-center justify-center gap-space-xs shadow-md active:scale-[0.99] transition-all" id="testSaleBtn" onclick="runOfflineSimulation()">
+<span class="material-symbols-outlined text-[22px]">point_of_sale</span>
+<span>Test Offline Cash Register Sale</span>
+</button>
+<!-- Secondary Utilities -->
+<div class="grid grid-cols-2 gap-space-xs pt-1">
+<button class="h-12 bg-surface-container text-on-secondary-container rounded-xl font-button-secondary text-button-secondary font-medium flex items-center justify-center gap-1.5 active:bg-surface-container-high transition-colors" id="reindexBtn" onclick="reindexDatabase()">
+<span class="material-symbols-outlined text-[18px]" id="reindexIcon">database</span>
+<span>Re-index DB</span>
+</button>
+<button class="h-12 bg-surface-container text-on-secondary-container rounded-xl font-button-secondary text-button-secondary font-medium flex items-center justify-center gap-1.5 active:bg-surface-container-high transition-colors" onclick="viewSyncHistory()">
+<span class="material-symbols-outlined text-[18px]">history</span>
+<span>Sync Log</span>
+</button>
+</div>
+<div class="text-center pt-space-2xs">
+<p class="font-caption text-caption text-text-tertiary">VEMTAP Core Engine v4.12.8 • Local Build 8820-Alpha</p>
+</div>
+</section>
+<!-- Toast Notification Modal (Micro-interaction feedback) -->
+<div class="fixed bottom-6 left-margin right-margin bg-on-background text-inverse-on-surface px-space-md py-space-sm rounded-xl shadow-xl flex items-center justify-between transition-all duration-300 transform translate-y-24 opacity-0 pointer-events-none z-50" id="toastNotification">
+<div class="flex items-center gap-space-xs min-w-0">
+<span class="material-symbols-outlined text-badge-discount-text text-[22px]" id="toastIcon">check_circle</span>
+<span class="font-body-md text-body-md font-medium truncate" id="toastMessage">Test Sale Buffered!</span>
+</div>
+<span class="font-caption text-caption text-primary-fixed-dim font-bold flex-shrink-0">Local #TX-902</span>
+</div>
+</div>
+<script>
+  let offlineQueue = 0;
+  let isForcedOffline = false;
+
+  function showToast(message, iconName = 'check_circle', iconColor = 'text-badge-discount-text') {
+    const toast = document.getElementById('toastNotification');
+    const msgEl = document.getElementById('toastMessage');
+    const iconEl = document.getElementById('toastIcon');
+    
+    msgEl.textContent = message;
+    iconEl.textContent = iconName;
+    iconEl.className = 'material-symbols-outlined text-[22px] ' + iconColor;
+
+    toast.classList.remove('translate-y-24', 'opacity-0', 'pointer-events-none');
+    toast.classList.add('translate-y-0', 'opacity-100');
+
+    setTimeout(() => {
+      toast.classList.add('translate-y-24', 'opacity-0', 'pointer-events-none');
+      toast.classList.remove('translate-y-0', 'opacity-100');
+    }, 3200);
+  }
+
+  function toggleNetworkMode(forced) {
+    isForcedOffline = forced;
+    const statusLabel = document.getElementById('networkStatusLabel');
+    const latencyLabel = document.getElementById('networkLatencyLabel');
+    const dot = document.getElementById('statusDot');
+    const dotPulse = document.getElementById('statusDotPulse');
+    const simTag = document.getElementById('simulationTag');
+    const heroCard = document.getElementById('heroBufferCard');
+
+    if (forced) {
+      statusLabel.textContent = 'Simulated Offline Mode Active';
+      latencyLabel.textContent = 'Hardware isolation: Zero cloud dependency';
+      dot.className = 'relative inline-flex rounded-full h-3 w-3 bg-tertiary';
+      dotPulse.children[0].className = 'animate-ping absolute inline-flex h-full w-full rounded-full bg-tertiary opacity-75';
+      simTag.textContent = 'Forced Offline';
+      simTag.className = 'px-space-xs py-0.5 rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-caption text-caption font-semibold';
+      heroCard.className = 'relative overflow-hidden bg-tertiary rounded-xl p-space-md shadow-md text-on-tertiary transition-colors duration-300';
+      showToast('Switched to Isolated Local Mode', 'wifi_off', 'text-tertiary-fixed');
+    } else {
+      statusLabel.textContent = 'Online (Connected to VEMTAP Cloud)';
+      latencyLabel.textContent = 'Latency: 28ms • TLS 1.3 AES-256';
+      dot.className = 'relative inline-flex rounded-full h-3 w-3 bg-badge-discount-text';
+      dotPulse.children[0].className = 'animate-ping absolute inline-flex h-full w-full rounded-full bg-badge-discount-text opacity-75';
+      simTag.textContent = 'Auto Routing';
+      simTag.className = 'px-space-xs py-0.5 rounded-full bg-surface-container text-on-surface-variant font-caption text-caption font-medium';
+      heroCard.className = 'relative overflow-hidden bg-primary rounded-xl p-space-md shadow-md text-on-primary transition-colors duration-300';
+
+      if (offlineQueue > 0) {
+        showToast(`Auto-syncing ${offlineQueue} local transactions...`, 'cloud_sync', 'text-primary-fixed');
+        setTimeout(() => {
+          offlineQueue = 0;
+          updateQueueDisplay();
+          showToast('All transactions synchronized with cloud!', 'verified', 'text-badge-discount-text');
+        }, 1400);
+      } else {
+        showToast('Online connection re-established', 'wifi', 'text-badge-discount-text');
+      }
+    }
+  }
+
+  function updateQueueDisplay() {
+    const queueCount = document.getElementById('queueCount');
+    const queueSubtext = document.getElementById('queueSubtext');
+    const container = document.getElementById('queueIconContainer');
+    const icon = document.getElementById('queueIcon');
+
+    if (offlineQueue === 0) {
+      queueCount.textContent = '0 Transactions Pending';
+      queueSubtext.textContent = 'Everything backed up to cloud';
+      queueSubtext.className = 'font-body-md text-body-md text-badge-discount-text font-medium truncate';
+      container.className = 'w-11 h-11 rounded-xl bg-badge-discount-bg text-badge-discount-text flex items-center justify-center flex-shrink-0';
+      icon.textContent = 'task_alt';
+    } else {
+      queueCount.textContent = `${offlineQueue} Sale${offlineQueue > 1 ? 's' : ''} Buffered Locally`;
+      queueSubtext.textContent = 'Encrypted in SQLite queue • Ready for sync';
+      queueSubtext.className = 'font-body-md text-body-md text-tertiary font-medium truncate';
+      container.className = 'w-11 h-11 rounded-xl bg-tertiary-fixed text-on-tertiary-fixed flex items-center justify-center flex-shrink-0';
+      icon.textContent = 'pending_actions';
+    }
+  }
+
+  function runOfflineSimulation() {
+    offlineQueue += 1;
+    updateQueueDisplay();
+    showToast(`₦14,500 Cash Sale Stored in SQLite (#TX-10${offlineQueue})`, 'point_of_sale', 'text-primary-fixed');
+  }
+
+  function refreshQueueStatus() {
+    if (offlineQueue > 0 && !isForcedOffline) {
+      showToast('Broadcasting buffer to VEMTAP Cloud...', 'sync', 'text-primary-fixed');
+      setTimeout(() => {
+        offlineQueue = 0;
+        updateQueueDisplay();
+        showToast('Queue empty. Fully Synced!', 'check_circle', 'text-badge-discount-text');
+      }, 1000);
+    } else if (isForcedOffline) {
+      showToast('Cannot sync: Offline mode currently forced', 'cloud_off', 'text-error');
+    } else {
+      showToast('Local database is already synchronized', 'cloud_done', 'text-badge-discount-text');
+    }
+  }
+
+  function reindexDatabase() {
+    const icon = document.getElementById('reindexIcon');
+    icon.classList.add('animate-spin');
+    showToast('Re-indexing local catalog & SQLite tables...', 'database', 'text-primary-fixed');
+    
+    setTimeout(() => {
+      icon.classList.remove('animate-spin');
+      showToast('Catalog index healthy: 142 SKUs verified', 'verified', 'text-badge-discount-text');
+    }, 1200);
+  }
+
+  function viewSyncHistory() {
+    showToast('Sync Log: Last commit at 14:02:18 (0 errors)', 'receipt_long', 'text-secondary-fixed');
+  }
+</script></main></body></html>

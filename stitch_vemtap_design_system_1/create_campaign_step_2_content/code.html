@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_stack" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet"/><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "secondary-fixed-dim": "#b2c6f7", "primary": "#0055c4", "secondary": "#4a5e88", "on-background": "#141b2b", "on-error": "#ffffff", "on-primary": "#ffffff", "inverse-primary": "#b0c6ff", "tertiary-container": "#c94a03", "tertiary-fixed-dim": "#ffb599", "inverse-on-surface": "#edf0ff", "surface": "#f9f9ff", "surface-container-highest": "#dce2f7", "primary-fixed": "#d9e2ff", "secondary-fixed": "#d8e2ff", "error": "#ba1a1a", "error-container": "#ffdad6", "text-secondary": "#4B5563", "on-tertiary-fixed": "#370e00", "on-primary-fixed": "#001945", "inverse-surface": "#293040", "surface-bright": "#f9f9ff", "outline-variant": "#c2c6d7", "on-surface": "#141b2b", "on-primary-container": "#fcfaff", "surface-variant": "#dce2f7", "on-secondary": "#ffffff", "on-tertiary": "#ffffff", "surface-dim": "#d3daef", "on-secondary-fixed-variant": "#32466f", "on-secondary-container": "#435881", "badge-discount-bg": "#ECFDF5", "on-surface-variant": "#424655", "border-active": "#BFDBFE", "surface-container-high": "#e1e8fd", "border-subtle": "#E5E7EB", "secondary-container": "#bacfff", "on-tertiary-fixed-variant": "#7f2b00", "surface-subtle": "#F8FAFC", "surface-container-low": "#f1f3ff", "surface-container": "#e9edff", "surface-canvas": "#FFFFFF", "surface-tint-blue": "#EEF5FF", "text-tertiary": "#9CA3AF", "surface-tint": "#0058cb", "tertiary-fixed": "#ffdbce", "surface-container-lowest": "#ffffff", "on-error-container": "#93000a", "on-secondary-fixed": "#001a41", "background": "#f9f9ff", "on-tertiary-container": "#fffaf9", "text-primary": "#111827", "badge-discount-text": "#059669", "outline": "#727786", "primary-fixed-dim": "#b0c6ff", "on-primary-fixed-variant": "#00429b", "tertiary": "#a13900", "primary-container": "#066cf4" }, borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, spacing: { "margin": "1.5rem", "gutter": "1rem", "space-md": "1rem", "space-xs": "0.5rem", "space-sm": "0.75rem", "space-3xl": "3rem", "space-lg": "1.5rem", "space-2xl": "2.5rem", "space-2xs": "0.25rem", "space-xl": "2rem" }, fontFamily: { "heading-sm": ["Inter"], "heading-lg": ["Inter"], "display-hero-mobile": ["Inter"], "label-md": ["Inter"], "heading-md": ["Inter"], "button-secondary": ["Inter"], "body-lg": ["Inter"], "body-md": ["Inter"], "button-primary": ["Inter"], "label-sm": ["Inter"], "display-hero": ["Inter"], "caption": ["Inter"] }, fontSize: { "heading-sm": ["18px", { "lineHeight": "24px", "fontWeight": "600" }], "heading-lg": ["26px", { "lineHeight": "34px", "letterSpacing": "-0.015em", "fontWeight": "600" }], "display-hero-mobile": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }], "label-md": ["14px", { "lineHeight": "18px", "fontWeight": "500" }], "heading-md": ["22px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600" }], "button-secondary": ["15px", { "lineHeight": "20px", "fontWeight": "500" }], "body-lg": ["17px", { "lineHeight": "24px", "fontWeight": "400" }], "body-md": ["15px", { "lineHeight": "22px", "fontWeight": "400" }], "button-primary": ["16px", { "lineHeight": "20px", "letterSpacing": "-0.005em", "fontWeight": "600" }], "label-sm": ["13px", { "lineHeight": "16px", "fontWeight": "500" }], "display-hero": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.025em", "fontWeight": "700" }], "caption": ["12px", { "lineHeight": "16px", "fontWeight": "400" }] } } } };</script><style>@layer base{html,body{width:100vw;margin:0;padding:0;}body{overscroll-behavior:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface font-body-md text-on-surface flex flex-col min-h-screen"><header class="fixed top-0 w-full z-50 pt-safe bg-surface/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-16 px-margin flex items-center justify-between gap-space-sm"><div class="flex items-center gap-space-xs"><button aria-label="Go back" class="w-11 h-11 flex items-center justify-center rounded-full text-on-surface hover:bg-surface-container-high transition-colors" onclick="history.back()" type="button"><span class="material-symbols-outlined text-[24px]">arrow_back</span></button><div class="flex flex-col"><h1 class="font-heading-sm text-heading-sm text-on-surface tracking-tight leading-tight">Create Campaign   Content</h1><span class="font-caption text-caption text-text-secondary">Create Campaign Step</span></div></div><div class="flex items-center gap-space-xs"><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex flex-col relative w-full pt-16 pb-safe bg-surface min-h-screen"><div class="flex flex-col w-full pb-32">
+<!-- Top Progress Stepper (Step 2 of 6) -->
+<div class="px-margin pt-space-md pb-space-sm bg-surface">
+<div class="flex items-center justify-between gap-space-2xs mb-space-xs">
+<div class="flex items-center gap-space-2xs">
+<span class="w-5 h-5 rounded-full bg-primary flex items-center justify-center text-on-primary">
+<span class="material-symbols-outlined text-[13px] font-bold">check</span>
+</span>
+<span class="font-label-sm text-label-sm text-primary">Goal Set</span>
+</div>
+<div class="h-0.5 w-6 bg-primary rounded-full"></div>
+<div class="flex items-center gap-space-2xs">
+<span class="w-5 h-5 rounded-full bg-primary-container text-on-primary flex items-center justify-center font-label-sm text-label-sm shadow-sm">
+          2
+        </span>
+<span class="font-label-sm text-label-sm text-primary font-semibold">Content</span>
+</div>
+<div class="h-0.5 w-6 bg-surface-container-highest rounded-full"></div>
+<div class="flex items-center gap-space-2xs">
+<span class="w-5 h-5 rounded-full bg-surface-container-highest text-text-tertiary flex items-center justify-center font-label-sm text-label-sm">
+          3
+        </span>
+<span class="font-label-sm text-label-sm text-text-tertiary">Audience</span>
+</div>
+<div class="h-0.5 w-4 bg-surface-container-highest rounded-full"></div>
+<span class="font-caption text-caption text-text-secondary bg-surface-container px-space-xs py-0.5 rounded-full">
+        Step 2 of 6
+      </span>
+</div>
+<!-- Stepper Linear Micro-track -->
+<div class="w-full bg-surface-container-highest h-1 rounded-full overflow-hidden flex">
+<div class="bg-primary h-full w-[33.33%] rounded-full transition-all duration-300"></div>
+</div>
+</div>
+<!-- Screen Title & Guidance -->
+<div class="px-margin pt-space-sm pb-space-md">
+<div class="flex items-start justify-between">
+<div>
+<h2 class="font-heading-md text-heading-md text-text-primary tracking-tight">
+          Select Campaign Content
+        </h2>
+<p class="font-body-md text-body-md text-text-secondary mt-space-2xs">
+          Pick existing VEMTAP assets to feature. You don’t need to recreate content from scratch.
+        </p>
+</div>
+</div>
+</div>
+<!-- Filter Chips Ribbon -->
+<div class="w-full overflow-x-auto no-scrollbar px-margin pb-space-sm flex gap-space-xs">
+<button class="shrink-0 h-9 px-space-md rounded-full bg-surface-container text-text-secondary font-label-sm text-label-sm active:scale-95 transition-transform flex items-center gap-1.5" type="button">
+<span>All Eligible</span>
+<span class="bg-surface-container-highest text-text-secondary px-1.5 py-0.5 rounded-full text-[11px]">7</span>
+</button>
+<button class="shrink-0 h-9 px-space-md rounded-full bg-surface-tint-blue text-primary-container font-label-sm text-label-sm flex items-center gap-1.5 shadow-sm" type="button">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">local_offer</span>
+<span class="font-semibold">Deals (3)</span>
+</button>
+<button class="shrink-0 h-9 px-space-md rounded-full bg-surface-container text-text-secondary font-label-sm text-label-sm active:scale-95 transition-transform flex items-center gap-1.5" type="button">
+<span class="material-symbols-outlined text-[16px]">storefront</span>
+<span>Business Profile (1)</span>
+</button>
+<button class="shrink-0 h-9 px-space-md rounded-full bg-surface-container text-text-secondary font-label-sm text-label-sm active:scale-95 transition-transform" type="button">
+      Products (2)
+    </button>
+<button class="shrink-0 h-9 px-space-md rounded-full bg-surface-container text-text-secondary font-label-sm text-label-sm active:scale-95 transition-transform" type="button">
+      Services (1)
+    </button>
+</div>
+<!-- Content Items Listing -->
+<div class="px-margin flex flex-col gap-space-sm mt-space-2xs" id="items-container">
+<!-- Item 1 [Selected Deal] -->
+<div class="content-item selected relative bg-surface-canvas rounded-xl p-space-md shadow-sm transition-all duration-200 cursor-pointer" onclick="toggleSelect(this)">
+<div class="flex items-start gap-space-sm">
+<!-- Thumbnail -->
+<div class="relative w-20 h-20 rounded-lg overflow-hidden shrink-0 bg-surface-container">
+<img class="w-full h-full object-cover" data-alt="Close up gourmet woodfire grilled angus burger served on brioche bun with side of golden truffle parmesan fries and fresh mint lime mojito cocktail in a rustic modern restaurant setting with warm ambient lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuACfBY1wpvviJoMA5SwCiq_CH8OCS75CvACpdYIRY2nWCnMR04HHl6NTWJuIEsw5r664sayPll4KPjMRsp4WdgFZrmhxCh5HbAlgC0kLOIjNyZnUdyCX1qHlXDOUOQvYex979WW8U4xXDdU96SSC9UxthgnowfnRWqvGqcGnefTCaaE5ZJYFca0Yz-zlZJqtF8pfcNP_YEaEH6ZHRD7TMvIkZuirSx42DmMxiZD2gzENGyuPzMgzAfn_g"/>
+<div class="absolute top-1 left-1 bg-badge-discount-bg text-badge-discount-text font-caption text-[10px] px-1.5 py-0.5 rounded-full font-bold">
+            20% OFF
+          </div>
+</div>
+<!-- Info details -->
+<div class="flex flex-col flex-1 min-w-0 pr-space-xs">
+<div class="flex items-center justify-between gap-space-2xs">
+<span class="font-caption text-caption uppercase tracking-wider text-primary font-semibold">Deal Pass</span>
+</div>
+<h3 class="font-heading-sm text-heading-sm text-text-primary truncate mt-0.5">
+            Prime Lunch Combo Pass
+          </h3>
+<p class="font-caption text-caption text-text-secondary mt-1 line-clamp-2">
+            Woodfire Angus burger + Truffle fries + Mojito • <span class="font-semibold text-text-primary">₦9,600</span> <span class="line-through text-text-tertiary">₦12,000</span>
+</p>
+<!-- Performance badge -->
+<div class="flex items-center gap-space-2xs mt-space-xs">
+<span class="inline-flex items-center gap-1 bg-surface-tint-blue text-primary font-label-sm text-[11px] px-2 py-0.5 rounded-md">
+<span class="material-symbols-outlined text-[13px]" style="font-variation-settings: 'FILL' 1;">trending_up</span>
+              142 prior claims • High conversion
+            </span>
+</div>
+<!-- Location -->
+<div class="flex items-center gap-1 text-text-tertiary font-caption text-caption mt-1.5">
+<span class="material-symbols-outlined text-[14px]">location_on</span>
+<span class="truncate">Wuse II Flagship & Maitama</span>
+</div>
+</div>
+<!-- Selection Checkbox -->
+<div class="select-indicator shrink-0 w-6 h-6 rounded-full bg-primary-container text-on-primary flex items-center justify-center transition-all duration-150">
+<span class="material-symbols-outlined text-[16px] font-bold">check</span>
+</div>
+</div>
+</div>
+<!-- Item 2 [Selected Storefront] -->
+<div class="content-item selected relative bg-surface-canvas rounded-xl p-space-md shadow-sm transition-all duration-200 cursor-pointer" onclick="toggleSelect(this)">
+<div class="flex items-start gap-space-sm">
+<!-- Thumbnail -->
+<div class="relative w-20 h-20 rounded-lg overflow-hidden shrink-0 bg-surface-container">
+<img class="w-full h-full object-cover" data-alt="Chic modern bistro entrance with warm glowing incandescent bulbs, exposed brick texture, sleek industrial signage reading Urban Grill, framed by tropical greenery in Abuja" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBrKZwec2aJalkC1IXpZ6zEuAWfyuGylRuWSr0gTOkzBFiwIssaXIZ7O_1Qupf4abcRrNDumgD4GzvWFeRgcQJoBRuocx6s7HRQEjfr-eemPok2i-1wlhf2r6NygB2UR-7RMiMESk7s6uY3Up-rAKbAUWhFWvC0_lEFWIkYwJH7OMyDx1OzWa83qH1G6tFApWMGCit6DjlW1LRwgwh68pp2aVn-DDWApYPKb9tZsPgGRjk_IC1QHcxD7w"/>
+<div class="absolute top-1 left-1 bg-primary text-on-primary font-caption text-[10px] px-1.5 py-0.5 rounded-full font-medium flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[10px]">verified</span>
+            Verified
+          </div>
+</div>
+<!-- Info details -->
+<div class="flex flex-col flex-1 min-w-0 pr-space-xs">
+<div class="flex items-center justify-between gap-space-2xs">
+<span class="font-caption text-caption uppercase tracking-wider text-secondary font-semibold">Storefront Profile</span>
+</div>
+<h3 class="font-heading-sm text-heading-sm text-text-primary truncate mt-0.5">
+            Urban Grill & Bistro — Flagship
+          </h3>
+<p class="font-caption text-caption text-text-secondary mt-1 truncate">
+            Woodfire & Craft Kitchen • <span class="font-semibold text-text-primary">4.9 ★</span> (420+ reviews)
+          </p>
+<!-- Performance badge -->
+<div class="flex items-center gap-space-2xs mt-space-xs">
+<span class="inline-flex items-center gap-1 bg-surface-container text-on-surface-variant font-label-sm text-[11px] px-2 py-0.5 rounded-md">
+<span class="material-symbols-outlined text-[13px]">visibility</span>
+              14,280 views this month
+            </span>
+</div>
+<!-- Location -->
+<div class="flex items-center gap-1 text-text-tertiary font-caption text-caption mt-1.5">
+<span class="material-symbols-outlined text-[14px]">store</span>
+<span class="truncate">Plot 14 Admiralty Way, Wuse II</span>
+</div>
+</div>
+<!-- Selection Checkbox -->
+<div class="select-indicator shrink-0 w-6 h-6 rounded-full bg-primary-container text-on-primary flex items-center justify-center transition-all duration-150">
+<span class="material-symbols-outlined text-[16px] font-bold">check</span>
+</div>
+</div>
+</div>
+<!-- Item 3 [Unchecked Product] -->
+<div class="content-item relative bg-surface-canvas rounded-xl p-space-md shadow-sm transition-all duration-200 cursor-pointer" onclick="toggleSelect(this)">
+<div class="flex items-start gap-space-sm">
+<!-- Thumbnail -->
+<div class="relative w-20 h-20 rounded-lg overflow-hidden shrink-0 bg-surface-container">
+<img class="w-full h-full object-cover" data-alt="Sizzling 250g premium ribeye steak seared to perfection on a cast iron skillet garnished with rosemary butter and roasted garlic cloves high key restaurant studio photography" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD971VXa926f58ngfvv_ZeCZo_D6q1QrRt-yBjbvXxst15IWEuaIYjJn_m1MRzjIe6oRvJLPa0bI6jvjBa0lbrZOAz1mA1e9ZpzxxJyQszdaE8BGeM_HLbwAACjqfG0LFBf8DFu4zV4fE09eHuO_xbi_JvCaSrK116NeuohzaWvTneuXVV__zL-gFb667yCmC4YQ1XCNV_nuF4pUnaTvWMyi6obOrIA9BFgb83Df6--MvgMxnAvd-BVSg"/>
+<div class="absolute top-1 left-1 bg-surface-container-high text-on-surface-variant font-caption text-[10px] px-1.5 py-0.5 rounded-full font-medium">
+            Best Seller
+          </div>
+</div>
+<!-- Info details -->
+<div class="flex flex-col flex-1 min-w-0 pr-space-xs">
+<div class="flex items-center justify-between gap-space-2xs">
+<span class="font-caption text-caption uppercase tracking-wider text-text-secondary font-semibold">Product Item</span>
+</div>
+<h3 class="font-heading-sm text-heading-sm text-text-primary truncate mt-0.5">
+            Woodfire Ribeye Steak (250g)
+          </h3>
+<p class="font-caption text-caption text-text-secondary mt-1 truncate">
+            A la carte menu • <span class="font-semibold text-text-primary">₦16,000</span> • High margin
+          </p>
+<!-- Performance badge -->
+<div class="flex items-center gap-space-2xs mt-space-xs">
+<span class="inline-flex items-center gap-1 bg-surface-container-low text-text-secondary font-label-sm text-[11px] px-2 py-0.5 rounded-md">
+<span class="material-symbols-outlined text-[13px]">point_of_sale</span>
+              184 units sold on POS
+            </span>
+</div>
+<!-- Location -->
+<div class="flex items-center gap-1 text-text-tertiary font-caption text-caption mt-1.5">
+<span class="material-symbols-outlined text-[14px]">location_on</span>
+<span class="truncate">Wuse II only</span>
+</div>
+</div>
+<!-- Selection Checkbox -->
+<div class="select-indicator shrink-0 w-6 h-6 rounded-full bg-surface-container-highest text-transparent flex items-center justify-center transition-all duration-150">
+<span class="material-symbols-outlined text-[16px] font-bold">check</span>
+</div>
+</div>
+</div>
+<!-- Item 4 [Unchecked Deal] -->
+<div class="content-item relative bg-surface-canvas rounded-xl p-space-md shadow-sm transition-all duration-200 cursor-pointer" onclick="toggleSelect(this)">
+<div class="flex items-start gap-space-sm">
+<!-- Thumbnail -->
+<div class="relative w-20 h-20 rounded-lg overflow-hidden shrink-0 bg-surface-container">
+<img class="w-full h-full object-cover" data-alt="Evening celebratory dinner table setup with wine glasses, steak platter, and soft golden candlelight in an upscale Abuja terrace lounge" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC6dG21tpm8G3mOJ6_lUWlL6zbDlKU5xPlJr4pRiBTIOBV8Zz2aM2p8E6UQ4O4SCpK6Q2GNi_VCEqAeX1HjEQ61qSHp6DfcfG9IhOuaSOop9KKuM1DuneF-SUVa46Ky4p_qoSkIBtVXT9YzGzP2lw21iRX5QUX88-TDGMIuEOCWmfRK8WdtqwXC4OF2Z0XwXNHeN2qgkRBcAGG5SCVcH21LUdgl06l_oGLVzy17t7uFiJi74g9oXnQ1DA"/>
+<div class="absolute top-1 left-1 bg-badge-discount-bg text-badge-discount-text font-caption text-[10px] px-1.5 py-0.5 rounded-full font-bold">
+            15% OFF
+          </div>
+</div>
+<!-- Info details -->
+<div class="flex flex-col flex-1 min-w-0 pr-space-xs">
+<div class="flex items-center justify-between gap-space-2xs">
+<span class="font-caption text-caption uppercase tracking-wider text-primary font-semibold">Special Deal</span>
+</div>
+<h3 class="font-heading-sm text-heading-sm text-text-primary truncate mt-0.5">
+            Weekend Glow & Steak Feast
+          </h3>
+<p class="font-caption text-caption text-text-secondary mt-1 truncate">
+            Friday & Saturday dinner special
+          </p>
+<!-- Location -->
+<div class="flex items-center gap-1 text-text-tertiary font-caption text-caption mt-space-sm">
+<span class="material-symbols-outlined text-[14px]">location_on</span>
+<span class="truncate">Wuse II & Maitama</span>
+</div>
+</div>
+<!-- Selection Checkbox -->
+<div class="select-indicator shrink-0 w-6 h-6 rounded-full bg-surface-container-highest text-transparent flex items-center justify-center transition-all duration-150">
+<span class="material-symbols-outlined text-[16px] font-bold">check</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Dynamic Summary Badge -->
+<div class="px-margin mt-space-lg mb-space-xs flex justify-center">
+<div class="inline-flex items-center gap-space-xs bg-surface-container-high px-space-md py-space-xs rounded-full shadow-sm">
+<span class="w-2 h-2 rounded-full bg-primary-container animate-pulse"></span>
+<span class="font-label-sm text-label-sm text-text-primary font-medium" id="selection-summary">
+        2 items selected for this campaign
+      </span>
+</div>
+</div>
+<!-- Sticky Bottom Control Deck -->
+<div class="fixed bottom-0 left-0 w-full z-40 bg-surface-canvas/90 backdrop-blur-xl px-margin pt-space-sm pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
+<div class="flex flex-col gap-space-xs max-w-lg mx-auto pb-space-xs">
+<button class="w-full h-[52px] bg-primary-container text-on-primary rounded-xl font-button-primary text-button-primary flex items-center justify-center gap-2 shadow-[0_8px_24px_-4px_rgba(6,108,244,0.3)] active:scale-[0.98] transition-transform" type="button">
+<span>Continue to Audience (Step 3)</span>
+<span class="material-symbols-outlined text-[20px]">arrow_forward</span>
+</button>
+<div class="flex items-center justify-between px-space-xs pt-1">
+<button class="h-10 px-space-sm rounded-lg text-text-secondary hover:bg-surface-container font-button-secondary text-button-secondary transition-colors flex items-center gap-1" onclick="history.back()" type="button">
+<span class="material-symbols-outlined text-[18px]">chevron_left</span>
+<span>Back</span>
+</button>
+<button class="h-10 px-space-sm rounded-lg text-primary hover:bg-surface-tint-blue font-label-md text-label-md transition-colors flex items-center gap-1.5" type="button">
+<span class="material-symbols-outlined text-[18px]">save</span>
+<span>Save Draft</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<script>
+  function toggleSelect(cardElement) {
+    const isSelected = cardElement.classList.contains('selected');
+    const indicator = cardElement.querySelector('.select-indicator');
+
+    if (isSelected) {
+      cardElement.classList.remove('selected');
+      indicator.classList.remove('bg-primary-container', 'text-on-primary');
+      indicator.classList.add('bg-surface-container-highest', 'text-transparent');
+    } else {
+      cardElement.classList.add('selected');
+      indicator.classList.remove('bg-surface-container-highest', 'text-transparent');
+      indicator.classList.add('bg-primary-container', 'text-on-primary');
+    }
+
+    const count = document.querySelectorAll('.content-item.selected').length;
+    const summaryText = document.getElementById('selection-summary');
+    if (summaryText) {
+      summaryText.innerText = count + (count === 1 ? ' item selected for this campaign' : ' items selected for this campaign');
+    }
+  }
+</script></main></body></html>

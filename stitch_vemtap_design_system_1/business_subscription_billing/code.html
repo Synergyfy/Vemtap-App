@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_stack" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "background": "#f9f9ff", "tertiary-container": "#c94a03", "on-secondary": "#ffffff", "inverse-on-surface": "#edf0ff", "on-surface-variant": "#424655", "on-primary": "#ffffff", "on-primary-fixed-variant": "#00429b", "on-surface": "#141b2b", "on-primary-fixed": "#001945", "secondary-fixed-dim": "#b2c6f7", "tertiary-fixed-dim": "#ffb599", "on-secondary-fixed-variant": "#32466f", "border-active": "#BFDBFE", "text-tertiary": "#9CA3AF", "inverse-primary": "#b0c6ff", "primary": "#0055c4", "on-tertiary-fixed-variant": "#7f2b00", "primary-fixed-dim": "#b0c6ff", "surface": "#f9f9ff", "on-error": "#ffffff", "on-tertiary": "#ffffff", "primary-container": "#066cf4", "secondary-fixed": "#d8e2ff", "surface-subtle": "#F8FAFC", "surface-container-high": "#e1e8fd", "badge-discount-bg": "#ECFDF5", "on-primary-container": "#fcfaff", "surface-dim": "#d3daef", "error-container": "#ffdad6", "on-background": "#141b2b", "text-primary": "#111827", "inverse-surface": "#293040", "secondary-container": "#bacfff", "text-secondary": "#4B5563", "surface-canvas": "#FFFFFF", "surface-variant": "#dce2f7", "surface-tint": "#0058cb", "on-error-container": "#93000a", "primary-fixed": "#d9e2ff", "tertiary": "#a13900", "border-subtle": "#E5E7EB", "outline": "#727786", "surface-container-low": "#f1f3ff", "outline-variant": "#c2c6d7", "surface-bright": "#f9f9ff", "surface-container-highest": "#dce2f7", "surface-container": "#e9edff", "surface-container-lowest": "#ffffff", "on-secondary-container": "#435881", "on-tertiary-container": "#fffaf9", "on-secondary-fixed": "#001a41", "tertiary-fixed": "#ffdbce", "on-tertiary-fixed": "#370e00", "badge-discount-text": "#059669", "secondary": "#4a5e88", "surface-tint-blue": "#EEF5FF", "error": "#ba1a1a" }, borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, spacing: { "gutter": "1rem", "space-xs": "0.5rem", "space-md": "1rem", "space-lg": "1.5rem", "space-sm": "0.75rem", "margin": "1.5rem", "space-2xl": "2.5rem", "space-xl": "2rem", "space-3xl": "3rem", "space-2xs": "0.25rem" }, fontFamily: { "display-hero-mobile": ["Inter"], "label-md": ["Inter"], "caption": ["Inter"], "button-secondary": ["Inter"], "body-md": ["Inter"], "display-hero": ["Inter"], "body-lg": ["Inter"], "heading-md": ["Inter"], "button-primary": ["Inter"], "label-sm": ["Inter"], "heading-lg": ["Inter"], "heading-sm": ["Inter"] }, fontSize: { "display-hero-mobile": ["32px", { lineHeight: "40px", letterSpacing: "-0.02em", fontWeight: "700" }], "label-md": ["14px", { lineHeight: "18px", fontWeight: "500" }], "caption": ["12px", { lineHeight: "16px", fontWeight: "400" }], "button-secondary": ["15px", { lineHeight: "20px", fontWeight: "500" }], "body-md": ["15px", { lineHeight: "22px", fontWeight: "400" }], "display-hero": ["36px", { lineHeight: "44px", letterSpacing: "-0.025em", fontWeight: "700" }], "body-lg": ["17px", { lineHeight: "24px", fontWeight: "400" }], "heading-md": ["22px", { lineHeight: "28px", letterSpacing: "-0.01em", fontWeight: "600" }], "button-primary": ["16px", { lineHeight: "20px", letterSpacing: "-0.005em", fontWeight: "600" }], "label-sm": ["13px", { lineHeight: "16px", fontWeight: "500" }], "heading-lg": ["26px", { lineHeight: "34px", letterSpacing: "-0.015em", fontWeight: "600" }], "heading-sm": ["18px", { lineHeight: "24px", fontWeight: "600" }] } } } };</script><style>@layer base{html,body{width:100%;margin:0;padding:0;}body{overscroll-behavior:none;font-family:'Inter',sans-serif;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface text-on-surface antialiased flex flex-col min-h-screen"><header class="fixed top-0 w-full z-50 pt-safe bg-surface/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-16 px-margin flex items-center justify-between"><div class="flex items-center gap-space-xs"><button aria-label="Go back" class="min-h-[44px] min-w-[44px] -ml-2 flex items-center justify-center rounded-full text-on-surface hover:bg-surface-container-low transition-colors" onclick="history.back()" type="button"><span class="material-symbols-outlined text-[24px]">arrow_back_ios_new</span></button><h1 class="font-heading-md text-heading-md text-on-surface">Notification Center</h1></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></header><main class="flex-1 flex flex-col w-full bg-surface pt-16 pb-safe"><div class="flex flex-col w-full px-margin pb-space-2xl space-y-space-lg">
+<!-- Value & Growth Hero Card -->
+<section class="relative overflow-hidden rounded-xl bg-surface-container p-space-md shadow-sm transition-all duration-300">
+<div class="absolute -right-12 -top-12 w-40 h-40 bg-primary/10 rounded-full blur-2xl pointer-events-none"></div>
+<div class="relative z-10 flex flex-col space-y-space-md">
+<!-- Status & Tier Badge -->
+<div class="flex items-center justify-between">
+<div class="flex items-center space-x-space-xs">
+<div class="w-2.5 h-2.5 rounded-full bg-badge-discount-text animate-pulse"></div>
+<span class="font-label-sm text-label-sm text-badge-discount-text bg-badge-discount-bg px-2.5 py-1 rounded-full uppercase tracking-wider font-semibold">Active</span>
+</div>
+<span class="font-caption text-caption text-text-secondary flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-primary">verified</span>
+          Verified Merchant
+        </span>
+</div>
+<!-- Plan Name & Pricing -->
+<div>
+<h2 class="font-heading-lg text-heading-lg text-on-surface">VEMTAP Growth Plan</h2>
+<div class="flex items-baseline gap-1.5 mt-1">
+<span class="font-display-hero-mobile text-display-hero-mobile text-on-surface">₦5,000</span>
+<span class="font-body-md text-body-md text-text-secondary">/ month</span>
+</div>
+<p class="font-caption text-caption text-badge-discount-text font-medium mt-0.5">
+          Zero platform take rate • 100% direct merchant revenue
+        </p>
+</div>
+<!-- Renewal Reminder Callout -->
+<div class="bg-surface-canvas rounded-lg p-space-sm flex items-center justify-between shadow-sm">
+<div class="flex items-center space-x-space-xs">
+<div class="w-8 h-8 rounded-full bg-surface-tint-blue flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[18px]">calendar_today</span>
+</div>
+<div>
+<p class="font-label-sm text-label-sm text-on-surface font-semibold">Renews Oct 25, 2024</p>
+<p class="font-caption text-caption text-text-secondary">Auto-debit in 5 days</p>
+</div>
+</div>
+<span class="font-caption text-caption text-primary font-medium bg-primary/10 px-2 py-0.5 rounded-full">Automated</span>
+</div>
+<!-- ROI / Value Impact Matrix -->
+<div class="bg-surface-canvas rounded-lg p-space-sm shadow-sm space-y-space-xs">
+<div class="flex items-center justify-between pb-1">
+<span class="font-label-sm text-label-sm text-text-secondary">Value Generated (Current Cycle)</span>
+<span class="material-symbols-outlined text-[18px] text-badge-discount-text" style="font-variation-settings: 'FILL' 1;">trending_up</span>
+</div>
+<div class="grid grid-cols-3 gap-2 pt-1 text-center">
+<div class="bg-surface-subtle p-2 rounded">
+<p class="font-caption text-caption text-text-secondary">Sales Enabled</p>
+<p class="font-label-md text-label-md text-on-surface font-bold mt-0.5">₦4.85M</p>
+</div>
+<div class="bg-surface-subtle p-2 rounded">
+<p class="font-caption text-caption text-text-secondary">Footfall</p>
+<p class="font-label-md text-label-md text-on-surface font-bold mt-0.5">1,420</p>
+</div>
+<div class="bg-surface-subtle p-2 rounded">
+<p class="font-caption text-caption text-badge-discount-text font-medium">Take Rate</p>
+<p class="font-label-md text-label-md text-badge-discount-text font-bold mt-0.5">0%</p>
+</div>
+</div>
+</div>
+<!-- Plan Action Buttons -->
+<div class="grid grid-cols-2 gap-space-xs pt-1">
+<button class="h-11 rounded-xl bg-primary text-on-primary font-button-secondary text-button-secondary font-medium flex items-center justify-center shadow-sm active:scale-[0.98] transition-transform" type="button">
+          Manage Plan
+        </button>
+<button class="h-11 rounded-xl bg-surface-container-high text-on-surface-variant font-button-secondary text-button-secondary font-medium flex items-center justify-center active:scale-[0.98] transition-transform" type="button">
+          Cancel Tier
+        </button>
+</div>
+</div>
+</section>
+<!-- Payment Method Vault -->
+<section class="flex flex-col space-y-space-xs">
+<div class="flex items-center justify-between px-1">
+<h3 class="font-heading-sm text-heading-sm text-on-surface">Payment Method</h3>
+<span class="font-caption text-caption text-text-secondary flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-badge-discount-text" style="font-variation-settings: 'FILL' 1;">lock</span>
+        Paystack Secured
+      </span>
+</div>
+<div class="bg-surface-container rounded-xl p-space-md shadow-sm space-y-space-sm">
+<div class="flex items-start justify-between">
+<div class="flex space-x-space-sm items-center">
+<div class="w-12 h-8 rounded-md bg-inverse-surface flex items-center justify-center text-inverse-on-surface font-bold tracking-tight text-[11px] shadow-sm">
+<span class="text-tertiary-fixed font-black italic">MC</span>
+</div>
+<div>
+<div class="flex items-center space-x-space-2xs">
+<span class="font-label-md text-label-md text-on-surface font-semibold">Mastercard ending in 4821</span>
+<span class="font-caption text-caption bg-secondary-fixed text-on-secondary-fixed px-1.5 py-0.2 rounded font-medium">Primary</span>
+</div>
+<p class="font-caption text-caption text-text-secondary">Expires 08/2027 • Auto-debit Active</p>
+</div>
+</div>
+</div>
+<!-- Quick Action Controls -->
+<div class="flex items-center justify-between pt-space-2xs">
+<button class="text-primary font-button-secondary text-button-secondary font-medium flex items-center gap-1 active:opacity-75" type="button">
+<span class="material-symbols-outlined text-[18px]">credit_card</span>
+          Change Card
+        </button>
+<button class="text-text-secondary font-button-secondary text-button-secondary font-medium flex items-center gap-1 active:opacity-75" type="button">
+<span class="material-symbols-outlined text-[18px]">add_circle</span>
+          Add Fallback
+        </button>
+</div>
+</div>
+</section>
+<!-- Active Power Add-ons -->
+<section class="flex flex-col space-y-space-xs">
+<div class="flex items-center justify-between px-1">
+<h3 class="font-heading-sm text-heading-sm text-on-surface">Active Add-ons</h3>
+<span class="font-caption text-caption text-primary font-semibold bg-surface-tint-blue px-2 py-0.5 rounded-full">2 Activated</span>
+</div>
+<!-- Addon 1: Feed Booster -->
+<div class="bg-surface-container rounded-xl p-space-md shadow-sm space-y-space-xs">
+<div class="flex items-start justify-between">
+<div class="flex space-x-space-sm">
+<div class="w-10 h-10 rounded-lg bg-surface-tint-blue flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[22px]">rocket_launch</span>
+</div>
+<div>
+<h4 class="font-label-md text-label-md text-on-surface font-semibold">Local Hyperlocal Feed Booster</h4>
+<p class="font-caption text-caption text-text-secondary">Targeting 3.5km radius shoppers</p>
+</div>
+</div>
+<span class="font-label-sm text-label-sm font-semibold text-on-surface">₦10,000</span>
+</div>
+<div class="flex items-center justify-between pt-1">
+<span class="font-caption text-caption text-badge-discount-text font-medium flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-badge-discount-text"></span>
+          Running • Ends Saturday 11:59 PM
+        </span>
+<button class="font-caption text-caption text-primary font-semibold" type="button">Extend</button>
+</div>
+</div>
+<!-- Addon 2: Multi-Branch Pro Pack -->
+<div class="bg-surface-container rounded-xl p-space-md shadow-sm space-y-space-xs">
+<div class="flex items-start justify-between">
+<div class="flex space-x-space-sm">
+<div class="w-10 h-10 rounded-lg bg-badge-discount-bg flex items-center justify-center text-badge-discount-text">
+<span class="material-symbols-outlined text-[22px]">storefront</span>
+</div>
+<div>
+<div class="flex items-center space-x-1">
+<h4 class="font-label-md text-label-md text-on-surface font-semibold">Multi-Branch Pro Pack</h4>
+<span class="font-caption text-caption bg-badge-discount-bg text-badge-discount-text px-1 rounded text-[10px] font-bold">FREE TIER</span>
+</div>
+<p class="font-caption text-caption text-text-secondary">Growth tier inclusion • 3 of 3 branches active</p>
+</div>
+</div>
+<span class="font-caption text-caption text-badge-discount-text font-bold uppercase">Included</span>
+</div>
+<div class="flex items-center justify-between pt-1">
+<span class="font-caption text-caption text-text-secondary">Ikeja, Lekki Phase 1, Victoria Island</span>
+<button class="font-caption text-caption text-primary font-semibold" type="button">Manage Hubs</button>
+</div>
+</div>
+<!-- Browse Marketplace Link -->
+<button class="w-full py-2.5 rounded-xl bg-surface-container-low text-primary font-button-secondary text-button-secondary font-medium flex items-center justify-center gap-1.5 hover:bg-surface-container transition-colors" type="button">
+<span>Browse Paid Add-ons Catalog</span>
+<span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+</section>
+<!-- Billing & Invoices Log -->
+<section class="flex flex-col space-y-space-xs">
+<div class="flex items-center justify-between px-1">
+<h3 class="font-heading-sm text-heading-sm text-on-surface">Billing History</h3>
+<span class="font-caption text-caption text-text-secondary">Official Receipts</span>
+</div>
+<div class="bg-surface-container rounded-xl overflow-hidden shadow-sm">
+<!-- Invoice Row 1: Upcoming -->
+<div class="p-space-md flex items-center justify-between bg-surface-subtle/60">
+<div class="flex space-x-space-sm items-center">
+<div class="w-8 h-8 rounded-full bg-secondary-fixed flex items-center justify-center text-on-secondary-fixed">
+<span class="material-symbols-outlined text-[18px]">pending_actions</span>
+</div>
+<div>
+<p class="font-label-md text-label-md text-on-surface font-medium">VEMTAP Growth Plan</p>
+<p class="font-caption text-caption text-text-secondary">Oct 25, 2024 • Scheduled</p>
+</div>
+</div>
+<div class="text-right">
+<p class="font-label-md text-label-md text-on-surface font-semibold">₦5,000</p>
+<span class="font-caption text-caption bg-secondary-fixed-dim text-on-secondary-fixed px-2 py-0.5 rounded-full font-medium">Upcoming</span>
+</div>
+</div>
+<!-- Invoice Row 2: Sep 25 -->
+<div class="p-space-md flex items-center justify-between">
+<div class="flex space-x-space-sm items-center">
+<div class="w-8 h-8 rounded-full bg-badge-discount-bg flex items-center justify-center text-badge-discount-text">
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<div>
+<p class="font-label-md text-label-md text-on-surface font-medium">VEMTAP Growth Plan</p>
+<p class="font-caption text-caption text-text-secondary">Sep 25, 2024 • Visa Card</p>
+</div>
+</div>
+<div class="flex items-center space-x-space-sm">
+<div class="text-right">
+<p class="font-label-md text-label-md text-on-surface font-semibold">₦5,000</p>
+<span class="font-caption text-caption text-badge-discount-text font-medium">Paid</span>
+</div>
+<button aria-label="Download receipt for Sep 25" class="w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface active:bg-surface-dim" type="button">
+<span class="material-symbols-outlined text-[18px]">download</span>
+</button>
+</div>
+</div>
+<!-- Invoice Row 3: Sep 18 Booster -->
+<div class="p-space-md flex items-center justify-between bg-surface-subtle/30">
+<div class="flex space-x-space-sm items-center">
+<div class="w-8 h-8 rounded-full bg-badge-discount-bg flex items-center justify-center text-badge-discount-text">
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<div>
+<p class="font-label-md text-label-md text-on-surface font-medium">Weekend Boost Ad Package</p>
+<p class="font-caption text-caption text-text-secondary">Sep 18, 2024 • Mastercard</p>
+</div>
+</div>
+<div class="flex items-center space-x-space-sm">
+<div class="text-right">
+<p class="font-label-md text-label-md text-on-surface font-semibold">₦15,000</p>
+<span class="font-caption text-caption text-badge-discount-text font-medium">Paid</span>
+</div>
+<button aria-label="Download receipt for Sep 18" class="w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface active:bg-surface-dim" type="button">
+<span class="material-symbols-outlined text-[18px]">download</span>
+</button>
+</div>
+</div>
+<!-- Invoice Row 4: Aug 25 -->
+<div class="p-space-md flex items-center justify-between">
+<div class="flex space-x-space-sm items-center">
+<div class="w-8 h-8 rounded-full bg-badge-discount-bg flex items-center justify-center text-badge-discount-text">
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<div>
+<p class="font-label-md text-label-md text-on-surface font-medium">VEMTAP Growth Plan</p>
+<p class="font-caption text-caption text-text-secondary">Aug 25, 2024 • Mastercard</p>
+</div>
+</div>
+<div class="flex items-center space-x-space-sm">
+<div class="text-right">
+<p class="font-label-md text-label-md text-on-surface font-semibold">₦5,000</p>
+<span class="font-caption text-caption text-badge-discount-text font-medium">Paid</span>
+</div>
+<button aria-label="Download receipt for Aug 25" class="w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface active:bg-surface-dim" type="button">
+<span class="material-symbols-outlined text-[18px]">download</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Reassurance & Trust Credential Footer -->
+<footer class="mt-space-md p-space-md rounded-xl bg-surface-container-low flex flex-col items-center text-center space-y-space-xs">
+<div class="flex items-center justify-center space-x-3 text-text-secondary">
+<span class="flex items-center gap-1 font-caption text-caption">
+<span class="material-symbols-outlined text-[16px] text-badge-discount-text">verified_user</span>
+        NDPR Compliant
+      </span>
+<span>•</span>
+<span class="flex items-center gap-1 font-caption text-caption">
+<span class="material-symbols-outlined text-[16px] text-badge-discount-text">security</span>
+        PCI-DSS Certified
+      </span>
+</div>
+<p class="font-caption text-caption text-text-secondary max-w-[280px]">
+      Transparent flat monthly billing with zero commission on orders or walk-ins. Cancel anytime without penalty.
+    </p>
+</footer>
+</div></main></body></html>

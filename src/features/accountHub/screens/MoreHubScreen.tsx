@@ -1,5 +1,5 @@
 import React from 'react';
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   AccountHeader,
@@ -21,6 +21,7 @@ export interface MoreHubScreenProps {
   onOpenSaved?: () => void;
   onOpenNotifications?: () => void;
   onOpenSettings?: () => void;
+  onOpenEditProfile?: () => void;
   onSignOut?: () => void;
 }
 
@@ -32,6 +33,7 @@ export function MoreHubScreen({
   onOpenSaved,
   onOpenNotifications,
   onOpenSettings,
+  onOpenEditProfile,
   onSignOut,
 }: MoreHubScreenProps) {
   return (
@@ -82,16 +84,23 @@ export function MoreHubScreen({
                 {copy.email}
               </VemtapText>
             </View>
-            <VemtapText variant="labelSm" tone="brand">
-              {copy.edit} →
-            </VemtapText>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={copy.edit}
+              onPress={onOpenEditProfile}
+              className="shrink-0"
+            >
+              <VemtapText variant="labelSm" tone="brand">
+                {copy.edit} →
+              </VemtapText>
+            </Pressable>
           </View>
           <View className="flex-row items-center justify-between">
             <VemtapText variant="labelSm" tone="secondary">
               {copy.phone}
             </VemtapText>
-            <View className="rounded-full bg-badge-discount-bg px-2 py-1">
-              <VemtapText variant="micro" tone="success">
+            <View className="shrink-0 rounded-full bg-badge-discount-bg px-2 py-1">
+              <VemtapText variant="micro" tone="success" numberOfLines={1}>
                 ✓ {copy.verified}
               </VemtapText>
             </View>
@@ -133,7 +142,7 @@ export function MoreHubScreen({
               {copy.cartMeta}
             </VemtapText>
           </View>
-          <VemtapText variant="labelSm" className="text-primary-foreground">
+          <VemtapText variant="labelSm" className="shrink-0 text-primary-foreground">
             {copy.checkout} →
           </VemtapText>
         </View>

@@ -12,6 +12,7 @@ export interface InputProps extends Omit<TextInputProps, 'className'> {
   label?: string;
   error?: string;
   containerClassName?: string;
+  fieldClassName?: string;
   className?: string;
   leadingIcon?: React.ReactNode;
   trailingIcon?: React.ReactNode;
@@ -27,6 +28,7 @@ export const Input = React.forwardRef<React.ComponentRef<typeof TextInput>, Inpu
       error,
       containerClassName,
       className,
+      fieldClassName,
       leadingIcon,
       trailingIcon,
       onTrailingIconPress,
@@ -68,9 +70,10 @@ export const Input = React.forwardRef<React.ComponentRef<typeof TextInput>, Inpu
           accessibilityLabel={accessibilityLabel ?? label}
           aria-invalid={Boolean(error)}
           className={cn(
+            'min-w-0 flex-1 border-0 text-body-md text-text',
             Platform.OS === 'android'
-              ? 'h-full min-w-0 flex-1 border-0 bg-transparent text-body-md text-text'
-              : 'h-[52px] rounded-field border bg-surface text-body-md text-text',
+              ? 'h-full bg-transparent'
+              : 'h-[52px] rounded-field border bg-surface',
             Platform.OS === 'android'
               ? leadingIcon
                 ? 'pl-1 pr-4'
@@ -80,7 +83,7 @@ export const Input = React.forwardRef<React.ComponentRef<typeof TextInput>, Inpu
                 : 'px-4',
             Platform.OS === 'android' && trailingIcon ? 'pr-0' : null,
             'placeholder:text-text-tertiary',
-            className,
+            fieldClassName,
           )}
           style={
             Platform.OS === 'android'

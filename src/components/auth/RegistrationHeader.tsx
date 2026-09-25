@@ -3,6 +3,7 @@ import { Pressable, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { VemtapText } from '@components/ui/Text';
 import { Icon } from '@components/ui/Icon';
+import { ProgressDots } from '@components/onboarding/ProgressDots';
 import { colors } from '@theme/colors';
 import { navbarBottomShadow } from '@theme/shadows';
 import { strings } from '@constants/strings';
@@ -18,6 +19,8 @@ export interface RegistrationHeaderProps {
   showMoreAction?: boolean;
   onMore?: () => void;
   largeTitle?: boolean;
+  compactTitle?: boolean;
+  progress?: { activeIndex: number; total: number };
 }
 
 /** Fixed chrome header from customer_registration_step_* HTML (back · title · avatar). */
@@ -29,6 +32,8 @@ export function RegistrationHeader({
   showMoreAction = false,
   onMore,
   largeTitle = false,
+  compactTitle = false,
+  progress,
 }: RegistrationHeaderProps) {
   return (
     <View
@@ -44,18 +49,28 @@ export function RegistrationHeader({
       >
         <Icon name="back" size={24} color={colors.surfaceDark} />
       </Pressable>
-      <VemtapText
-        accessibilityRole="header"
-        variant={largeTitle ? 'headingXl' : 'headingSm'}
-        className={
-          largeTitle
-            ? 'max-w-[200px] text-center text-heading-xl'
-            : 'max-w-[200px] text-center'
-        }
-        numberOfLines={1}
-      >
-        {title}
-      </VemtapText>
+      <View className="min-w-0 flex-1 items-center justify-center">
+        {progress ? (
+          <View className="mb-1">
+            <ProgressDots total={progress.total} activeIndex={progress.activeIndex} />
+          </View>
+        ) : null}
+        <VemtapText
+          accessibilityRole="header"
+          variant={compactTitle ? 'labelSm' : largeTitle ? 'headingXl' : 'headingSm'}
+          tone={compactTitle ? 'secondary' : 'default'}
+          className={
+            compactTitle
+              ? 'w-full text-center'
+              : largeTitle
+                ? 'w-full text-center text-heading-xl'
+                : 'w-full text-center'
+          }
+          numberOfLines={1}
+        >
+          {title}
+        </VemtapText>
+      </View>
       <View className="flex-row items-center justify-end gap-1">
         {showShareAction ? (
           <Pressable

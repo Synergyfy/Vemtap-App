@@ -2,10 +2,6 @@ import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ConversationListCard } from '@features/merchantChat/components/ConversationListCard';
-import {
-  StandaloneBottomNav,
-  type StandaloneNavKey,
-} from '@components/shared/StandaloneBottomNav';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
@@ -35,7 +31,6 @@ export interface MessagesScreenProps {
   onCompose?: () => void;
   onSearch?: () => void;
   onFilter?: () => void;
-  onSelectNav?: (key: StandaloneNavKey) => void;
 }
 
 export function MessagesScreen({
@@ -43,7 +38,6 @@ export function MessagesScreen({
   onCompose,
   onSearch,
   onFilter,
-  onSelectNav,
 }: MessagesScreenProps) {
   const insets = useSafeAreaInsets();
   const [query, setQuery] = useState('');
@@ -66,14 +60,17 @@ export function MessagesScreen({
         className="flex-row items-center justify-between bg-surface px-6 pb-3 pt-2"
         style={[navbarBottomShadow, { paddingTop: Math.max(insets.top, 8) }]}
       >
-        <VemtapText
-          accessibilityRole="header"
-          variant="headingXl"
-          className="text-heading-xl"
-        >
-          {strings.messagesHub.title}
-        </VemtapText>
-        <View className="flex-row items-center">
+        <View className="min-w-0 flex-1">
+          <VemtapText
+            accessibilityRole="header"
+            variant="headingSm"
+            className="text-heading-sm"
+            numberOfLines={1}
+          >
+            {strings.messagesHub.title}
+          </VemtapText>
+        </View>
+        <View className="shrink-0 flex-row items-center">
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={strings.messagesHub.search}
@@ -102,8 +99,8 @@ export function MessagesScreen({
         showsVerticalScrollIndicator={false}
       >
         <View className="flex-row items-center justify-between">
-          <View className="flex-row items-center gap-2">
-            <VemtapText variant="headingXl" className="text-heading-xl">
+          <View className="min-w-0 flex-1 flex-row items-center gap-2">
+            <VemtapText variant="headingSm" className="text-heading-sm" numberOfLines={1}>
               {strings.messagesHub.title}
             </VemtapText>
             <VemtapText
@@ -178,11 +175,6 @@ export function MessagesScreen({
           </VemtapText>
         </View>
       </ScrollView>
-      <StandaloneBottomNav
-        active="messages"
-        onSelect={onSelectNav}
-        bottomInset={insets.bottom}
-      />
     </View>
   );
 }

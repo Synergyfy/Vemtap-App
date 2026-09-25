@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_stack" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{width:100vw;margin:0;padding:0;}body{overscroll-behavior:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "on-error": "#ffffff", "text-primary": "#111827", "surface-variant": "#dce2f7", "surface-canvas": "#FFFFFF", "text-secondary": "#4B5563", "inverse-primary": "#b0c6ff", "border-active": "#BFDBFE", "secondary-fixed": "#d8e2ff", "tertiary-fixed-dim": "#ffb599", "on-error-container": "#93000a", "secondary": "#4a5e88", "on-tertiary-fixed-variant": "#7f2b00", "badge-discount-text": "#059669", "on-surface": "#141b2b", "tertiary-container": "#c94a03", "error": "#ba1a1a", "tertiary-fixed": "#ffdbce", "surface-dim": "#d3daef", "on-primary-container": "#fcfaff", "on-surface-variant": "#424655", "surface-bright": "#f9f9ff", "surface-subtle": "#F8FAFC", "error-container": "#ffdad6", "on-tertiary": "#ffffff", "inverse-surface": "#293040", "secondary-container": "#bacfff", "on-secondary-fixed": "#001a41", "surface-tint-blue": "#EEF5FF", "surface-container-low": "#f1f3ff", "surface-container-high": "#e1e8fd", "on-secondary-fixed-variant": "#32466f", "on-tertiary-fixed": "#370e00", "on-primary-fixed": "#001945", "badge-discount-bg": "#ECFDF5", "text-tertiary": "#9CA3AF", "primary-fixed": "#d9e2ff", "on-background": "#141b2b", "primary-container": "#066cf4", "outline-variant": "#c2c6d7", "border-subtle": "#E5E7EB", "on-primary": "#ffffff", "secondary-fixed-dim": "#b2c6f7", "on-secondary-container": "#435881", "inverse-on-surface": "#edf0ff", "surface-container-highest": "#dce2f7", "outline": "#727786", "surface-container-lowest": "#ffffff", "primary": "#0055c4", "background": "#f9f9ff", "primary-fixed-dim": "#b0c6ff", "surface": "#f9f9ff", "surface-container": "#e9edff", "on-primary-fixed-variant": "#00429b", "on-secondary": "#ffffff", "tertiary": "#a13900", "surface-tint": "#0058cb", "on-tertiary-container": "#fffaf9" }, borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, spacing: { "margin": "1.5rem", "gutter": "1rem", "space-lg": "1.5rem", "space-sm": "0.75rem", "space-xl": "2rem", "space-md": "1rem", "space-3xl": "3rem", "space-2xl": "2.5rem", "space-xs": "0.5rem", "space-2xs": "0.25rem" }, fontFamily: { "heading-sm": ["Inter"], "heading-lg": ["Inter"], "button-primary": ["Inter"], "display-hero-mobile": ["Inter"], "label-md": ["Inter"], "body-lg": ["Inter"], "display-hero": ["Inter"], "label-sm": ["Inter"], "body-md": ["Inter"], "heading-md": ["Inter"], "caption": ["Inter"], "button-secondary": ["Inter"] }, fontSize: { "heading-sm": ["18px", { "lineHeight": "24px", "fontWeight": "600" }], "heading-lg": ["26px", { "lineHeight": "34px", "letterSpacing": "-0.015em", "fontWeight": "600" }], "button-primary": ["16px", { "lineHeight": "20px", "letterSpacing": "-0.005em", "fontWeight": "600" }], "display-hero-mobile": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }], "label-md": ["14px", { "lineHeight": "18px", "fontWeight": "500" }], "body-lg": ["17px", { "lineHeight": "24px", "fontWeight": "400" }], "display-hero": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.025em", "fontWeight": "700" }], "label-sm": ["13px", { "lineHeight": "16px", "fontWeight": "500" }], "body-md": ["15px", { "lineHeight": "22px", "fontWeight": "400" }], "heading-md": ["22px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600" }], "caption": ["12px", { "lineHeight": "16px", "fontWeight": "400" }], "button-secondary": ["15px", { "lineHeight": "20px", "fontWeight": "500" }] } } } };</script><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface text-on-surface font-body-md text-body-md flex flex-col min-h-screen"><header class="fixed top-0 w-full z-50 pt-safe bg-surface/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-16 px-gutter flex items-center justify-between"><div class="flex items-center gap-space-xs"><button class="w-11 h-11 flex items-center justify-center rounded-xl text-on-surface hover:bg-surface-container active:scale-95 transition-transform" onclick="history.back()"><span class="material-symbols-outlined text-[24px]">arrow_back</span></button><h1 class="font-heading-sm text-heading-sm text-text-primary">Public Pos Cart Review</h1></div><div class="flex items-center gap-space-xs"><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex-1 flex flex-col relative w-full pt-16 pb-safe bg-surface"><div class="flex flex-col w-full pb-8">
+<!-- Table & Dine-in Status Banner -->
+<div class="px-margin pt-4 pb-2">
+<div class="bg-surface-container-high rounded-xl p-space-sm flex items-center justify-between shadow-sm">
+<div class="flex items-center gap-space-xs">
+<div class="w-8 h-8 rounded-lg bg-primary-container/15 flex items-center justify-center text-primary-container">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">table_restaurant</span>
+</div>
+<div>
+<div class="flex items-center gap-1.5">
+<span class="font-heading-sm text-heading-sm text-text-primary">Table 04</span>
+<span class="w-2 h-2 rounded-full bg-badge-discount-text inline-block"></span>
+</div>
+<p class="font-caption text-caption text-text-secondary">Dine-In • Scanned via QR</p>
+</div>
+</div>
+<div class="bg-badge-discount-bg text-badge-discount-text font-label-sm text-label-sm px-2.5 py-1 rounded-full flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">verified</span>
+<span>Verified Table</span>
+</div>
+</div>
+</div>
+<!-- Cart Items List Section -->
+<div class="px-margin mt-3">
+<div class="flex items-center justify-between mb-2">
+<h2 class="font-label-md text-label-md text-text-secondary uppercase tracking-wider">Your Dishes (3)</h2>
+<button class="font-label-sm text-label-sm text-primary flex items-center gap-1 active:opacity-70" type="button">
+<span class="material-symbols-outlined text-[16px]">add_circle</span>
+<span>Add more food</span>
+</button>
+</div>
+<div class="flex flex-col gap-3" id="cart-item-list">
+<!-- Item 1: Ribeye Steak -->
+<div class="bg-surface-container-lowest rounded-xl p-space-sm shadow-sm flex flex-col gap-2.5" data-price="16000" id="cart-item-1">
+<div class="flex items-start justify-between gap-3">
+<div class="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-surface-container">
+<img class="w-full h-full object-cover" data-alt="Gourmet prime woodfire grilled ribeye steak seared with rosemary garnish and peppercorn jus, warm rustic culinary photography with rich amber highlights and soft ambient lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBIb35nCEcbJO459T9Y5YXDLHyNbJjwz9CAVUuRNER6cMpG54QpeaWW1YTZAh3FG3uwLRWrvA7kNOEcGBE_etOcYmTrLxdRiywn4iXifSm_XGnRffgOoCJtJCyAQmHPJoZRkeoOTWU4Tw9rH7eGxuFAaHUMR92e37Y7pJIQkwuWTb0-9BATfyk69gOkypCPbvUF2CupVQ3-lkb01nuye2xF8LHniicfJEhC6VlwjFaxYMNanA2bAwbZgw"/>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-start justify-between">
+<h3 class="font-heading-sm text-heading-sm text-text-primary truncate pr-1">Woodfire Ribeye Steak (250g)</h3>
+<button class="text-text-tertiary hover:text-error active:scale-95 transition-transform p-1 -mr-1" onclick="removeItem('cart-item-1')" type="button">
+<span class="material-symbols-outlined text-[20px]">delete</span>
+</button>
+</div>
+<p class="font-heading-sm text-heading-sm text-primary-container font-semibold mt-0.5">₦16,000</p>
+</div>
+</div>
+<div class="bg-surface-container-low rounded-lg px-2.5 py-1.5 flex items-center gap-1.5 text-text-secondary">
+<span class="material-symbols-outlined text-[16px] text-tertiary-container flex-shrink-0">stylus_note</span>
+<p class="font-caption text-caption truncate">Medium rare, extra peppercorn sauce</p>
+</div>
+<div class="flex items-center justify-between pt-1">
+<span class="font-label-sm text-label-sm text-text-secondary">Portion</span>
+<div class="flex items-center gap-3 bg-surface-container-high px-2 py-1 rounded-full">
+<button class="w-7 h-7 rounded-full bg-surface-container-lowest text-text-primary flex items-center justify-center active:scale-90 shadow-sm transition-transform" onclick="adjustQty('qty-1', -1, 'cart-item-1')" type="button">
+<span class="material-symbols-outlined text-[16px]">remove</span>
+</button>
+<span class="font-button-primary text-button-primary text-text-primary min-w-[14px] text-center" id="qty-1">1</span>
+<button class="w-7 h-7 rounded-full bg-primary-container text-on-primary flex items-center justify-center active:scale-90 shadow-sm transition-transform" onclick="adjustQty('qty-1', 1, 'cart-item-1')" type="button">
+<span class="material-symbols-outlined text-[16px]">add</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Item 2: Double Smash Burger -->
+<div class="bg-surface-container-lowest rounded-xl p-space-sm shadow-sm flex flex-col gap-2.5" data-price="6500" id="cart-item-2">
+<div class="flex items-start justify-between gap-3">
+<div class="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-surface-container">
+<img class="w-full h-full object-cover" data-alt="Juicy double smashed beef patty burger with melted cheddar cheese in toasted brioche bun, restaurant commercial table photography with appetizing textures and warm tones" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBMaKy1FRNQwI1BfZHvZlaM0G6o-MSMfVjmCYTf7cABdaReTjlQ7hHdS5iS4HpxkDzgYjc9fEGJB1j41G1z6wlVOJtjf9hqzKRy5GNP_alBowiq3g2kuSFrKlW4tb5huOi7Zi44P_78XyAw1rJkJ0VoXaetvH4jZqDu9l-ehu9Zea0l0r5kEzvZcYFFumgWG0TN7AFUbT9dQeO5KmG5KQpDfOqRwd7VRR0lxlgypHxg2z5mXB7DtYe9FQ"/>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-start justify-between">
+<h3 class="font-heading-sm text-heading-sm text-text-primary truncate pr-1">Double Smash Burger</h3>
+<button class="text-text-tertiary hover:text-error active:scale-95 transition-transform p-1 -mr-1" onclick="removeItem('cart-item-2')" type="button">
+<span class="material-symbols-outlined text-[20px]">delete</span>
+</button>
+</div>
+<p class="font-heading-sm text-heading-sm text-primary-container font-semibold mt-0.5">₦6,500</p>
+</div>
+</div>
+<div class="bg-surface-container-low rounded-lg px-2.5 py-1.5 flex items-center gap-1.5 text-text-secondary">
+<span class="material-symbols-outlined text-[16px] text-tertiary-container flex-shrink-0">stylus_note</span>
+<p class="font-caption text-caption truncate">No pickles, extra napkins please</p>
+</div>
+<div class="flex items-center justify-between pt-1">
+<span class="font-label-sm text-label-sm text-text-secondary">Portion</span>
+<div class="flex items-center gap-3 bg-surface-container-high px-2 py-1 rounded-full">
+<button class="w-7 h-7 rounded-full bg-surface-container-lowest text-text-primary flex items-center justify-center active:scale-90 shadow-sm transition-transform" onclick="adjustQty('qty-2', -1, 'cart-item-2')" type="button">
+<span class="material-symbols-outlined text-[16px]">remove</span>
+</button>
+<span class="font-button-primary text-button-primary text-text-primary min-w-[14px] text-center" id="qty-2">1</span>
+<button class="w-7 h-7 rounded-full bg-primary-container text-on-primary flex items-center justify-center active:scale-90 shadow-sm transition-transform" onclick="adjustQty('qty-2', 1, 'cart-item-2')" type="button">
+<span class="material-symbols-outlined text-[16px]">add</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Item 3: Passionfruit Mojito -->
+<div class="bg-surface-container-lowest rounded-xl p-space-sm shadow-sm flex flex-col gap-2.5" data-price="3500" id="cart-item-3">
+<div class="flex items-start justify-between gap-3">
+<div class="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-surface-container">
+<img class="w-full h-full object-cover" data-alt="Chilled passionfruit mojito cocktail in a tall crystalline glass with fresh mint sprigs, lime wedge, crushed ice and vibrant tropical orange drink color" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBWYtVUF6QnAkmIIeuLEaLXV3o4QBG9JGXHQ-ZXSf8Y8lDneZdJ8xqLt3ytE-jpRTuVgTJYJH-TFrYQhsqJ65qIjjnL3JPSa4VTi004yC0WdV4LqBfvX3YIsw4Ozpf8bKpho2u8qqPQbJWkp1zbOGPS4mBE97RU58tVld0Zm2RuxfReMEadeF5zF5Ckf_Si9MlRp1QF5Sko1uPHSkIe-9SsUGj7O3BfZBffTvDAcxZ8rckd54LhP18tMA"/>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-start justify-between">
+<h3 class="font-heading-sm text-heading-sm text-text-primary truncate pr-1">Passionfruit Mojito</h3>
+<button class="text-text-tertiary hover:text-error active:scale-95 transition-transform p-1 -mr-1" onclick="removeItem('cart-item-3')" type="button">
+<span class="material-symbols-outlined text-[20px]">delete</span>
+</button>
+</div>
+<p class="font-heading-sm text-heading-sm text-primary-container font-semibold mt-0.5">₦3,500</p>
+</div>
+</div>
+<div class="flex items-center justify-between pt-1">
+<span class="font-label-sm text-label-sm text-text-secondary">Portion</span>
+<div class="flex items-center gap-3 bg-surface-container-high px-2 py-1 rounded-full">
+<button class="w-7 h-7 rounded-full bg-surface-container-lowest text-text-primary flex items-center justify-center active:scale-90 shadow-sm transition-transform" onclick="adjustQty('qty-3', -1, 'cart-item-3')" type="button">
+<span class="material-symbols-outlined text-[16px]">remove</span>
+</button>
+<span class="font-button-primary text-button-primary text-text-primary min-w-[14px] text-center" id="qty-3">1</span>
+<button class="w-7 h-7 rounded-full bg-primary-container text-on-primary flex items-center justify-center active:scale-90 shadow-sm transition-transform" onclick="adjustQty('qty-3', 1, 'cart-item-3')" type="button">
+<span class="material-symbols-outlined text-[16px]">add</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Customer & Table Details Form -->
+<div class="px-margin mt-5">
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<h2 class="font-heading-sm text-heading-sm text-text-primary flex items-center gap-1.5">
+<span class="material-symbols-outlined text-primary text-[20px]">person_pin_circle</span>
+          Table &amp; Guest Details
+        </h2>
+<span class="font-caption text-caption text-badge-discount-text bg-badge-discount-bg px-2 py-0.5 rounded-full font-medium">Table 04 Verified</span>
+</div>
+<!-- Guest Name -->
+<div class="flex flex-col gap-1.5">
+<label class="font-label-sm text-label-sm text-text-primary flex items-center gap-1" for="cust-name">
+          Your Name <span class="text-error">*</span>
+</label>
+<div class="relative">
+<input class="w-full h-[48px] rounded-lg bg-surface-container-low px-3.5 text-text-primary font-body-md text-body-md focus:bg-surface-tint-blue focus:outline-none transition-colors" id="cust-name" placeholder="Your Name (e.g. Samuel A.)" type="text" value="Samuel A."/>
+<span class="material-symbols-outlined absolute right-3 top-3 text-badge-discount-text text-[20px]">check_circle</span>
+</div>
+</div>
+<!-- Phone Number -->
+<div class="flex flex-col gap-1.5">
+<div class="flex items-center justify-between">
+<label class="font-label-sm text-label-sm text-text-primary" for="cust-phone">Phone Number</label>
+<span class="font-caption text-caption text-text-tertiary">Optional • SMS / WhatsApp updates</span>
+</div>
+<div class="relative">
+<input class="w-full h-[48px] rounded-lg bg-surface-container-low px-3.5 text-text-primary font-body-md text-body-md focus:bg-surface-tint-blue focus:outline-none transition-colors" id="cust-phone" placeholder="+234..." type="tel" value="+234 802 345 6789"/>
+<span class="material-symbols-outlined absolute right-3 top-3 text-text-tertiary text-[20px]">notifications_active</span>
+</div>
+</div>
+<!-- Table Lock Indicator -->
+<div class="bg-surface-tint-blue rounded-lg p-2.5 flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[20px]">qr_code_2</span>
+<div>
+<p class="font-label-sm text-label-sm text-text-primary">Seat Location</p>
+<p class="font-caption text-caption text-secondary">Locked to Table 04 via digital dine-in session</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-secondary text-[18px]">lock</span>
+</div>
+<!-- Kitchen Instructions -->
+<div class="flex flex-col gap-1.5">
+<label class="font-label-sm text-label-sm text-text-primary flex items-center gap-1" for="kitchen-notes">
+<span class="material-symbols-outlined text-tertiary text-[18px]">soup_kitchen</span>
+          Kitchen Instructions
+        </label>
+<textarea class="w-full rounded-lg bg-surface-container-low p-3 text-text-primary font-body-md text-body-md focus:bg-surface-tint-blue focus:outline-none transition-colors resize-none" id="kitchen-notes" placeholder="Any allergies, special prep notes, or cutlery requests..." rows="2">Extra serviettes and separate dipping bowl please.</textarea>
+</div>
+</div>
+</div>
+<!-- Bill Breakdown Section -->
+<div class="px-margin mt-5">
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col gap-3">
+<h2 class="font-heading-sm text-heading-sm text-text-primary flex items-center gap-1.5">
+<span class="material-symbols-outlined text-primary text-[20px]">receipt_long</span>
+        Bill Breakdown
+      </h2>
+<div class="flex items-center justify-between">
+<span class="font-body-md text-body-md text-text-secondary">Subtotal</span>
+<span class="font-body-md text-body-md text-text-primary font-medium" id="label-subtotal">₦26,000</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1">
+<span class="font-body-md text-body-md text-text-secondary">Table Service &amp; VAT</span>
+<span class="font-caption text-caption bg-surface-container-high px-1.5 py-0.5 rounded text-text-secondary">7.5%</span>
+</div>
+<span class="font-body-md text-body-md text-text-primary font-medium" id="label-vat">₦1,950</span>
+</div>
+<div class="h-px bg-surface-container-high my-1"></div>
+<div class="flex items-center justify-between">
+<span class="font-heading-sm text-heading-sm text-text-primary">Total Due</span>
+<span class="font-heading-md text-heading-md text-primary-container font-bold" id="label-total">₦27,950</span>
+</div>
+<!-- Payment Notice Badge -->
+<div class="bg-surface-container rounded-lg p-3 flex items-start gap-2.5 mt-1">
+<span class="material-symbols-outlined text-primary text-[20px] flex-shrink-0 mt-0.5">point_of_sale</span>
+<div class="flex flex-col gap-0.5">
+<p class="font-label-sm text-label-sm text-text-primary font-semibold">Pay Directly at Counter or Table</p>
+<p class="font-caption text-caption text-text-secondary">Accepted: Cash, POS Card Swipe, or Instant Bank Transfer. Zero customer convenience fees.</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Primary Sticky Bottom Action Block -->
+<div class="px-margin mt-6 flex flex-col items-center gap-2">
+<button class="w-full h-[54px] rounded-xl bg-primary-container text-on-primary font-button-primary text-button-primary flex items-center justify-center gap-2 shadow-lg shadow-primary-container/25 active:scale-[0.98] transition-transform" id="submit-order-btn" onclick="submitOrder()" type="button">
+<span class="material-symbols-outlined text-[20px]">rocket_launch</span>
+<span id="btn-text">Submit Order to Kitchen (₦27,950) 🚀</span>
+</button>
+<p class="font-caption text-caption text-text-tertiary flex items-center gap-1 text-center">
+<span class="material-symbols-outlined text-[15px]">print</span>
+      Sends ticket immediately to till &amp; kitchen display
+    </p>
+</div>
+<!-- Order Submitted Modal Sheet (Hidden by default) -->
+<div class="fixed inset-0 z-50 bg-inverse-surface/60 backdrop-blur-sm hidden flex-col justify-end p-margin transition-opacity" id="confirmation-dialog">
+<div class="bg-surface-container-lowest rounded-2xl p-space-lg flex flex-col items-center text-center shadow-2xl animate-bounce-short">
+<div class="w-16 h-16 rounded-full bg-badge-discount-bg text-badge-discount-text flex items-center justify-center mb-3">
+<span class="material-symbols-outlined text-[36px]" style="font-variation-settings: 'FILL' 1;">soup_kitchen</span>
+</div>
+<h3 class="font-heading-lg text-heading-lg text-text-primary">Order Fired to Kitchen!</h3>
+<p class="font-body-md text-body-md text-text-secondary mt-1">Ticket #TK-0482 dispatched to Head Chef. Your food is now preparing for <strong class="text-text-primary">Table 04</strong>.</p>
+<div class="bg-surface-container-low w-full rounded-xl p-3 my-4 flex items-center justify-between text-left">
+<div>
+<p class="font-caption text-caption text-text-tertiary">Estimated Prep Time</p>
+<p class="font-label-md text-label-md text-text-primary font-semibold">18 - 24 Mins</p>
+</div>
+<div class="text-right">
+<p class="font-caption text-caption text-text-tertiary">Amount to Settle</p>
+<p class="font-label-md text-label-md text-primary-container font-bold" id="dialog-total">₦27,950</p>
+</div>
+</div>
+<button class="w-full h-[48px] rounded-xl bg-primary-container text-on-primary font-button-primary text-button-primary" onclick="closeConfirmation()" type="button">
+        Track Live Prep Status
+      </button>
+</div>
+</div>
+</div>
+<script>
+  const itemPrices = {
+    'cart-item-1': 16000,
+    'cart-item-2': 6500,
+    'cart-item-3': 3500
+  };
+
+  const itemQuantities = {
+    'cart-item-1': 1,
+    'cart-item-2': 1,
+    'cart-item-3': 1
+  };
+
+  function updateTotals() {
+    let subtotal = 0;
+    for (const id in itemQuantities) {
+      if (itemQuantities[id] > 0 && itemPrices[id]) {
+        subtotal += itemPrices[id] * itemQuantities[id];
+      }
+    }
+    const vat = Math.round(subtotal * 0.075);
+    const total = subtotal + vat;
+
+    const formattedSub = '₦' + subtotal.toLocaleString();
+    const formattedVat = '₦' + vat.toLocaleString();
+    const formattedTotal = '₦' + total.toLocaleString();
+
+    document.getElementById('label-subtotal').textContent = formattedSub;
+    document.getElementById('label-vat').textContent = formattedVat;
+    document.getElementById('label-total').textContent = formattedTotal;
+    document.getElementById('btn-text').textContent = 'Submit Order to Kitchen (' + formattedTotal + ') 🚀';
+    const dialogTot = document.getElementById('dialog-total');
+    if (dialogTot) dialogTot.textContent = formattedTotal;
+
+    const submitBtn = document.getElementById('submit-order-btn');
+    if (subtotal === 0) {
+      submitBtn.disabled = true;
+      submitBtn.classList.add('opacity-50', 'pointer-events-none');
+      document.getElementById('btn-text').textContent = 'Your Cart is Empty';
+    } else {
+      submitBtn.disabled = false;
+      submitBtn.classList.remove('opacity-50', 'pointer-events-none');
+    }
+  }
+
+  function adjustQty(qtySpanId, change, itemId) {
+    const span = document.getElementById(qtySpanId);
+    let currentVal = parseInt(span.textContent, 10) || 1;
+    let nextVal = currentVal + change;
+    if (nextVal < 1) nextVal = 1;
+    span.textContent = nextVal;
+    itemQuantities[itemId] = nextVal;
+    updateTotals();
+  }
+
+  function removeItem(itemId) {
+    const el = document.getElementById(itemId);
+    if (el) {
+      el.style.opacity = '0';
+      el.style.transform = 'translateX(20px)';
+      el.style.transition = 'all 0.2s ease-out';
+      setTimeout(() => {
+        el.remove();
+        delete itemQuantities[itemId];
+        updateTotals();
+      }, 200);
+    }
+  }
+
+  function submitOrder() {
+    const modal = document.getElementById('confirmation-dialog');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  }
+
+  function closeConfirmation() {
+    const modal = document.getElementById('confirmation-dialog');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
+</script></main></body></html>

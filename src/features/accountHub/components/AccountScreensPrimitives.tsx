@@ -5,6 +5,7 @@ import { Button } from '@components/ui/Button';
 import { Icon, type IconName } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { colors } from '@theme/colors';
+import { navbarBottomShadow } from '@theme/shadows';
 
 cssInterop(View, { className: 'style' });
 cssInterop(Pressable, { className: 'style' });
@@ -26,8 +27,11 @@ export function AccountHeader({
   actionIcon?: IconName;
 }) {
   return (
-    <View className="flex-row items-center justify-between bg-surface px-4 pb-3 pt-2">
-      <View className="min-w-0 flex-row items-center gap-1">
+    <View
+      className="flex-row items-center justify-between bg-surface px-4 pb-3 pt-2"
+      style={navbarBottomShadow}
+    >
+      <View className="min-w-0 flex-1 flex-row items-center gap-1">
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Go back"
@@ -38,14 +42,14 @@ export function AccountHeader({
         </Pressable>
         <VemtapText
           accessibilityRole="header"
-          variant="headingXl"
-          className="text-heading-xl"
+          variant="headingSm"
+          className="text-heading-sm"
           numberOfLines={1}
         >
           {title}
         </VemtapText>
       </View>
-      <View className="flex-row items-center gap-1">
+      <View className="shrink-0 flex-row items-center gap-1">
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="More options"
@@ -165,15 +169,21 @@ export function StatCard({
         <VemtapText
           variant="headingMd"
           className={tone === 'success' ? 'text-badge-discount-text' : 'text-text'}
+          numberOfLines={1}
         >
           {value}
         </VemtapText>
-        <VemtapText variant="caption" tone="secondary">
+        <VemtapText variant="caption" tone="secondary" numberOfLines={2}>
           {label}
         </VemtapText>
       </View>
       {onPress ? (
-        <VemtapText variant="labelSm" tone="brand" className="mt-3 font-sans-semibold">
+        <VemtapText
+          variant="labelSm"
+          tone="brand"
+          className="mt-3 font-sans-semibold"
+          numberOfLines={1}
+        >
           Open →
         </VemtapText>
       ) : null}
@@ -329,6 +339,8 @@ export function ActionGrid({
           label={action.label}
           variant="secondary"
           size="sm"
+          fullWidth={false}
+          className="min-w-0 flex-1"
           onPress={action.onPress}
           leftIcon={<Icon name={action.icon} size={18} color={colors.primary} />}
         />

@@ -86,14 +86,16 @@ export function RewardsScreen({ onBack, onHowToEarn, onRedeem }: RewardsScreenPr
         </View>
         {tab === 0 ? (
           <View className="gap-3">
-            <View className="flex-row items-center justify-between">
-              <View className="flex-row items-center gap-2">
-                <VemtapText variant="headingSm">{copy.redeemYourPoints}</VemtapText>
-                <View className="rounded-full bg-surface-container px-2 py-0.5">
+            <View className="flex-row items-center justify-between gap-2">
+              <View className="min-w-0 flex-1 flex-row items-center gap-2">
+                <VemtapText variant="headingSm" numberOfLines={1}>
+                  {copy.redeemYourPoints}
+                </VemtapText>
+                <View className="shrink-0 rounded-full bg-surface-container px-2 py-0.5">
                   <VemtapText variant="caption">{copy.ready}</VemtapText>
                 </View>
               </View>
-              <VemtapText variant="caption" tone="tertiary">
+              <VemtapText variant="caption" tone="tertiary" className="shrink-0">
                 {copy.tap}
               </VemtapText>
             </View>
@@ -147,7 +149,11 @@ export function RewardsScreen({ onBack, onHowToEarn, onRedeem }: RewardsScreenPr
                   </View>
                 </View>
                 <View className="flex-row items-center justify-between gap-2">
-                  <VemtapText variant="caption" tone="tertiary">
+                  <VemtapText
+                    variant="caption"
+                    tone="tertiary"
+                    className="min-w-0 flex-1"
+                  >
                     {balance}
                   </VemtapText>
                   <Button
@@ -177,9 +183,15 @@ export function RewardsScreen({ onBack, onHowToEarn, onRedeem }: RewardsScreenPr
           </View>
         ) : tab === 1 ? (
           <View className="gap-3">
-            <View className="flex-row justify-between">
-              <VemtapText variant="headingSm">{copy.redeemedTitle}</VemtapText>
-              <VemtapText variant="caption" tone="brand">
+            <View className="flex-row justify-between gap-2">
+              <VemtapText
+                variant="headingSm"
+                className="min-w-0 flex-1"
+                numberOfLines={2}
+              >
+                {copy.redeemedTitle}
+              </VemtapText>
+              <VemtapText variant="caption" tone="brand" className="shrink-0">
                 {copy.activeVoucher}
               </VemtapText>
             </View>

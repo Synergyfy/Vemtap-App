@@ -4,7 +4,7 @@ import { cssInterop } from 'nativewind';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, type CompositeNavigationProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { z } from 'zod';
 import { VemtapText } from '@components/ui/Text';
@@ -17,7 +17,7 @@ import { CheckboxField } from '@components/forms/CheckboxField';
 import { colors } from '@theme/colors';
 import { strings } from '@constants/strings';
 import { useLogin } from '@features/auth/hooks/useLogin';
-import type { AuthStackParamList } from '@navigation/types';
+import type { AuthStackParamList, RootStackParamList } from '@navigation/types';
 
 cssInterop(View, { className: 'style' });
 cssInterop(ScrollView, {
@@ -35,7 +35,10 @@ const signInFormSchema = z.object({
 
 type SignInFormInput = z.infer<typeof signInFormSchema>;
 
-type Nav = NativeStackNavigationProp<AuthStackParamList, 'SignIn'>;
+type Nav = CompositeNavigationProp<
+  NativeStackNavigationProp<AuthStackParamList, 'SignIn'>,
+  NativeStackNavigationProp<RootStackParamList>
+>;
 
 /**
  * Conversion of stitch_vemtap_design_system/customer_sign_in/code.html
@@ -211,6 +214,7 @@ export function SignInScreen() {
           accessibilityRole="button"
           accessibilityLabel={strings.auth.signInOwnBusiness}
           className="mt-4 flex-row items-center justify-between gap-3 rounded-cta bg-surface-container-low p-4 shadow-sm active:bg-surface-container"
+          onPress={() => navigation.navigate('BusinessSetup')}
         >
           <View className="min-w-0 flex-1 flex-row items-center gap-3">
             <View className="h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-surface-container-highest">

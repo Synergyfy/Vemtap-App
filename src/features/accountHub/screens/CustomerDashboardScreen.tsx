@@ -4,7 +4,6 @@ import { cssInterop } from 'nativewind';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
-  HubBottomBar,
   MetricTile,
   QuickAction,
   SectionLink,
@@ -14,6 +13,7 @@ import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
 import { colors } from '@theme/colors';
+import { navbarBottomShadow } from '@theme/shadows';
 
 cssInterop(View, { className: 'style' });
 cssInterop(Pressable, { className: 'style' });
@@ -42,7 +42,7 @@ export interface CustomerDashboardScreenProps {
   onOpenAccount?: () => void;
   onOpenDeal?: (dealId: string) => void;
   onOpenRewards?: () => void;
-  onNavigate?: (destination: string) => void;
+  onOpenActivity?: () => void;
 }
 
 export function CustomerDashboardScreen({
@@ -52,19 +52,22 @@ export function CustomerDashboardScreen({
   onOpenAccount,
   onOpenDeal,
   onOpenRewards,
-  onNavigate,
+  onOpenActivity,
 }: CustomerDashboardScreenProps) {
   const metricIcons = ['voucher', 'star', 'wallet'] as const;
   const quickIcons = ['explore', 'badge', 'qrCodeScanner', 'history'] as const;
 
   return (
     <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-background">
-      <View className="flex-row items-center justify-between bg-surface px-4 py-2">
+      <View
+        className="flex-row items-center justify-between bg-surface px-4 py-2"
+        style={navbarBottomShadow}
+      >
         <View className="min-w-0 flex-1">
           <VemtapText
             accessibilityRole="header"
-            variant="headingXl"
-            className="text-heading-xl"
+            variant="headingSm"
+            className="text-heading-sm"
             numberOfLines={1}
           >
             {copy.greeting}
@@ -81,7 +84,7 @@ export function CustomerDashboardScreen({
             <Icon name="expandMore" size={15} color={colors.textTertiary} />
           </Pressable>
         </View>
-        <View className="flex-row items-center gap-2">
+        <View className="shrink-0 flex-row items-center gap-2">
           <HubIconButton icon="bag" label={copy.cart} badge="2" onPress={onCart} />
           <HubIconButton
             icon="notifications"
@@ -92,6 +95,7 @@ export function CustomerDashboardScreen({
           />
           <Pressable
             accessibilityRole="button"
+            accessibilityLabel={copy.account}
             onPress={onOpenAccount}
             className="relative h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-surface-container-highest"
           >
@@ -142,12 +146,13 @@ export function CustomerDashboardScreen({
                 <Button
                   label={copy.exploreDeals}
                   size="sm"
+                  fullWidth={false}
                   onPress={() => onOpenDeal?.('weekend-deals')}
                   rightIcon={
                     <Icon name="arrowForward" size={16} color={colors.surface} />
                   }
                 />
-                <View className="flex-row gap-1">
+                <View className="shrink-0 flex-row gap-1">
                   <View className="h-1.5 w-5 rounded-full bg-surface" />
                   <View className="h-1.5 w-1.5 rounded-full bg-surface opacity-50" />
                   <View className="h-1.5 w-1.5 rounded-full bg-surface opacity-50" />
@@ -193,7 +198,9 @@ export function CustomerDashboardScreen({
                     ? onOpenRewards
                     : index === 0
                       ? () => onOpenDeal?.('explore')
-                      : undefined
+                      : index === 3
+                        ? onOpenActivity
+                        : undefined
                 }
               />
             ))}
@@ -201,8 +208,10 @@ export function CustomerDashboardScreen({
         </View>
         <View className="gap-3 px-4">
           <View className="flex-row items-center justify-between">
-            <View className="flex-row items-center gap-2">
-              <VemtapText variant="headingSm">{copy.activeDeals}</VemtapText>
+            <View className="min-w-0 flex-1 flex-row items-center gap-2">
+              <VemtapText variant="headingSm" numberOfLines={1}>
+                {copy.activeDeals}
+              </VemtapText>
               <View className="h-5 w-5 items-center justify-center rounded-full bg-primary">
                 <VemtapText variant="micro" className="text-surface">
                   {copy.activeTwo}
@@ -286,7 +295,6 @@ export function CustomerDashboardScreen({
           </VemtapText>
         </View>
       </ScrollView>
-      <HubBottomBar active="home" mode="dashboard" onNavigate={onNavigate} />
     </SafeAreaView>
   );
 }

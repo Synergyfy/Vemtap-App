@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_tab" name="shell-type"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "on-error": "#ffffff", "surface-subtle": "#F8FAFC", "error": "#ba1a1a", "on-error-container": "#93000a", "surface-container-highest": "#dce2f7", "inverse-surface": "#293040", "surface-dim": "#d3daef", "surface-tint": "#0058cb", "on-primary-container": "#fcfaff", "badge-discount-text": "#059669", "surface-variant": "#dce2f7", "on-tertiary": "#ffffff", "on-background": "#141b2b", "outline": "#727786", "surface-container-lowest": "#ffffff", "surface-container": "#e9edff", "secondary-container": "#bacfff", "surface-tint-blue": "#EEF5FF", "on-secondary-fixed": "#001a41", "outline-variant": "#c2c6d7", "border-active": "#BFDBFE", "text-tertiary": "#9CA3AF", "surface-container-high": "#e1e8fd", "on-tertiary-fixed": "#370e00", "surface-bright": "#f9f9ff", "inverse-primary": "#b0c6ff", "tertiary-fixed-dim": "#ffb599", "surface-container-low": "#f1f3ff", "tertiary-fixed": "#ffdbce", "primary-fixed-dim": "#b0c6ff", "on-surface-variant": "#424655", "surface": "#f9f9ff", "tertiary-container": "#c94a03", "primary": "#0055c4", "inverse-on-surface": "#edf0ff", "on-secondary": "#ffffff", "primary-fixed": "#d9e2ff", "badge-discount-bg": "#ECFDF5", "on-tertiary-fixed-variant": "#7f2b00", "surface-canvas": "#FFFFFF", "text-primary": "#111827", "on-secondary-fixed-variant": "#32466f", "text-secondary": "#4B5563", "primary-container": "#066cf4", "secondary": "#4a5e88", "on-primary-fixed": "#001945", "background": "#f9f9ff", "on-secondary-container": "#435881", "secondary-fixed-dim": "#b2c6f7", "secondary-fixed": "#d8e2ff", "tertiary": "#a13900", "border-subtle": "#E5E7EB", "on-primary": "#ffffff", "on-surface": "#141b2b", "on-primary-fixed-variant": "#00429b", "on-tertiary-container": "#fffaf9", "error-container": "#ffdad6" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "margin": "1.5rem", "space-xl": "2rem", "space-sm": "0.75rem", "space-3xl": "3rem", "gutter": "1rem", "space-xs": "0.5rem", "space-2xs": "0.25rem", "space-md": "1rem", "space-lg": "1.5rem", "space-2xl": "2.5rem" }, "fontFamily": { "body-md": ["Inter"], "heading-lg": ["Inter"], "caption": ["Inter"], "label-sm": ["Inter"], "heading-sm": ["Inter"], "body-lg": ["Inter"], "button-secondary": ["Inter"], "label-md": ["Inter"], "button-primary": ["Inter"], "heading-md": ["Inter"], "display-hero-mobile": ["Inter"], "display-hero": ["Inter"] }, "fontSize": { "body-md": ["15px", { "lineHeight": "22px", "fontWeight": "400" }], "heading-lg": ["26px", { "lineHeight": "34px", "letterSpacing": "-0.015em", "fontWeight": "600" }], "caption": ["12px", { "lineHeight": "16px", "fontWeight": "400" }], "label-sm": ["13px", { "lineHeight": "16px", "fontWeight": "500" }], "heading-sm": ["18px", { "lineHeight": "24px", "fontWeight": "600" }], "body-lg": ["17px", { "lineHeight": "24px", "fontWeight": "400" }], "button-secondary": ["15px", { "lineHeight": "20px", "fontWeight": "500" }], "label-md": ["14px", { "lineHeight": "18px", "fontWeight": "500" }], "button-primary": ["16px", { "lineHeight": "20px", "letterSpacing": "-0.005em", "fontWeight": "600" }], "heading-md": ["22px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600" }], "display-hero-mobile": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }], "display-hero": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.025em", "fontWeight": "700" }] } } } };</script><style>@layer base{html,body{width:100%;margin:0;padding:0;}body{overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}.material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;display:inline-block;vertical-align:middle;line-height:1;}}::-webkit-scrollbar{display:none;}</style><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface font-body-md text-body-md text-on-surface min-h-screen flex flex-col antialiased selection:bg-primary-fixed"><header class="fixed top-0 w-full z-50 pt-safe bg-surface/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-16 px-margin flex items-center justify-between gap-space-sm"><div class="flex flex-col min-w-0 flex-1"><div class="flex items-center gap-space-2xs text-text-secondary"><span class="material-symbols-outlined text-[14px] text-primary">storefront</span><button class="flex items-center gap-space-2xs font-caption text-caption text-text-secondary hover:text-text-primary transition-colors text-left truncate"><span class="truncate max-w-[140px]">Downtown Flagship</span><span class="material-symbols-outlined text-[14px]">expand_more</span></button></div><h1 class="font-heading-sm text-heading-sm text-text-primary tracking-tight truncate">Location Qr</h1></div><div class="flex items-center gap-space-xs shrink-0"><button aria-label="Notifications" class="w-11 h-11 rounded-full flex items-center justify-center text-text-secondary hover:text-text-primary transition-colors hover:bg-surface-container-low"><span class="material-symbols-outlined text-[22px]">notifications</span></button><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center shadow-sm"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex-1 flex flex-col relative w-full pt-16 pb-24 bg-surface"><div class="flex flex-col w-full pb-8">
+<div class="px-margin pt-4 pb-2">
+<div class="flex items-start justify-between gap-space-sm mb-1">
+<div>
+<span class="font-label-sm text-label-sm text-primary uppercase tracking-wider font-semibold">Storefront Presence</span>
+<h2 class="font-heading-md text-heading-md text-text-primary">Location QR Codes</h2>
+</div>
+<button class="h-10 px-space-sm rounded-xl bg-primary text-on-primary font-label-md text-label-md flex items-center gap-space-2xs shadow-md active:scale-95 transition-transform shrink-0" id="btnNewQr">
+<span class="material-symbols-outlined text-[18px]">add</span>
+<span>New Point</span>
+</button>
+</div>
+<p class="font-body-md text-body-md text-text-secondary">
+      Manage physical scan points across your 3 active branches
+    </p>
+</div>
+<div class="w-full overflow-x-auto no-scrollbar py-2 px-margin flex items-center gap-space-xs">
+<button class="branch-pill px-space-sm py-2 rounded-full font-label-sm text-label-sm whitespace-nowrap transition-all duration-200 bg-surface-tint-blue text-primary shadow-sm font-semibold" data-branch="all">
+      All Branches (14 QRs)
+    </button>
+<button class="branch-pill px-space-sm py-2 rounded-full font-label-sm text-label-sm whitespace-nowrap transition-all duration-200 bg-surface-container-low text-text-secondary hover:text-text-primary" data-branch="wuse">
+      Wuse II Flagship (8)
+    </button>
+<button class="branch-pill px-space-sm py-2 rounded-full font-label-sm text-label-sm whitespace-nowrap transition-all duration-200 bg-surface-container-low text-text-secondary hover:text-text-primary" data-branch="maitama">
+      Maitama (4)
+    </button>
+<button class="branch-pill px-space-sm py-2 rounded-full font-label-sm text-label-sm whitespace-nowrap transition-all duration-200 bg-surface-container-low text-text-secondary hover:text-text-primary" data-branch="garki">
+      Garki Area 11 (2)
+    </button>
+</div>
+<div class="px-margin my-space-xs">
+<div class="relative overflow-hidden rounded-xl bg-surface-container-low p-space-md shadow-sm">
+<div class="absolute -right-4 -bottom-6 w-28 h-28 bg-primary/10 rounded-full blur-2xl pointer-events-none"></div>
+<div class="flex items-center justify-between pb-space-xs">
+<div class="flex items-center gap-space-2xs">
+<span class="w-2.5 h-2.5 rounded-full bg-badge-discount-text animate-pulse"></span>
+<span class="font-label-sm text-label-sm text-text-secondary font-semibold">Network Live Status</span>
+</div>
+<span class="font-caption text-caption text-primary flex items-center gap-0.5">
+<span>7-day metrics</span>
+<span class="material-symbols-outlined text-[14px]">trending_up</span>
+</span>
+</div>
+<div class="grid grid-cols-3 gap-space-2xs pt-1">
+<div class="flex flex-col">
+<span class="font-heading-sm text-heading-sm text-text-primary tracking-tight">14</span>
+<span class="font-caption text-caption text-text-secondary leading-tight mt-0.5">Active Points</span>
+</div>
+<div class="flex flex-col">
+<span class="font-heading-sm text-heading-sm text-primary tracking-tight">842</span>
+<span class="font-caption text-caption text-text-secondary leading-tight mt-0.5">Weekly Scans</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-heading-sm text-heading-sm text-text-primary truncate tracking-tight">Till #01</span>
+<span class="font-caption text-caption text-badge-discount-text leading-tight mt-0.5">Most active (38%)</span>
+</div>
+</div>
+</div>
+</div>
+<div class="px-margin mt-space-sm flex flex-col gap-space-md">
+<div class="branch-group" data-group="wuse">
+<div class="flex items-center justify-between mb-space-xs">
+<div class="flex items-center gap-space-xs">
+<div class="w-7 h-7 rounded-lg bg-surface-tint-blue flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[18px]">store</span>
+</div>
+<div>
+<h3 class="font-heading-sm text-heading-sm text-text-primary leading-tight">Wuse II Flagship</h3>
+<span class="font-caption text-caption text-text-secondary">8 Active Scan Points • Aminu Kano Cres.</span>
+</div>
+</div>
+<span class="font-caption text-caption px-2 py-0.5 rounded-full bg-surface-container-high text-primary font-medium">Primary</span>
+</div>
+<div class="flex flex-col gap-space-sm">
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm relative overflow-hidden transition-all duration-200">
+<div class="flex items-start justify-between gap-space-xs">
+<div class="flex gap-space-xs min-w-0">
+<div class="w-12 h-12 rounded-xl bg-surface-container-low flex flex-col items-center justify-center text-primary shrink-0 relative">
+<span class="material-symbols-outlined text-[24px]">point_of_sale</span>
+<span class="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-badge-discount-bg flex items-center justify-center">
+<span class="w-2 h-2 rounded-full bg-badge-discount-text"></span>
+</span>
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-1.5 flex-wrap">
+<h4 class="font-label-md text-label-md text-text-primary font-semibold truncate">Main Counter &amp; Till 01</h4>
+<span class="font-caption text-caption px-1.5 py-0.5 rounded-md bg-badge-discount-bg text-badge-discount-text font-medium">Active</span>
+</div>
+<span class="font-caption text-caption text-text-secondary mt-0.5 truncate">POS Register / Payment Desk Stand</span>
+<div class="flex items-center gap-2 mt-1.5">
+<span class="font-caption text-caption text-primary font-semibold flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[13px]">qr_code_scanner</span>
+                    324 scans/wk
+                  </span>
+<span class="font-caption text-caption text-text-tertiary">•</span>
+<span class="font-caption text-caption text-text-secondary">Instant Settlement</span>
+</div>
+</div>
+</div>
+<button class="qr-preview-trigger w-9 h-9 rounded-full bg-surface-container-low flex items-center justify-center text-text-secondary hover:text-primary active:scale-90 transition-transform shrink-0" data-name="Main Counter &amp; Till 01" data-type="Till Point">
+<span class="material-symbols-outlined text-[20px]">qr_code_2</span>
+</button>
+</div>
+<div class="mt-space-sm pt-space-xs flex items-center justify-between bg-surface-subtle -mx-space-md -mb-space-md px-space-md py-2.5 rounded-b-xl">
+<span class="font-caption text-caption text-text-secondary">Quick Actions</span>
+<div class="flex items-center gap-space-xs">
+<button class="action-feedback flex items-center gap-1 font-label-sm text-label-sm text-primary px-2.5 py-1 rounded-lg hover:bg-surface-tint-blue active:scale-95 transition-all">
+<span class="material-symbols-outlined text-[16px]">print</span>
+<span>Sticker</span>
+</button>
+<button class="action-feedback flex items-center gap-1 font-label-sm text-label-sm text-text-secondary px-2.5 py-1 rounded-lg hover:bg-surface-container-high active:scale-95 transition-all">
+<span class="material-symbols-outlined text-[16px]">download</span>
+<span>SVG</span>
+</button>
+</div>
+</div>
+</div>
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm relative overflow-hidden transition-all duration-200">
+<div class="flex items-start justify-between gap-space-xs">
+<div class="flex gap-space-xs min-w-0">
+<div class="w-12 h-12 rounded-xl bg-surface-container-low flex flex-col items-center justify-center text-secondary shrink-0 relative">
+<span class="material-symbols-outlined text-[24px]">table_restaurant</span>
+<span class="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-badge-discount-bg flex items-center justify-center">
+<span class="w-2 h-2 rounded-full bg-badge-discount-text"></span>
+</span>
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-1.5 flex-wrap">
+<h4 class="font-label-md text-label-md text-text-primary font-semibold truncate">Dine-In Tables Batch (#01–#16)</h4>
+<span class="font-caption text-caption px-1.5 py-0.5 rounded-md bg-surface-tint-blue text-primary font-medium">Dynamic Context</span>
+</div>
+<span class="font-caption text-caption text-text-secondary mt-0.5 truncate">Self-Ordering &amp; Interactive Menu</span>
+<div class="flex items-center gap-2 mt-1.5">
+<span class="font-caption text-caption text-primary font-semibold flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[13px]">qr_code_scanner</span>
+                    410 scans/wk
+                  </span>
+<span class="font-caption text-caption text-text-tertiary">•</span>
+<span class="font-caption text-caption text-badge-discount-text">16 tables paired</span>
+</div>
+</div>
+</div>
+<button class="qr-preview-trigger w-9 h-9 rounded-full bg-surface-container-low flex items-center justify-center text-text-secondary hover:text-primary active:scale-90 transition-transform shrink-0" data-name="Dine-In Batch #01-#16" data-type="Table Ordering Batch">
+<span class="material-symbols-outlined text-[20px]">qr_code_2</span>
+</button>
+</div>
+<div class="mt-space-sm pt-space-xs flex items-center justify-between bg-surface-subtle -mx-space-md -mb-space-md px-space-md py-2.5 rounded-b-xl">
+<span class="font-caption text-caption text-text-secondary">Ordering Mode</span>
+<div class="flex items-center gap-space-xs">
+<button class="action-feedback flex items-center gap-1 font-label-sm text-label-sm text-primary px-2.5 py-1 rounded-lg hover:bg-surface-tint-blue active:scale-95 transition-all">
+<span class="material-symbols-outlined text-[16px]">touch_app</span>
+<span>Open Kiosk Mode</span>
+</button>
+<button class="action-feedback flex items-center gap-1 font-label-sm text-label-sm text-text-secondary px-2.5 py-1 rounded-lg hover:bg-surface-container-high active:scale-95 transition-all">
+<span class="material-symbols-outlined text-[16px]">visibility</span>
+<span>Preview</span>
+</button>
+</div>
+</div>
+</div>
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm relative overflow-hidden transition-all duration-200">
+<div class="flex items-start justify-between gap-space-xs">
+<div class="flex gap-space-xs min-w-0">
+<div class="w-12 h-12 rounded-xl bg-surface-container-low flex flex-col items-center justify-center text-tertiary shrink-0 relative">
+<span class="material-symbols-outlined text-[24px]">local_bar</span>
+<span class="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-badge-discount-bg flex items-center justify-center">
+<span class="w-2 h-2 rounded-full bg-badge-discount-text"></span>
+</span>
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-1.5 flex-wrap">
+<h4 class="font-label-md text-label-md text-text-primary font-semibold truncate">Outdoor Patio &amp; Bar Stand</h4>
+<span class="font-caption text-caption px-1.5 py-0.5 rounded-md bg-badge-discount-bg text-badge-discount-text font-medium">Active</span>
+</div>
+<span class="font-caption text-caption text-text-secondary mt-0.5 truncate">Happy Hour Promo &amp; Cocktail Deals</span>
+<div class="flex items-center gap-2 mt-1.5">
+<span class="font-caption text-caption text-primary font-semibold flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[13px]">qr_code_scanner</span>
+                    88 scans/wk
+                  </span>
+<span class="font-caption text-caption text-text-tertiary">•</span>
+<span class="font-caption text-caption text-tertiary font-medium">Flash deal active</span>
+</div>
+</div>
+</div>
+<button class="qr-preview-trigger w-9 h-9 rounded-full bg-surface-container-low flex items-center justify-center text-text-secondary hover:text-primary active:scale-90 transition-transform shrink-0" data-name="Patio &amp; Bar Stand" data-type="Happy Hour Promo">
+<span class="material-symbols-outlined text-[20px]">qr_code_2</span>
+</button>
+</div>
+<div class="mt-space-sm pt-space-xs flex items-center justify-between bg-surface-subtle -mx-space-md -mb-space-md px-space-md py-2.5 rounded-b-xl">
+<span class="font-caption text-caption text-text-secondary">Routing: Cocktail Menu (5PM-9PM)</span>
+<button class="action-feedback flex items-center gap-1 font-label-sm text-label-sm text-primary px-2.5 py-1 rounded-lg hover:bg-surface-tint-blue active:scale-95 transition-all">
+<span class="material-symbols-outlined text-[16px]">edit_calendar</span>
+<span>Schedule</span>
+</button>
+</div>
+</div>
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm relative overflow-hidden transition-all duration-200">
+<div class="flex items-start justify-between gap-space-xs">
+<div class="flex gap-space-xs min-w-0">
+<div class="w-12 h-12 rounded-xl bg-surface-container-low flex flex-col items-center justify-center text-text-secondary shrink-0 relative">
+<span class="material-symbols-outlined text-[24px]">takeout_dining</span>
+<span class="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-badge-discount-bg flex items-center justify-center">
+<span class="w-2 h-2 rounded-full bg-badge-discount-text"></span>
+</span>
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-1.5">
+<h4 class="font-label-md text-label-md text-text-primary font-semibold truncate">Window Curbside Standee</h4>
+<span class="font-caption text-caption px-1.5 py-0.5 rounded-md bg-badge-discount-bg text-badge-discount-text font-medium">Active</span>
+</div>
+<span class="font-caption text-caption text-text-secondary mt-0.5 truncate">Walk-in Quick Order &amp; Express Pickup</span>
+<div class="flex items-center gap-2 mt-1.5">
+<span class="font-caption text-caption text-primary font-semibold flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[13px]">qr_code_scanner</span>
+                    20 scans/wk
+                  </span>
+<span class="font-caption text-caption text-text-tertiary">•</span>
+<span class="font-caption text-caption text-text-secondary">Curbside Bay A</span>
+</div>
+</div>
+</div>
+<button class="qr-preview-trigger w-9 h-9 rounded-full bg-surface-container-low flex items-center justify-center text-text-secondary hover:text-primary active:scale-90 transition-transform shrink-0" data-name="Curbside Standee" data-type="Walk-in Order">
+<span class="material-symbols-outlined text-[20px]">qr_code_2</span>
+</button>
+</div>
+<div class="mt-space-sm pt-space-xs flex items-center justify-between bg-surface-subtle -mx-space-md -mb-space-md px-space-md py-2.5 rounded-b-xl">
+<span class="font-caption text-caption text-text-secondary">Express Lane Enabled</span>
+<button class="action-feedback flex items-center gap-1 font-label-sm text-label-sm text-primary px-2.5 py-1 rounded-lg hover:bg-surface-tint-blue active:scale-95 transition-all">
+<span class="material-symbols-outlined text-[16px]">qr_code</span>
+<span>View Tag</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<div class="branch-group" data-group="maitama">
+<div class="flex items-center justify-between mb-space-xs mt-space-sm">
+<div class="flex items-center gap-space-xs">
+<div class="w-7 h-7 rounded-lg bg-surface-tint-blue flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[18px]">apartment</span>
+</div>
+<div>
+<h3 class="font-heading-sm text-heading-sm text-text-primary leading-tight">Maitama Heights Branch</h3>
+<span class="font-caption text-caption text-text-secondary">4 Active Scan Points • Danube Close</span>
+</div>
+</div>
+<span class="font-caption text-caption px-2 py-0.5 rounded-full bg-surface-container-low text-text-secondary font-medium">Branch #2</span>
+</div>
+<div class="flex flex-col gap-space-sm">
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm relative overflow-hidden transition-all duration-200">
+<div class="flex items-start justify-between gap-space-xs">
+<div class="flex gap-space-xs min-w-0">
+<div class="w-12 h-12 rounded-xl bg-surface-container-low flex flex-col items-center justify-center text-primary shrink-0 relative">
+<span class="material-symbols-outlined text-[24px]">meeting_room</span>
+<span class="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-badge-discount-bg flex items-center justify-center">
+<span class="w-2 h-2 rounded-full bg-badge-discount-text"></span>
+</span>
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-1.5">
+<h4 class="font-label-md text-label-md text-text-primary font-semibold truncate">Front Desk Host Stand</h4>
+<span class="font-caption text-caption px-1.5 py-0.5 rounded-md bg-badge-discount-bg text-badge-discount-text font-medium">Active</span>
+</div>
+<span class="font-caption text-caption text-text-secondary mt-0.5 truncate">Storefront Discovery, Menu &amp; Waitlist</span>
+<div class="flex items-center gap-2 mt-1.5">
+<span class="font-caption text-caption text-primary font-semibold flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[13px]">qr_code_scanner</span>
+                    182 scans/wk
+                  </span>
+<span class="font-caption text-caption text-text-tertiary">•</span>
+<span class="font-caption text-caption text-text-secondary">Pylon Acrylic</span>
+</div>
+</div>
+</div>
+<button class="qr-preview-trigger w-9 h-9 rounded-full bg-surface-container-low flex items-center justify-center text-text-secondary hover:text-primary active:scale-90 transition-transform shrink-0" data-name="Front Desk Stand" data-type="Discovery Menu">
+<span class="material-symbols-outlined text-[20px]">qr_code_2</span>
+</button>
+</div>
+<div class="mt-space-sm pt-space-xs flex items-center justify-between bg-surface-subtle -mx-space-md -mb-space-md px-space-md py-2.5 rounded-b-xl">
+<span class="font-caption text-caption text-text-secondary">Includes Instant Waitlist</span>
+<button class="action-feedback flex items-center gap-1 font-label-sm text-label-sm text-primary px-2.5 py-1 rounded-lg hover:bg-surface-tint-blue active:scale-95 transition-all">
+<span class="material-symbols-outlined text-[16px]">print</span>
+<span>Print Sticker</span>
+</button>
+</div>
+</div>
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm relative overflow-hidden transition-all duration-200">
+<div class="flex items-start justify-between gap-space-xs">
+<div class="flex gap-space-xs min-w-0">
+<div class="w-12 h-12 rounded-xl bg-surface-container-low flex flex-col items-center justify-center text-secondary shrink-0 relative">
+<span class="material-symbols-outlined text-[24px]">diamond</span>
+<span class="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-badge-discount-bg flex items-center justify-center">
+<span class="w-2 h-2 rounded-full bg-badge-discount-text"></span>
+</span>
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-1.5">
+<h4 class="font-label-md text-label-md text-text-primary font-semibold truncate">VIP Lounge Section</h4>
+<span class="font-caption text-caption px-1.5 py-0.5 rounded-md bg-secondary-container text-on-secondary-container font-medium">VIP Tier</span>
+</div>
+<span class="font-caption text-caption text-text-secondary mt-0.5 truncate">Exclusive High-Value Deal Routing</span>
+<div class="flex items-center gap-2 mt-1.5">
+<span class="font-caption text-caption text-primary font-semibold flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[13px]">qr_code_scanner</span>
+                    46 scans/wk
+                  </span>
+<span class="font-caption text-caption text-text-tertiary">•</span>
+<span class="font-caption text-caption text-badge-discount-text">₦34k avg ticket</span>
+</div>
+</div>
+</div>
+<button class="qr-preview-trigger w-9 h-9 rounded-full bg-surface-container-low flex items-center justify-center text-text-secondary hover:text-primary active:scale-90 transition-transform shrink-0" data-name="VIP Lounge Section" data-type="VIP Routing">
+<span class="material-symbols-outlined text-[20px]">qr_code_2</span>
+</button>
+</div>
+<div class="mt-space-sm pt-space-xs flex items-center justify-between bg-surface-subtle -mx-space-md -mb-space-md px-space-md py-2.5 rounded-b-xl">
+<span class="font-caption text-caption text-text-secondary">Custom Welcome Video: Active</span>
+<button class="action-feedback flex items-center gap-1 font-label-sm text-label-sm text-primary px-2.5 py-1 rounded-lg hover:bg-surface-tint-blue active:scale-95 transition-all">
+<span class="material-symbols-outlined text-[16px]">tune</span>
+<span>Settings</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="px-margin mt-space-lg">
+<div class="flex items-center gap-space-2xs mb-space-xs">
+<span class="material-symbols-outlined text-primary text-[18px]">bolt</span>
+<h3 class="font-heading-sm text-heading-sm text-text-primary">Smart QR Branch Rules</h3>
+</div>
+<div class="grid grid-cols-1 gap-space-xs">
+<div class="bg-surface-container-low rounded-xl p-space-sm flex items-start gap-space-sm">
+<div class="w-9 h-9 rounded-lg bg-surface-tint-blue text-primary flex items-center justify-center shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-[20px]">pin_invoke</span>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between">
+<h4 class="font-label-md text-label-md text-text-primary font-semibold">Dynamic Table Numbering</h4>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-10 h-6 bg-surface-container-highest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-surface peer-checked:bg-primary after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-surface after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+</label>
+</div>
+<p class="font-caption text-caption text-text-secondary mt-1">
+            Automatically injects Table 01–20 context into the customer's self-ordering cart for zero-friction kitchen routing.
+          </p>
+</div>
+</div>
+<div class="bg-surface-container-low rounded-xl p-space-sm flex items-start gap-space-sm">
+<div class="w-9 h-9 rounded-lg bg-badge-discount-bg text-badge-discount-text flex items-center justify-center shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-[20px]">schedule</span>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between">
+<h4 class="font-label-md text-label-md text-text-primary font-semibold">Off-Hours Smart Redirect</h4>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-10 h-6 bg-surface-container-highest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-surface peer-checked:bg-primary after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-surface after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+</label>
+</div>
+<p class="font-caption text-caption text-text-secondary mt-1">
+            When a branch is closed, scans auto-route customers to direct WhatsApp booking or reservations for tomorrow.
+          </p>
+</div>
+</div>
+</div>
+</div>
+<div class="px-margin mt-space-lg flex flex-col gap-space-xs">
+<button class="w-full h-12 rounded-xl bg-surface-container-high text-primary font-label-md text-label-md font-semibold flex items-center justify-center gap-space-xs active:scale-[0.99] transition-transform" id="btnExport">
+<span class="material-symbols-outlined text-[20px]">archive</span>
+<span>Export All Branch QRs (ZIP / Print Sheet)</span>
+</button>
+<button class="w-full h-12 rounded-xl bg-primary text-on-primary font-button-primary text-button-primary flex items-center justify-center gap-space-xs shadow-md active:scale-[0.99] transition-transform" id="btnOrderAcrylics">
+<span class="material-symbols-outlined text-[20px]">local_shipping</span>
+<span>Batch Order Table Acrylics (₦1,200/ea)</span>
+</button>
+</div>
+<div class="fixed inset-0 z-50 flex items-end justify-center bg-inverse-surface/40 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300" id="qrModal">
+<div class="w-full max-w-md bg-surface rounded-t-3xl p-space-lg flex flex-col items-center transform translate-y-full transition-transform duration-300 ease-out shadow-2xl pb-safe" id="qrModalContent">
+<div class="w-12 h-1.5 bg-outline-variant rounded-full mb-space-sm"></div>
+<div class="flex items-center justify-between w-full mb-space-sm">
+<div>
+<h3 class="font-heading-sm text-heading-sm text-text-primary" id="modalQrTitle">Main Counter &amp; Till 01</h3>
+<p class="font-caption text-caption text-text-secondary" id="modalQrSubtitle">Wuse II Flagship Branch • High Resolution</p>
+</div>
+<button class="w-9 h-9 rounded-full bg-surface-container-low flex items-center justify-center text-text-secondary active:scale-95" id="closeModal">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+</div>
+<div class="p-space-md bg-surface-canvas rounded-2xl shadow-sm flex flex-col items-center justify-center my-space-xs">
+<svg class="w-48 h-48 text-text-primary" fill="none" viewbox="0 0 100 100">
+<rect fill="white" height="100" rx="8" width="100"></rect>
+<path clip-rule="evenodd" d="M12 12H40V40H12V12ZM16 16V36H36V16H16ZM22 22H30V30H22V22Z" fill="currentColor" fill-rule="evenodd"></path>
+<path clip-rule="evenodd" d="M60 12H88V40H60V12ZM64 16V36H84V16H64ZM70 22H78V30H70V22Z" fill="currentColor" fill-rule="evenodd"></path>
+<path clip-rule="evenodd" d="M12 60H40V88H12V60ZM16 64V84H36V64H16ZM22 70H30V78H22V70Z" fill="currentColor" fill-rule="evenodd"></path>
+<rect fill="currentColor" height="10" rx="1" width="6" x="46" y="12"></rect>
+<rect fill="currentColor" height="6" rx="1" width="8" x="46" y="28"></rect>
+<rect fill="currentColor" height="6" rx="1" width="14" x="46" y="40"></rect>
+<rect fill="currentColor" height="6" rx="1" width="10" x="12" y="46"></rect>
+<rect fill="currentColor" height="8" rx="1" width="8" x="28" y="46"></rect>
+<rect fill="currentColor" height="8" rx="1" width="8" x="46" y="60"></rect>
+<rect fill="currentColor" height="12" rx="1" width="6" x="60" y="46"></rect>
+<rect fill="currentColor" height="6" rx="1" width="16" x="72" y="46"></rect>
+<rect fill="currentColor" height="8" rx="1" width="10" x="60" y="64"></rect>
+<rect fill="currentColor" height="6" rx="1" width="12" x="76" y="60"></rect>
+<rect fill="currentColor" height="10" rx="1" width="12" x="60" y="78"></rect>
+<rect fill="currentColor" height="14" rx="1" width="10" x="78" y="74"></rect>
+<rect fill="currentColor" height="14" rx="1" width="8" x="46" y="74"></rect>
+<circle cx="50" cy="50" fill="#0055c4" r="7"></circle>
+<path d="M48 48L52 52M52 48L48 52" stroke="white" stroke-linecap="round" stroke-width="1.5"></path>
+</svg>
+<div class="mt-space-2xs flex items-center gap-1 text-primary">
+<span class="material-symbols-outlined text-[14px]">verified</span>
+<span class="font-caption text-caption font-semibold">Ready for NFC Tap + Optical Scan</span>
+</div>
+</div>
+<div class="flex items-center gap-space-xs w-full mt-space-sm">
+<button class="action-feedback flex-1 h-11 rounded-xl bg-surface-container-high text-primary font-label-md text-label-md font-semibold flex items-center justify-center gap-1 active:scale-95 transition-all">
+<span class="material-symbols-outlined text-[18px]">share</span>
+<span>Share</span>
+</button>
+<button class="action-feedback flex-1 h-11 rounded-xl bg-primary text-on-primary font-label-md text-label-md font-semibold flex items-center justify-center gap-1 active:scale-95 transition-all shadow-md">
+<span class="material-symbols-outlined text-[18px]">download</span>
+<span>Save PNG</span>
+</button>
+</div>
+</div>
+</div>
+<div class="fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-inverse-surface text-inverse-on-surface px-space-md py-2.5 rounded-full font-caption text-caption flex items-center gap-2 shadow-lg opacity-0 pointer-events-none transition-all duration-300 z-50 whitespace-nowrap" id="toastMessage">
+<span class="material-symbols-outlined text-[16px] text-badge-discount-text">check_circle</span>
+<span id="toastText">Action completed</span>
+</div>
+</div>
+<script>
+  (function() {
+    const branchPills = document.querySelectorAll('.branch-pill');
+    const branchGroups = document.querySelectorAll('.branch-group');
+    const qrModal = document.getElementById('qrModal');
+    const qrModalContent = document.getElementById('qrModalContent');
+    const closeModal = document.getElementById('closeModal');
+    const modalQrTitle = document.getElementById('modalQrTitle');
+    const modalQrSubtitle = document.getElementById('modalQrSubtitle');
+    const toast = document.getElementById('toastMessage');
+    const toastText = document.getElementById('toastText');
+
+    function showToast(message) {
+      if (!toast || !toastText) return;
+      toastText.textContent = message;
+      toast.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-2');
+      toast.classList.add('opacity-100', 'translate-y-0');
+      setTimeout(() => {
+        toast.classList.remove('opacity-100', 'translate-y-0');
+        toast.classList.add('opacity-0', 'pointer-events-none', 'translate-y-2');
+      }, 2200);
+    }
+
+    branchPills.forEach(pill => {
+      pill.addEventListener('click', () => {
+        branchPills.forEach(p => {
+          p.classList.remove('bg-surface-tint-blue', 'text-primary', 'font-semibold', 'shadow-sm');
+          p.classList.add('bg-surface-container-low', 'text-text-secondary');
+        });
+        pill.classList.remove('bg-surface-container-low', 'text-text-secondary');
+        pill.classList.add('bg-surface-tint-blue', 'text-primary', 'font-semibold', 'shadow-sm');
+
+        const branch = pill.getAttribute('data-branch');
+        branchGroups.forEach(group => {
+          const groupName = group.getAttribute('data-group');
+          if (branch === 'all' || branch === groupName) {
+            group.style.display = 'block';
+          } else {
+            group.style.display = 'none';
+          }
+        });
+      });
+    });
+
+    function openQrModal(name, type) {
+      if (!qrModal || !qrModalContent) return;
+      modalQrTitle.textContent = name || 'Scan Point QR';
+      modalQrSubtitle.textContent = (type || 'Active Placement') + ' • Ready to Deploy';
+      qrModal.classList.remove('opacity-0', 'pointer-events-none');
+      qrModal.classList.add('opacity-100');
+      qrModalContent.classList.remove('translate-y-full');
+      qrModalContent.classList.add('translate-y-0');
+    }
+
+    function hideQrModal() {
+      if (!qrModal || !qrModalContent) return;
+      qrModalContent.classList.remove('translate-y-0');
+      qrModalContent.classList.add('translate-y-full');
+      qrModal.classList.remove('opacity-100');
+      qrModal.classList.add('opacity-0', 'pointer-events-none');
+    }
+
+    document.querySelectorAll('.qr-preview-trigger').forEach(trigger => {
+      trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const name = trigger.getAttribute('data-name');
+        const type = trigger.getAttribute('data-type');
+        openQrModal(name, type);
+      });
+    });
+
+    if (closeModal) {
+      closeModal.addEventListener('click', hideQrModal);
+    }
+
+    if (qrModal) {
+      qrModal.addEventListener('click', (e) => {
+        if (e.target === qrModal) {
+          hideQrModal();
+        }
+      });
+    }
+
+    document.querySelectorAll('.action-feedback').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const actionText = btn.innerText.trim();
+        showToast(actionText + ' triggered successfully');
+      });
+    });
+
+    const btnNewQr = document.getElementById('btnNewQr');
+    if (btnNewQr) {
+      btnNewQr.addEventListener('click', () => {
+        showToast('Configuring new placement point...');
+      });
+    }
+
+    const btnExport = document.getElementById('btnExport');
+    if (btnExport) {
+      btnExport.addEventListener('click', () => {
+        showToast('Generating zip archive for 14 QR vectors...');
+      });
+    }
+
+    const btnOrderAcrylics = document.getElementById('btnOrderAcrylics');
+    if (btnOrderAcrylics) {
+      btnOrderAcrylics.addEventListener('click', () => {
+        showToast('Opening batch acrylic stand customizer');
+      });
+    }
+  })();
+</script></main><nav class="fixed bottom-0 w-full z-50 pb-safe bg-surface/90 backdrop-blur-xl shadow-[0_-2px_12px_rgba(0,0,0,0.03)]" data-active-classes="text-primary font-label-md"><div class="flex items-center justify-around h-16 px-space-xs"><a class="flex flex-col items-center justify-center min-w-[64px] min-h-[44px] gap-space-2xs text-text-secondary hover:text-text-primary transition-colors group" data-path="campaigns-marketing" href="#"><span class="material-symbols-outlined text-[22px]">campaign</span><span class="font-caption text-caption">Campaigns</span></a><a class="flex flex-col items-center justify-center min-w-[64px] min-h-[44px] gap-space-2xs text-text-secondary hover:text-text-primary transition-colors group" data-path="business-qr" href="#"><span class="material-symbols-outlined text-[22px]">qr_code_2</span><span class="font-caption text-caption">QR &amp; Tap</span></a><a class="flex flex-col items-center justify-center min-w-[64px] min-h-[44px] gap-space-2xs text-text-secondary hover:text-text-primary transition-colors group" data-path="analytics-footfall" href="#"><span class="material-symbols-outlined text-[22px]">monitoring</span><span class="font-caption text-caption">Analytics</span></a><a class="flex flex-col items-center justify-center min-w-[64px] min-h-[44px] gap-space-2xs text-text-secondary hover:text-text-primary transition-colors group" data-path="hub-more" href="#"><span class="material-symbols-outlined text-[22px]">apps</span><span class="font-caption text-caption">Hub</span></a></div></nav></body></html>

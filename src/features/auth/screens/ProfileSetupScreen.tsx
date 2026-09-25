@@ -23,6 +23,7 @@ cssInterop(TextInput, { className: 'style' });
 
 const styles = StyleSheet.create({
   filledPinBackground: { opacity: 1 },
+  filledPinDot: { opacity: 1, transform: [{ scale: 1.25 }] },
   hiddenPinState: { opacity: 0 },
 });
 
@@ -44,12 +45,18 @@ function PinBoxes({
   label,
   counter,
   match,
+  pinVisible,
+  onToggleVisibility,
+  showToggle,
 }: {
   value: string;
   onPinChange: (v: string) => void;
   label: string;
   counter?: string;
   match?: 'match' | 'mismatch' | null;
+  pinVisible: boolean;
+  onToggleVisibility: () => void;
+  showToggle?: boolean;
 }) {
   const inputRef = useRef<TextInput>(null);
   const pinSlots = ['pin-1', 'pin-2', 'pin-3', 'pin-4', 'pin-5', 'pin-6'];
@@ -77,6 +84,21 @@ function PinBoxes({
             </VemtapText>
           </View>
         ) : null}
+        {showToggle ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={pinVisible ? strings.auth.hidePin : strings.auth.showPin}
+            hitSlop={8}
+            onPress={onToggleVisibility}
+            className="h-9 w-9 items-center justify-center"
+          >
+            <Icon
+              name={pinVisible ? 'visibilityOff' : 'visibility'}
+              size={19}
+              color={colors.textSecondary}
+            />
+          </Pressable>
+        ) : null}
       </View>
       <Pressable onPress={() => inputRef.current?.focus()}>
         <View className="flex-row gap-2">
@@ -92,10 +114,19 @@ function PinBoxes({
                   className="absolute inset-0 rounded-xl bg-surface-tint"
                   style={filled ? styles.filledPinBackground : styles.hiddenPinState}
                 />
-                {filled ? (
-                  <Icon name="visibilityOff" size={19} color={colors.primary} />
+                {filled && pinVisible ? (
+                  <VemtapText variant="headingMd" className="text-heading-md">
+                    {value[i]}
+                  </VemtapText>
                 ) : (
-                  <View className="h-2.5 w-2.5 rounded-full bg-surface-dim" />
+                  <>
+                    <View className="h-2.5 w-2.5 rounded-full bg-surface-dim" />
+                    <View
+                      pointerEvents="none"
+                      className="absolute h-2.5 w-2.5 rounded-full bg-primary"
+                      style={filled ? styles.filledPinDot : styles.hiddenPinState}
+                    />
+                  </>
                 )}
               </View>
             );
@@ -106,7 +137,7 @@ function PinBoxes({
           value={value}
           onChangeText={t => onPinChange(t.replace(/[^0-9]/g, '').slice(0, 6))}
           keyboardType="number-pad"
-          secureTextEntry
+          secureTextEntry={!pinVisible}
           maxLength={6}
           className="absolute h-12 w-full opacity-0"
           accessibilityLabel={label}
@@ -128,6 +159,7 @@ export function ProfileSetupScreen() {
   const [phone, setPhone] = useState('');
   const [pin1, setPin1] = useState('');
   const [pin2, setPin2] = useState('');
+  const [pinVisible, setPinVisible] = useState(false);
   const [hasAcceptedPolicy, setHasAcceptedPolicy] = useState(false);
 
   const match: 'match' | 'mismatch' | null =
@@ -306,12 +338,17 @@ export function ProfileSetupScreen() {
               onPinChange={onPin1}
               label={strings.auth.profileCreatePin}
               counter={strings.auth.profilePinCounter(pin1.length)}
+              pinVisible={pinVisible}
+              onToggleVisibility={() => setPinVisible(visible => !visible)}
+              showToggle
             />
             <PinBoxes
               value={pin2}
               onPinChange={onPin2}
               label={strings.auth.profileConfirmPin}
               match={match}
+              pinVisible={pinVisible}
+              onToggleVisibility={() => setPinVisible(visible => !visible)}
             />
 
             <View className="flex-row items-center gap-2 pt-1">

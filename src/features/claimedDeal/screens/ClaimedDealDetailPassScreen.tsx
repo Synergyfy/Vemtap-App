@@ -91,7 +91,6 @@ export function ClaimedDealDetailPassScreen({
         onShare={onShare}
         showMoreAction
         onMore={onMore}
-        largeTitle
       />
       <ScrollView
         className="flex-1"
@@ -186,12 +185,18 @@ export function ClaimedDealDetailPassScreen({
           <Button
             label={copy.chat}
             variant="secondary"
+            size="sm"
+            fullWidth={false}
+            className="min-w-0 flex-1"
             leftIcon={<Icon name="message" size={18} color={colors.primary} />}
             onPress={onOpenChat}
           />
           <Button
             label={copy.directions}
             variant="secondary"
+            size="sm"
+            fullWidth={false}
+            className="min-w-0 flex-1"
             leftIcon={<Icon name="nearMe" size={18} color={colors.primary} />}
             onPress={onGetDirections}
           />
@@ -290,6 +295,8 @@ export function ClaimedDealDetailPassScreen({
               label={copy.call}
               variant="secondary"
               size="sm"
+              fullWidth={false}
+              className="min-w-0 flex-1"
               leftIcon={<Icon name="phone" size={18} color={colors.primary} />}
               onPress={onCallBranch}
             />
@@ -297,13 +304,15 @@ export function ClaimedDealDetailPassScreen({
               label={copy.inAppChat}
               variant="secondary"
               size="sm"
+              fullWidth={false}
+              className="min-w-0 flex-1"
               leftIcon={<Icon name="message" size={18} color={colors.primary} />}
               onPress={onOpenChat}
             />
           </View>
         </View>
         <View className="items-center gap-2 pt-1">
-          <View className="flex-row items-center gap-3">
+          <View className="flex-row flex-wrap items-center justify-center gap-3">
             <Pressable
               accessibilityRole="button"
               onPress={onShare}

@@ -3,6 +3,7 @@ import { NavigationContainer, type LinkingOptions } from '@react-navigation/nati
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { AuthStack } from '@navigation/AuthStack';
 import { AppStack } from '@navigation/AppStack';
+import { BusinessSetupNavigator } from '@navigation/BusinessSetupNavigator';
 import type { RootStackParamList } from '@navigation/types';
 import { useAuthStore, selectIsAuthenticated } from '@store/authStore';
 
@@ -83,6 +84,7 @@ export function RootNavigator() {
         ) : (
           <Stack.Screen name="AuthStack" component={AuthStack} />
         )}
+        <Stack.Screen name="BusinessSetup" component={BusinessSetupNavigator} />
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -15,14 +15,14 @@ import {
   Inter_600SemiBold,
   Inter_700Bold,
 } from '@expo-google-fonts/inter';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { colorScheme } from 'nativewind';
 import './src/theme/nativewind'; // must run before any screen uses className
 import { queryClient, queryCachePersister, PERSIST_BUSTER } from '@store/queryClient';
-import { ThemeProvider, useTheme } from '@theme/ThemeProvider';
+import { ThemeProvider } from '@theme/ThemeProvider';
 import { ErrorBoundary } from '@components/shared/ErrorBoundary';
 import { OfflineBanner } from '@components/shared/OfflineBanner';
 import { ToastHost } from '@components/shared/ToastHost';
@@ -36,12 +36,23 @@ import { refreshFeatureFlags } from '@services/featureFlags';
 import { initPushNotifications } from '@services/pushNotifications';
 import { analytics } from '@services/analytics';
 import { logger } from '@utils/logger';
+import { colors } from '@theme/colors';
 
 // Design system is light-only. Force light before first paint so NativeWind
 // never follows the OS dark scheme during boot (black screen after splash).
 colorScheme.set('light');
 
-const shellStyles = StyleSheet.create({ root: { flex: 1 } });
+const shellStyles = StyleSheet.create({
+  root: { flex: 1 },
+  statusBarBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
+    backgroundColor: colors.surface,
+  },
+});
 const loadingTextStyle = StyleSheet.create({
   loadingText: { color: '#066CF4', fontSize: 16 },
 });
@@ -55,17 +66,37 @@ LogBox.ignoreLogs([
   'remote notifications',
 ]);
 
+/**
+ * iOS ignores StatusBar.backgroundColor — the status bar is transparent and the
+ * view underneath supplies the color. A single app-level backdrop paints the top
+ * inset white for every screen without adding layout padding or touching each
+ * screen's own safe-area handling.
+ */
+function StatusBarBackdrop() {
+  const insets = useSafeAreaInsets();
+  const topInset = Math.max(insets.top, StatusBar.currentHeight ?? 0);
+
+  return (
+    <>
+      <StatusBar barStyle="dark-content" backgroundColor={colors.surface} />
+      <View
+        pointerEvents="none"
+        style={[shellStyles.statusBarBackdrop, { height: topInset }]}
+      />
+    </>
+  );
+}
+
 function Shell({ children }: { children: React.ReactNode }) {
-  const { theme } = useTheme();
   const isOnline = useIsOnline();
   const toast = useUiStore(state => state.toast);
 
   return (
     <View className="flex-1 bg-background">
-      <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} />
       {!isOnline ? <OfflineBanner /> : null}
       <View className="flex-1">{children}</View>
       <ToastHost toast={toast} />
+      <StatusBarBackdrop />
     </View>
   );
 }
@@ -112,11 +143,12 @@ export default function App() {
   if (!bootReady || (!fontsLoaded && !fontTimeout)) {
     return (
       <SafeAreaProvider>
-        <View className="flex-1 items-center justify-center bg-background">
+        <View className="flex-1 items-center justify-center bg-surface">
           <View className="flex-row items-center gap-3">
             <ActivityIndicator size="large" color="#066CF4" />
             <Text style={loadingTextStyle.loadingText}>Loading VEMTAP...</Text>
           </View>
+          <StatusBarBackdrop />
         </View>
       </SafeAreaProvider>
     );
