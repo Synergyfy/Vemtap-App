@@ -45,7 +45,7 @@ export function OrderHubCard({
           className="h-12 w-12 shrink-0 rounded-xl bg-surface-container"
         />
         <View className="min-w-0 flex-1">
-          <VemtapText variant="headingSm" numberOfLines={1}>
+          <VemtapText variant="labelMd" className="font-sans-semibold" numberOfLines={1}>
             {merchant}
           </VemtapText>
           <VemtapText
@@ -90,6 +90,7 @@ export function OrderHubCard({
             variant={action.primary ? 'primary' : 'secondary'}
             size="sm"
             fullWidth={false}
+            labelVariant="labelSm"
             onPress={action.onPress}
             className="min-w-[100px] flex-1"
           />

@@ -86,21 +86,23 @@ export function AddProductBasicsCategoryScreen({
         actionLabel: 'Draft',
         onAction: () => onSaveDraft?.(value),
       }}
-      contentContainerClassName="pb-6"
+      contentContainerClassName="pb-8"
       footer={
         <BusinessActionDock>
           <Button
             label="Continue to Pricing & Inventory"
+            labelVariant="labelMd"
             labelNumberOfLines={2}
-            className="min-h-[56px] py-2 shadow-lg"
+            className="min-h-[52px] shadow-lg"
             rightIcon={<Icon name="arrowForward" size={20} color={colors.surface} />}
             onPress={() => onContinue?.(value)}
           />
           <Button
             label="Save as Draft & Exit"
+            labelVariant="labelMd"
             variant="ghost"
             className="min-h-9"
-            leftIcon={<Icon name="bookmark" size={16} color={colors.textSecondary} />}
+            leftIcon={<Icon name="save" size={16} color={colors.textSecondary} />}
             onPress={() => onSaveDraft?.(value)}
           />
         </BusinessActionDock>
@@ -119,7 +121,7 @@ export function AddProductBasicsCategoryScreen({
       </View>
 
       <View className="mt-2 gap-6">
-        <SetupCard>
+        <SetupCard className="gap-3">
           <View className="flex-row items-start justify-between gap-3">
             <View className="min-w-0 flex-1">
               <View className="flex-row flex-wrap items-center gap-2">
@@ -159,7 +161,7 @@ export function AddProductBasicsCategoryScreen({
               alt="Woodfire seared Angus ribeye steak served on a rustic slate board"
               className="h-full w-full"
             />
-            <View className="absolute left-3 top-3 flex-row items-center gap-1 rounded-full bg-surface-dark/85 px-2.5 py-1 shadow-sm">
+            <View className="absolute left-3 top-3 flex-row items-center gap-1 rounded-full bg-inverse-surface/85 px-2.5 py-1 shadow-sm">
               <Icon name="star" size={14} color={colors.badgeDiscountBg} />
               <VemtapText variant="caption" className="text-inverse font-sans-semibold">
                 Cover Photo
@@ -173,11 +175,12 @@ export function AddProductBasicsCategoryScreen({
             </View>
             <Button
               label="Change"
+              labelVariant="labelSm"
               variant="outline"
               size="sm"
               fullWidth={false}
-              className="absolute bottom-3 right-3 min-h-9 rounded-lg bg-surface/95 px-3"
-              leftIcon={<Icon name="camera" size={16} color={colors.primary} />}
+              className="absolute bottom-3 right-3 min-h-9 rounded-lg border-0 bg-surface/95 px-3"
+              leftIcon={<Icon name="imagePlus" size={16} color={colors.primary} />}
               onPress={onChangePhoto}
             />
           </View>
@@ -210,7 +213,7 @@ export function AddProductBasicsCategoryScreen({
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Add product photo"
-              className="aspect-square flex-1 items-center justify-center rounded-lg bg-surface-container-low active:scale-95"
+              className="aspect-square flex-1 flex-col items-center justify-center rounded-lg bg-surface-container-low active:scale-95"
               onPress={onChangePhoto}
             >
               <Icon name="plus" size={20} color={colors.primary} />
@@ -239,7 +242,7 @@ export function AddProductBasicsCategoryScreen({
         </SetupCard>
 
         <SetupCard>
-          <View className="gap-1.5">
+          <View className="gap-1">
             <View className="flex-row items-center justify-between gap-2">
               <VemtapText variant="labelMd" className="font-sans-semibold">
                 Product Title <VemtapText className="text-error">*</VemtapText>
@@ -286,12 +289,12 @@ export function AddProductBasicsCategoryScreen({
                 setUnbranded(next);
                 setBrand(next ? 'Unbranded / Homemade' : productIdentity.brand);
               }}
-              className="-ml-1 bg-transparent p-0"
+              className="-ml-1 mt-1 bg-transparent p-0"
             />
           </View>
         </SetupCard>
 
-        <SetupCard>
+        <SetupCard className="gap-3">
           <View className="flex-row items-start justify-between gap-3">
             <View className="min-w-0 flex-1">
               <VemtapText variant="headingSm" className="text-heading-sm">
@@ -308,6 +311,7 @@ export function AddProductBasicsCategoryScreen({
               label="Primary Category"
               value="Food & Dining"
               icon="restaurant"
+              active
               onPress={() => onChangeCategory?.('primary')}
             />
             <View className="ml-9 h-px bg-surface-container-high" />
@@ -346,7 +350,7 @@ export function AddProductBasicsCategoryScreen({
             placeholder="List ingredients, taste notes, or preparation specifics..."
             minHeight={128}
           />
-          <View className="flex-row flex-wrap gap-1.5">
+          <View className="flex-row flex-wrap gap-1.5 pt-1">
             {highlights.map(highlight => (
               <Pressable
                 key={highlight}
@@ -367,7 +371,7 @@ export function AddProductBasicsCategoryScreen({
           </View>
         </SetupCard>
 
-        <SetupCard>
+        <SetupCard className="gap-3">
           <VemtapText variant="headingSm" className="text-heading-sm">
             Item Condition
           </VemtapText>
@@ -384,7 +388,7 @@ export function AddProductBasicsCategoryScreen({
                   accessibilityState={{ selected }}
                   accessibilityLabel={option.label}
                   className={cn(
-                    'min-w-0 flex-1 items-center gap-1 rounded-xl p-3 active:scale-95',
+                    'min-w-0 flex-1 flex-col items-center gap-1 rounded-xl p-3 active:scale-95',
                     selected ? 'bg-surface-tint shadow-sm' : 'bg-surface-subtle',
                   )}
                   onPress={() => setCondition(option.id)}
@@ -417,18 +421,29 @@ function CategoryLevel({
   label,
   value,
   icon,
+  active = false,
   onPress,
 }: {
   label: string;
   value: string;
   icon: 'restaurant' | 'grill' | 'fire';
+  active?: boolean;
   onPress: () => void;
 }) {
   return (
     <View className="flex-row items-center justify-between gap-2 py-1">
       <View className="min-w-0 flex-1 flex-row items-center gap-2">
-        <View className="h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary-fixed">
-          <Icon name={icon} size={16} color={colors.primary} />
+        <View
+          className={cn(
+            'h-7 w-7 shrink-0 items-center justify-center rounded-lg',
+            active ? 'bg-primary-fixed' : 'bg-surface-container-high',
+          )}
+        >
+          <Icon
+            name={icon}
+            size={16}
+            color={active ? colors.primary : colors.onSecondaryContainer}
+          />
         </View>
         <View className="min-w-0 flex-1">
           <VemtapText variant="caption" tone="tertiary">

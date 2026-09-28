@@ -102,7 +102,7 @@ export function BusinessProfileContactChannelsScreen({
 
       <ScrollView
         className="flex-1"
-        contentContainerClassName="gap-4 px-6 pb-6 pt-4"
+        contentContainerClassName="gap-4 px-6 pb-10 pt-4"
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
@@ -132,7 +132,7 @@ export function BusinessProfileContactChannelsScreen({
           </VemtapText>
         </View>
 
-        <SetupSectionCard>
+        <SetupSectionCard className="gap-2">
           <View className="flex-row flex-wrap items-center justify-between gap-2">
             <VemtapText
               variant="labelMd"
@@ -166,7 +166,7 @@ export function BusinessProfileContactChannelsScreen({
           <InfoHint text={copy.contactChannels.phoneHint} />
         </SetupSectionCard>
 
-        <SetupSectionCard>
+        <SetupSectionCard className="gap-2">
           <View className="flex-row flex-wrap items-center justify-between gap-2">
             <VemtapText
               variant="labelMd"
@@ -192,7 +192,7 @@ export function BusinessProfileContactChannelsScreen({
           <InfoHint text={copy.contactChannels.emailHint} icon="verifiedUser" />
         </SetupSectionCard>
 
-        <SetupSectionCard>
+        <SetupSectionCard className="gap-2">
           <VemtapText variant="labelMd" className="font-sans-medium text-text">
             {copy.contactChannels.websiteLabel}
           </VemtapText>
@@ -207,7 +207,7 @@ export function BusinessProfileContactChannelsScreen({
           />
         </SetupSectionCard>
 
-        <SetupSectionCard>
+        <SetupSectionCard className="gap-3">
           <View className="flex-row items-start justify-between gap-2">
             <View className="min-w-0 flex-1">
               <VemtapText variant="labelMd" className="font-sans-semibold text-text">
@@ -239,7 +239,7 @@ export function BusinessProfileContactChannelsScreen({
           </View>
         </SetupSectionCard>
 
-        <SetupSectionCard>
+        <SetupSectionCard className="gap-3">
           <SetupSectionHeading title={copy.contactChannels.preferencesTitle} />
           <View className="gap-4">
             <ToggleRow
@@ -262,11 +262,12 @@ export function BusinessProfileContactChannelsScreen({
           icon="rocket"
           title={copy.contactChannels.launchTitle}
           body={copy.contactChannels.launchBody}
+          iconSize={22}
           className="shadow-none"
         />
       </ScrollView>
 
-      <View className="gap-2 px-6 pb-2 pt-3">
+      <View className="gap-3 px-6 pb-6 pt-0">
         <PrimaryActionButton
           label={copy.contactChannels.complete}
           onPress={() => onComplete?.(value)}

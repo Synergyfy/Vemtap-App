@@ -118,18 +118,20 @@ export function AddProductPricingVariantsScreen({
         actionLabel: 'Draft',
         onAction: () => onSaveDraft?.(value),
       }}
-      contentContainerClassName="pb-6"
+      contentContainerClassName="pb-8"
       footer={
         <BusinessActionDock>
           <Button
             label="Continue to Branch Availability"
+            labelVariant="labelMd"
             labelNumberOfLines={2}
-            className="min-h-[56px] py-2 shadow-lg"
+            className="min-h-[52px] shadow-lg"
             rightIcon={<Icon name="arrowForward" size={20} color={colors.surface} />}
             onPress={() => onContinue?.(value)}
           />
           <Button
             label="Back to Step 1"
+            labelVariant="labelMd"
             variant="ghost"
             className="min-h-11"
             onPress={onBack}
@@ -163,7 +165,7 @@ export function AddProductPricingVariantsScreen({
 
       <View className="mt-4 gap-6">
         <SetupCard>
-          <BusinessSectionHeading title="Standard Retail Pricing" icon="payments" />
+          <BusinessSectionHeading title="Standard Retail Pricing" icon="localOffer" />
           <View className="flex-row items-center justify-between gap-2">
             <VemtapText variant="labelMd" className="min-w-0 flex-1 font-sans-semibold">
               Regular Base Price
@@ -197,7 +199,7 @@ export function AddProductPricingVariantsScreen({
             accessibilityLabel="Compare-at Price"
             className="bg-surface-subtle"
           />
-          <View className="flex-row items-center gap-1.5 self-start rounded-lg bg-badge-discount-bg px-3 py-1.5">
+          <View className="mt-1 flex-row items-center gap-1.5 self-start rounded-lg bg-badge-discount-bg px-3 py-1.5">
             <Icon name="localOffer" size={16} color={colors.badgeDiscountText} />
             <VemtapText
               variant="caption"
@@ -206,7 +208,7 @@ export function AddProductPricingVariantsScreen({
               Shows ₦2,000 discount on normal listing
             </VemtapText>
           </View>
-          <View className="flex-row gap-3">
+          <View className="flex-row gap-3 pt-1">
             <View className="min-w-0 flex-1">
               <BusinessNumberInput
                 label="Cost per Item"
@@ -266,7 +268,7 @@ export function AddProductPricingVariantsScreen({
           </View>
           {variantsEnabled ? (
             <>
-              <View className="flex-row items-center justify-between rounded-lg bg-surface-container-low px-4 py-3">
+              <View className="flex-row items-center justify-between rounded-lg bg-surface-container-low px-4 py-2">
                 <View className="min-w-0 flex-1 flex-row items-center gap-2">
                   <VemtapText variant="labelMd" tone="secondary">
                     Active Option:
@@ -290,8 +292,9 @@ export function AddProductPricingVariantsScreen({
               />
               <Button
                 label="+ Add Another Option / Variant"
+                labelVariant="labelMd"
                 variant="secondary"
-                className="min-h-12"
+                className="min-h-12 border-0"
                 leftIcon={<Icon name="plusCircle" size={20} color={colors.primary} />}
                 onPress={addVariant}
               />

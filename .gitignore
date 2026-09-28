@@ -83,3 +83,8 @@ web-build/
 .expo
 dist/
 web-build/
+# Stitch design references — HTML specs and screen.png previews.
+# Source of truth for UI conversion, not app source. Never shipped or built.
+stitch_vemtap_design_system/
+stitch_vemtap_design_system_1/
+stitch_vemtap_mobile_app_design/

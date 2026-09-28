@@ -53,7 +53,10 @@ export function DealCard({ deal, className }: DealCardProps) {
             className="absolute inset-0 h-full w-full"
           />
           <View className="absolute left-1.5 top-1.5 rounded-full bg-badge-discount-bg px-1.5 py-0.5 shadow-onboard-sm">
-            <VemtapText className="font-sans-bold text-caption text-badge-discount-text">
+            <VemtapText
+              variant="micro"
+              className="font-sans-bold text-badge-discount-text"
+            >
               {deal.badgeLabel}
             </VemtapText>
           </View>
@@ -64,7 +67,7 @@ export function DealCard({ deal, className }: DealCardProps) {
             <View className="flex-row items-center justify-between gap-1">
               <VemtapText
                 className={cn(
-                  'font-sans-semibold text-caption uppercase tracking-wider',
+                  'min-w-0 flex-1 font-sans-semibold text-micro uppercase tracking-wider',
                   deal.categoryTone === 'primary'
                     ? 'text-primary'
                     : 'text-text-secondary',
@@ -76,7 +79,7 @@ export function DealCard({ deal, className }: DealCardProps) {
               {tag ? (
                 <View
                   className={cn(
-                    'flex-row items-center gap-0.5 rounded-full px-1.5 py-0.5',
+                    'shrink-0 flex-row items-center gap-1 rounded-full px-2 py-1',
                     tag.bg,
                   )}
                 >
@@ -88,23 +91,23 @@ export function DealCard({ deal, className }: DealCardProps) {
                           ? 'trendingUp'
                           : 'verified'
                     }
-                    size={13}
+                    size={12}
                     color={tag.text === 'text-primary' ? colors.primary : '#C94A03'}
                   />
-                  <VemtapText className={cn('text-caption', tag.text)} numberOfLines={1}>
+                  <VemtapText variant="micro" className={cn(tag.text)}>
                     {deal.tag?.label}
                   </VemtapText>
                 </View>
               ) : null}
             </View>
             <VemtapText
-              className="mt-0.5 truncate text-heading-sm text-text"
+              className="mt-1 truncate text-body-md text-text"
               numberOfLines={1}
             >
               {deal.title}
             </VemtapText>
             <VemtapText
-              className="mt-0.5 font-sans-medium text-body-md text-text"
+              className="mt-0.5 font-sans-medium text-label-md text-text"
               numberOfLines={1}
             >
               {deal.dealTitle}
@@ -114,16 +117,16 @@ export function DealCard({ deal, className }: DealCardProps) {
           <View className="-mx-3.5 -mb-3.5 mt-2 flex-row items-center justify-between rounded-b-xl bg-surface-subtle px-3.5 pb-2 pt-1.5">
             <View className="flex-row items-center gap-1">
               <Icon name="distance" size={15} color={colors.primary} />
-              <VemtapText className="text-caption text-text-secondary">
+              <VemtapText variant="micro" className="text-text-secondary">
                 {deal.distance}
               </VemtapText>
             </View>
             <View className="flex-row items-center gap-1">
               <Icon name="star" size={14} color="#C94A03" />
-              <VemtapText className="font-sans-semibold text-caption text-text">
+              <VemtapText variant="micro" className="font-sans-semibold text-text">
                 {deal.rating}
               </VemtapText>
-              <VemtapText className="text-caption text-text-tertiary">
+              <VemtapText variant="micro" className="text-text-tertiary">
                 ({deal.ratingCount})
               </VemtapText>
             </View>

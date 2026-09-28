@@ -48,6 +48,13 @@ export function OrderPlacedScreen({ route, navigation }: Props) {
     });
   }, [navigation]);
 
+  const goToOrders = useCallback(() => {
+    navigation.navigate('Tabs', {
+      screen: 'Account',
+      params: { screen: 'OrdersBookings' },
+    });
+  }, [navigation]);
+
   const merchantActions = createMerchantActions(() => {
     navigation.navigate('MerchantChat', { dealId: 'urban-grill-lunch' });
   });
@@ -366,6 +373,11 @@ export function OrderPlacedScreen({ route, navigation }: Props) {
             onPress={() =>
               navigation.navigate('MerchantChat', { dealId: 'urban-grill-lunch' })
             }
+          />
+          <Button
+            label={strings.accountScreens.moreHub.viewOrders}
+            variant="secondary"
+            onPress={goToOrders}
           />
           <Button
             label={strings.productOrder.backHome}

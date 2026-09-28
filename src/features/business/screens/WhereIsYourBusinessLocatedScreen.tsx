@@ -10,13 +10,13 @@ import { VemtapText } from '@components/ui/Text';
 import { colors } from '@theme/colors';
 import { businessLocationCopy as copy } from '@features/business/businessCopy';
 import { countryFlags, primaryBranchRegion } from '@features/business/businessData';
+import { BusinessSectionHeading } from '@features/business/components/BusinessPrimitives';
 import {
   FieldInput,
   PrimaryActionButton,
   SectionMetaRow,
   SetupStepBar,
   SetupSectionCard,
-  SetupSectionHeading,
   StatusPill,
   TextActionButton,
 } from '@features/business/components/BusinessSetupPrimitives';
@@ -30,7 +30,7 @@ cssInterop(ScrollView, {
 });
 cssInterop(SafeAreaView, { className: 'style' });
 
-const MAP_HEIGHT = 208;
+const MAP_HEIGHT = 210;
 const FLAG_NIGERIA = countryFlags.nigeria;
 
 export interface BusinessLocationDraft {
@@ -97,7 +97,7 @@ export function WhereIsYourBusinessLocatedScreen({
 
       <ScrollView
         className="flex-1"
-        contentContainerClassName="gap-5 px-6 pb-6 pt-4"
+        contentContainerClassName="gap-5 px-6 pb-10 pt-4"
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
@@ -108,7 +108,6 @@ export function WhereIsYourBusinessLocatedScreen({
           stepStyle="plain"
           stepMarker="number"
           stepNumber={2}
-          bordered
         />
 
         <View className="gap-1">
@@ -168,7 +167,7 @@ export function WhereIsYourBusinessLocatedScreen({
         </View>
 
         <View
-          className="w-full overflow-hidden rounded-card-lg bg-surface-container-high shadow-sm"
+          className="w-full overflow-hidden rounded-card bg-surface-container-high shadow-sm"
           style={{ height: MAP_HEIGHT }}
         >
           <LocationMapView
@@ -244,7 +243,7 @@ export function WhereIsYourBusinessLocatedScreen({
           </Pressable>
         </View>
 
-        <SetupSectionCard tone="lowest" className="rounded-card-lg">
+        <SetupSectionCard tone="lowest" className="gap-3.5">
           <View className="flex-row flex-wrap items-center justify-between gap-2">
             <View className="min-w-0 flex-row items-center gap-2">
               <View className="h-7 w-7 items-center justify-center rounded-lg bg-surface-tint-blue">
@@ -263,14 +262,14 @@ export function WhereIsYourBusinessLocatedScreen({
                 value={`${FLAG_NIGERIA} ${copy.whereLocated.country}`}
               />
               <SectionMetaRow
-                label={copy.whereLocated.cityLabel}
-                value={copy.whereLocated.city}
+                label={copy.whereLocated.stateLabel}
+                value={copy.whereLocated.state}
               />
             </View>
             <View className="min-w-0 flex-1 gap-2.5">
               <SectionMetaRow
-                label={copy.whereLocated.stateLabel}
-                value={copy.whereLocated.state}
+                label={copy.whereLocated.cityLabel}
+                value={copy.whereLocated.city}
               />
               <SectionMetaRow
                 label={copy.whereLocated.districtLabel}
@@ -318,10 +317,13 @@ export function WhereIsYourBusinessLocatedScreen({
         </SetupSectionCard>
 
         <View className="gap-3">
-          <SetupSectionHeading
+          <BusinessSectionHeading
             title={copy.whereLocated.detailsTitle}
-            badge={copy.whereLocated.detailsBadge}
-            badgeTone="neutral"
+            trailing={
+              <VemtapText variant="caption" tone="secondary">
+                {copy.whereLocated.detailsBadge}
+              </VemtapText>
+            }
           />
           <FieldInput
             label={copy.whereLocated.streetLabel}
@@ -344,7 +346,7 @@ export function WhereIsYourBusinessLocatedScreen({
         </View>
       </ScrollView>
 
-      <View className="items-center gap-2 px-6 pb-2 pt-3">
+      <View className="items-center gap-3 px-6 pb-6 pt-0">
         <PrimaryActionButton
           label={copy.whereLocated.continue}
           onPress={() => onContinue?.(draft)}

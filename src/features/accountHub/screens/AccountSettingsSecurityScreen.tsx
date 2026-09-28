@@ -114,8 +114,10 @@ export function AccountSettingsSecurityScreen({
             <Button
               label={copy.manageDevices}
               variant="ghost"
+              size="sm"
+              labelVariant="labelMd"
               onPress={onManageDevices}
-              rightIcon={<Icon name="arrowForward" size={18} color={colors.primary} />}
+              rightIcon={<Icon name="arrowForward" size={16} color={colors.primary} />}
             />
           </View>
         </AccountSection>
@@ -169,17 +171,22 @@ export function AccountSettingsSecurityScreen({
           <Button
             label={copy.signOut}
             variant="secondary"
+            size="sm"
+            labelVariant="labelMd"
             onPress={onSignOutAll}
-            leftIcon={<Icon name="logout" size={20} color={colors.error} />}
+            leftIcon={<Icon name="logout" size={18} color={colors.error} />}
           />
           <View className="h-px w-full bg-surface-container" />
           <View className="items-center px-1">
             <Button
               label={copy.delete}
               variant="ghost"
+              size="sm"
+              fullWidth={false}
+              labelVariant="labelMd"
               labelClassName="text-error"
               onPress={onDeleteAccount}
-              leftIcon={<Icon name="delete" size={18} color={colors.error} />}
+              leftIcon={<Icon name="delete" size={16} color={colors.error} />}
             />
             <VemtapText
               variant="caption"
@@ -213,7 +220,7 @@ function DeviceRow({
       </View>
       <View className="min-w-0 flex-1">
         <View className="flex-row items-center gap-2">
-          <VemtapText variant="headingSm" className="text-body-md" numberOfLines={1}>
+          <VemtapText variant="labelMd" className="font-sans-semibold" numberOfLines={1}>
             {name}
           </VemtapText>
           {badge ? (

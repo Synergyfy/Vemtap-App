@@ -3,6 +3,8 @@ node_modules
 .expo
 dist
 coverage
-stitch_vemtap_design_system
 docs
 *.log
+stitch_vemtap_design_system
+stitch_vemtap_design_system_1
+stitch_vemtap_mobile_app_design

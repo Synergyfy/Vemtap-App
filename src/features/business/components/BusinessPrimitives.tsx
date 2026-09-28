@@ -18,6 +18,7 @@ import { Icon, type IconName } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { colors } from '@theme/colors';
 import { navbarBottomShadow } from '@theme/shadows';
+import type { TextVariant } from '@theme/typography';
 import { cn } from '@utils/cn';
 
 cssInterop(View, { className: 'style' });
@@ -32,23 +33,27 @@ cssInterop(TextInput, { className: 'style' });
 cssInterop(Switch, { className: 'style' });
 
 export interface BusinessHeaderAction {
-  label: string;
+  label?: string;
   icon: IconName;
   onPress?: () => void;
 }
 
 export interface BusinessHeaderProps {
   title: string;
-  onBack: () => void;
+  onBack?: () => void;
   eyebrow?: string;
   subtitle?: string;
   actionLabel?: string;
   onAction?: () => void;
   actions?: BusinessHeaderAction[];
   accessory?: ReactNode;
+  leading?: ReactNode;
+  titleAccessory?: ReactNode;
   stepBadge?: string;
   showAvatar?: boolean;
   centerTitle?: boolean;
+  /** Navbar title token; defaults to `headingSm`, drop to `labelMd` on crowded bars. */
+  titleVariant?: TextVariant;
 }
 
 export function BusinessHeader({
@@ -60,24 +65,30 @@ export function BusinessHeader({
   onAction,
   actions = [],
   accessory,
+  leading,
+  titleAccessory,
   stepBadge,
   showAvatar = true,
   centerTitle = true,
+  titleVariant = 'headingSm',
 }: BusinessHeaderProps) {
   return (
     <View
       className="h-16 w-full max-w-screen flex-row items-center gap-1 self-center bg-surface px-6"
       style={navbarBottomShadow}
     >
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Go back"
-        hitSlop={8}
-        className="-ml-2 h-11 w-11 shrink-0 items-center justify-center rounded-full active:bg-surface-container-low"
-        onPress={onBack}
-      >
-        <Icon name="backIos" size={24} color={colors.surfaceDark} />
-      </Pressable>
+      {leading}
+      {onBack ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          hitSlop={8}
+          className="-ml-2 h-11 w-11 shrink-0 items-center justify-center rounded-full active:bg-surface-container-low"
+          onPress={onBack}
+        >
+          <Icon name="backIos" size={24} color={colors.surfaceDark} />
+        </Pressable>
+      ) : null}
       <View
         className={cn(
           'min-w-0 flex-1',
@@ -95,17 +106,26 @@ export function BusinessHeader({
           </VemtapText>
         ) : null}
         {accessory}
-        <VemtapText
-          accessibilityRole="header"
-          variant="headingSm"
+        <View
           className={cn(
-            'max-w-full text-heading-sm',
-            centerTitle ? 'text-center' : 'text-left',
+            'max-w-full flex-row items-center gap-1.5',
+            centerTitle ? 'justify-center' : 'justify-start',
           )}
-          numberOfLines={1}
         >
-          {title}
-        </VemtapText>
+          <VemtapText
+            accessibilityRole="header"
+            variant={titleVariant}
+            className={cn(
+              'max-w-full shrink',
+              titleVariant === 'headingSm' && 'text-heading-sm',
+              centerTitle ? 'text-center' : 'text-left',
+            )}
+            numberOfLines={1}
+          >
+            {title}
+          </VemtapText>
+          {titleAccessory}
+        </View>
         {subtitle ? (
           <VemtapText
             variant="caption"
@@ -131,9 +151,9 @@ export function BusinessHeader({
             </VemtapText>
           </Pressable>
         ) : null}
-        {actions.map(action => (
+        {actions.map((action, index) => (
           <Pressable
-            key={action.label}
+            key={action.label ?? `${action.icon}-${index}`}
             accessibilityRole="button"
             accessibilityLabel={action.label}
             hitSlop={8}
@@ -156,6 +176,19 @@ export function BusinessHeader({
           </View>
         ) : null}
       </View>
+    </View>
+  );
+}
+
+/**
+ * Leading "V" tile for the shared business-mode app bar (Orders / Bookings).
+ */
+export function BusinessModeMark({ label }: { label: string }) {
+  return (
+    <View className="h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-container">
+      <VemtapText variant="headingSm" className="font-sans-bold text-surface">
+        {label}
+      </VemtapText>
     </View>
   );
 }
@@ -307,6 +340,8 @@ export interface BusinessSectionHeadingProps {
   trailing?: ReactNode;
   dot?: boolean;
   className?: string;
+  /** Section title token; defaults to `headingSm`, drop to `labelMd` on dense cards. */
+  titleVariant?: TextVariant;
 }
 
 export function BusinessSectionHeading({
@@ -316,6 +351,7 @@ export function BusinessSectionHeading({
   trailing,
   dot = false,
   className,
+  titleVariant = 'headingSm',
 }: BusinessSectionHeadingProps) {
   return (
     <View
@@ -332,7 +368,13 @@ export function BusinessSectionHeading({
           </View>
         ) : null}
         <View className="min-w-0 flex-1">
-          <VemtapText variant="headingSm" className="text-heading-sm">
+          <VemtapText
+            variant={titleVariant}
+            className={cn(
+              titleVariant === 'headingSm' && 'text-heading-sm',
+              titleVariant === 'labelMd' && 'font-sans-semibold',
+            )}
+          >
             {title}
           </VemtapText>
           {subtitle ? (
@@ -354,55 +396,115 @@ export function BusinessCollapsibleCard({
   trailingMeta,
   expanded,
   onToggle,
+  icon,
+  selected,
+  toggleGlyph = 'chevron',
+  titleVariant = 'headingSm',
   children,
 }: {
   title: string;
-  subtitle: string;
+  /** Optional teaser line under the title; hidden while expanded. */
+  subtitle?: string;
+  /** Size token for the header title; defaults to the section-heading step. */
+  titleVariant?: TextVariant;
   badge?: string;
   trailingMeta?: string;
   expanded: boolean;
   onToggle: () => void;
+  /** Leading icon tile used by single-select strategy rows. */
+  icon?: IconName;
+  /**
+   * When provided the trailing affordance becomes a radio control instead of a
+   * chevron, turning the card into a single-select disclosure.
+   */
+  selected?: boolean;
+  /** Trailing affordance: `chevron` (default) or the FAQ-style plus/close swap. */
+  toggleGlyph?: 'chevron' | 'plus';
   children: ReactNode;
 }) {
   return (
     <View className="overflow-hidden rounded-card border border-border bg-surface shadow-sm">
       <Pressable
         accessibilityRole="button"
-        accessibilityState={{ expanded }}
+        accessibilityState={{ expanded, selected }}
         accessibilityLabel={title}
         className="flex-row items-center justify-between gap-3 p-3 active:bg-surface-subtle"
         onPress={onToggle}
       >
-        <View className="min-w-0 flex-1">
-          <View className="flex-row flex-wrap items-center gap-2">
-            <VemtapText variant="headingSm" className="text-heading-sm">
-              {title}
-            </VemtapText>
-            {badge ? (
-              <View className="rounded-full bg-surface-tint px-2 py-0.5">
-                <VemtapText variant="caption" className="font-sans-semibold text-primary">
-                  {badge}
+        <View className="min-w-0 flex-1 flex-row items-start gap-2.5">
+          {icon ? (
+            <View
+              className={cn(
+                'h-10 w-10 shrink-0 items-center justify-center rounded-xl',
+                selected === true ? 'bg-primary-fixed' : 'bg-surface-container',
+              )}
+            >
+              <Icon
+                name={icon}
+                size={22}
+                color={selected === true ? colors.primary : colors.textSecondary}
+              />
+            </View>
+          ) : null}
+          <View className="min-w-0 flex-1">
+            <View className="flex-row flex-wrap items-center gap-2">
+              <VemtapText
+                variant={titleVariant}
+                className={cn(
+                  'font-sans-semibold',
+                  titleVariant === 'headingSm' && 'text-heading-sm',
+                )}
+              >
+                {title}
+              </VemtapText>
+              {badge ? (
+                <View className="rounded-full bg-surface-tint px-2 py-0.5">
+                  <VemtapText
+                    variant="caption"
+                    className="font-sans-semibold text-primary"
+                  >
+                    {badge}
+                  </VemtapText>
+                </View>
+              ) : null}
+              {trailingMeta ? (
+                <VemtapText variant="caption" tone="tertiary">
+                  {trailingMeta}
                 </VemtapText>
-              </View>
-            ) : null}
-            {trailingMeta ? (
-              <VemtapText variant="caption" tone="tertiary">
-                {trailingMeta}
+              ) : null}
+            </View>
+            {subtitle ? (
+              <VemtapText variant="caption" tone="secondary" className="mt-0.5">
+                {subtitle}
               </VemtapText>
             ) : null}
           </View>
-          <VemtapText variant="caption" tone="secondary" className="mt-0.5">
-            {subtitle}
-          </VemtapText>
         </View>
-        <View className="h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-tint shadow-sm">
-          <Icon
-            name="expandMore"
-            size={20}
-            color={colors.primary}
-            style={expanded ? collapsibleStyles.expanded : undefined}
-          />
-        </View>
+        {selected === undefined ? (
+          toggleGlyph === 'plus' ? (
+            <View className="shrink-0">
+              <Icon name={expanded ? 'close' : 'plus'} size={20} color={colors.primary} />
+            </View>
+          ) : (
+            <View className="h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-tint shadow-sm">
+              <Icon
+                name="expandMore"
+                size={20}
+                color={colors.primary}
+                style={expanded ? collapsibleStyles.expanded : undefined}
+              />
+            </View>
+          )
+        ) : (
+          <View
+            className={cn(
+              'h-6 w-6 shrink-0 items-center justify-center rounded-full',
+              selected ? 'bg-primary' : 'bg-surface-container-highest',
+            )}
+          >
+            {selected ? <Icon name="check" size={16} color={colors.surface} /> : null}
+          </View>
+        )}
       </Pressable>
       {expanded ? (
         <View className="gap-3 border-t border-border p-3">{children}</View>
@@ -626,6 +728,109 @@ export function BusinessCheckRow({
   );
 }
 
+export type BusinessActionTileTone =
+  'primary' | 'neutral' | 'brand' | 'error' | 'errorContainer';
+
+const actionTileSurface: Record<BusinessActionTileTone, string> = {
+  primary: 'bg-primary shadow-lg',
+  neutral: 'bg-surface-container-high',
+  brand: 'bg-surface-tint-blue',
+  error: 'bg-surface-container-low',
+  errorContainer: 'bg-error-container',
+};
+
+const actionTileLabel: Record<BusinessActionTileTone, string | undefined> = {
+  primary: 'text-primary-foreground',
+  neutral: undefined,
+  brand: 'text-primary',
+  error: 'text-error',
+  errorContainer: 'text-error',
+};
+
+const actionTileIcon: Record<BusinessActionTileTone, string> = {
+  primary: colors.surface,
+  neutral: colors.text,
+  brand: colors.primary,
+  error: colors.error,
+  errorContainer: colors.error,
+};
+
+const actionTileBox: Record<BusinessActionTileSize, string> = {
+  sm: 'min-h-11 rounded-lg px-2.5',
+  md: 'min-h-11 rounded-lg px-3',
+  lg: 'min-h-12 rounded-card px-3',
+};
+
+const actionTileIconSize: Record<BusinessActionTileSize, number> = {
+  sm: 17,
+  md: 18,
+  lg: 18,
+};
+
+const actionTileText: Record<BusinessActionTileSize, TextVariant> = {
+  sm: 'labelSm',
+  md: 'labelMd',
+  lg: 'labelMd',
+};
+
+export type BusinessActionTileSize = 'sm' | 'md' | 'lg';
+
+export interface BusinessActionTileProps {
+  label: string;
+  icon: IconName;
+  onPress?: () => void;
+  accessibilityLabel?: string;
+  tone?: BusinessActionTileTone;
+  size?: BusinessActionTileSize;
+  className?: string;
+  labelClassName?: string;
+}
+
+/**
+ * Icon + label action tile for two-column action grids. Single owner of the
+ * tile pattern so order triage, customer contact and the state modifiers can
+ * never drift apart. The label is `min-w-0 flex-1` and capped at two lines, so
+ * a long CTA ("Confirm Payment & Complete") wraps inside the tile instead of
+ * pushing the cell past the grid gutter.
+ */
+export function BusinessActionTile({
+  label,
+  icon,
+  onPress,
+  accessibilityLabel,
+  tone = 'neutral',
+  size = 'md',
+  className,
+  labelClassName,
+}: BusinessActionTileProps) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? label}
+      onPress={onPress}
+      className={cn(
+        'flex-row items-center justify-center gap-1.5 active:scale-[0.98]',
+        actionTileBox[size],
+        actionTileSurface[tone],
+        className,
+      )}
+    >
+      <Icon name={icon} size={actionTileIconSize[size]} color={actionTileIcon[tone]} />
+      <VemtapText
+        variant={actionTileText[size]}
+        className={cn(
+          'min-w-0 flex-1 text-center font-sans-semibold',
+          actionTileLabel[tone],
+          labelClassName,
+        )}
+        numberOfLines={2}
+      >
+        {label}
+      </VemtapText>
+    </Pressable>
+  );
+}
+
 export function BusinessSwitchRow({
   title,
   subtitle,
@@ -739,6 +944,41 @@ export function BusinessStepper({
   );
 }
 
+export type BusinessPillTone =
+  | 'brand'
+  | 'primary'
+  | 'brandContainer'
+  | 'brandHigh'
+  | 'success'
+  | 'tertiary'
+  | 'neutral'
+  | 'inverse'
+  | 'warning';
+
+const businessPillToneClasses: Record<BusinessPillTone, string> = {
+  brand: 'bg-surface-tint text-primary',
+  primary: 'bg-primary text-primary-foreground',
+  brandContainer: 'bg-surface-container text-primary',
+  brandHigh: 'bg-surface-container-high text-primary',
+  success: 'bg-badge-discount-bg text-badge-discount-text',
+  tertiary: 'bg-tertiary-fixed text-tertiary',
+  neutral: 'bg-surface-container-high text-text-secondary',
+  inverse: 'bg-inverse-surface text-inverse',
+  warning: 'bg-warning-container text-warning',
+};
+
+const businessPillIconColors: Record<BusinessPillTone, string> = {
+  brand: colors.primary,
+  primary: colors.surface,
+  brandContainer: colors.primary,
+  brandHigh: colors.primary,
+  success: colors.badgeDiscountText,
+  tertiary: colors.tertiary,
+  neutral: colors.textSecondary,
+  inverse: colors.inverseOnSurface,
+  warning: colors.warning,
+};
+
 export function BusinessStatusPill({
   label,
   tone = 'brand',
@@ -746,39 +986,19 @@ export function BusinessStatusPill({
   className,
 }: {
   label: string;
-  tone?: 'brand' | 'success' | 'tertiary' | 'neutral' | 'inverse' | 'warning';
+  tone?: BusinessPillTone;
   icon?: IconName;
   className?: string;
 }) {
-  const toneClasses = {
-    brand: 'bg-surface-tint text-primary',
-    success: 'bg-badge-discount-bg text-badge-discount-text',
-    tertiary: 'bg-tertiary-fixed text-tertiary',
-    neutral: 'bg-surface-container-high text-text-secondary',
-    inverse: 'bg-inverse-surface text-inverse',
-    warning: 'bg-warning-container text-warning',
-  };
-  const iconColor =
-    tone === 'success'
-      ? colors.badgeDiscountText
-      : tone === 'tertiary'
-        ? colors.tertiary
-        : tone === 'neutral'
-          ? colors.textSecondary
-          : tone === 'inverse'
-            ? colors.inverseOnSurface
-            : tone === 'warning'
-              ? colors.warning
-              : colors.primary;
   return (
     <View
       className={cn(
         'flex-row items-center gap-1 self-start rounded-full px-2 py-0.5',
-        toneClasses[tone],
+        businessPillToneClasses[tone],
         className,
       )}
     >
-      {icon ? <Icon name={icon} size={13} color={iconColor} /> : null}
+      {icon ? <Icon name={icon} size={13} color={businessPillIconColors[tone]} /> : null}
       <VemtapText variant="caption" className="font-sans-semibold">
         {label}
       </VemtapText>
@@ -829,6 +1049,8 @@ export interface BusinessRangeProps {
   maximum: number;
   onChange: (value: number) => void;
   accessibilityLabel: string;
+  /** Granularity of the emitted value; snaps to the nearest multiple of `step` from `minimum`. */
+  step?: number;
 }
 
 export function BusinessRange({
@@ -837,13 +1059,16 @@ export function BusinessRange({
   maximum,
   onChange,
   accessibilityLabel,
+  step = 1,
 }: BusinessRangeProps) {
   const [trackWidth, setTrackWidth] = useState(0);
   const percentage = ((value - minimum) / (maximum - minimum)) * 100;
   const handlePress = (event: GestureResponderEvent) => {
     if (trackWidth <= 0) return;
     const ratio = Math.max(0, Math.min(1, event.nativeEvent.locationX / trackWidth));
-    onChange(Math.round(minimum + ratio * (maximum - minimum)));
+    const raw = minimum + ratio * (maximum - minimum);
+    const snapped = step > 0 ? minimum + Math.round((raw - minimum) / step) * step : raw;
+    onChange(Math.round(Math.max(minimum, Math.min(maximum, snapped))));
   };
   return (
     <Pressable
@@ -874,16 +1099,22 @@ export function BusinessSelectionChip({
   onPress,
   tone = 'brand',
   showCheck = false,
+  leading,
   labelNumberOfLines = 1,
   className,
+  plain = false,
 }: {
   label: string;
   selected: boolean;
   onPress: () => void;
   tone?: 'brand' | 'neutral';
   showCheck?: boolean;
+  /** Optional leading adornment such as a live status dot. */
+  leading?: ReactNode;
   labelNumberOfLines?: number;
   className?: string;
+  /** Renders the unselected state without a fill (bookings timeframe filters). */
+  plain?: boolean;
 }) {
   return (
     <Pressable
@@ -891,12 +1122,14 @@ export function BusinessSelectionChip({
       accessibilityState={{ selected }}
       accessibilityLabel={label}
       className={cn(
-        'min-h-9 flex-row items-center justify-center gap-1 rounded-full px-3 py-1 text-center active:scale-95',
+        'min-h-9 flex-row items-center justify-center gap-1.5 rounded-full px-3 py-1 text-center active:scale-95',
         selected
           ? tone === 'brand'
             ? 'bg-surface-tint text-primary shadow-sm'
             : 'bg-primary text-primary-foreground'
-          : 'bg-surface-container text-text-secondary',
+          : plain
+            ? 'text-text-secondary'
+            : 'bg-surface-container text-text-secondary',
         className,
       )}
       onPress={onPress}
@@ -906,6 +1139,7 @@ export function BusinessSelectionChip({
           <Icon name="check" size={16} color={colors.primary} />
         </View>
       ) : null}
+      {leading}
       <VemtapText
         variant="labelSm"
         numberOfLines={labelNumberOfLines}
@@ -945,7 +1179,7 @@ export function BusinessProductImage({
 }
 
 export interface BusinessNumberInputProps {
-  label: string;
+  label?: string;
   value: string;
   onChangeText: (value: string) => void;
   accessibilityLabel?: string;
@@ -959,6 +1193,8 @@ export interface BusinessNumberInputProps {
   leadingIcon?: ReactNode;
   trailingText?: string;
   trailingIcon?: ReactNode;
+  /** Inline token variant (no label block, fixed 64x36 field) for step configurators. */
+  compact?: boolean;
   className?: string;
 }
 
@@ -977,10 +1213,11 @@ export function BusinessNumberInput({
   leadingIcon,
   trailingText,
   trailingIcon,
+  compact = false,
   className,
 }: BusinessNumberInputProps) {
   return (
-    <View className="gap-1.5">
+    <View className={cn('gap-1.5', compact && 'shrink-0')}>
       {label ? (
         <VemtapText variant="caption" tone="secondary">
           {label}
@@ -988,8 +1225,13 @@ export function BusinessNumberInput({
       ) : null}
       <View
         className={cn(
-          'min-h-[52px] flex-row rounded-field bg-surface-subtle px-3',
-          multiline ? 'items-start py-3' : 'items-center',
+          'flex-row',
+          compact
+            ? 'h-9 w-16 items-center rounded-lg bg-surface px-2 shadow-sm'
+            : cn(
+                'min-h-[52px] items-center rounded-field bg-surface-subtle px-3',
+                multiline && 'items-start py-3',
+              ),
           className,
         )}
         style={minHeight ? { minHeight } : undefined}
@@ -1010,13 +1252,22 @@ export function BusinessNumberInput({
           maxLength={maxLength}
           multiline={multiline}
           textAlignVertical={multiline ? 'top' : 'center'}
-          className="min-w-[40px] flex-1 bg-transparent text-body-md text-text"
+          className={cn(
+            'bg-transparent',
+            compact
+              ? 'w-full text-right text-heading-sm text-primary'
+              : 'min-w-[40px] flex-1 text-body-md text-text',
+          )}
           placeholderTextColor={colors.textTertiary}
           underlineColorAndroid="transparent"
         />
         {trailingIcon ? <View className="ml-2 shrink-0">{trailingIcon}</View> : null}
         {trailingText ? (
-          <VemtapText variant="caption" tone="tertiary" className="shrink-0">
+          <VemtapText
+            variant={compact ? 'headingSm' : 'caption'}
+            tone={compact ? 'brand' : 'tertiary'}
+            className="shrink-0"
+          >
             {trailingText}
           </VemtapText>
         ) : null}

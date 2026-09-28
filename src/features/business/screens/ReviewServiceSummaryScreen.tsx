@@ -43,7 +43,7 @@ export function ReviewServiceSummaryScreen({
       title="Add Service   Step 4: Review Service Summary"
       onBack={onBack}
       onSaveDraft={onSaveDraft}
-      contentContainerClassName="w-full max-w-[640px] self-center gap-6 px-4 py-4 pb-8"
+      contentContainerClassName="w-full max-w-[640px] self-center gap-6 px-6 pb-12 pt-4"
     >
       <ServiceSection className="gap-3">
         <ServiceProgress
@@ -102,7 +102,7 @@ export function ReviewServiceSummaryScreen({
             <Icon name="forward" size={14} color={colors.primary} />
           </Pressable>
         </View>
-        <View className="gap-1 p-4">
+        <View className="gap-2 p-4">
           <View className="flex-row items-center gap-1">
             <Icon name="storefront" size={16} color={colors.primary} />
             <VemtapText variant="labelSm" tone="tertiary" numberOfLines={1}>
@@ -149,7 +149,7 @@ export function ReviewServiceSummaryScreen({
             </VemtapText>
           </View>
         </View>
-        <View className="gap-1.5">
+        <View className="gap-2">
           {serviceTiers.map(tier => (
             <View
               key={tier.id}
@@ -262,7 +262,7 @@ export function ReviewServiceSummaryScreen({
         <VemtapText variant="bodyMd" tone="secondary" className="leading-relaxed">
           {serviceFlowDraft.reviewDescription}
         </VemtapText>
-        <View className="flex-row flex-wrap gap-1.5">
+        <View className="flex-row flex-wrap gap-1">
           {serviceReviewHighlights.map(highlight => (
             <View key={highlight} className="rounded-full bg-surface-muted px-3 py-1">
               <VemtapText variant="caption" tone="secondary">
@@ -302,10 +302,16 @@ export function ReviewServiceSummaryScreen({
       <View className="gap-3 pt-1">
         <Button
           label="Publish Service to Storefront 🚀"
+          labelVariant="labelMd"
           labelNumberOfLines={2}
           onPress={onNext}
         />
-        <Button label="Save as Draft" variant="ghost" onPress={onSaveDraft} />
+        <Button
+          label="Save as Draft"
+          variant="ghost"
+          onPress={onSaveDraft}
+          labelVariant="labelMd"
+        />
         <VemtapText
           variant="caption"
           tone="tertiary"

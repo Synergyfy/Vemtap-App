@@ -241,6 +241,7 @@ export function DealClaimedSuccessScreen({ route, navigation }: Props) {
           <View className="mt-auto gap-3">
             <Button
               label={strings.claimSuccess.viewMyDeal}
+              className="mx-1"
               rightIcon={<Icon name="arrowForward" size={20} color={colors.surface} />}
               onPress={handleViewDeal}
             />

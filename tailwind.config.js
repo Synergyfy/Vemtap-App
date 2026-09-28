@@ -2,6 +2,11 @@
 module.exports = {
   // NOTE: Update this to include the paths to all files that contain Nativewind classes.
   content: ['./App.tsx', './index.js', './src/**/*.{js,jsx,ts,tsx}'],
+  // Text.tsx builds its size classes from the shared scale, so the size
+  // utilities are not always visible as literals during content scanning.
+  safelist: Object.keys(require('./src/theme/typography').typeScale).map(
+    token => `text-${token}`,
+  ),
   presets: [require('nativewind/preset')],
   darkMode: 'class',
   theme: {
@@ -100,21 +105,15 @@ module.exports = {
         'sans-bold': ['Inter-Bold'],
         inter: ['Inter'],
       },
-      fontSize: {
-        micro: ['11px', { lineHeight: '14px' }],
-        caption: ['12px', { lineHeight: '16px' }],
-        'label-sm': ['13px', { lineHeight: '16px' }],
-        'label-md': ['14px', { lineHeight: '18px' }],
-        'body-md': ['15px', { lineHeight: '22px' }],
-        'button-md': ['16px', { lineHeight: '20px' }],
-        'body-lg': ['17px', { lineHeight: '24px' }],
-        'heading-sm': ['18px', { lineHeight: '24px' }],
-        'heading-md': ['22px', { lineHeight: '28px' }],
-        'heading-lg': ['26px', { lineHeight: '34px' }],
-        'heading-xl': ['30px', { lineHeight: '38px' }],
-        'display-mobile': ['32px', { lineHeight: '40px' }],
-        display: ['36px', { lineHeight: '44px' }],
-      },
+      // Text sizes come from the single source of truth: src/theme/typography.ts
+      fontSize: Object.fromEntries(
+        Object.entries(require('./src/theme/typography').typeScale).map(
+          ([token, metric]) => [
+            token,
+            [`${metric.size}px`, { lineHeight: `${metric.lineHeight}px` }],
+          ],
+        ),
+      ),
       spacing: {
         gutter: '1rem',
         screen: '1.5rem',

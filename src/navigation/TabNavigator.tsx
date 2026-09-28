@@ -14,12 +14,14 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HomeScreen } from '@features/home/screens/HomeScreen';
 import { SavedHubScreen } from '@features/accountHub/screens/SavedHubScreen';
+import { AccountHomeScreen } from '@features/accountHub/screens/AccountHomeScreen';
 import { CustomerDashboardScreen } from '@features/accountHub/screens/CustomerDashboardScreen';
 import { MyDealsHubScreen } from '@features/myDeals/screens/MyDealsHubScreen';
 import { OrdersBookingsHubScreen } from '@features/order/screens/OrdersBookingsHubScreen';
 import { UrbanOrderDetailScreen } from '@features/order/screens/UrbanOrderDetailScreen';
 import { MessagesScreen } from '@features/merchantChat/screens/MessagesScreen';
 import { UrbanConversationScreen } from '@features/merchantChat/screens/UrbanConversationScreen';
+import { HelpCentreScreen } from '@features/accountHub/screens/HelpCentreScreen';
 import { MoreHubScreen } from '@features/accountHub/screens/MoreHubScreen';
 import { MyActivityScreen } from '@features/accountHub/screens/MyActivityScreen';
 import { RewardsScreen } from '@features/accountHub/screens/RewardsScreen';
@@ -46,10 +48,13 @@ import type {
   DiscoverStackParamList,
   HomeStackParamList,
   MainTabParamList,
+  RootStackParamList,
 } from '@navigation/types';
 import { businesses } from '@features/discover/data/discoverData';
 import { strings } from '@constants/strings';
 import { tabBarTopShadow } from '@theme/shadows';
+import { typeMetrics } from '@theme/typography';
+import { TypeDensityProvider } from '@theme/TypeDensityProvider';
 import { useAuthStore } from '@store/authStore';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -88,7 +93,10 @@ type HomeStackNavigation = CompositeNavigationProp<
   NativeStackNavigationProp<HomeStackParamList>,
   CompositeNavigationProp<
     BottomTabNavigationProp<MainTabParamList>,
-    NativeStackNavigationProp<AppStackParamList>
+    CompositeNavigationProp<
+      NativeStackNavigationProp<AppStackParamList>,
+      NativeStackNavigationProp<RootStackParamList>
+    >
   >
 >;
 
@@ -149,7 +157,10 @@ type DiscoverStackNavigation = CompositeNavigationProp<
   NativeStackNavigationProp<DiscoverStackParamList>,
   CompositeNavigationProp<
     BottomTabNavigationProp<MainTabParamList>,
-    NativeStackNavigationProp<AppStackParamList>
+    CompositeNavigationProp<
+      NativeStackNavigationProp<AppStackParamList>,
+      NativeStackNavigationProp<RootStackParamList>
+    >
   >
 >;
 
@@ -326,10 +337,11 @@ function SavedTabScreen() {
 
   return (
     <SavedHubScreen
+      onBack={navigation.goBack}
       onNotifications={() => navigation.navigate('Account', { screen: 'Notifications' })}
-      onAccount={() => navigation.navigate('Account', { screen: 'More' })}
       onOpenDeal={onOpenDeal}
       onOpenBusiness={onOpenBusiness}
+      onOpenService={onOpenDeal}
     />
   );
 }
@@ -340,6 +352,27 @@ type AccountStackNavigation = CompositeNavigationProp<
 >;
 
 const signOut = () => useAuthStore.getState().markUnauthenticated();
+
+function AccountHomeRoute() {
+  const navigation = useNavigation<AccountStackNavigation>();
+  return (
+    <AccountHomeScreen
+      onOpenNotifications={() => navigation.navigate('Notifications')}
+      onOpenHelp={() => navigation.navigate('HelpCentre')}
+      onOpenAccountMenu={() => navigation.navigate('More')}
+      onEditProfile={() => navigation.navigate('EditProfile')}
+      onOpenCustomerDashboard={() => navigation.navigate('AccountDashboard')}
+      onOpenDeals={() => navigation.navigate('MyDeals')}
+      onOpenOrders={() => navigation.navigate('OrdersBookings')}
+      onOpenSavings={() => navigation.navigate('SavingsHistory')}
+      onOpenSaved={() => navigation.navigate('Saved')}
+      onOpenPrivacy={() => navigation.navigate('AccountSettings')}
+      onOpenHelpCentre={() => navigation.navigate('HelpCentre')}
+      onOpenTerms={() => navigation.navigate('AccountSettings')}
+      onSignOut={signOut}
+    />
+  );
+}
 
 function AccountDashboardRoute() {
   const navigation = useNavigation<AccountStackNavigation>();
@@ -383,6 +416,7 @@ function OrdersBookingsRoute() {
   const navigation = useNavigation<AccountStackNavigation>();
   return (
     <OrdersBookingsHubScreen
+      onBack={navigation.goBack}
       onOpenOrder={orderNumber => navigation.navigate('OrderDetail', { orderNumber })}
       onOpenBooking={bookingNumber =>
         navigation.navigate('BookingDetail', { bookingNumber })
@@ -398,6 +432,7 @@ function MessagesRoute() {
   const navigation = useNavigation<AccountStackNavigation>();
   return (
     <MessagesScreen
+      onBack={navigation.goBack}
       onOpenConversation={merchant => navigation.navigate('Conversation', { merchant })}
     />
   );
@@ -414,8 +449,21 @@ function MoreRoute() {
       onOpenSaved={() => navigation.navigate('Saved')}
       onOpenNotifications={() => navigation.navigate('Notifications')}
       onOpenSettings={() => navigation.navigate('AccountSettings')}
+      onOpenOrders={() => navigation.navigate('OrdersBookings')}
       onOpenEditProfile={() => navigation.navigate('EditProfile')}
+      onOpenHelpCentre={() => navigation.navigate('HelpCentre')}
       onSignOut={signOut}
+    />
+  );
+}
+
+function HelpCentreRoute() {
+  const navigation = useNavigation<AccountStackNavigation>();
+  return (
+    <HelpCentreScreen
+      onBack={() => navigation.goBack()}
+      onStartChat={() => navigation.navigate('Messages')}
+      onOwnBusiness={() => navigation.navigate('EditProfile')}
     />
   );
 }
@@ -433,7 +481,11 @@ function ActivityRoute() {
 
 function RewardsRoute() {
   const navigation = useNavigation<AccountStackNavigation>();
-  return <RewardsScreen onBack={() => navigation.goBack()} />;
+  return (
+    <TypeDensityProvider density="dense">
+      <RewardsScreen onBack={() => navigation.goBack()} />
+    </TypeDensityProvider>
+  );
 }
 
 function SavingsHistoryRoute() {
@@ -509,23 +561,27 @@ function ConversationRoute() {
 
 export function AccountStackNavigator() {
   return (
-    <AccountStack.Navigator screenOptions={{ headerShown: false }}>
-      <AccountStack.Screen name="AccountDashboard" component={AccountDashboardRoute} />
-      <AccountStack.Screen name="MyDeals" component={MyDealsRoute} />
-      <AccountStack.Screen name="OrdersBookings" component={OrdersBookingsRoute} />
-      <AccountStack.Screen name="Messages" component={MessagesRoute} />
-      <AccountStack.Screen name="More" component={MoreRoute} />
-      <AccountStack.Screen name="Activity" component={ActivityRoute} />
-      <AccountStack.Screen name="Rewards" component={RewardsRoute} />
-      <AccountStack.Screen name="SavingsHistory" component={SavingsHistoryRoute} />
-      <AccountStack.Screen name="Notifications" component={NotificationsRoute} />
-      <AccountStack.Screen name="AccountSettings" component={AccountSettingsRoute} />
-      <AccountStack.Screen name="EditProfile" component={EditProfileRoute} />
-      <AccountStack.Screen name="ClaimedDealPass" component={ClaimedDealPassRoute} />
-      <AccountStack.Screen name="OrderDetail" component={OrderDetailRoute} />
-      <AccountStack.Screen name="BookingDetail" component={BookingDetailRoute} />
-      <AccountStack.Screen name="Conversation" component={ConversationRoute} />
-    </AccountStack.Navigator>
+    <TypeDensityProvider density="comfortable">
+      <AccountStack.Navigator screenOptions={{ headerShown: false }}>
+        <AccountStack.Screen name="AccountHome" component={AccountHomeRoute} />
+        <AccountStack.Screen name="AccountDashboard" component={AccountDashboardRoute} />
+        <AccountStack.Screen name="MyDeals" component={MyDealsRoute} />
+        <AccountStack.Screen name="OrdersBookings" component={OrdersBookingsRoute} />
+        <AccountStack.Screen name="Messages" component={MessagesRoute} />
+        <AccountStack.Screen name="More" component={MoreRoute} />
+        <AccountStack.Screen name="HelpCentre" component={HelpCentreRoute} />
+        <AccountStack.Screen name="Activity" component={ActivityRoute} />
+        <AccountStack.Screen name="Rewards" component={RewardsRoute} />
+        <AccountStack.Screen name="SavingsHistory" component={SavingsHistoryRoute} />
+        <AccountStack.Screen name="Notifications" component={NotificationsRoute} />
+        <AccountStack.Screen name="AccountSettings" component={AccountSettingsRoute} />
+        <AccountStack.Screen name="EditProfile" component={EditProfileRoute} />
+        <AccountStack.Screen name="ClaimedDealPass" component={ClaimedDealPassRoute} />
+        <AccountStack.Screen name="OrderDetail" component={OrderDetailRoute} />
+        <AccountStack.Screen name="BookingDetail" component={BookingDetailRoute} />
+        <AccountStack.Screen name="Conversation" component={ConversationRoute} />
+      </AccountStack.Navigator>
+    </TypeDensityProvider>
   );
 }
 
@@ -538,10 +594,9 @@ export function TabNavigator() {
       tabBarActiveTintColor: '#066CF4',
       tabBarInactiveTintColor: '#9CA3AF',
       tabBarShowLabel: true,
-      // Small but readable labels under each icon (matches text-micro / 11px).
+      // Small but readable labels under each icon (type scale: micro / 11px).
       tabBarLabelStyle: {
-        fontSize: 11,
-        lineHeight: 14,
+        ...typeMetrics('micro'),
         marginTop: 2,
       },
       tabBarButton: CenteredTabButton,

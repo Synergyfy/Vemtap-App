@@ -135,12 +135,13 @@ export function OrderLineItem({
       <View className="min-w-0 flex-1">
         <View className="flex-row items-start justify-between gap-2">
           <VemtapText
-            variant="button"
+            variant="labelMd"
+            numberOfLines={2}
             className="min-w-0 flex-1 font-sans-semibold text-text"
           >
             {title}
           </VemtapText>
-          <VemtapText variant="button" className="shrink-0 font-sans-semibold text-text">
+          <VemtapText variant="labelMd" className="shrink-0 font-sans-semibold text-text">
             {price}
           </VemtapText>
         </View>
@@ -190,12 +191,14 @@ export function PriceBreakdown({
         <View key={row.label} className="flex-row items-center justify-between gap-3">
           <VemtapText
             variant="bodyMd"
-            className={row.tone === 'success' ? 'text-success' : 'text-text-secondary'}
+            numberOfLines={2}
+            className={`min-w-0 flex-1 ${row.tone === 'success' ? 'text-success' : 'text-text-secondary'}`}
           >
             {row.label}
           </VemtapText>
           <VemtapText
             variant="bodyMd"
+            numberOfLines={1}
             className={`shrink-0 ${row.tone === 'success' ? 'text-success' : 'text-text'}`}
           >
             {row.value}
@@ -205,7 +208,7 @@ export function PriceBreakdown({
       <View className="my-1 h-px bg-surface-container" />
       <View className="flex-row items-end justify-between gap-3">
         <View className="min-w-0 flex-1">
-          <VemtapText variant="headingSm" className="text-text">
+          <VemtapText variant="labelMd" className="font-sans-semibold text-text">
             {totalLabel}
           </VemtapText>
           {totalCaption ? (
@@ -216,8 +219,8 @@ export function PriceBreakdown({
         </View>
         <VemtapText
           accessibilityRole="header"
-          variant="headingLg"
-          className="shrink-0 text-heading-lg text-primary"
+          variant="headingMd"
+          className="shrink-0 text-heading-md text-primary"
         >
           {total}
         </VemtapText>

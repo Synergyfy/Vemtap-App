@@ -317,7 +317,7 @@ function ClaimedDealCard({
               <Icon name="more" size={18} color={colors.textTertiary} />
             )}
           </View>
-          <VemtapText variant="headingSm" numberOfLines={1}>
+          <VemtapText variant="bodyMd" className="font-sans-semibold" numberOfLines={1}>
             {business}
           </VemtapText>
           <View className="flex-row items-center gap-1">
@@ -330,7 +330,7 @@ function ClaimedDealCard({
             {deal}
           </VemtapText>
           <View className="mt-1 flex-row flex-wrap items-center gap-2">
-            <VemtapText variant="labelMd" className="font-sans-bold">
+            <VemtapText variant="labelSm" className="font-sans-bold">
               {price}
             </VemtapText>
             {old ? (
@@ -359,7 +359,7 @@ function ClaimedDealCard({
               </VemtapText>
             </View>
           </View>
-          <VemtapText variant="headingSm" className="shrink-0 font-sans-bold">
+          <VemtapText variant="labelMd" className="shrink-0 font-sans-bold">
             {price}
           </VemtapText>
         </View>
@@ -421,6 +421,8 @@ function ClaimedDealCard({
             size="sm"
             fullWidth={false}
             className="min-w-0 flex-1"
+            labelVariant="labelSm"
+            labelClassName="text-primary-foreground"
             leftIcon={<Icon name="qrCode" size={17} color={colors.surface} />}
             onPress={onOpen}
           />
@@ -432,6 +434,7 @@ function ClaimedDealCard({
             size="sm"
             fullWidth={false}
             className="min-w-0 flex-1"
+            labelVariant="labelSm"
             leftIcon={<Icon name="voucher" size={17} color={colors.primary} />}
             onPress={onOpen}
           />
@@ -442,6 +445,8 @@ function ClaimedDealCard({
             size="sm"
             fullWidth={false}
             className="min-w-0 flex-1"
+            labelVariant="labelSm"
+            labelClassName="text-primary-foreground"
             leftIcon={<Icon name="eventAvailable" size={17} color={colors.surface} />}
             onPress={onOpen}
           />

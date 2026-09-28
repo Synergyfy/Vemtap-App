@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { type ReactNode } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -14,6 +14,7 @@ import { colors } from '@theme/colors';
 import { cn } from '@utils/cn';
 import {
   BusinessNumberInput,
+  BusinessPillTone,
   BusinessProductImage,
   BusinessSelectionChip,
   BusinessStatusPill,
@@ -31,11 +32,13 @@ cssInterop(ScrollView, {
   contentContainerClassName: 'contentContainerStyle',
 });
 
-export type PillTone =
-  'brand' | 'success' | 'warning' | 'tertiary' | 'neutral' | 'inverse';
+export type PillTone = BusinessPillTone;
 
 const pillToneClass: Record<PillTone, string> = {
   brand: 'bg-surface-tint-blue',
+  primary: 'bg-primary',
+  brandContainer: 'bg-surface-container',
+  brandHigh: 'bg-surface-container-high',
   success: 'bg-badge-discount-bg',
   warning: 'bg-warning-container',
   tertiary: 'bg-tertiary-fixed',
@@ -45,6 +48,9 @@ const pillToneClass: Record<PillTone, string> = {
 
 const pillTextClass: Record<PillTone, string> = {
   brand: 'text-primary',
+  primary: 'text-primary-foreground',
+  brandContainer: 'text-primary',
+  brandHigh: 'text-primary',
   success: 'text-badge-discount-text',
   warning: 'text-warning',
   tertiary: 'text-tertiary',
@@ -75,6 +81,8 @@ export interface SetupStepBarProps {
   dot?: boolean;
   pillTone?: PillTone;
   bordered?: boolean;
+  /** Custom right-hand affordance; replaces the `percent` text when provided. */
+  trailing?: ReactNode;
   className?: string;
 }
 
@@ -89,6 +97,7 @@ export function SetupStepBar({
   dot = false,
   pillTone = 'brand',
   bordered = false,
+  trailing,
   className,
 }: SetupStepBarProps) {
   const isCheck = stepMarker === 'check';
@@ -142,9 +151,11 @@ export function SetupStepBar({
             {step}
           </VemtapText>
         </View>
-        <VemtapText variant="labelSm" className="font-sans-semibold text-primary">
-          {percent}
-        </VemtapText>
+        {trailing ?? (
+          <VemtapText variant="labelSm" className="font-sans-semibold text-primary">
+            {percent}
+          </VemtapText>
+        )}
       </View>
       <View className="h-1.5 w-full overflow-hidden rounded-full bg-surface-container-highest">
         <View
@@ -158,9 +169,16 @@ export function SetupStepBar({
 
 export interface SetupSectionCardProps {
   children: React.ReactNode;
-  tone?: 'lowest' | 'container';
+  tone?: 'lowest' | 'low' | 'container' | 'subtle';
   className?: string;
 }
+
+const sectionCardToneClass: Record<NonNullable<SetupSectionCardProps['tone']>, string> = {
+  lowest: 'bg-surface-container-lowest',
+  low: 'bg-surface-container-low',
+  container: 'bg-surface-container',
+  subtle: 'bg-surface-subtle',
+};
 
 export function SetupSectionCard({
   children,
@@ -168,12 +186,7 @@ export function SetupSectionCard({
   className,
 }: SetupSectionCardProps) {
   return (
-    <SetupCard
-      className={cn(
-        tone === 'lowest' ? 'bg-surface-container-lowest' : 'bg-surface-container',
-        className,
-      )}
-    >
+    <SetupCard className={cn(sectionCardToneClass[tone], className)}>
       {children}
     </SetupCard>
   );
@@ -207,13 +220,71 @@ export function SetupSectionHeading({
   );
 }
 
+const calloutToneClass: Record<CalloutTone, string> = {
+  tint: 'bg-surface-tint-blue shadow-sm',
+  subtle: 'bg-surface-subtle shadow-none',
+  container: 'bg-surface-container-low shadow-sm',
+  tertiary: 'bg-tertiary-fixed shadow-sm',
+  plain: 'bg-surface shadow-sm',
+};
+
+const calloutIconSurfaceClass: Record<CalloutIconSurface, string | null> = {
+  circle: 'h-10 w-10 rounded-full bg-surface-container',
+  circleMd: 'h-8 w-8 rounded-full bg-surface-container',
+  circleSm: 'h-6 w-6 rounded-full bg-surface-container',
+  circlePrimary: 'h-10 w-10 rounded-full bg-primary',
+  circleSuccess: 'h-8 w-8 rounded-full bg-badge-discount-bg',
+  circleTertiary: 'h-10 w-10 rounded-full bg-tertiary/10',
+  plain: null,
+};
+
+const calloutIconColor: Record<CalloutIconTone, string> = {
+  brand: colors.primary,
+  success: colors.badgeDiscountText,
+  tertiary: colors.tertiary,
+  inverse: colors.surface,
+};
+
+const calloutTitleClass: Record<CalloutTone, string> = {
+  tint: 'text-text',
+  subtle: 'text-text',
+  container: 'text-text',
+  tertiary: 'text-text',
+  plain: 'text-text',
+};
+
+const calloutBodyClass: Record<CalloutTone, string> = {
+  tint: 'text-text-secondary',
+  subtle: 'text-text-secondary',
+  container: 'text-text-secondary',
+  tertiary: 'text-text-secondary',
+  plain: 'text-text-secondary',
+};
+
+export type CalloutTone = 'tint' | 'subtle' | 'container' | 'tertiary' | 'plain';
+export type CalloutIconSurface =
+  | 'circle'
+  | 'circleMd'
+  | 'circleSm'
+  | 'circlePrimary'
+  | 'circleSuccess'
+  | 'circleTertiary'
+  | 'plain';
+export type CalloutIconTone = 'brand' | 'success' | 'tertiary' | 'inverse';
+
 export interface SetupCalloutProps {
   icon: IconName;
   title?: string;
-  body: string;
-  tone?: 'tint' | 'subtle';
+  body?: React.ReactNode;
+  tone?: CalloutTone;
+  iconSurface?: CalloutIconSurface;
+  iconTone?: CalloutIconTone;
   iconSize?: number;
   titleClassName?: string;
+  bodyClassName?: string;
+  bodyVariant?: 'caption' | 'labelSm' | 'bodyMd';
+  trailing?: React.ReactNode;
+  children?: React.ReactNode;
   className?: string;
 }
 
@@ -222,34 +293,57 @@ export function SetupCallout({
   title,
   body,
   tone = 'tint',
+  iconSurface = 'circle',
+  iconTone = 'brand',
   iconSize = 20,
   titleClassName,
+  bodyClassName,
+  bodyVariant = 'caption',
+  trailing,
+  children,
   className,
 }: SetupCalloutProps) {
+  const iconSurfaceClass = calloutIconSurfaceClass[iconSurface];
   return (
-    <View
-      className={cn(
-        'flex-row items-start gap-3 rounded-card p-3.5 shadow-sm',
-        tone === 'tint' ? 'bg-surface-tint-blue' : 'bg-surface-subtle shadow-none',
-        className,
-      )}
-    >
-      <View className="h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-container">
-        <Icon name={icon} size={iconSize} color={colors.primary} />
-      </View>
-      <View className="min-w-0 flex-1">
-        {title ? (
+    <View className={cn('rounded-card p-3.5', calloutToneClass[tone], className)}>
+      <View className="flex-row flex-wrap items-start gap-3">
+        {iconSurfaceClass ? (
+          <View className={cn('shrink-0 items-center justify-center', iconSurfaceClass)}>
+            <Icon name={icon} size={iconSize} color={calloutIconColor[iconTone]} />
+          </View>
+        ) : (
+          <View className="mt-0.5 shrink-0">
+            <Icon name={icon} size={iconSize} color={calloutIconColor[iconTone]} />
+          </View>
+        )}
+        <View className="min-w-0 flex-1">
+          {title ? (
+            <VemtapText
+              variant="labelSm"
+              className={cn(
+                'font-sans-semibold',
+                calloutTitleClass[tone],
+                titleClassName,
+              )}
+            >
+              {title}
+            </VemtapText>
+          ) : null}
           <VemtapText
-            variant="labelSm"
-            className={cn('font-sans-semibold', titleClassName ?? 'text-text')}
+            variant={bodyVariant}
+            className={cn(
+              'leading-snug',
+              title ? 'mt-0.5' : null,
+              calloutBodyClass[tone],
+              bodyClassName,
+            )}
           >
-            {title}
+            {body}
           </VemtapText>
-        ) : null}
-        <VemtapText variant="caption" tone="secondary" className="mt-0.5 leading-snug">
-          {body}
-        </VemtapText>
+        </View>
+        {trailing ? <View className="shrink-0">{trailing}</View> : null}
       </View>
+      {children ? <View className="mt-3 gap-2">{children}</View> : null}
     </View>
   );
 }
@@ -564,6 +658,7 @@ export function PrimaryActionButton({
   return (
     <Button
       label={label}
+      labelVariant="labelMd"
       loading={loading}
       onPress={onPress}
       className={className}
@@ -633,6 +728,7 @@ export function SectionMetaRow({
 
 export interface InlineImageCardProps {
   uri: string;
+  alt?: string;
   height: number;
   rounded?: 'card' | 'field' | 'lg';
   children?: React.ReactNode;
@@ -641,6 +737,7 @@ export interface InlineImageCardProps {
 
 export function InlineImageCard({
   uri,
+  alt = 'Business setup image',
   height,
   rounded = 'card',
   children,
@@ -659,11 +756,7 @@ export function InlineImageCard({
       )}
       style={{ height }}
     >
-      <BusinessProductImage
-        source={{ uri }}
-        alt="Business setup image"
-        className="h-full w-full"
-      />
+      <BusinessProductImage source={{ uri }} alt={alt} className="h-full w-full" />
       {children}
     </View>
   );

@@ -19,11 +19,14 @@ export function AccountHeader({
   title,
   onBack,
   onAction,
+  onOpenAccount,
   actionIcon = 'more',
 }: {
   title: string;
   onBack?: () => void;
+  /** Omit to hide the trailing action button (back + avatar only). */
   onAction?: () => void;
+  onOpenAccount?: () => void;
   actionIcon?: IconName;
 }) {
   return (
@@ -50,17 +53,20 @@ export function AccountHeader({
         </VemtapText>
       </View>
       <View className="shrink-0 flex-row items-center gap-1">
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="More options"
-          onPress={onAction}
-          className="h-11 w-11 items-center justify-center rounded-full"
-        >
-          <Icon name={actionIcon} size={22} color={colors.textSecondary} />
-        </Pressable>
+        {onAction ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="More options"
+            onPress={onAction}
+            className="h-11 w-11 items-center justify-center rounded-full"
+          >
+            <Icon name={actionIcon} size={22} color={colors.textSecondary} />
+          </Pressable>
+        ) : null}
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Open account"
+          onPress={onOpenAccount}
           className="h-8 w-8 items-center justify-center rounded-full bg-primary"
         >
           <Icon name="person" size={17} color={colors.surface} />
@@ -141,12 +147,14 @@ export function StatCard({
   label,
   tone = 'primary',
   onPress,
+  compactValue = false,
 }: {
   icon: IconName;
   value: string;
   label: string;
   tone?: 'primary' | 'tertiary' | 'success';
   onPress?: () => void;
+  compactValue?: boolean;
 }) {
   const bg =
     tone === 'success'
@@ -167,7 +175,7 @@ export function StatCard({
       </View>
       <View className="mt-3">
         <VemtapText
-          variant="headingMd"
+          variant={compactValue ? 'headingSm' : 'headingMd'}
           className={tone === 'success' ? 'text-badge-discount-text' : 'text-text'}
           numberOfLines={1}
         >
@@ -337,6 +345,7 @@ export function ActionGrid({
         <Button
           key={action.label}
           label={action.label}
+          labelVariant="labelSm"
           variant="secondary"
           size="sm"
           fullWidth={false}

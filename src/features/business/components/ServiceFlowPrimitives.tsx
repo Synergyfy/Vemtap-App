@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { type ReactNode } from 'react';
 import { Pressable, TextInput, View, type TextInputProps } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { cn } from '@utils/cn';
@@ -56,11 +56,13 @@ export function ServiceFlowPage({
 export interface ServiceFlowFooterProps {
   primaryLabel: string;
   onPrimary: () => void;
-  primaryRightIcon?: IconName;
+  /** Pass `null` for a CTA without a trailing glyph. */
+  primaryRightIcon?: IconName | null;
   secondaryLabel?: string;
   onSecondary?: () => void;
   backLabel?: string;
   onBack?: () => void;
+  footnote?: ReactNode;
 }
 
 export function ServiceFlowFooter({
@@ -71,19 +73,26 @@ export function ServiceFlowFooter({
   onSecondary,
   backLabel,
   onBack,
+  footnote,
 }: ServiceFlowFooterProps) {
   return (
     <BusinessActionDock>
       <View className="mx-auto w-full max-w-[640px] gap-3 pb-3">
         <Button
           label={primaryLabel}
+          labelVariant="labelMd"
           labelNumberOfLines={2}
-          rightIcon={<Icon name={primaryRightIcon} size={20} color={colors.surface} />}
+          rightIcon={
+            primaryRightIcon ? (
+              <Icon name={primaryRightIcon} size={20} color={colors.surface} />
+            ) : undefined
+          }
           onPress={onPrimary}
         />
         {backLabel ? (
           <Button
             label={backLabel}
+            labelVariant="labelMd"
             variant="ghost"
             className="w-full border-0"
             labelClassName="font-sans-medium text-text-secondary"
@@ -101,6 +110,7 @@ export function ServiceFlowFooter({
             </VemtapText>
           </Pressable>
         ) : null}
+        {footnote}
       </View>
     </BusinessActionDock>
   );

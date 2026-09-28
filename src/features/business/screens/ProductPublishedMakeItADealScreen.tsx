@@ -70,7 +70,7 @@ export function ProductPublishedMakeItADealScreen({
       }}
       contentContainerClassName="gap-6 pb-10"
     >
-      <View className="flex-row items-center justify-between gap-3">
+      <View className="flex-row items-center justify-between gap-3 pt-2">
         <View className="flex-row gap-1">
           {Array.from({ length: 4 }, (_, index) => (
             <View
@@ -85,7 +85,7 @@ export function ProductPublishedMakeItADealScreen({
         <BusinessStatusPill label="100% Complete" tone="success" icon="checkCircle" />
       </View>
 
-      <SetupCard>
+      <SetupCard className="gap-3">
         <View className="flex-row items-center gap-2">
           <View className="h-8 w-8 shrink-0 items-center justify-center rounded-full bg-badge-discount-bg">
             <Icon name="verified" size={18} color={colors.badgeDiscountText} />
@@ -126,7 +126,7 @@ export function ProductPublishedMakeItADealScreen({
             <VemtapText variant="button" className="mt-0.5 text-primary">
               ₦12,000 - ₦15,000
             </VemtapText>
-            <View className="mt-1 flex-row flex-wrap items-center gap-3">
+            <View className="mt-1 flex-row flex-wrap items-center gap-2">
               <View className="flex-row items-center gap-1">
                 <Icon name="storefront" size={13} color={colors.primary} />
                 <VemtapText variant="caption" tone="secondary">
@@ -210,8 +210,9 @@ export function ProductPublishedMakeItADealScreen({
           </VemtapText>
           <Button
             label="Convert to Deal Offer (Auto-Imported)"
+            labelVariant="labelMd"
             labelNumberOfLines={2}
-            className="min-h-[56px] py-2 shadow-lg"
+            className="min-h-[52px] shadow-lg"
             rightIcon={<Icon name="arrowForward" size={20} color={colors.surface} />}
             onPress={openQuickSetup}
           />
@@ -226,16 +227,17 @@ export function ProductPublishedMakeItADealScreen({
           </VemtapText>
           <Button
             label="View in Catalog • Add Another"
+            labelVariant="labelMd"
             labelNumberOfLines={2}
             variant="secondary"
-            className="min-h-12"
+            className="min-h-12 border-0 bg-surface-container-high"
             leftIcon={<Icon name="inventory" size={18} color={colors.textSecondary} />}
             onPress={onKeepRegularProduct}
           />
         </View>
       </View>
 
-      <View className="flex-row items-center justify-center gap-1.5 px-2">
+      <View className="flex-row items-center justify-center gap-1 px-2">
         <Icon name="info" size={16} color={colors.textTertiary} />
         <VemtapText variant="caption" tone="secondary" className="flex-1 text-center">
           Flexible control: you can switch or promote any item anytime directly from your
@@ -315,6 +317,7 @@ export function ProductPublishedMakeItADealScreen({
           </View>
           <Button
             label="Publish VEMTAP Radar Deal"
+            labelVariant="labelMd"
             className="min-h-[54px] shadow-lg"
             rightIcon={<Icon name="bolt" size={20} color={colors.surface} />}
             onPress={publishDeal}

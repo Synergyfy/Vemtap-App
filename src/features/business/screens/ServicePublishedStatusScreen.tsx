@@ -50,9 +50,9 @@ export function ServicePublishedStatusScreen({
       title="Add Service   Step 5: Service Published Or Saved As Draft"
       onBack={onBack}
       onSaveDraft={onSaveDraft}
-      contentContainerClassName="w-full max-w-[640px] self-center gap-6 px-4 py-4 pb-8"
+      contentContainerClassName="w-full max-w-[640px] self-center gap-6 px-6 pb-10 pt-4"
     >
-      <View className="flex-row flex-wrap items-center justify-between gap-2 pt-1">
+      <View className="flex-row flex-wrap items-center justify-between gap-2 pt-2">
         <View className="flex-row items-center gap-2">
           <VemtapText variant="labelSm" tone="brand" className="font-sans-semibold">
             Step 4 of 4
@@ -77,7 +77,7 @@ export function ServicePublishedStatusScreen({
             <Icon name="verified" size={32} color={colors.surface} />
           </View>
           <View className="absolute -right-1 -top-1 h-7 w-7 items-center justify-center rounded-full bg-tertiary-container shadow-sm">
-            <Icon name="autoAwesome" size={16} color={colors.tertiaryFixed} />
+            <Icon name="autoAwesome" size={16} color={colors.surface} />
           </View>
         </View>
         <VemtapText
@@ -90,7 +90,7 @@ export function ServicePublishedStatusScreen({
         <VemtapText
           variant="bodyMd"
           tone="secondary"
-          className="mt-1 max-w-[420px] text-center"
+          className="mt-1 max-w-[320px] text-center"
         >
           Clients within{' '}
           <VemtapText className="font-sans-semibold text-text">4.0 km</VemtapText> can now
@@ -142,7 +142,7 @@ export function ServicePublishedStatusScreen({
         })}
       </View>
 
-      <ServiceSection>
+      <ServiceSection className="gap-3">
         <View className="flex-row items-start gap-3">
           <View className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-surface-container">
             <BusinessProductImage
@@ -268,6 +268,7 @@ export function ServicePublishedStatusScreen({
           </View>
           <Button
             label="Make as a Deal 🔥"
+            labelVariant="labelMd"
             labelNumberOfLines={2}
             rightIcon={<Icon name="arrowForward" size={20} color={colors.surface} />}
             onPress={onCreateDeal}
@@ -275,10 +276,12 @@ export function ServicePublishedStatusScreen({
         </LinearGradient>
       </View>
 
-      <View className="gap-3 pt-1">
+      <View className="gap-3 pt-2">
         <Button
           label="View in Services Catalog"
+          labelVariant="labelMd"
           variant="secondary"
+          className="border-0 bg-surface-container-high"
           leftIcon={<Icon name="catalog" size={20} color={colors.secondary} />}
           onPress={onNext}
         />

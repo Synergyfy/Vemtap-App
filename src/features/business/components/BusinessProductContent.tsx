@@ -20,6 +20,11 @@ export interface ProductStatusSnapshotProps {
   price: ReactNode;
   statusLabel: string;
   statusTone?: 'brand' | 'success' | 'neutral' | 'warning';
+  /**
+   * `pill` (default) renders the status as a tone pill. `eyebrow` renders it as a
+   * quiet uppercase caption and promotes `catalogId` to a success pill.
+   */
+  statusVariant?: 'pill' | 'eyebrow';
   catalogId?: string;
   footer?: ReactNode;
   className?: string;
@@ -33,6 +38,7 @@ export function ProductStatusSnapshot({
   price,
   statusLabel,
   statusTone = 'success',
+  statusVariant = 'pill',
   catalogId,
   footer,
   className,
@@ -52,11 +58,34 @@ export function ProductStatusSnapshot({
         </View>
         <View className="min-w-0 flex-1 gap-1">
           <View className="flex-row flex-wrap items-center justify-between gap-1">
-            <BusinessStatusPill label={statusLabel} tone={statusTone} />
-            {catalogId ? (
-              <VemtapText variant="caption" tone="tertiary">
-                {catalogId}
+            {statusVariant === 'eyebrow' ? (
+              <VemtapText
+                variant="caption"
+                tone="tertiary"
+                className="flex-1 uppercase"
+                numberOfLines={1}
+              >
+                {statusLabel}
               </VemtapText>
+            ) : (
+              <BusinessStatusPill label={statusLabel} tone={statusTone} />
+            )}
+            {catalogId ? (
+              statusVariant === 'eyebrow' ? (
+                <View className="flex-row items-center gap-1 rounded-full bg-badge-discount-bg px-1.5 py-0.5">
+                  <View className="h-1.5 w-1.5 rounded-full bg-badge-discount-text" />
+                  <VemtapText
+                    variant="caption"
+                    className="font-sans-semibold text-badge-discount-text"
+                  >
+                    {catalogId}
+                  </VemtapText>
+                </View>
+              ) : (
+                <VemtapText variant="caption" tone="tertiary">
+                  {catalogId}
+                </VemtapText>
+              )
             ) : null}
           </View>
           <VemtapText variant="headingSm" numberOfLines={1}>

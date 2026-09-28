@@ -9,6 +9,7 @@ import { cssInterop } from 'nativewind';
 import { tv, type VariantProps } from 'tailwind-variants';
 import { cn } from '@utils/cn';
 import { VemtapText } from '@components/ui/Text';
+import type { TextVariant } from '@theme/typography';
 
 cssInterop(Pressable, { className: 'style' });
 
@@ -55,7 +56,7 @@ const buttonVariants = tv({
 });
 
 const labelVariants = tv({
-  base: ['shrink text-center font-sans-semibold text-button-md'],
+  base: ['shrink text-center font-sans-semibold'],
   variants: {
     variant: {
       primary: 'text-primary-foreground',
@@ -79,6 +80,8 @@ export interface ButtonProps
   className?: string;
   labelClassName?: string;
   labelNumberOfLines?: number;
+  /** Size token for the label; defaults to the button scale step. */
+  labelVariant?: TextVariant;
 }
 
 /**
@@ -99,6 +102,7 @@ export function Button({
   className,
   labelClassName,
   labelNumberOfLines = 2,
+  labelVariant = 'button',
   onPress,
   ...rest
 }: ButtonProps) {
@@ -136,6 +140,7 @@ export function Button({
         <>
           {leftIcon || null}
           <VemtapText
+            variant={labelVariant}
             className={cn(labelVariants({ variant }), labelClassName)}
             numberOfLines={labelNumberOfLines}
           >

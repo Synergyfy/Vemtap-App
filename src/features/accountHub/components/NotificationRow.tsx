@@ -73,7 +73,11 @@ export function NotificationRow({
               {unread ? (
                 <View className="h-2 w-2 shrink-0 rounded-full bg-primary" />
               ) : null}
-              <VemtapText variant="headingSm" numberOfLines={1}>
+              <VemtapText
+                variant="labelMd"
+                className="font-sans-semibold"
+                numberOfLines={1}
+              >
                 {title}
               </VemtapText>
             </View>
@@ -81,7 +85,7 @@ export function NotificationRow({
               {time}
             </VemtapText>
           </View>
-          <VemtapText tone="secondary" className="mt-1">
+          <VemtapText variant="labelSm" tone="secondary" className="mt-1">
             {body}
           </VemtapText>
         </View>
@@ -111,6 +115,7 @@ export function NotificationRow({
           </View>
           <Button
             label={action}
+            labelVariant="caption"
             size="sm"
             fullWidth={false}
             variant={
@@ -121,7 +126,7 @@ export function NotificationRow({
                   : 'secondary'
             }
             onPress={onAction}
-            className="min-h-9 px-3"
+            className="min-h-8 px-2.5"
           />
         </View>
       ) : null}

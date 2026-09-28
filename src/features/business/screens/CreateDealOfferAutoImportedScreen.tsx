@@ -100,11 +100,12 @@ export function CreateDealOfferAutoImportedScreen({
         actionLabel: 'Draft',
         onAction: () => onSaveDraft?.(value),
       }}
-      contentContainerClassName="pb-6"
+      contentContainerClassName="pb-10"
       footer={
         <BusinessActionDock>
           <Button
             label="Publish Deal to Nearby Feeds 🔥"
+            labelVariant="labelMd"
             labelNumberOfLines={2}
             className="min-h-[52px] shadow-lg"
             rightIcon={<Icon name="arrowForward" size={20} color={colors.surface} />}
@@ -112,6 +113,7 @@ export function CreateDealOfferAutoImportedScreen({
           />
           <Button
             label="Cancel & Keep Regular Product Only"
+            labelVariant="labelMd"
             labelNumberOfLines={2}
             variant="ghost"
             className="min-h-9"
@@ -127,7 +129,7 @@ export function CreateDealOfferAutoImportedScreen({
           </View>
           <VemtapText
             variant="labelSm"
-            className="min-w-0 flex-1 font-sans-semibold text-primary"
+            className="min-w-0 flex-1 font-sans-semibold tracking-wide text-primary"
           >
             Auto-Imported from “{productIdentity.name}”
           </VemtapText>
@@ -138,7 +140,7 @@ export function CreateDealOfferAutoImportedScreen({
         </VemtapText>
       </View>
 
-      <View className="mt-4 gap-6">
+      <View className="mt-3 gap-6">
         <ProductStatusSnapshot
           image={businessMedia.ribeyeAlternate}
           imageAlt="Woodfire Aged Ribeye Steak"
@@ -196,7 +198,7 @@ export function CreateDealOfferAutoImportedScreen({
               );
             })}
           </View>
-          <View className="flex-row items-center justify-between gap-2">
+          <HorizontallyScrollableRow>
             {[15, 20, 25, 30, 40].map(percent => {
               const selected = discountPercent === percent;
               return (
@@ -206,7 +208,7 @@ export function CreateDealOfferAutoImportedScreen({
                   accessibilityState={{ selected }}
                   accessibilityLabel={`${percent} percent off`}
                   className={cn(
-                    'min-w-0 flex-1 items-center rounded-full px-1 py-2 active:scale-95',
+                    'min-w-0 items-center rounded-full px-3 py-1.5 active:scale-95',
                     selected ? 'bg-surface-tint shadow-sm' : 'bg-surface-container-low',
                   )}
                   onPress={() => setDiscountPercent(percent)}
@@ -225,7 +227,7 @@ export function CreateDealOfferAutoImportedScreen({
                 </Pressable>
               );
             })}
-          </View>
+          </HorizontallyScrollableRow>
           <View className="gap-2 rounded-xl bg-surface-subtle p-3">
             <View className="flex-row items-center justify-between gap-3">
               <VemtapText variant="labelSm" tone="secondary">
@@ -271,7 +273,7 @@ export function CreateDealOfferAutoImportedScreen({
                 {memberPrice}
               </VemtapText>
             </View>
-            <View className="flex-row flex-wrap items-center justify-between gap-2 pt-1">
+            <View className="flex-row flex-wrap items-center justify-between gap-2 pt-2">
               <VemtapText variant="caption" tone="secondary" className="min-w-0 flex-1">
                 Diner Incentive
               </VemtapText>
@@ -334,7 +336,7 @@ export function CreateDealOfferAutoImportedScreen({
                 </VemtapText>
               </Pressable>
             </View>
-            <HorizontallyScrollableRow>
+            <View className="flex-row gap-1.5">
               {weekDays.map(day => {
                 const selected = redemptionDays.includes(day);
                 return (
@@ -344,13 +346,14 @@ export function CreateDealOfferAutoImportedScreen({
                     accessibilityState={{ selected }}
                     accessibilityLabel={day}
                     className={cn(
-                      'h-10 min-w-[46px] items-center justify-center rounded-xl px-2',
+                      'h-10 min-w-0 flex-1 items-center justify-center rounded-xl px-0',
                       selected ? 'bg-surface-tint shadow-sm' : 'bg-surface-container-low',
                     )}
                     onPress={() => toggleDay(day)}
                   >
                     <VemtapText
                       variant="labelSm"
+                      numberOfLines={1}
                       className={cn(
                         'text-center',
                         selected ? 'font-sans-bold text-primary' : 'text-text-tertiary',
@@ -361,11 +364,11 @@ export function CreateDealOfferAutoImportedScreen({
                   </Pressable>
                 );
               })}
-            </HorizontallyScrollableRow>
+            </View>
           </View>
         </SetupCard>
 
-        <SetupCard>
+        <SetupCard className="gap-3">
           <BusinessSectionHeading
             title="Participating Locations"
             trailing={
@@ -383,12 +386,13 @@ export function CreateDealOfferAutoImportedScreen({
                 icon="storefront"
                 selected={selectedBranchIds.includes(branch.id)}
                 onPress={() => toggleBranch(branch.id)}
+                className="bg-surface-subtle"
               />
             ))}
           </View>
         </SetupCard>
 
-        <SetupCard>
+        <SetupCard className="gap-2">
           <BusinessSectionHeading title="Terms & Claim Notes" icon="fileDocument" />
           <VemtapText variant="caption" tone="tertiary">
             Pre-composed from your restaurant dining policy:

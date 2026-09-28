@@ -19,7 +19,7 @@ const images = [
     uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAsMgj3zSGfwuWFX81JoPQjExRoiMILTIZpBD6yadVrhZeI3ZBdb31Oa7_AdyAVBpIAj_5PWZkZzY0HP9PFM2HZOs49ypTETVHgc6M9ooJxyPhd2h2tewDxvdiH9nilLMEUpTij2wgyde6IDs3lxt3SnVnuW2RRXe-FOHC5HD-mPy6ftpZ1QkAxwi3_1K-K_UvF-a-UrbeDuQMm8D6Pzy2HhZM5eCq4UVeCh19nIkDLsVmXufpsGFSohg',
   },
   {
-    uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAh0T_yaqdDTOZYfaGAAu-mm2nn4GPMlgyUdhvi_ULWcH-b-JY1IM4fo-2fH8r50gjhN_rIYLwMOIXGsk2zlLyvdUiiPq-AYQxkVaSQ4yi1VJ6cR_fLcnH3G5M-_9AODJlA6d-B6I0CEBQ70iyO9S0T_KlU1q9Y2WZ0LdTn1FtzP0e2cBFXhdw',
+    uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAh0T_yaqdDTOZYfaGAAu-mm2nn4GPMlgyUdhvi_ULWcH-b-JY1IM4fo-2fH8r50gjhN_rIYLwMOIXGsk2zlLyvdUiiPq-AYQxkVaSQ4yiS1VJ6fCb-BX-yi2k_54WmDETPGfPsuJW3yx2AN99j1-jMKdZ9_X0y4m9jdUzmOop0AcB5SUqkr3mGYVCdrvfZjntHS99w2bM0xoAH4ajKdlUrVIofhliTqMJwuUEbRs7Qdty57dnwKigHgA',
   },
   {
     uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCbwYURUo64814no3C6OA_76MzoX_3LMs97MQvhSTmISLlbwKts2otlTlZPCMjY7mzzchHqAVE8E-P5plmLIn41tuedMFWHOhl4_LXPGOcOAeH8ND3lPpdbN-A4NpHJpYC7PaELbvg_PtD9BY9o24dHj-HmIKMVbqhxmQHszWQv6fB_sVyzMY_FbC-6dG-DZPDFrYvVDsbCbe6_jmAelijahtrxSl6eKGe2U1FItc5K0YRSdRDbICuRfw',
@@ -27,6 +27,7 @@ const images = [
 ];
 
 export interface MessagesScreenProps {
+  onBack?: () => void;
   onOpenConversation?: (merchant: string) => void;
   onCompose?: () => void;
   onSearch?: () => void;
@@ -34,6 +35,7 @@ export interface MessagesScreenProps {
 }
 
 export function MessagesScreen({
+  onBack,
   onOpenConversation,
   onCompose,
   onSearch,
@@ -60,11 +62,20 @@ export function MessagesScreen({
         className="flex-row items-center justify-between bg-surface px-6 pb-3 pt-2"
         style={[navbarBottomShadow, { paddingTop: Math.max(insets.top, 8) }]}
       >
-        <View className="min-w-0 flex-1">
+        <View className="min-w-0 flex-1 flex-row items-center gap-1">
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={strings.common.goBack}
+            hitSlop={8}
+            onPress={onBack}
+            className="-ml-2 h-11 w-11 shrink-0 items-center justify-center rounded-full active:bg-surface-container-low"
+          >
+            <Icon name="back" size={24} color={colors.surfaceDark} />
+          </Pressable>
           <VemtapText
             accessibilityRole="header"
-            variant="headingSm"
-            className="text-heading-sm"
+            variant="labelMd"
+            className="min-w-0 flex-1 font-sans-semibold"
             numberOfLines={1}
           >
             {strings.messagesHub.title}
@@ -100,7 +111,11 @@ export function MessagesScreen({
       >
         <View className="flex-row items-center justify-between">
           <View className="min-w-0 flex-1 flex-row items-center gap-2">
-            <VemtapText variant="headingSm" className="text-heading-sm" numberOfLines={1}>
+            <VemtapText
+              variant="bodyMd"
+              className="flex-1 font-sans-semibold"
+              numberOfLines={1}
+            >
               {strings.messagesHub.title}
             </VemtapText>
             <VemtapText

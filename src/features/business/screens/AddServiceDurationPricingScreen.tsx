@@ -12,6 +12,7 @@ import {
   ServiceSection,
   ServiceToggle,
 } from '@features/business/components/ServiceFlowPrimitives';
+import { BusinessSelectionChip } from '@features/business/components/BusinessPrimitives';
 import {
   serviceDurations,
   serviceFlowDraft,
@@ -72,9 +73,10 @@ export function AddServiceDurationPricingScreen({
           onBack={onBack}
         />
       }
+      contentContainerClassName="px-6 pb-10 pt-4"
     >
       <View className="gap-6">
-        <View className="-mx-4 bg-surface px-4 py-3 shadow-sm">
+        <View className="-mx-6 bg-surface px-6 pb-3 pt-4 shadow-sm">
           <ServiceProgress
             stepLabel="Step 2 of 4"
             statusLabel="50% Completed"
@@ -134,7 +136,7 @@ export function AddServiceDurationPricingScreen({
                 Client service window
               </VemtapText>
             </View>
-            <View accessibilityRole="radiogroup" className="flex-row flex-wrap gap-1.5">
+            <View accessibilityRole="radiogroup" className="flex-row flex-wrap gap-2">
               {serviceDurations.map(option => (
                 <ServiceChip
                   key={option}
@@ -272,7 +274,11 @@ export function AddServiceDurationPricingScreen({
               </View>
             ))}
           </View>
-          <ServiceLinkButton label="Add Another Tier or Add-on" icon="plusCircle" />
+          <ServiceLinkButton
+            label="Add Another Tier or Add-on"
+            icon="plusCircle"
+            className="bg-surface-tint active:bg-surface-tint-blue"
+          />
         </ServiceSection>
 
         <ServiceSection>
@@ -320,12 +326,13 @@ export function AddServiceDurationPricingScreen({
             </View>
             <View accessibilityRole="radiogroup" className="flex-row gap-1">
               {serviceWeekdays.map(day => (
-                <ServiceChip
+                <BusinessSelectionChip
                   key={day}
                   label={day}
                   selected={activeDays.has(day)}
+                  tone="neutral"
                   onPress={() => toggleDay(day)}
-                  className="min-w-0 flex-1 px-0"
+                  className="min-w-0 flex-1 rounded-lg px-0"
                 />
               ))}
             </View>
@@ -405,12 +412,14 @@ export function AddServiceDurationPricingScreen({
         </ServiceSection>
 
         <ServiceSection>
-          <ServiceInfoRow
-            icon="verifiedUser"
-            title="VEMTAP Zero-Upfront Guarantee"
-            description="Customers pay directly at your salon after treatment. VEMTAP never holds your payout or charges gateway checkout cuts."
-            iconContainerClassName="bg-primary"
-          />
+          <View className="rounded-card bg-surface-tint p-4">
+            <ServiceInfoRow
+              icon="verifiedUser"
+              title="VEMTAP Zero-Upfront Guarantee"
+              description="Customers pay directly at your salon after treatment. VEMTAP never holds your payout or charges gateway checkout cuts."
+              iconContainerClassName="bg-primary"
+            />
+          </View>
           <View className="flex-row flex-wrap items-center justify-between gap-3 rounded-card-lg bg-surface-container-low p-3">
             <View className="min-w-[190px] flex-1">
               <View className="flex-row flex-wrap items-center gap-1.5">

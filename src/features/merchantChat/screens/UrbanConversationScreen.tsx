@@ -1,6 +1,7 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Image,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -49,6 +50,21 @@ export function UrbanConversationScreen({
   const scrollRef = useRef<ScrollView>(null);
   const [showDeal, setShowDeal] = useState(true);
   const [draft, setDraft] = useState('');
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const show = Keyboard.addListener(showEvent, event => {
+      setKeyboardHeight(event.endCoordinates?.height ?? 0);
+      requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));
+    });
+    const hide = Keyboard.addListener(hideEvent, () => setKeyboardHeight(0));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
 
   const send = useCallback(() => {
     const message = draft.trim();
@@ -64,10 +80,7 @@ export function UrbanConversationScreen({
   }, [onCloseDeal]);
 
   return (
-    <KeyboardAvoidingView
-      className="flex-1 bg-background"
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <KeyboardAvoidingView className="flex-1 bg-background" behavior="padding">
       <View style={{ paddingTop: Math.max(insets.top, 8) }} className="bg-surface">
         <RegistrationHeader
           title={strings.urbanConversation.pageTitle}
@@ -75,8 +88,8 @@ export function UrbanConversationScreen({
           showMoreAction
           onMore={onMore}
         />
-        <View className="flex-row items-center justify-between px-6 py-3 shadow-sm">
-          <View className="min-w-0 flex-row items-center gap-3">
+        <View className="flex-row items-center justify-between gap-2 px-6 py-3 shadow-sm">
+          <View className="min-w-0 flex-1 flex-row items-center gap-3">
             <View className="relative h-11 w-11 shrink-0">
               <Image
                 source={{ uri: orderImages.merchant }}
@@ -100,22 +113,22 @@ export function UrbanConversationScreen({
               </VemtapText>
             </View>
           </View>
-          <View className="ml-2 shrink-0 flex-row gap-2">
+          <View className="shrink-0 flex-row items-center gap-1.5">
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={strings.urbanConversation.callMerchant}
               onPress={onCallMerchant}
-              className="h-10 w-10 items-center justify-center rounded-full bg-surface-tint active:scale-95"
+              className="h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-tint active:scale-95"
             >
-              <Icon name="phone" size={20} color={colors.primary} />
+              <Icon name="phone" size={18} color={colors.primary} />
             </Pressable>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={strings.urbanConversation.dealDetails}
               onPress={onOpenDetails}
-              className="h-10 w-10 items-center justify-center rounded-full bg-surface-container active:scale-95"
+              className="h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-container active:scale-95"
             >
-              <Icon name="shoppingBag" size={19} color={colors.surfaceDark} />
+              <Icon name="receipt" size={18} color={colors.surfaceDark} />
             </Pressable>
           </View>
         </View>
@@ -126,6 +139,8 @@ export function UrbanConversationScreen({
         className="flex-1"
         contentContainerClassName="gap-4 px-6 pb-4 pt-3"
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+        automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
         showsVerticalScrollIndicator={false}
       >
         {showDeal ? (
@@ -246,16 +261,20 @@ export function UrbanConversationScreen({
           <Pressable
             accessibilityRole="button"
             onPress={onViewPass}
-            className="flex-row items-center gap-2 rounded-xl bg-surface-tint p-2"
+            className="w-full flex-row items-center gap-2 rounded-xl bg-surface-tint-blue p-2"
           >
-            <View className="h-9 w-9 items-center justify-center rounded-lg bg-surface shadow-sm">
+            <View className="h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface shadow-sm">
               <Icon name="qrCode" size={20} color={colors.primary} />
             </View>
             <View className="min-w-0 flex-1">
-              <VemtapText variant="labelSm" className="font-sans-semibold">
+              <VemtapText
+                variant="labelSm"
+                className="font-sans-semibold"
+                numberOfLines={1}
+              >
                 {strings.urbanConversation.table}
               </VemtapText>
-              <VemtapText variant="caption" tone="secondary">
+              <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
                 {strings.urbanConversation.tableMeta}
               </VemtapText>
             </View>
@@ -265,8 +284,11 @@ export function UrbanConversationScreen({
       </ScrollView>
 
       <View
-        className="gap-2 bg-surface px-6 pt-2"
-        style={[navbarBottomShadow, { paddingBottom: Math.max(insets.bottom, 10) }]}
+        className="gap-2 bg-surface px-6 pb-2 pt-2"
+        style={[
+          navbarBottomShadow,
+          { paddingBottom: keyboardHeight > 0 ? 0 : Math.max(insets.bottom, 10) },
+        ]}
       >
         <ScrollView
           horizontal

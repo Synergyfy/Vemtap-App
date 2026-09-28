@@ -92,11 +92,17 @@ export function AddProductsOrServicesScreen({
 
       <ScrollView
         className="flex-1"
-        contentContainerClassName="gap-5 px-6 pb-6 pt-4"
+        contentContainerClassName="gap-6 px-6 pb-10 pt-4"
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        <SetupStepBar step={copy.step} percent={copy.percent} progress={75} dot />
+        <SetupStepBar
+          step={copy.step}
+          percent={copy.percent}
+          progress={75}
+          dot
+          className="gap-3"
+        />
 
         <View className="gap-1">
           <VemtapText
@@ -111,104 +117,109 @@ export function AddProductsOrServicesScreen({
           </VemtapText>
         </View>
 
-        <View className="flex-row gap-3">
-          <AddChoiceCard
-            icon="shoppingBag"
-            title={copy.addProduct}
-            body={copy.addProductBody}
-            tone="brand"
-            onPress={onAddProduct}
-          />
-          <AddChoiceCard
-            icon="autoAwesome"
-            title={copy.addService}
-            body={copy.addServiceBody}
-            tone="tertiary"
-            onPress={onAddService}
-          />
-        </View>
-
-        <View className="flex-row items-start gap-3 rounded-card bg-surface-subtle p-4">
-          <View className="h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary-container">
-            <Icon name="sync" size={18} color={colors.onSecondaryContainer} />
-          </View>
-          <View className="min-w-0 flex-1">
-            <View className="flex-row flex-wrap items-center gap-1.5">
-              <VemtapText variant="labelMd" className="font-sans-semibold text-text">
-                {copy.availabilityTitle}
-              </VemtapText>
-              <View className="rounded-full bg-badge-discount-bg px-1.5 py-0.5">
-                <VemtapText
-                  variant="caption"
-                  className="font-sans-semibold uppercase tracking-wider text-badge-discount-text"
-                >
-                  {copy.availabilityBadge}
-                </VemtapText>
-              </View>
-            </View>
-            <VemtapText
-              variant="caption"
-              tone="secondary"
-              className="mt-1 leading-relaxed"
-            >
-              {copy.availabilityLead}{' '}
-              <VemtapText className="font-sans-semibold text-text">
-                {copy.availabilityHighlight}
-              </VemtapText>{' '}
-              {copy.availabilityTail}
-            </VemtapText>
-          </View>
-        </View>
-
-        <View className="flex-row flex-wrap items-center justify-between gap-2">
-          <View className="min-w-0 flex-row items-center gap-1.5">
-            <VemtapText variant="headingSm" className="text-text">
-              {copy.currentCatalog}
-            </VemtapText>
-            <StatusPill
-              label={String(visibleItems.length)}
-              tone="neutral"
-              className="px-2 py-0.5"
+        <View className="gap-4">
+          <View className="flex-row gap-3">
+            <AddChoiceCard
+              icon="shoppingBag"
+              title={copy.addProduct}
+              body={copy.addProductBody}
+              tone="brand"
+              onPress={onAddProduct}
+            />
+            <AddChoiceCard
+              icon="autoAwesome"
+              title={copy.addService}
+              body={copy.addServiceBody}
+              tone="tertiary"
+              onPress={onAddService}
             />
           </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={copy.filter}
-            onPress={onToggleFilter}
-            className="min-h-[36px] flex-row items-center gap-0.5 px-1 active:opacity-70"
-          >
-            <Icon name="tune" size={16} color={colors.primary} />
-            <VemtapText variant="labelSm" className="text-primary">
-              {copy.filter}
-            </VemtapText>
-          </Pressable>
+
+          <View className="flex-row items-start gap-3 rounded-card bg-surface-subtle p-4">
+            <View className="h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary-container">
+              <Icon name="sync" size={18} color={colors.onSecondaryContainer} />
+            </View>
+            <View className="min-w-0 flex-1">
+              <View className="flex-row flex-wrap items-center gap-1.5">
+                <VemtapText variant="labelMd" className="font-sans-semibold text-text">
+                  {copy.availabilityTitle}
+                </VemtapText>
+                <View className="rounded-full bg-badge-discount-bg px-1.5 py-0.5">
+                  <VemtapText
+                    variant="caption"
+                    className="font-sans-semibold uppercase tracking-wider text-badge-discount-text"
+                  >
+                    {copy.availabilityBadge}
+                  </VemtapText>
+                </View>
+              </View>
+              <VemtapText
+                variant="caption"
+                tone="secondary"
+                className="mt-1 leading-relaxed"
+              >
+                {copy.availabilityLead}{' '}
+                <VemtapText className="font-sans-semibold text-text">
+                  {copy.availabilityHighlight}
+                </VemtapText>{' '}
+                {copy.availabilityTail}
+              </VemtapText>
+            </View>
+          </View>
         </View>
 
         <View className="gap-3">
-          {visibleItems.map(item => (
-            <CatalogItemCard
-              key={item.id}
-              item={item}
-              onEdit={() => onEditItem?.(item)}
-              onRemove={() => onRemove(item)}
-            />
-          ))}
-        </View>
+          <View className="flex-row flex-wrap items-center justify-between gap-2">
+            <View className="min-w-0 flex-row items-center gap-1.5">
+              <VemtapText variant="headingSm" className="text-text">
+                {copy.currentCatalog}
+              </VemtapText>
+              <StatusPill
+                label={String(visibleItems.length)}
+                tone="neutral"
+                className="px-2 py-0.5"
+              />
+            </View>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={copy.filter}
+              onPress={onToggleFilter}
+              hitSlop={6}
+              className="min-h-[36px] flex-row items-center gap-0.5 px-1 active:opacity-70"
+            >
+              <Icon name="tune" size={16} color={colors.primary} />
+              <VemtapText variant="labelSm" className="text-primary">
+                {copy.filter}
+              </VemtapText>
+            </Pressable>
+          </View>
 
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={copy.addAnother}
-          onPress={onAddAnother}
-          className="mt-1 w-full flex-row items-center justify-center gap-1.5 rounded-field bg-surface-subtle px-4 py-3 active:scale-[0.99]"
-        >
-          <Icon name="plusCircle" size={20} color={colors.primary} />
-          <VemtapText variant="labelMd" className="font-sans-semibold text-primary">
-            {copy.addAnother}
-          </VemtapText>
-        </Pressable>
+          <View className="gap-3">
+            {visibleItems.map(item => (
+              <CatalogItemCard
+                key={item.id}
+                item={item}
+                onEdit={() => onEditItem?.(item)}
+                onRemove={() => onRemove(item)}
+              />
+            ))}
+          </View>
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={copy.addAnother}
+            onPress={onAddAnother}
+            className="mt-1 w-full flex-row items-center justify-center gap-1.5 rounded-field bg-surface-subtle px-4 py-3 active:scale-[0.99]"
+          >
+            <Icon name="plusCircle" size={20} color={colors.primary} />
+            <VemtapText variant="labelMd" className="font-sans-semibold text-primary">
+              {copy.addAnother}
+            </VemtapText>
+          </Pressable>
+        </View>
       </ScrollView>
 
-      <View className="gap-2 px-6 pb-2 pt-3">
+      <View className="gap-3 px-6 pb-3 pt-0">
         <PrimaryActionButton
           label={copy.continue}
           onPress={() => onContinue?.({ items: visibleItems })}

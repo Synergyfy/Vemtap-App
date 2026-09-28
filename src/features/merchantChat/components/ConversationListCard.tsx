@@ -1,8 +1,14 @@
 import React from 'react';
 import { Image, Pressable, View, type ImageSourcePropType } from 'react-native';
+import { cssInterop } from 'nativewind';
 import { Icon, type IconName } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { colors } from '@theme/colors';
+
+cssInterop(Pressable, { className: 'style' });
+// Without this the avatar `className` is ignored and the remote image renders
+// unsized (invisible) instead of as a circle.
+cssInterop(Image, { className: 'style' });
 
 export interface ConversationListCardProps {
   image: ImageSourcePropType;
@@ -36,7 +42,7 @@ export function ConversationListCard({
       accessibilityRole="button"
       accessibilityLabel={name}
       onPress={onPress}
-      className="w-full flex-row gap-3 rounded-xl bg-surface p-4 shadow-sm active:bg-surface-container-low"
+      className="w-full min-w-0 flex-row gap-3 overflow-hidden rounded-card border border-border bg-surface p-4 shadow-md active:bg-surface-container-low"
     >
       <View className="relative h-[52px] w-[52px] shrink-0">
         <Image
@@ -49,8 +55,12 @@ export function ConversationListCard({
       </View>
       <View className="min-w-0 flex-1 justify-center">
         <View className="flex-row items-center justify-between gap-2">
-          <View className="min-w-0 flex-row items-center gap-1">
-            <VemtapText variant="headingSm" numberOfLines={1} className="min-w-0 flex-1">
+          <View className="min-w-0 flex-1 flex-row items-center gap-1">
+            <VemtapText
+              variant="labelMd"
+              numberOfLines={1}
+              className="min-w-0 flex-1 font-sans-semibold"
+            >
               {name}
             </VemtapText>
             {verified ? <Icon name="verified" size={17} color={colors.primary} /> : null}
@@ -64,10 +74,15 @@ export function ConversationListCard({
           </VemtapText>
         </View>
         {context ? (
-          <View className="my-1 self-start rounded bg-surface-tint px-2 py-0.5">
-            <View className="flex-row items-center gap-1">
+          <View className="my-1 max-w-full self-start rounded bg-surface-tint px-2 py-0.5">
+            <View className="min-w-0 flex-row items-center gap-1">
               <Icon name={contextIcon} size={13} color={colors.primary} />
-              <VemtapText variant="caption" tone="brand" className="font-sans-medium">
+              <VemtapText
+                variant="caption"
+                tone="brand"
+                className="min-w-0 flex-1 font-sans-medium"
+                numberOfLines={1}
+              >
                 {context}
               </VemtapText>
             </View>
@@ -86,7 +101,7 @@ export function ConversationListCard({
             {message}
           </VemtapText>
           {unread ? (
-            <View className="h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1">
+            <View className="h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-primary px-1">
               <VemtapText variant="caption" tone="inverse" className="font-sans-bold">
                 {unread}
               </VemtapText>

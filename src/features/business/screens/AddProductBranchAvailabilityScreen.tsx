@@ -16,6 +16,7 @@ import {
   BusinessStatusPill,
   SetupCard,
 } from '@features/business/components/BusinessPrimitives';
+import { ServiceChoiceCard } from '@features/business/components/ServiceFlowPrimitives';
 import { productBranches } from '@features/business/data/businessSetupData';
 
 export type ProductBranchAvailabilityValue = {
@@ -111,22 +112,24 @@ export function AddProductBranchAvailabilityScreen({
         actionLabel: 'Draft',
         onAction: () => onSaveDraft?.(value),
       }}
-      contentContainerClassName="pb-6"
+      contentContainerClassName="pb-8"
       footer={
         <BusinessActionDock>
           <View className="flex-row gap-3">
             <Button
               label="Back"
+              labelVariant="labelMd"
               labelNumberOfLines={2}
               variant="secondary"
               fullWidth={false}
-              className="min-h-[52px] min-w-[84px] px-5"
+              className="min-h-[52px] min-w-[84px] border-0 bg-surface-container-high px-4"
               onPress={onBack}
             />
             <Button
               label="Review & Publish"
+              labelVariant="labelMd"
               labelNumberOfLines={2}
-              className="min-h-[52px] min-w-0 flex-1 py-2 shadow-lg"
+              className="min-h-[52px] min-w-0 flex-1 shadow-lg"
               rightIcon={<Icon name="arrowForward" size={18} color={colors.surface} />}
               onPress={() => onContinue?.(value)}
             />
@@ -140,7 +143,7 @@ export function AddProductBranchAvailabilityScreen({
         completionLabel="75% Complete"
         compact
       />
-      <View className="mt-3">
+      <View className="mt-5">
         <VemtapText
           accessibilityRole="header"
           variant="headingMd"
@@ -228,11 +231,12 @@ export function AddProductBranchAvailabilityScreen({
                       variant="caption"
                       tone={inactive ? 'tertiary' : 'secondary'}
                       className="mt-0.5"
+                      numberOfLines={1}
                     >
                       {branch.address}
                     </VemtapText>
                     {inactive ? (
-                      <VemtapText variant="caption" tone="tertiary" className="mt-3">
+                      <VemtapText variant="caption" tone="tertiary" className="mt-1">
                         {branch.stock}
                       </VemtapText>
                     ) : (
@@ -260,27 +264,31 @@ export function AddProductBranchAvailabilityScreen({
           })}
         </View>
 
-        <SetupCard>
+        <SetupCard className="gap-3">
           <BusinessSectionHeading title="Location Pricing Mode" icon="tune" />
           <View className="gap-3">
-            <BusinessCheckRow
-              type="radio"
+            <ServiceChoiceCard
               title="Use same base price across branches"
-              subtitle="Single standard checkout price across Abuja branches."
+              description="Single standard checkout price across Abuja branches."
+              selectionPosition="left"
+              selectionStyle="dot"
+              selectedTone="surface"
               selected={pricingMode === 'unified'}
               onPress={() => setPricingMode('unified')}
             />
-            <BusinessCheckRow
-              type="radio"
+            <ServiceChoiceCard
               title="Customize prices per branch"
-              subtitle="Adjust for varying logistics, rent, or regional premiums."
+              description="Adjust for varying logistics, rent, or regional premiums."
+              selectionPosition="left"
+              selectionStyle="dot"
+              selectedTone="surface"
               selected={pricingMode === 'custom'}
               onPress={() => setPricingMode('custom')}
             />
           </View>
         </SetupCard>
 
-        <SetupCard>
+        <SetupCard className="gap-3">
           <View className="gap-1">
             <BusinessSectionHeading
               title="Fulfillment & Ordering"
@@ -305,7 +313,7 @@ export function AddProductBranchAvailabilityScreen({
             ))}
             <View className="flex-row items-start gap-3 rounded-lg bg-surface-container-low p-3 opacity-60">
               <View className="mt-0.5 h-5 w-5 shrink-0 items-center justify-center rounded-md bg-surface-container-high">
-                <Icon name="blocked" size={14} color={colors.outline} />
+                <Icon name="block" size={14} color={colors.outline} />
               </View>
               <View className="min-w-0 flex-1">
                 <View className="flex-row flex-wrap items-center gap-2">
@@ -324,7 +332,7 @@ export function AddProductBranchAvailabilityScreen({
           </View>
         </SetupCard>
 
-        <SetupCard>
+        <SetupCard className="gap-3">
           <View className="gap-1">
             <BusinessSectionHeading
               title="Handling & Prep Window"
@@ -347,7 +355,7 @@ export function AddProductBranchAvailabilityScreen({
                 labelNumberOfLines={2}
                 selected={preparationWindow === option.id}
                 onPress={() => setPreparationWindow(option.id)}
-                className="min-w-[68px] flex-1"
+                className="min-w-[68px] flex-1 rounded-lg py-2.5"
               />
             ))}
           </View>

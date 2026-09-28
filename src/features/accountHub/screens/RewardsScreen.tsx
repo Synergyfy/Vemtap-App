@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { Image, Pressable, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   AccountHeader,
@@ -11,6 +11,7 @@ import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
 import { colors } from '@theme/colors';
+import { rewardImages } from '@features/accountHub/data/accountHubImages';
 
 const copy = strings.accountScreens.rewards;
 
@@ -40,12 +41,12 @@ export function RewardsScreen({ onBack, onHowToEarn, onRedeem }: RewardsScreenPr
           </View>
           <View className="flex-row items-baseline gap-2">
             <VemtapText
-              variant="displayMobile"
-              className="text-heading-xl text-primary-foreground"
+              variant="headingLg"
+              className="text-heading-lg text-primary-foreground"
             >
               {copy.points}
             </VemtapText>
-            <VemtapText variant="headingSm" className="text-primary-foreground">
+            <VemtapText variant="labelMd" className="text-primary-foreground">
               {copy.unit}
             </VemtapText>
           </View>
@@ -60,6 +61,7 @@ export function RewardsScreen({ onBack, onHowToEarn, onRedeem }: RewardsScreenPr
           </VemtapText>
           <Button
             label={copy.earn}
+            labelVariant="labelMd"
             variant="secondary"
             onPress={onHowToEarn}
             leftIcon={<Icon name="info" size={18} color={colors.primary} />}
@@ -88,7 +90,11 @@ export function RewardsScreen({ onBack, onHowToEarn, onRedeem }: RewardsScreenPr
           <View className="gap-3">
             <View className="flex-row items-center justify-between gap-2">
               <View className="min-w-0 flex-1 flex-row items-center gap-2">
-                <VemtapText variant="headingSm" numberOfLines={1}>
+                <VemtapText
+                  variant="labelMd"
+                  className="font-sans-semibold"
+                  numberOfLines={1}
+                >
                   {copy.redeemYourPoints}
                 </VemtapText>
                 <View className="shrink-0 rounded-full bg-surface-container px-2 py-0.5">
@@ -100,36 +106,39 @@ export function RewardsScreen({ onBack, onHowToEarn, onRedeem }: RewardsScreenPr
               </VemtapText>
             </View>
             {[
-              [
-                copy.dining,
-                copy.diningPartner,
-                copy.diningMeta,
-                copy.diningPoints,
-                copy.diningBalance,
-                'restaurant',
-              ],
-              [
-                copy.wellness,
-                copy.wellnessPartner,
-                copy.wellnessMeta,
-                copy.wellnessPoints,
-                copy.wellnessBalance,
-                'spa',
-              ],
-              [
-                copy.fashion,
-                copy.fashionPartner,
-                copy.fashionMeta,
-                copy.fashionPoints,
-                copy.fashionBalance,
-                'fashion',
-              ],
-            ].map(([title, partner, meta, points, balance, icon]) => (
+              {
+                title: copy.dining,
+                partner: copy.diningPartner,
+                meta: copy.diningMeta,
+                points: copy.diningPoints,
+                balance: copy.diningBalance,
+                image: rewardImages.dining,
+              },
+              {
+                title: copy.wellness,
+                partner: copy.wellnessPartner,
+                meta: copy.wellnessMeta,
+                points: copy.wellnessPoints,
+                balance: copy.wellnessBalance,
+                image: rewardImages.wellness,
+              },
+              {
+                title: copy.fashion,
+                partner: copy.fashionPartner,
+                meta: copy.fashionMeta,
+                points: copy.fashionPoints,
+                balance: copy.fashionBalance,
+                image: rewardImages.fashion,
+              },
+            ].map(({ title, partner, meta, points, balance, image }) => (
               <View key={title} className="gap-3 rounded-card bg-surface p-4 shadow-sm">
                 <View className="flex-row gap-3">
-                  <View className="h-20 w-20 items-center justify-center rounded-field bg-surface-container">
-                    <Icon name={icon as 'restaurant'} size={28} color={colors.primary} />
-                  </View>
+                  <Image
+                    source={{ uri: image.uri }}
+                    accessibilityLabel={image.alt}
+                    className="h-20 w-20 shrink-0 rounded-field bg-surface-container"
+                    resizeMode="cover"
+                  />
                   <View className="min-w-0 flex-1 gap-1">
                     <View className="flex-row items-center gap-1">
                       <Icon name="storefront" size={14} color={colors.textSecondary} />
@@ -137,13 +146,17 @@ export function RewardsScreen({ onBack, onHowToEarn, onRedeem }: RewardsScreenPr
                         {partner}
                       </VemtapText>
                     </View>
-                    <VemtapText variant="headingSm" numberOfLines={1}>
+                    <VemtapText
+                      variant="bodyMd"
+                      className="font-sans-semibold"
+                      numberOfLines={1}
+                    >
                       {title}
                     </VemtapText>
                     <VemtapText variant="caption" tone="secondary">
                       {meta}
                     </VemtapText>
-                    <VemtapText variant="labelSm" tone="brand">
+                    <VemtapText variant="caption" tone="brand">
                       {points}
                     </VemtapText>
                   </View>
@@ -160,33 +173,81 @@ export function RewardsScreen({ onBack, onHowToEarn, onRedeem }: RewardsScreenPr
                     label="Redeem Now"
                     size="sm"
                     fullWidth={false}
+                    labelVariant="labelSm"
+                    labelClassName="text-primary-foreground"
+                    rightIcon={
+                      <Icon name="arrowForward" size={15} color={colors.surface} />
+                    }
                     onPress={() => onRedeem?.(title)}
                   />
                 </View>
               </View>
             ))}
-            <View className="flex-row gap-3 rounded-card bg-surface-container-low p-4 opacity-80">
-              <Icon name="lock" size={24} color={colors.textSecondary} />
-              <View className="min-w-0 flex-1">
-                <VemtapText variant="headingSm">{copy.locked}</VemtapText>
-                <VemtapText variant="caption" tone="secondary">
-                  {copy.lockedPartner} • {copy.lockedMeta}
-                </VemtapText>
-                <VemtapText variant="labelSm" tone="secondary">
-                  {copy.lockedPoints} • {copy.need}
-                </VemtapText>
+            <View className="gap-3 rounded-card bg-surface p-4 opacity-80 shadow-sm">
+              <View className="flex-row gap-3">
+                <View className="relative h-20 w-20 shrink-0 overflow-hidden rounded-field bg-surface-container-highest">
+                  <Image
+                    source={{ uri: rewardImages.vip.uri }}
+                    accessibilityLabel={rewardImages.vip.alt}
+                    className="h-full w-full"
+                    resizeMode="cover"
+                  />
+                  <View className="absolute inset-0 items-center justify-center bg-inverse-surface/40">
+                    <Icon name="lock" size={24} color={colors.surface} />
+                  </View>
+                </View>
+                <View className="min-w-0 flex-1 justify-between">
+                  <View>
+                    <View className="flex-row items-center gap-1">
+                      <Icon name="restaurant" size={14} color={colors.textSecondary} />
+                      <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
+                        {copy.lockedPartner}
+                      </VemtapText>
+                    </View>
+                    <VemtapText
+                      variant="bodyMd"
+                      className="mt-0.5 font-sans-semibold"
+                      numberOfLines={1}
+                    >
+                      {copy.locked}
+                    </VemtapText>
+                    <VemtapText variant="caption" tone="secondary" numberOfLines={2}>
+                      {copy.lockedMeta}
+                    </VemtapText>
+                  </View>
+                  <View className="mt-1 flex-row items-center gap-1">
+                    <Icon name="loyalty" size={16} color={colors.textSecondary} />
+                    <VemtapText variant="labelSm" className="font-sans-semibold">
+                      {copy.lockedPoints}
+                    </VemtapText>
+                  </View>
+                </View>
               </View>
-              <VemtapText variant="labelSm" tone="tertiary">
-                {copy.lockedAction}
-              </VemtapText>
+              <View className="flex-row items-center justify-between gap-2">
+                <View className="shrink-0 flex-row items-center gap-1 rounded-full bg-surface-container px-2.5 py-1">
+                  <Icon name="lock" size={14} color={colors.textTertiary} />
+                  <VemtapText variant="caption" tone="tertiary" numberOfLines={1}>
+                    {copy.need}
+                  </VemtapText>
+                </View>
+                <Button
+                  label={copy.lockedAction}
+                  variant="secondary"
+                  size="sm"
+                  fullWidth={false}
+                  disabled
+                  labelVariant="labelSm"
+                  onPress={() => undefined}
+                />
+              </View>
             </View>
           </View>
         ) : tab === 1 ? (
           <View className="gap-3">
             <View className="flex-row justify-between gap-2">
               <VemtapText
-                variant="headingSm"
-                className="min-w-0 flex-1"
+                variant="labelMd"
+                className="min-w-0 flex-1 font-sans-semibold"
                 numberOfLines={2}
               >
                 {copy.redeemedTitle}
@@ -198,7 +259,13 @@ export function RewardsScreen({ onBack, onHowToEarn, onRedeem }: RewardsScreenPr
             <View className="gap-3 rounded-card bg-surface p-4 shadow-sm">
               <View className="flex-row justify-between">
                 <View>
-                  <VemtapText variant="headingSm">{copy.voucher}</VemtapText>
+                  <VemtapText
+                    variant="labelMd"
+                    className="font-sans-semibold"
+                    numberOfLines={1}
+                  >
+                    {copy.voucher}
+                  </VemtapText>
                   <VemtapText variant="caption" tone="secondary">
                     {copy.redeemedOn}
                   </VemtapText>
@@ -212,12 +279,13 @@ export function RewardsScreen({ onBack, onHowToEarn, onRedeem }: RewardsScreenPr
                   <VemtapText variant="caption" tone="tertiary">
                     {copy.passcode}
                   </VemtapText>
-                  <VemtapText variant="headingSm" className="font-sans-bold">
+                  <VemtapText variant="labelMd" className="font-sans-bold">
                     {copy.passcodeValue}
                   </VemtapText>
                 </View>
                 <Button
                   label={copy.copy}
+                  labelVariant="labelSm"
                   variant="secondary"
                   size="sm"
                   fullWidth={false}
@@ -255,6 +323,95 @@ export function RewardsScreen({ onBack, onHowToEarn, onRedeem }: RewardsScreenPr
             />
           </View>
         )}
+
+        <View className="gap-3">
+          <View className="flex-row items-center justify-between gap-2">
+            <View className="min-w-0 flex-1 flex-row items-center gap-2">
+              <Icon name="receipt" size={20} color={colors.secondary} />
+              <VemtapText variant="bodyMd" className="flex-1 font-sans-semibold">
+                {copy.recentPointsTitle}
+              </VemtapText>
+            </View>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={copy.viewAll}
+              onPress={() => setTab(2)}
+              className="shrink-0"
+            >
+              <VemtapText variant="labelSm" tone="brand" className="font-sans-semibold">
+                {copy.viewAll}
+              </VemtapText>
+            </Pressable>
+          </View>
+          <View className="gap-1 rounded-card bg-surface p-2 shadow-sm">
+            {copy.ledger.slice(0, 3).map(row => (
+              <View
+                key={row.title}
+                className="flex-row items-center justify-between gap-3 rounded-field p-2"
+              >
+                <View className="min-w-0 flex-1 flex-row items-center gap-3">
+                  <View
+                    className={`h-10 w-10 shrink-0 items-center justify-center rounded-full ${
+                      row.amount.startsWith('-')
+                        ? 'bg-error-container'
+                        : 'bg-badge-discount-bg'
+                    }`}
+                  >
+                    <Icon
+                      name={row.icon}
+                      size={20}
+                      color={
+                        row.amount.startsWith('-')
+                          ? colors.error
+                          : colors.badgeDiscountText
+                      }
+                    />
+                  </View>
+                  <View className="min-w-0 flex-1">
+                    <VemtapText
+                      variant="labelMd"
+                      className="min-w-0 font-sans-semibold"
+                      numberOfLines={1}
+                    >
+                      {row.title}
+                    </VemtapText>
+                    <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
+                      {row.meta}
+                    </VemtapText>
+                  </View>
+                </View>
+                <View className="shrink-0 items-end pl-2">
+                  <VemtapText
+                    variant="labelMd"
+                    className={
+                      row.amount.startsWith('-')
+                        ? 'font-sans-bold text-error'
+                        : 'font-sans-bold text-badge-discount-text'
+                    }
+                    numberOfLines={1}
+                  >
+                    {row.amount}
+                  </VemtapText>
+                  <VemtapText variant="caption" tone="tertiary" numberOfLines={1}>
+                    {row.note}
+                  </VemtapText>
+                </View>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        <View className="flex-row items-start gap-3 rounded-card bg-surface-container-low p-4">
+          <Icon name="info" size={20} color={colors.secondary} />
+          <View className="min-w-0 flex-1">
+            <VemtapText variant="labelSm" className="font-sans-semibold">
+              {copy.policyTitle}
+            </VemtapText>
+            <VemtapText variant="caption" tone="secondary" className="mt-0.5">
+              {copy.policyBody}
+            </VemtapText>
+          </View>
+        </View>
       </PageScroll>
     </SafeAreaView>
   );

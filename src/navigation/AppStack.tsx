@@ -4,7 +4,6 @@ import { TabNavigator } from '@navigation/TabNavigator';
 import { ProfileScreen } from '@features/profile/screens/ProfileScreen';
 import { DealFiltersScreen } from '@features/deals/screens/DealFiltersScreen';
 import { DealDetailScreen } from '@features/dealDetail/screens/DealDetailScreen';
-import { BusinessSetupNavigator } from '@navigation/BusinessSetupNavigator';
 import { DealTermsConditionsScreen } from '@features/dealDetail/screens/DealTermsConditionsScreen';
 import { HowToClaimScreen } from '@features/howToClaim/screens/HowToClaimScreen';
 import { DealClaimedSuccessScreen } from '@features/claimedDeal/screens/DealClaimedSuccessScreen';
@@ -26,7 +25,6 @@ export function AppStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Tabs" component={TabNavigator} />
-      <Stack.Screen name="BusinessSetup" component={BusinessSetupNavigator} />
       <Stack.Screen
         name="Profile"
         component={ProfileScreen}

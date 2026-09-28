@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { cn } from '@utils/cn';
+import { BusinessSelectionChip } from '@features/business/components/BusinessPrimitives';
 import {
   ServiceChoiceCard,
-  ServiceChip,
   ServiceFlowFooter,
   ServiceFlowPage,
   ServiceProgress,
@@ -71,9 +71,10 @@ export function AddServiceAvailabilityRulesScreen({
           onBack={onBack}
         />
       }
+      contentContainerClassName="px-6 pb-10 pt-4"
     >
       <View className="gap-8">
-        <View className="-mx-4 gap-1 bg-surface-container-low px-4 py-3">
+        <View className="-mx-6 gap-2 bg-surface-container-low px-6 pb-3 pt-4">
           <ServiceProgress
             stepLabel="Step 3 of 4: Availability & Rules"
             statusLabel="75% Complete"
@@ -149,7 +150,7 @@ export function AddServiceAvailabilityRulesScreen({
                       </View>
                     </View>
                   </View>
-                  <View className="flex-row justify-end">
+                  <View className="flex-row justify-end pt-1">
                     <Pressable
                       accessibilityRole="button"
                       accessibilityLabel={`Edit Location Schedule for ${branch.name}`}
@@ -234,10 +235,11 @@ export function AddServiceAvailabilityRulesScreen({
                 ['12-hours', '12 hrs ahead'],
                 ['24-hours', '24 hrs ahead'],
               ].map(([value, label]) => (
-                <ServiceChip
+                <BusinessSelectionChip
                   key={value}
                   label={label}
                   selected={leadTime === value}
+                  tone="neutral"
                   onPress={() => setLeadTime(value)}
                 />
               ))}
@@ -259,10 +261,11 @@ export function AddServiceAvailabilityRulesScreen({
                 ['30-days', '30 days in advance'],
                 ['60-days', '60 days'],
               ].map(([value, label]) => (
-                <ServiceChip
+                <BusinessSelectionChip
                   key={value}
                   label={label}
                   selected={horizon === value}
+                  tone="neutral"
                   onPress={() => setHorizon(value)}
                 />
               ))}

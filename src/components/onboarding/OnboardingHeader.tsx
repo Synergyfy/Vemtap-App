@@ -35,7 +35,7 @@ export function OnboardingHeader({
     if (center === 'brand') {
       return (
         <View className="flex-row items-center gap-1.5">
-          <VemtapText className="font-sans-bold text-xl tracking-wider text-primary">
+          <VemtapText variant="headingMd" className="tracking-wider text-primary">
             VEMTAP
           </VemtapText>
           <View className="h-2 w-2 rounded-full bg-primary" />

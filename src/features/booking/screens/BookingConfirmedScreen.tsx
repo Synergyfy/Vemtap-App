@@ -78,6 +78,13 @@ export function BookingConfirmedScreen({ route, navigation }: Props) {
     });
   }, [navigation]);
 
+  const goToBookings = useCallback(() => {
+    navigation.navigate('Tabs', {
+      screen: 'Account',
+      params: { screen: 'OrdersBookings' },
+    });
+  }, [navigation]);
+
   const share = useCallback(() => {
     Share.share({
       message:
@@ -388,6 +395,11 @@ export function BookingConfirmedScreen({ route, navigation }: Props) {
           onPress={() =>
             navigation.navigate('MerchantChat', { dealId: 'glow-serenity-facial' })
           }
+        />
+        <Button
+          label={strings.accountScreens.moreHub.viewBookings}
+          variant="secondary"
+          onPress={goToBookings}
         />
         <Button label={strings.booking.backHome} variant="ghost" onPress={goHome} />
       </View>

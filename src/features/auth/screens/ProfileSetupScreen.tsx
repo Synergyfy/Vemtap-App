@@ -1,5 +1,12 @@
-import React, { useCallback, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  Animated,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+} from 'react-native';
 import { cssInterop } from 'nativewind';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
@@ -25,6 +32,12 @@ const styles = StyleSheet.create({
   filledPinBackground: { opacity: 1 },
   filledPinDot: { opacity: 1, transform: [{ scale: 1.25 }] },
   hiddenPinState: { opacity: 0 },
+  pinCaret: {
+    width: 2,
+    height: 24,
+    borderRadius: 1,
+    backgroundColor: colors.primary,
+  },
 });
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'ProfileSetup'>;
@@ -59,7 +72,33 @@ function PinBoxes({
   showToggle?: boolean;
 }) {
   const inputRef = useRef<TextInput>(null);
+  const [focused, setFocused] = useState(false);
+  const caretOpacity = useRef(new Animated.Value(1)).current;
   const pinSlots = ['pin-1', 'pin-2', 'pin-3', 'pin-4', 'pin-5', 'pin-6'];
+  const caretActive = focused && value.length < pinSlots.length;
+
+  useEffect(() => {
+    if (!caretActive) {
+      caretOpacity.setValue(1);
+      return undefined;
+    }
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(caretOpacity, {
+          toValue: 0,
+          duration: 450,
+          useNativeDriver: true,
+        }),
+        Animated.timing(caretOpacity, {
+          toValue: 1,
+          duration: 450,
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [caretActive, caretOpacity]);
 
   return (
     <View className="gap-2 pt-1">
@@ -104,6 +143,7 @@ function PinBoxes({
         <View className="flex-row gap-2">
           {pinSlots.map((slotId, i) => {
             const filled = i < value.length;
+            const isCaretSlot = caretActive && i === value.length;
             return (
               <View
                 key={slotId}
@@ -114,7 +154,12 @@ function PinBoxes({
                   className="absolute inset-0 rounded-xl bg-surface-tint"
                   style={filled ? styles.filledPinBackground : styles.hiddenPinState}
                 />
-                {filled && pinVisible ? (
+                {isCaretSlot ? (
+                  <Animated.View
+                    testID={`pin-caret-${slotId}`}
+                    style={[styles.pinCaret, { opacity: caretOpacity }]}
+                  />
+                ) : filled && pinVisible ? (
                   <VemtapText variant="headingMd" className="text-heading-md">
                     {value[i]}
                   </VemtapText>
@@ -136,6 +181,8 @@ function PinBoxes({
           ref={inputRef}
           value={value}
           onChangeText={t => onPinChange(t.replace(/[^0-9]/g, '').slice(0, 6))}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
           keyboardType="number-pad"
           secureTextEntry={!pinVisible}
           maxLength={6}

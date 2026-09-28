@@ -5,13 +5,13 @@ import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { colors } from '@theme/colors';
 import { cn } from '@utils/cn';
+import { ServiceSectionHeader } from '@features/business/components/ServiceFlowPrimitives';
 import {
   BusinessActionDock,
   BusinessCheckRow,
   BusinessProductImage,
   BusinessProgress,
   BusinessScreenLayout,
-  BusinessSectionHeading,
   BusinessStatusPill,
   BusinessStepper,
   BusinessSwitchRow,
@@ -89,21 +89,23 @@ export function CreateDealStep2LimitsGiftingRulesScreen({
         actionLabel: 'Save',
         onAction: () => onSave?.(value),
       }}
-      contentContainerClassName="pb-6"
+      contentContainerClassName="pb-10"
       footer={
         <BusinessActionDock>
           <View className="flex-row gap-3">
             <Button
               label="Back to Step 1"
+              labelVariant="labelMd"
               variant="outline"
               fullWidth={false}
-              className="min-h-[52px] min-w-[124px] px-4"
+              className="min-h-[52px] min-w-[124px] border-0 bg-surface-subtle px-4"
               onPress={onBack}
             />
             <Button
               label="Continue to Branch Availability"
+              labelVariant="labelMd"
               labelNumberOfLines={2}
-              className="min-h-[52px] flex-1 py-2 shadow-lg"
+              className="min-h-[52px] flex-1 shadow-lg"
               rightIcon={<Icon name="arrowForward" size={20} color={colors.surface} />}
               onPress={() => onContinue?.(value)}
             />
@@ -116,13 +118,14 @@ export function CreateDealStep2LimitsGiftingRulesScreen({
         percent={50}
         completionLabel="50% Complete"
       />
-      <VemtapText tone="secondary" className="mt-1">
+      <VemtapText tone="secondary" className="mt-3">
         Define voucher availability, claim restrictions, and customer gifting options.
       </VemtapText>
 
-      <View className="mt-4 gap-6">
-        <SetupCard>
-          <BusinessSectionHeading
+      <View className="mt-3 gap-6">
+        <SetupCard className="gap-3">
+          <ServiceSectionHeader
+            boxedIcon
             title="Voucher Scarcity & Allocation"
             subtitle="Inventory controls and urgency indicators"
             icon="confirmation"
@@ -153,8 +156,9 @@ export function CreateDealStep2LimitsGiftingRulesScreen({
           />
         </SetupCard>
 
-        <SetupCard>
-          <BusinessSectionHeading
+        <SetupCard className="gap-3">
+          <ServiceSectionHeader
+            boxedIcon
             title="Customer Claim Restrictions"
             subtitle="Redemption eligibility and frequency"
             icon="verifiedUser"
@@ -227,8 +231,9 @@ export function CreateDealStep2LimitsGiftingRulesScreen({
           </View>
         </SetupCard>
 
-        <SetupCard>
-          <BusinessSectionHeading
+        <SetupCard className="gap-3">
+          <ServiceSectionHeader
+            boxedIcon
             title="Gifting & Social Sharing"
             subtitle="Viral referral triggers and guest-to-guest transfer"
             icon="share"
@@ -279,8 +284,9 @@ export function CreateDealStep2LimitsGiftingRulesScreen({
           </View>
         </SetupCard>
 
-        <SetupCard>
-          <BusinessSectionHeading
+        <SetupCard className="gap-3">
+          <ServiceSectionHeader
+            boxedIcon
             title="Other Accept / Reject Factors"
             subtitle="Order channel fulfillment guidelines"
             icon="rules"
@@ -330,7 +336,7 @@ export function CreateDealStep2LimitsGiftingRulesScreen({
           </View>
         </SetupCard>
 
-        <SetupCard>
+        <SetupCard className="gap-2">
           <View className="flex-row items-center justify-between gap-2">
             <VemtapText
               variant="labelSm"

@@ -85,39 +85,39 @@ export function AddProductLocationPricingScreen({
       }}
       contentContainerClassName="gap-5 pb-8"
     >
-      <View className="gap-2">
-        <View className="flex-row items-center justify-between gap-2">
-          <VemtapText className="min-w-0 flex-1 font-sans-semibold text-label-sm uppercase tracking-wide text-primary">
-            Step 3 of 4 • New Product
-          </VemtapText>
-          <BusinessStatusPill
-            label="Draft Auto-saved"
-            tone="success"
-            icon="checkCircle"
-          />
+      <View className="gap-4">
+        <View className="gap-2">
+          <View className="flex-row items-center justify-between gap-2">
+            <VemtapText className="min-w-0 flex-1 font-sans-semibold text-label-sm uppercase tracking-wide text-primary">
+              Step 3 of 4 • New Product
+            </VemtapText>
+            <BusinessStatusPill label="Draft Auto-saved" tone="success" />
+          </View>
+          <BusinessProgress label="" percent={75} />
         </View>
-        <BusinessProgress label="" percent={75} />
-        <VemtapText
-          accessibilityRole="header"
-          variant="headingMd"
-          className="text-heading-md"
-        >
-          Add Product
-        </VemtapText>
-        <VemtapText tone="secondary">
-          Define product details, select branch availability, and configure
-          location-specific pricing.
-        </VemtapText>
+        <View className="gap-1">
+          <VemtapText
+            accessibilityRole="header"
+            variant="headingMd"
+            className="text-heading-md"
+          >
+            Add Product
+          </VemtapText>
+          <VemtapText tone="secondary">
+            Define product details, select branch availability, and configure
+            location-specific pricing.
+          </VemtapText>
+        </View>
       </View>
 
       <SetupCard>
         <View className="flex-row items-center justify-between gap-3">
-          <BusinessSectionHeading title="General Details" icon="food" />
+          <BusinessSectionHeading title="General Details" icon="dining" />
           <VemtapText variant="caption" tone="tertiary">
             Core Item
           </VemtapText>
         </View>
-        <View className="flex-row items-center gap-3 rounded-lg bg-surface-subtle p-3">
+        <View className="flex-row items-center gap-4 rounded-lg bg-surface-subtle p-3">
           <View className="h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-surface-container shadow-sm">
             <BusinessProductImage
               source={businessMedia.ribeyeCover}
@@ -132,21 +132,22 @@ export function AddProductLocationPricingScreen({
             <VemtapText variant="labelMd" numberOfLines={1}>
               woodfire-ribeye-final.jpg
             </VemtapText>
-            <VemtapText variant="caption" tone="secondary" className="mt-0.5">
+            <VemtapText variant="caption" tone="secondary">
               1080 x 1080px • JPEG
             </VemtapText>
             <Button
               label="Change Photo"
+              labelVariant="labelSm"
               variant="secondary"
               size="sm"
               fullWidth={false}
-              className="mt-2 min-h-9 self-start rounded-md px-3"
+              className="mb-2 min-h-9 self-start rounded-md border-0 bg-surface-container-high px-3"
               leftIcon={<Icon name="camera" size={16} color={colors.primary} />}
               onPress={onChangePhoto}
             />
           </View>
         </View>
-        <View className="gap-3">
+        <View className="gap-3.5">
           <Input
             label="Product Name"
             value={productName}
@@ -182,7 +183,7 @@ export function AddProductLocationPricingScreen({
           icon="storefront"
           subtitle="Select which branches stock or prepare this item."
         />
-        <View className="gap-2">
+        <View className="gap-2.5">
           {productBranches.map(branch => (
             <BusinessCheckRow
               key={branch.id}
@@ -201,13 +202,15 @@ export function AddProductLocationPricingScreen({
           <BusinessSectionHeading
             title="Pricing Configuration"
             icon="payments"
-            trailing={<BusinessStatusPill label="Per-Branch Mode" />}
+            trailing={
+              <BusinessStatusPill label="Per-Branch Mode" tone="brandHigh" icon="tune" />
+            }
           />
           <VemtapText variant="caption" tone="secondary">
             Adapt retail menu costs to distinct regional supply or delivery overheads.
           </VemtapText>
         </View>
-        <View className="gap-2">
+        <View className="gap-2.5">
           <BusinessCheckRow
             type="radio"
             title="Use the same price at all selected locations"
@@ -238,12 +241,14 @@ export function AddProductLocationPricingScreen({
       <View className="gap-3 pt-2">
         <Button
           label="Save Product & Availability"
+          labelVariant="labelMd"
           className="shadow-lg"
           rightIcon={<Icon name="arrowForward" size={20} color={colors.surface} />}
           onPress={save}
         />
         <Button
           label="Cancel and Discard Changes"
+          labelVariant="labelMd"
           variant="ghost"
           className="min-h-11"
           onPress={onDiscard}

@@ -23,7 +23,7 @@ export interface ContactBusinessOptionsSheetProps {
 
 const copy = strings.myClaimedDeal.contact;
 
-type ContactOptionProps = {
+export type ContactOptionProps = {
   icon: IconName;
   title: string;
   description: string;
@@ -31,7 +31,7 @@ type ContactOptionProps = {
   onPress: () => void;
 };
 
-function ContactOption({
+export function ContactOption({
   icon,
   title,
   description,

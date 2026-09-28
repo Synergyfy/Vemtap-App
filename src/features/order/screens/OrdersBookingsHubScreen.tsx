@@ -10,6 +10,7 @@ import { colors } from '@theme/colors';
 import { navbarBottomShadow } from '@theme/shadows';
 
 export interface OrdersBookingsHubScreenProps {
+  onBack?: () => void;
   onSearch?: () => void;
   onOpenOrder?: (orderNumber: string) => void;
   onOpenBooking?: (bookingNumber: string) => void;
@@ -19,6 +20,7 @@ export interface OrdersBookingsHubScreenProps {
 }
 
 export function OrdersBookingsHubScreen({
+  onBack,
   onSearch,
   onOpenOrder,
   onOpenBooking,
@@ -39,12 +41,20 @@ export function OrdersBookingsHubScreen({
         className="flex-row items-center justify-between bg-surface px-6 pb-3 pt-2"
         style={[navbarBottomShadow, { paddingTop: Math.max(insets.top, 8) }]}
       >
-        <View className="min-w-0 flex-1 flex-row items-center gap-2">
-          <Icon name="shoppingBag" size={24} color={colors.primary} />
+        <View className="min-w-0 flex-1 flex-row items-center gap-1">
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={strings.common.goBack}
+            hitSlop={8}
+            onPress={onBack}
+            className="-ml-2 h-11 w-11 shrink-0 items-center justify-center rounded-full active:bg-surface-container-low"
+          >
+            <Icon name="back" size={24} color={colors.surfaceDark} />
+          </Pressable>
           <VemtapText
             accessibilityRole="header"
-            variant="headingSm"
-            className="text-heading-sm"
+            variant="labelMd"
+            className="font-sans-semibold"
             numberOfLines={1}
           >
             {strings.ordersHub.title}
@@ -256,7 +266,7 @@ export function OrdersBookingsHubScreen({
                   <VemtapText variant="caption" tone="secondary">
                     {strings.ordersHub.paidCard}
                   </VemtapText>
-                  <VemtapText variant="headingSm" className="font-sans-bold">
+                  <VemtapText variant="labelMd" className="font-sans-bold">
                     {strings.ordersHub.activeOrderTotal}
                   </VemtapText>
                 </View>
@@ -279,7 +289,7 @@ export function OrdersBookingsHubScreen({
                 <VemtapText variant="caption" tone="secondary">
                   {strings.ordersHub.bakeryDate}
                 </VemtapText>
-                <VemtapText variant="headingSm" className="font-sans-semibold">
+                <VemtapText variant="labelMd" className="font-sans-semibold">
                   {strings.ordersHub.bakeryTotal}
                 </VemtapText>
               </View>
@@ -301,7 +311,7 @@ export function OrdersBookingsHubScreen({
                 <VemtapText variant="caption" tone="secondary">
                   {strings.ordersHub.boutiqueDate}
                 </VemtapText>
-                <VemtapText variant="headingSm" className="font-sans-semibold">
+                <VemtapText variant="labelMd" className="font-sans-semibold">
                   {strings.ordersHub.boutiqueTotal}
                 </VemtapText>
               </View>
@@ -353,7 +363,7 @@ export function OrdersBookingsHubScreen({
                   >
                     {strings.ordersHub.bookings.deposit}
                   </VemtapText>
-                  <VemtapText variant="headingSm" className="font-sans-bold">
+                  <VemtapText variant="labelMd" className="font-sans-bold">
                     {strings.ordersHub.bookingTotal}
                   </VemtapText>
                 </View>
@@ -377,7 +387,7 @@ export function OrdersBookingsHubScreen({
                 <VemtapText variant="caption" tone="secondary">
                   {strings.ordersHub.groomingDate}
                 </VemtapText>
-                <VemtapText variant="headingSm" className="font-sans-semibold">
+                <VemtapText variant="labelMd" className="font-sans-semibold">
                   {strings.ordersHub.groomingTotal}
                 </VemtapText>
               </View>

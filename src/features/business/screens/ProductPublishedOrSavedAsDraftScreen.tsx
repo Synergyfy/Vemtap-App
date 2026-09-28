@@ -46,16 +46,16 @@ export function ProductPublishedOrSavedAsDraftScreen({
   return (
     <BusinessScreenLayout
       header={{
-        title: 'Product Status',
-        eyebrow: 'Step 4 of 4',
+        title: 'Product Published Or Saved As Draft',
         subtitle: 'Merchant Portal · Product Setup',
+        stepBadge: 'Step 4 of 4',
         onBack,
         centerTitle: false,
       }}
       contentContainerClassName="pb-8"
     >
-      <View className="items-center gap-3 pt-1">
-        <View className="relative my-1 h-16 w-16 items-center justify-center rounded-full bg-surface-tint shadow-sm">
+      <View className="items-center pt-4">
+        <View className="relative my-2 h-16 w-16 items-center justify-center rounded-full bg-surface-tint shadow-sm">
           <View className="h-11 w-11 items-center justify-center rounded-full bg-primary shadow-lg">
             <Icon name="checkCircle" size={26} color={colors.surface} />
           </View>
@@ -64,11 +64,11 @@ export function ProductPublishedOrSavedAsDraftScreen({
         <VemtapText
           accessibilityRole="header"
           variant="headingMd"
-          className="text-center text-heading-md"
+          className="mt-2 text-center text-heading-md"
         >
           {live ? 'Product is Live on Storefront!' : 'Product Saved as Draft'}
         </VemtapText>
-        <VemtapText tone="secondary" className="max-w-[320px] text-center">
+        <VemtapText tone="secondary" className="mt-1 max-w-[320px] text-center">
           {live ? (
             <>
               Shoppers within{' '}
@@ -82,7 +82,7 @@ export function ProductPublishedOrSavedAsDraftScreen({
         <View
           accessibilityRole="tablist"
           accessibilityLabel="Product status"
-          className="w-full max-w-[342px] flex-row items-center rounded-full bg-surface-container p-1 shadow-inner"
+          className="mt-4 w-full max-w-[342px] flex-row items-center rounded-full bg-surface-container p-1 shadow-inner"
         >
           <StatusTab
             label="Live on Storefront"
@@ -183,6 +183,7 @@ export function ProductPublishedOrSavedAsDraftScreen({
             </View>
             <Button
               label="Make as a Deal 🔥"
+              labelVariant="labelMd"
               className="mt-1 shadow-lg"
               rightIcon={<Icon name="arrowForward" size={20} color={colors.surface} />}
               onPress={onMakeDeal}
@@ -193,12 +194,14 @@ export function ProductPublishedOrSavedAsDraftScreen({
         <View className="gap-2 pt-1">
           <Button
             label="View in Products Catalog"
+            labelVariant="labelMd"
             className="min-h-[50px] bg-surface-container"
             leftIcon={<Icon name="listView" size={20} color={colors.text} />}
             onPress={onViewCatalog}
           />
           <Button
             label="Add Another Product or Service"
+            labelVariant="labelMd"
             variant="ghost"
             className="min-h-12"
             leftIcon={<Icon name="plus" size={18} color={colors.textSecondary} />}

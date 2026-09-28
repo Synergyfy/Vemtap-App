@@ -109,7 +109,7 @@ export function CustomerDashboardScreen({
         contentContainerClassName="gap-5 pb-5"
         showsVerticalScrollIndicator={false}
       >
-        <View className="relative mx-4 h-48 overflow-hidden rounded-card shadow-sm">
+        <View className="relative mx-4 mt-5 h-48 overflow-hidden rounded-card shadow-sm">
           <Image
             source={{ uri: images.hero }}
             className="h-full w-full"
@@ -145,6 +145,7 @@ export function CustomerDashboardScreen({
               <View className="mt-2 flex-row items-center justify-between">
                 <Button
                   label={copy.exploreDeals}
+                  labelVariant="labelSm"
                   size="sm"
                   fullWidth={false}
                   onPress={() => onOpenDeal?.('weekend-deals')}
@@ -163,7 +164,9 @@ export function CustomerDashboardScreen({
         </View>
         <View className="gap-2 px-4">
           <View className="flex-row justify-between">
-            <VemtapText variant="headingSm">{copy.activity}</VemtapText>
+            <VemtapText variant="bodyMd" className="font-sans-semibold">
+              {copy.activity}
+            </VemtapText>
             <VemtapText variant="caption" tone="tertiary">
               {copy.sync}
             </VemtapText>
@@ -209,7 +212,11 @@ export function CustomerDashboardScreen({
         <View className="gap-3 px-4">
           <View className="flex-row items-center justify-between">
             <View className="min-w-0 flex-1 flex-row items-center gap-2">
-              <VemtapText variant="headingSm" numberOfLines={1}>
+              <VemtapText
+                variant="labelMd"
+                className="font-sans-semibold"
+                numberOfLines={1}
+              >
                 {copy.activeDeals}
               </VemtapText>
               <View className="h-5 w-5 items-center justify-center rounded-full bg-primary">
@@ -248,7 +255,9 @@ export function CustomerDashboardScreen({
         <ActivityLedger />
         <View className="gap-3 px-4">
           <View className="flex-row items-center justify-between">
-            <VemtapText variant="headingSm">{copy.mayLike}</VemtapText>
+            <VemtapText variant="bodyMd" className="font-sans-semibold">
+              {copy.mayLike}
+            </VemtapText>
             <Icon name="autoAwesome" size={20} color={colors.primary} />
           </View>
           <VemtapText variant="caption" tone="secondary">
@@ -278,6 +287,7 @@ export function CustomerDashboardScreen({
           </View>
           <Button
             label={copy.exploreApo}
+            labelVariant="labelMd"
             variant="secondary"
             rightIcon={<Icon name="arrowForward" size={18} color={colors.primary} />}
             onPress={() => onOpenDeal?.('deals-apo')}
@@ -395,6 +405,7 @@ function ActiveDeal({
         )}
         <Button
           label={action}
+          labelVariant="labelSm"
           size="sm"
           fullWidth={false}
           leftIcon={
@@ -414,37 +425,54 @@ function ActiveDeal({
 function RewardsCard({ onOpen }: { onOpen?: () => void }) {
   return (
     <View className="mx-4 gap-3 rounded-card bg-surface p-4 shadow-sm">
-      <View className="flex-row justify-between">
-        <View className="flex-row items-center gap-2">
+      <View className="flex-row justify-between gap-2">
+        <View className="min-w-0 flex-1 flex-row items-center gap-2">
           <Icon name="loyalty" size={20} color={colors.tertiaryContainer} />
-          <VemtapText variant="headingSm">{copy.rewards}</VemtapText>
+          <VemtapText variant="bodyMd" className="font-sans-semibold" numberOfLines={1}>
+            {copy.rewards}
+          </VemtapText>
         </View>
-        <SectionLink label={copy.viewRewards} onPress={onOpen} />
+        <View className="shrink-0">
+          <SectionLink label={copy.viewRewards} onPress={onOpen} />
+        </View>
       </View>
-      <View className="flex-row justify-between rounded-card bg-surface-subtle p-3">
-        <View>
-          <VemtapText variant="caption" tone="tertiary">
+      <View className="flex-row items-center justify-between gap-2 rounded-card bg-surface-subtle p-3">
+        <View className="min-w-0 flex-1">
+          <VemtapText variant="caption" tone="tertiary" numberOfLines={1}>
             {copy.tierStatus}
           </VemtapText>
-          <VemtapText variant="labelMd" className="font-sans-semibold">
+          <VemtapText variant="labelMd" className="font-sans-semibold" numberOfLines={1}>
             {copy.gold}
           </VemtapText>
         </View>
-        <View className="items-end">
-          <VemtapText variant="caption" tone="tertiary">
+        <View className="shrink-0 items-end">
+          <VemtapText variant="caption" tone="tertiary" numberOfLines={1}>
             {copy.balance}
           </VemtapText>
-          <VemtapText variant="headingSm" className="text-tertiary">
+          <VemtapText
+            variant="labelMd"
+            className="font-sans-semibold text-tertiary"
+            numberOfLines={1}
+          >
             {copy.progressValue}
           </VemtapText>
         </View>
       </View>
       <View className="gap-1.5">
-        <View className="flex-row justify-between">
-          <VemtapText variant="caption" tone="secondary">
+        <View className="flex-row items-center justify-between gap-2">
+          <VemtapText
+            variant="caption"
+            tone="secondary"
+            className="min-w-0 flex-1"
+            numberOfLines={1}
+          >
             {copy.progress}
           </VemtapText>
-          <VemtapText variant="caption" className="font-sans-semibold">
+          <VemtapText
+            variant="caption"
+            className="shrink-0 font-sans-semibold"
+            numberOfLines={1}
+          >
             {copy.progressValue}
           </VemtapText>
         </View>
@@ -452,11 +480,15 @@ function RewardsCard({ onOpen }: { onOpen?: () => void }) {
           <View className="h-full w-[81%] rounded-full bg-primary" />
         </View>
       </View>
-      <View className="flex-row justify-between">
-        <VemtapText variant="caption" className="min-w-0 flex-1 text-badge-discount-text">
+      <View className="flex-row items-center justify-between gap-2">
+        <VemtapText
+          variant="caption"
+          className="min-w-0 flex-1 text-badge-discount-text"
+          numberOfLines={1}
+        >
           {copy.rewardsAvailable}
         </VemtapText>
-        <Pressable accessibilityRole="button" onPress={onOpen}>
+        <Pressable accessibilityRole="button" onPress={onOpen} className="shrink-0">
           <VemtapText variant="labelSm" tone="brand">
             {copy.claim}
           </VemtapText>
@@ -471,14 +503,16 @@ function ActivityLedger() {
   return (
     <View className="gap-3 px-4">
       <View className="flex-row justify-between">
-        <VemtapText variant="headingSm">{copy.recent}</VemtapText>
+        <VemtapText variant="bodyMd" className="font-sans-semibold">
+          {copy.recent}
+        </VemtapText>
         <SectionLink label={copy.viewActivity} />
       </View>
       <View className="overflow-hidden rounded-card bg-surface shadow-sm">
         {copy.activityRows.map((row, index) => (
           <View
             key={row[0]}
-            className="flex-row items-center justify-between gap-3 border-b border-border p-3 last:border-b-0"
+            className="flex-row items-start justify-between gap-3 border-b border-border p-3 last:border-b-0"
           >
             <View className="min-w-0 flex-1 flex-row items-center gap-3">
               <View className="h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-tint-blue">
@@ -497,7 +531,11 @@ function ActivityLedger() {
                 </VemtapText>
               </View>
             </View>
-            <VemtapText variant="labelSm" className="shrink-0 text-badge-discount-text">
+            <VemtapText
+              variant="labelSm"
+              className="w-28 shrink-0 self-start pt-0.5 text-right text-badge-discount-text"
+              numberOfLines={1}
+            >
               {row[2]}
             </VemtapText>
           </View>

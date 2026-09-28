@@ -78,6 +78,7 @@ export function UrbanOrderDetailScreen({
         <RegistrationHeader
           title={strings.urbanOrderDetail.title}
           onBack={onBack ?? (() => undefined)}
+          titleAlign="start"
           showShareAction
           onShare={onShare}
           showMoreAction
@@ -106,8 +107,8 @@ export function UrbanOrderDetailScreen({
           </View>
           <VemtapText
             accessibilityRole="header"
-            variant="headingLg"
-            className="text-heading-lg"
+            variant="headingMd"
+            className="text-heading-md"
           >
             {strings.urbanOrderDetail.heading}
           </VemtapText>
@@ -147,26 +148,28 @@ export function UrbanOrderDetailScreen({
           </View>
         </View>
 
-        <View className="flex-row items-center justify-between gap-3 rounded-xl bg-surface-tint p-4 shadow-sm">
-          <View className="min-w-0 flex-row items-center gap-3">
+        <View className="flex-row items-center gap-3 rounded-xl bg-surface-tint p-4 shadow-sm">
+          <View className="min-w-0 flex-1 flex-row items-center gap-3">
             <View className="h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary shadow-sm">
               <Icon name="pin" size={23} color={colors.surface} />
             </View>
-            <View className="min-w-0">
+            <View className="min-w-0 flex-1">
               <VemtapText
                 variant="caption"
                 tone="secondary"
                 className="font-sans-medium uppercase"
+                numberOfLines={1}
               >
                 {strings.urbanOrderDetail.expressPass}
               </VemtapText>
               <VemtapText
-                variant="displayMobile"
-                className="text-display-mobile tracking-widest"
+                variant="headingMd"
+                className="font-sans-bold text-heading-md tracking-widest"
+                numberOfLines={1}
               >
                 {strings.urbanOrderDetail.pickupPin}
               </VemtapText>
-              <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
+              <VemtapText variant="caption" tone="secondary" numberOfLines={2}>
                 {strings.urbanOrderDetail.pickupHint}
               </VemtapText>
             </View>
@@ -175,10 +178,15 @@ export function UrbanOrderDetailScreen({
             accessibilityRole="button"
             accessibilityLabel={strings.urbanOrderDetail.copy}
             onPress={() => copy(strings.urbanOrderDetail.pickupPin)}
-            className="h-10 shrink-0 flex-row items-center gap-1 rounded-lg bg-surface px-3 shadow-sm active:scale-95"
+            className="h-8 max-w-[86px] shrink-0 flex-row items-center justify-center gap-1 self-center rounded-lg bg-surface px-2 shadow-sm active:scale-95"
           >
-            <Icon name="copy" size={17} color={colors.primary} />
-            <VemtapText variant="button" tone="brand">
+            <Icon name="copy" size={15} color={colors.primary} />
+            <VemtapText
+              variant="micro"
+              tone="brand"
+              className="shrink font-sans-semibold"
+              numberOfLines={1}
+            >
               {strings.urbanOrderDetail.copy}
             </VemtapText>
           </Pressable>
@@ -193,9 +201,9 @@ export function UrbanOrderDetailScreen({
             <View className="min-w-0 flex-1">
               <View className="flex-row items-center gap-1">
                 <VemtapText
-                  variant="headingSm"
+                  variant="labelMd"
                   numberOfLines={1}
-                  className="min-w-0 flex-1"
+                  className="min-w-0 flex-1 font-sans-semibold"
                 >
                   {strings.urbanProfile.name}
                 </VemtapText>
@@ -267,7 +275,7 @@ export function UrbanOrderDetailScreen({
           <View className="mb-4 flex-row items-center justify-between">
             <View className="flex-row items-center gap-1">
               <Icon name="shoppingBag" size={20} color={colors.primary} />
-              <VemtapText variant="headingSm" className="font-sans-semibold">
+              <VemtapText variant="labelMd" className="font-sans-semibold">
                 {strings.urbanOrderDetail.orderSummary}
               </VemtapText>
             </View>
@@ -316,7 +324,7 @@ export function UrbanOrderDetailScreen({
         </View>
 
         <View className="rounded-xl bg-surface p-4 shadow-sm">
-          <VemtapText variant="headingSm" className="font-sans-semibold">
+          <VemtapText variant="labelMd" className="font-sans-semibold">
             {strings.urbanOrderDetail.transaction}
           </VemtapText>
           <View className="mt-2 gap-1">
@@ -325,9 +333,13 @@ export function UrbanOrderDetailScreen({
                 key={row.label}
                 className="flex-row items-center justify-between gap-3 py-1"
               >
-                <View className="min-w-0 flex-row items-center gap-2">
+                <View className="min-w-0 flex-1 flex-row items-center gap-2">
                   <Icon name={row.icon} size={19} color={colors.outline} />
-                  <VemtapText variant="bodyMd" tone="secondary">
+                  <VemtapText
+                    variant="bodyMd"
+                    tone="secondary"
+                    className="min-w-0 flex-1"
+                  >
                     {row.label}
                   </VemtapText>
                 </View>
@@ -335,7 +347,7 @@ export function UrbanOrderDetailScreen({
                   accessibilityRole="button"
                   disabled={!row.copyable}
                   onPress={() => copy(row.value)}
-                  className="min-w-0 flex-row items-center gap-1"
+                  className="min-w-0 shrink-0 flex-row items-center gap-1"
                 >
                   <VemtapText
                     variant="labelMd"

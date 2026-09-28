@@ -257,7 +257,10 @@ export function DiscoveringNearbyDealsScreen() {
                         {strings.auth.discoveringCafeNeo}
                       </VemtapText>
                       <View className="rounded bg-badge-discount-bg px-1">
-                        <VemtapText className="font-sans-bold text-[10px] text-badge-discount-text">
+                        <VemtapText
+                          variant="micro"
+                          className="font-sans-bold text-badge-discount-text"
+                        >
                           {strings.auth.discoveringCafeDiscount}
                         </VemtapText>
                       </View>

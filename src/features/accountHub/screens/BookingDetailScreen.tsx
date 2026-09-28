@@ -63,7 +63,9 @@ export function BookingDetailScreen({
             <VemtapText variant="caption" tone="secondary">
               DATE &amp; SCHEDULE
             </VemtapText>
-            <VemtapText variant="headingMd">{copy.date}</VemtapText>
+            <VemtapText variant="bodyMd" className="font-sans-semibold">
+              {copy.date}
+            </VemtapText>
             <View className="flex-row items-center gap-2">
               <Icon name="schedule" size={18} color={colors.primary} />
               <VemtapText variant="labelSm" tone="secondary">
@@ -76,6 +78,7 @@ export function BookingDetailScreen({
             </View>
             <Button
               label={copy.calendar}
+              labelVariant="labelSm"
               variant="secondary"
               size="sm"
               onPress={onAddCalendar}
@@ -86,13 +89,17 @@ export function BookingDetailScreen({
         <View className="gap-4 rounded-card bg-surface p-4 shadow-sm">
           <View className="flex-row items-center gap-3">
             <View className="h-14 w-14 items-center justify-center rounded-xl bg-surface-container">
-              <VemtapText variant="headingSm" tone="brand">
+              <VemtapText variant="labelMd" tone="brand">
                 G
               </VemtapText>
             </View>
             <View className="min-w-0 flex-1">
               <View className="flex-row items-center gap-1">
-                <VemtapText variant="headingSm" numberOfLines={1}>
+                <VemtapText
+                  variant="labelMd"
+                  className="min-w-0 flex-1 font-sans-semibold"
+                  numberOfLines={1}
+                >
                   {copy.business}
                 </VemtapText>
                 <Icon name="verified" size={17} color={colors.primary} />
@@ -170,8 +177,10 @@ export function BookingDetailScreen({
               </View>
               <View className="h-px bg-border" />
               <View className="flex-row justify-between">
-                <VemtapText variant="headingSm">{copy.total}</VemtapText>
-                <VemtapText variant="headingSm" tone="brand">
+                <VemtapText variant="labelMd" className="font-sans-semibold">
+                  {copy.total}
+                </VemtapText>
+                <VemtapText variant="labelMd" tone="brand" className="font-sans-semibold">
                   {copy.totalValue}
                 </VemtapText>
               </View>
@@ -216,6 +225,7 @@ export function BookingDetailScreen({
               </View>
               <Button
                 label={copy.copy}
+                labelVariant="labelSm"
                 variant="secondary"
                 size="sm"
                 fullWidth={false}
@@ -240,7 +250,11 @@ export function BookingDetailScreen({
         </View>
         <View className="gap-3 rounded-card bg-surface p-4 shadow-sm">
           <View className="flex-row justify-between gap-2">
-            <VemtapText variant="headingSm" className="min-w-0 flex-1" numberOfLines={2}>
+            <VemtapText
+              variant="bodyMd"
+              className="min-w-0 flex-1 font-sans-semibold"
+              numberOfLines={2}
+            >
               {copy.location}
             </VemtapText>
             <VemtapText variant="labelSm" tone="secondary" className="shrink-0">
@@ -275,7 +289,12 @@ export function BookingDetailScreen({
               </VemtapText>
             </View>
           </View>
-          <Button label={copy.reschedule} variant="secondary" onPress={onReschedule} />
+          <Button
+            label={copy.reschedule}
+            variant="secondary"
+            onPress={onReschedule}
+            labelVariant="labelMd"
+          />
           <Pressable
             accessibilityRole="button"
             onPress={onCancel}

@@ -7,6 +7,7 @@ import { GoogleLogo } from '@components/ui/GoogleLogo';
 import { VemtapText } from '@components/ui/Text';
 import { Button } from '@components/ui/Button';
 import { colors } from '@theme/colors';
+import { typeMetrics } from '@theme/typography';
 import { strings } from '@constants/strings';
 
 cssInterop(View, { className: 'style' });
@@ -1056,10 +1057,14 @@ export function ClaimTermsSheet({
               {accepted ? <Icon name="check" size={16} color={colors.surface} /> : null}
             </View>
             <View style={styles.flexCopy}>
-              <VemtapText variant="bodyMd" className="text-text">
+              <VemtapText
+                variant="bodyMd"
+                style={styles.consentText}
+                className="text-text"
+              >
                 {strings.deals.claimFlow.understandConditions}
               </VemtapText>
-              <View style={styles.row}>
+              <View style={styles.linkRow}>
                 <Pressable
                   accessibilityRole="button"
                   onPress={() => setInfoSheet('how')}
@@ -1377,9 +1382,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceContainerLow,
     padding: 12,
   },
-  metaGrid: { flexDirection: 'row', gap: 8 },
+  metaGrid: { gap: 8 },
   metaCell: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
@@ -1523,8 +1527,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceMuted,
     paddingHorizontal: 16,
     fontFamily: 'Inter',
-    fontSize: 15,
-    lineHeight: 22,
+    ...typeMetrics('body-md'),
     color: colors.text,
   },
   inputWithIcon: { paddingLeft: 44 },
@@ -1546,7 +1549,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceMuted,
     textAlign: 'center',
     fontFamily: 'Inter-Bold',
-    fontSize: 20,
+    ...typeMetrics('heading-md'),
     color: colors.text,
   },
   otpBoxActive: {
@@ -1707,6 +1710,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceMuted,
     padding: 16,
   },
+  consentText: { flexShrink: 1 },
+  linkRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 },
   consent: {
     flexDirection: 'row',
     alignItems: 'flex-start',

@@ -21,7 +21,9 @@ export interface MoreHubScreenProps {
   onOpenSaved?: () => void;
   onOpenNotifications?: () => void;
   onOpenSettings?: () => void;
+  onOpenOrders?: () => void;
   onOpenEditProfile?: () => void;
+  onOpenHelpCentre?: () => void;
   onSignOut?: () => void;
 }
 
@@ -33,7 +35,9 @@ export function MoreHubScreen({
   onOpenSaved,
   onOpenNotifications,
   onOpenSettings,
+  onOpenOrders,
   onOpenEditProfile,
+  onOpenHelpCentre,
   onSignOut,
 }: MoreHubScreenProps) {
   return (
@@ -176,6 +180,14 @@ export function MoreHubScreen({
             onPress={onOpenSaved}
           />
         </AccountSection>
+        <AccountSection title={copy.ordersSection}>
+          <AccountMenuRow
+            icon="shoppingBag"
+            title={copy.ordersTitle}
+            subtitle={copy.ordersSubtitle}
+            onPress={onOpenOrders}
+          />
+        </AccountSection>
         <AccountSection title={copy.communications}>
           <AccountMenuRow
             icon="notifications"
@@ -186,7 +198,12 @@ export function MoreHubScreen({
           />
         </AccountSection>
         <AccountSection title={copy.support}>
-          <AccountMenuRow icon="help" title={copy.help} subtitle={copy.helpSubtitle} />
+          <AccountMenuRow
+            icon="help"
+            title={copy.help}
+            subtitle={copy.helpSubtitle}
+            onPress={onOpenHelpCentre}
+          />
           <AccountMenuRow
             icon="shield"
             title={copy.terms}

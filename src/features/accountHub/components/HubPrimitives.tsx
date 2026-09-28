@@ -6,6 +6,7 @@ import { Icon, type IconName } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { colors } from '@theme/colors';
 import { navbarBottomShadow } from '@theme/shadows';
+import { cn } from '@utils/cn';
 
 cssInterop(View, { className: 'style' });
 cssInterop(Pressable, { className: 'style' });
@@ -87,9 +88,11 @@ export function HubSearchField({
   value: string;
   onChangeText: (value: string) => void;
   placeholder: string;
-  filterLabel: string;
+  /** Omit (or pass `undefined`) for search-only headers that have no filter chip. */
+  filterLabel?: string;
   onFilter?: () => void;
 }) {
+  const showFilter = filterLabel !== undefined || onFilter !== undefined;
   return (
     <View className="relative">
       <Icon
@@ -104,37 +107,130 @@ export function HubSearchField({
         onChangeText={onChangeText}
         placeholder={placeholder}
         placeholderTextColor={colors.textTertiary}
-        className="h-12 w-full rounded-field bg-surface-container-lowest pl-11 pr-12 text-body-md text-text shadow-sm"
+        className={cn(
+          'h-12 w-full rounded-field bg-surface-container-lowest pl-11 text-body-md text-text shadow-sm',
+          showFilter ? 'pr-12' : 'pr-4',
+        )}
       />
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={filterLabel}
-        onPress={onFilter}
-        className="absolute right-0 top-0 h-12 w-12 items-center justify-center"
-      >
-        <Icon name="tune" size={19} color={colors.textSecondary} />
-      </Pressable>
+      {showFilter ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={filterLabel}
+          onPress={onFilter}
+          className="absolute right-0 top-0 h-12 w-12 items-center justify-center"
+        >
+          <Icon name="tune" size={19} color={colors.textSecondary} />
+        </Pressable>
+      ) : null}
     </View>
   );
 }
 
 export function StatusPillTabs({
   labels,
+  counts,
   selected,
   onSelect,
   variant = 'solid',
+  segmented = false,
 }: {
   labels: readonly string[];
+  /** Optional per-tab badge counts (business Orders / Bookings switcher). */
+  counts?: readonly string[];
   selected: number;
   onSelect: (index: number) => void;
-  variant?: 'solid' | 'subtle';
+  variant?: 'solid' | 'subtle' | 'switcher';
+  /** Fills the row width with equal segments inside one track (timeframe pickers). */
+  segmented?: boolean;
 }) {
   const activeClass =
     variant === 'subtle'
       ? 'shrink-0 rounded-full bg-surface-tint-blue px-4 py-2 shadow-sm'
       : 'shrink-0 rounded-full bg-primary px-4 py-2 shadow-sm';
+  const inactiveClass =
+    variant === 'subtle'
+      ? 'shrink-0 rounded-full bg-surface-container-high px-4 py-2'
+      : 'shrink-0 rounded-full bg-surface-container-high px-4 py-2';
   const activeTextClass =
     variant === 'subtle' ? 'text-primary' : 'text-primary-foreground';
+  if (variant === 'switcher') {
+    return (
+      <View className="flex-row items-center gap-1 rounded-card bg-surface-container-high p-1">
+        {labels.map((label, index) => {
+          const isSelected = index === selected;
+          return (
+            <Pressable
+              key={label}
+              accessibilityRole="tab"
+              accessibilityLabel={label}
+              accessibilityState={{ selected: isSelected }}
+              onPress={() => onSelect(index)}
+              className={cn(
+                'min-w-0 flex-1 flex-row items-center justify-center gap-2 rounded-lg py-2',
+                isSelected && 'bg-surface-container-lowest shadow-sm',
+              )}
+            >
+              <VemtapText
+                variant="labelMd"
+                className={cn(
+                  'font-sans-semibold',
+                  isSelected ? 'text-primary' : 'text-text-secondary',
+                )}
+                numberOfLines={1}
+              >
+                {label}
+              </VemtapText>
+              {counts?.[index] ? (
+                <View
+                  className={cn(
+                    'rounded-full px-1.5 py-0.5',
+                    isSelected ? 'bg-surface-tint-blue' : 'bg-surface-container',
+                  )}
+                >
+                  <VemtapText
+                    variant="caption"
+                    className={cn(
+                      isSelected
+                        ? 'font-sans-semibold text-primary'
+                        : 'font-sans-medium text-text-secondary',
+                    )}
+                  >
+                    {counts[index]}
+                  </VemtapText>
+                </View>
+              ) : null}
+            </Pressable>
+          );
+        })}
+      </View>
+    );
+  }
+  if (segmented) {
+    return (
+      <View className="flex-row gap-1 rounded-full bg-surface-container-low p-1">
+        {labels.map((label, index) => (
+          <Pressable
+            key={label}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: index === selected }}
+            onPress={() => onSelect(index)}
+            className={
+              index === selected
+                ? 'flex-1 items-center rounded-full bg-primary py-1.5 shadow-sm'
+                : 'flex-1 items-center rounded-full py-1.5'
+            }
+          >
+            <VemtapText
+              variant="labelSm"
+              className={index === selected ? activeTextClass : 'text-text-secondary'}
+            >
+              {label}
+            </VemtapText>
+          </Pressable>
+        ))}
+      </View>
+    );
+  }
   return (
     <View className="flex-row gap-2">
       {labels.map((label, index) => (
@@ -143,11 +239,7 @@ export function StatusPillTabs({
           accessibilityRole="tab"
           accessibilityState={{ selected: index === selected }}
           onPress={() => onSelect(index)}
-          className={
-            index === selected
-              ? activeClass
-              : 'shrink-0 rounded-full bg-surface-container-high px-4 py-2'
-          }
+          className={index === selected ? activeClass : inactiveClass}
         >
           <VemtapText
             variant="labelMd"
@@ -206,8 +298,8 @@ export function MetricTile({
         <Icon name={icon} size={18} color={iconColor} />
       </View>
       <VemtapText
-        variant="headingMd"
-        className={tone === 'success' ? 'text-badge-discount-text' : 'text-text'}
+        variant="labelMd"
+        className={`font-sans-bold ${tone === 'success' ? 'text-badge-discount-text' : 'text-text'}`}
         numberOfLines={1}
       >
         {value}
@@ -279,6 +371,7 @@ export function ActionButton({
   return (
     <Button
       label={label}
+      labelVariant="labelSm"
       size="sm"
       leftIcon={<Icon name={icon} size={17} color={colors.surface} />}
       onPress={onPress}

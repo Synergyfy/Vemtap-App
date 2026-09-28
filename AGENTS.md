@@ -39,6 +39,61 @@ existing implementation. Reuse it; do not create a second version.
   document the reason through a shared variant/props rather than copying the implementation.
 - Every screen conversion and UI review must include a duplicate-UI audit before completion.
 
+## Type scale — one source, one change
+
+`src/theme/typography.ts` is the **single source of truth for every text size**. It feeds the
+Tailwind `text-*` utilities (via `tailwind.config.js`), the `variant` prop on
+`src/components/ui/Text.tsx`, and any `StyleSheet` that needs raw numbers
+(`typeMetrics('body-md')`). **Change a value there and every screen updates.**
+
+| Token (`text-*` / variant) | Size / line height | Typical use                 |
+| -------------------------- | ------------------ | --------------------------- |
+| `micro`                    | 11 / 13            | tab labels, tiny badges     |
+| `caption`                  | 12 / 15            | helper text, timestamps     |
+| `label-sm`                 | 13 / 16            | dense meta, chips           |
+| `label-md`                 | 14 / 17            | button labels, field labels |
+| `body-md`                  | 15 / 20            | default body copy, inputs   |
+| `button-md`                | 16 / 19            | primary CTA text            |
+| `body-lg`                  | 17 / 22            | lead paragraphs             |
+| `heading-sm`               | 18 / 23            | row titles, compact headers |
+| `heading-md`               | 20 / 25            | section headings, wordmarks |
+| `heading-lg`               | 24 / 31            | sub page titles             |
+| `heading-xl`               | 27 / 33            | page titles                 |
+| `display-mobile`           | 29 / 36            | onboarding display titles   |
+| `display`                  | 33 / 40            | hero display                |
+
+Rules:
+
+- Always set size with `variant` on `VemtapText` (or a `text-*` token class). **Never** write
+  `text-[13px]`, `text-xl`, or any raw pixel font size — including in `StyleSheet`.
+- Never add a size to a screen that already exists in the scale. If a design needs something
+  genuinely new, add it to `typeScale` and re-run `npm run verify`.
+- Weight comes from the variant (`font-sans`, `font-sans-medium`, `font-sans-semibold`,
+  `font-sans-bold`); do not override weight inline just to change size.
+
+### Density (opt-in, subtree-scoped)
+
+Dense hubs render with a **compact density** instead of editing sizes per screen. Wrap the subtree
+in `TypeDensityProvider density="compact"` (`src/theme/TypeDensityProvider.tsx`); `VemtapText`
+then swaps the default scale for `compactTypeScale` (tighter line heights, smaller headings, body
+sizes held at the legibility floor). The Account tab stack is the current user.
+
+A third, tightest tier exists for single screens that are still information-dense inside an
+already-compact hub: `density="dense"` uses `denseTypeScale`. **Rewards & Loyalty** is the current
+user. Tiers nest — the nearest provider wins.
+
+A fourth, `density="comfortable"`, keeps the compact glyph sizes but loosens line heights
+(`comfortableTypeScale`). Use it where text reads as vertically cramped rather than too large —
+the **Account / customer dashboard** flow is the current user.
+
+- Do **not** hand-tune `className="text-heading-sm"` on individual screens to fake density.
+- Adding a screen to a compact subtree inherits the density automatically; screens outside it
+  keep the default scale.
+- `typeMetrics(token, density)` gives numeric sizes for `StyleSheet` sites inside a compact
+  or dense subtree.
+- A `text-*` size class in `className` is intentionally ignored under a non-default density, so
+  the density always wins over per-screen overrides.
+
 ## Design-system conversion rules
 
 1. **NEVER invent a screen.** Always convert the matching `stitch_vemtap_design_system/**/code.html`
@@ -55,10 +110,26 @@ existing implementation. Reuse it; do not create a second version.
 6. Fictional business/deal content only — never real brands.
 7. Materials Symbols-ish icons come from `@expo/vector-icons` via `src/components/ui/Icon.tsx`
    (semantic names).
-8. **Page/screen headings** (`accessibilityRole="header"` or the main title) must use
-   `variant="headingXl"` **and** include `text-heading-xl` in `className` so they stand out
-   (e.g. `variant="headingXl"` + `className="text-center text-heading-xl"`).
-   For onboarding `displayMobile` titles, always add `text-heading-xl` to `className` as well.
+8. **Page/screen headings** (`accessibilityRole="header"` or the main title) use the hero token
+   for their flow, and must pair it with the matching `text-*` utility in `className`:
+
+   | Flow                                                                  | Hero token                | Pairing class     |
+   | --------------------------------------------------------------------- | ------------------------- | ----------------- |
+   | Consumer onboarding, auth, deal detail (high emphasis)                | `variant="headingXl"`     | `text-heading-xl` |
+   | Account hub, business setup, verification / trial / billing (compact) | `variant="headingLg"`     | `text-heading-lg` |
+   | Onboarding display titles                                             | `variant="displayMobile"` | `text-heading-xl` |
+
+   These are **emphasis tiers**, not steps to climb: a screen picks one and never uses both. The
+   Account tab is the precedent for the `headingLg` tier — its largest text is one `headingLg`
+   balance figure. Under any non-default density `headingLg` resolves to 22px while `headingXl`
+   is 23–27px, so the lower tier is what stops a dense hub's hero from eating the screen.
+
+   Supporting sizes inside those hubs: card/section titles = `labelMd` + `font-sans-semibold`
+   (never `headingSm`), section eyebrows = `labelSm`, prices and other figures = `headingLg`,
+   body = `bodyMd`/`caption`, button labels = `labelMd` (`labelSm` when `size="sm"`). The same
+   content must not wear different tokens on two screens — plan name and plan price are the known
+   offenders; pick one token each and reuse it.
+
 9. **Centered footer/legal copy:** put `text-center` on the `VemtapText` itself (and nested
    link texts). `text-center` on a wrapping `View` does **not** center RN `Text` children.
 10. **Horizontal card rows** (e.g. Own a Business): left cluster = `min-w-0 flex-1`, right

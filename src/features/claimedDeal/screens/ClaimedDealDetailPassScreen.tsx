@@ -140,7 +140,7 @@ export function ClaimedDealDetailPassScreen({
                 </VemtapText>
                 <Icon name="verified" size={16} color={colors.primary} />
               </View>
-              <VemtapText variant="headingMd" className="mt-0.5">
+              <VemtapText variant="bodyMd" className="mt-0.5 font-sans-semibold">
                 {copy.deal}
               </VemtapText>
               <View className="mt-1 flex-row items-start gap-1">
@@ -155,7 +155,7 @@ export function ClaimedDealDetailPassScreen({
                 <VemtapText variant="caption" tone="secondary">
                   {copy.discounted}
                 </VemtapText>
-                <VemtapText variant="headingMd" className="font-sans-bold text-primary">
+                <VemtapText variant="labelMd" className="font-sans-bold text-primary">
                   {copy.price}
                 </VemtapText>
               </View>
@@ -178,7 +178,8 @@ export function ClaimedDealDetailPassScreen({
         </View>
         <Button
           label={copy.useNow}
-          leftIcon={<Icon name="checkCircle" size={20} color={colors.surface} />}
+          labelVariant="labelMd"
+          leftIcon={<Icon name="checkCircle" size={18} color={colors.surface} />}
           onPress={requestUse}
         />
         <View className="flex-row gap-2">
@@ -186,18 +187,20 @@ export function ClaimedDealDetailPassScreen({
             label={copy.chat}
             variant="secondary"
             size="sm"
+            labelVariant="labelSm"
             fullWidth={false}
             className="min-w-0 flex-1"
-            leftIcon={<Icon name="message" size={18} color={colors.primary} />}
+            leftIcon={<Icon name="message" size={16} color={colors.primary} />}
             onPress={onOpenChat}
           />
           <Button
             label={copy.directions}
             variant="secondary"
             size="sm"
+            labelVariant="labelSm"
             fullWidth={false}
             className="min-w-0 flex-1"
-            leftIcon={<Icon name="nearMe" size={18} color={colors.primary} />}
+            leftIcon={<Icon name="nearMe" size={16} color={colors.primary} />}
             onPress={onGetDirections}
           />
         </View>
@@ -217,7 +220,9 @@ export function ClaimedDealDetailPassScreen({
               <Icon name="verified" size={18} color={colors.primary} />
             </View>
             <View>
-              <VemtapText variant="headingSm">{copy.how}</VemtapText>
+              <VemtapText variant="bodyMd" className="font-sans-semibold">
+                {copy.how}
+              </VemtapText>
               <VemtapText variant="caption" tone="secondary">
                 {copy.howSub}
               </VemtapText>
@@ -244,7 +249,9 @@ export function ClaimedDealDetailPassScreen({
           </View>
         </View>
         <View className="gap-2 rounded-card-lg bg-surface p-4 shadow-sm">
-          <VemtapText variant="headingSm">{copy.rules}</VemtapText>
+          <VemtapText variant="bodyMd" className="font-sans-semibold">
+            {copy.rules}
+          </VemtapText>
           {copy.rulesList.map((rule, index) => (
             <View key={rule} className="flex-row items-start gap-2">
               <Icon
@@ -270,7 +277,9 @@ export function ClaimedDealDetailPassScreen({
               </VemtapText>
             </View>
             <View>
-              <VemtapText variant="headingSm">{copy.business}</VemtapText>
+              <VemtapText variant="labelMd" className="font-sans-semibold">
+                {copy.business}
+              </VemtapText>
               <VemtapText variant="caption" className="text-badge-discount-text">
                 ● {copy.open}
               </VemtapText>
@@ -295,18 +304,20 @@ export function ClaimedDealDetailPassScreen({
               label={copy.call}
               variant="secondary"
               size="sm"
+              labelVariant="labelSm"
               fullWidth={false}
               className="min-w-0 flex-1"
-              leftIcon={<Icon name="phone" size={18} color={colors.primary} />}
+              leftIcon={<Icon name="phone" size={16} color={colors.primary} />}
               onPress={onCallBranch}
             />
             <Button
               label={copy.inAppChat}
               variant="secondary"
               size="sm"
+              labelVariant="labelSm"
               fullWidth={false}
               className="min-w-0 flex-1"
-              leftIcon={<Icon name="message" size={18} color={colors.primary} />}
+              leftIcon={<Icon name="message" size={16} color={colors.primary} />}
               onPress={onOpenChat}
             />
           </View>
@@ -346,15 +357,17 @@ export function ClaimedDealDetailPassScreen({
         <Button
           label={copy.barcode}
           variant="secondary"
+          labelVariant="labelSm"
           fullWidth={false}
           className="min-w-0 flex-1"
-          leftIcon={<Icon name="qrCodeScanner" size={19} color={colors.surfaceDark} />}
+          leftIcon={<Icon name="qrCodeScanner" size={17} color={colors.surfaceDark} />}
           onPress={requestUse}
         />
         <Button
           label={copy.useBarcode}
+          labelVariant="labelMd"
           className="min-w-0 flex-[2]"
-          leftIcon={<Icon name="bolt" size={19} color={colors.surface} />}
+          leftIcon={<Icon name="bolt" size={18} color={colors.surface} />}
           onPress={requestUse}
         />
       </View>
@@ -385,7 +398,7 @@ function PassCodes({
             {copy.merchantCode}
           </VemtapText>
           <View className="flex-row items-center gap-1">
-            <VemtapText variant="headingSm" className="font-sans-bold">
+            <VemtapText variant="labelMd" className="font-sans-bold">
               {copy.code}
             </VemtapText>
             <Pressable
@@ -401,7 +414,7 @@ function PassCodes({
           <VemtapText variant="caption" tone="secondary">
             {copy.cashierPin}
           </VemtapText>
-          <VemtapText variant="headingSm" tone="brand" className="font-sans-bold">
+          <VemtapText variant="labelMd" tone="brand" className="font-sans-bold">
             {copy.pin}
           </VemtapText>
         </View>
@@ -425,7 +438,9 @@ function DetailCard({
   return (
     <View className="gap-2 rounded-card-lg bg-surface p-4 shadow-sm">
       <View className="flex-row items-center justify-between">
-        <VemtapText variant="headingSm">{title}</VemtapText>
+        <VemtapText variant="labelMd" className="font-sans-semibold">
+          {title}
+        </VemtapText>
         <View className="rounded-full bg-surface-container-high px-2 py-0.5">
           <VemtapText variant="labelSm">{badge}</VemtapText>
         </View>

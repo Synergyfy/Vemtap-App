@@ -1,24 +1,19 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { Image, Pressable, ScrollView, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import {
-  HubHeader,
-  HubSearchField,
-  SectionLink,
-  StatusPillTabs,
-} from '@features/accountHub/components/HubPrimitives';
-import {
-  SavedBusinessRow,
-  SavedItemRow,
-} from '@features/accountHub/components/SavedItemRows';
+import { AccountHeader } from '@features/accountHub/components/AccountScreensPrimitives';
+import { HubSearchField } from '@features/accountHub/components/HubPrimitives';
 import { EmptyState } from '@components/shared/EmptyState';
-import { Icon } from '@components/ui/Icon';
+import { Button } from '@components/ui/Button';
+import { Icon, type IconName } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
 import { colors } from '@theme/colors';
-import savedUrbanGrill from '../../../../assets/images/saved-urban-grill.jpg';
+import { savedImages } from '@features/accountHub/data/accountHubImages';
 
+cssInterop(Image, { className: 'style' });
+cssInterop(Pressable, { className: 'style' });
 cssInterop(View, { className: 'style' });
 cssInterop(ScrollView, {
   className: 'style',
@@ -27,274 +22,542 @@ cssInterop(ScrollView, {
 cssInterop(SafeAreaView, { className: 'style' });
 
 const copy = strings.savedHub;
-const images = {
-  tasting:
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuB1W1sAE5sQZJQXULVgwIQkJeXkyg0dOrbggkVXcI8otBKG6pCtn3u742nxuJXVivJChULrwyUudDSHJezrKUVeLglWJGV86_j6A1rvNv2TuOgJGVVjVM9z-U_69xe0s5Evr7R33oYfTqrShZkURIjXwu2OrEWP0jnEHf0197OEYqHaZ_92acaRS_MUY4RSO5oOSF6PxeA44REixiAx3XBSvfWeDUtJF4gn9zX73FSVAe47xLGL92EVRw',
-  tailoring:
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuB2NChh48OJFEEfceZ0T1SMH0WN8Z7g9wCYGejBwyzA1qZo5ax5OCtzTgrLakjtkxAtBbtogW8OUFXicMGDnzJbEcY-tp8BDI3RVt7hHzWOXxN98mz7ISUmseRx9ggklib4qZGCdQVL3BftoM-ebL-9l2DQzObnT52KdGOZrcFnH1Al-GBwESyeW5m7n-Mw9GAaOif0g8vKKk5C4oSIl5QOVgqi2E4ZF_ugeTDUj2wBCxl4zDRigH38Hw',
-  gym: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBquk7YHLVuRq024QkpeKDgtgl6hGPl1i5DiYe1VoIiCqN6rPGgdsoP-_DvqP1i_8qCZdm1N6aNiTiOGaj3jIUa3db8bIwHC4D4_C4FxJuDgbuDgFr3CuZYjf3sPE46a3pzJumL5XwDMwtWGJTYg8b8b3MkSC-RYI4RKRi3RS19X80hRTIvOqtA4cwSlxyUuHUa5FD4DGQ5hbs-aOSXTcvuVxSDLEiN_boPuNnANnG0jOMv8989lHm7UA',
-  coffee:
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuAtAFRkRGGgAgKe1e0zkb8v7JV0aGaVz7rpDU5OQIVvHvJ9rFF6aq1niKMZttYvhH_PTZbachjO5-tBYq5oWtJP0m_19BW8JZGSBFxTN9cnURBFz5Y4Qe1JyAxh3gaLJB8Qhdh5qh5IXYgmL2WeKRiR9SiKe_cbEWgg_vDjutuxuCYfCUmHYMOHfiP1Uj-xR7tXczDvPE9AVLLrUIJSN3lUNxz-Xha0MFfMRcnIQXf5LovfXb6QLVo20w',
-  spa: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB5k7s5G6LTPqWkK54hEeQtQsaADh0uOoPEwM13cElgaf95sN0eVVjox2o16KcLyCFnXKkeWOQDfymheo8zssObuutewN-W0dctSZ6rs3fR6UrFjzOdWDZibheJ92UqEcouez2iWa9Sv_pqWu3Qcz621sHVtWmvKhy0yR9PEfnoljOELyMAfHsHO1fgWfPgsRIqFFLJ1jmiVB3C0yDoKCmBn60h8dIg5LuTPrnHoiEb46CN6eV6vQYZ0g',
-  boutique:
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuDOZYNmSWjsJoMjN0MS6GA6NGyoOj48MmV1YbQ75zAWqyaOTBanee6R8u4L6ZEWI5Bb34wct-aD2GEl9IlrKNlkAFGsupBw9KJxQI7FTmsa_P3fdJJPOlfpZJv1F3PktKyOft5Cghy3gboC1AgYQQGGRc65YEuXSghqx7CBMEPEaufTqsbcAWjqwC5rkM7KZ7WXixwyPnbUULxHmS6CkQYYazpw6bwlABnZhv_2fO8oMwPiIB7IdTKTXw',
-};
+type SavedCategory = 'all' | 'deals' | 'businesses' | 'services';
 
-const dealEntries = [
-  {
-    id: 'sky-tasting',
-    image: images.tasting,
-    business: 'THE SKY LOUNGE & GRILL',
-    title: "Chef's 5-Course Tasting Menu",
-    price: '₦24,500',
-    oldPrice: '₦49,000',
-    discount: '50% OFF',
-    distance: copy.distanceOne,
-    action: copy.claimDeal,
-    actionLabel: copy.validSunday,
-    layout: 'featured' as const,
-  },
-  {
-    id: 'velvet-tailoring',
-    image: images.tailoring,
-    business: 'VELVET STITCH COUTURE',
-    title: 'Special Tailoring & Styling Package',
-    discount: '15% OFF',
-    distance: copy.distanceTwo,
-    description: copy.tailoringBody,
-    action: copy.claimDeal,
-    actionLabel: copy.tailoringSaving,
-    layout: 'standard' as const,
-  },
-  {
-    id: 'pulse-bundle',
-    image: images.gym,
-    business: copy.pulse,
-    title: copy.pulseDeal,
-    price: '',
-    discount: '',
-    action: copy.viewOptions,
-    actionLabel: '',
-    meta: copy.pulseMeta,
-    layout: 'bundle' as const,
-  },
-  {
-    id: 'cafe-cold-brew',
-    image: images.coffee,
-    business: copy.cafe,
-    title: copy.coldBrew,
-    price: copy.coldBrewPrice,
-    discount: '15% OFF',
-    action: copy.claim,
-    actionLabel: '',
-    layout: 'compact' as const,
-  },
-];
+interface SavedItem {
+  id: string;
+  category: Exclude<SavedCategory, 'all'>;
+  business: string;
+  title: string;
+  searchText: string;
+}
 
-const savedBusinesses = [
+const savedItems: readonly SavedItem[] = [
   {
     id: 'urban-grill',
-    image: savedUrbanGrill,
-    name: copy.businessEntries[0][0],
-    meta: copy.businessEntries[0][1],
-    rating: copy.businessEntries[0][2],
-    deals: copy.businessEntries[0][3],
+    category: 'deals',
+    business: copy.items.urbanGrill.title,
+    title: copy.items.urbanGrill.subtitle,
+    searchText: `${copy.items.urbanGrill.title} ${copy.items.urbanGrill.subtitle} ${copy.items.urbanGrill.discount} ${copy.items.urbanGrill.area}`,
   },
   {
     id: 'glow-serenity',
-    image: { uri: images.spa },
-    name: copy.businessEntries[1][0],
-    meta: copy.businessEntries[1][1],
-    rating: copy.businessEntries[1][2],
-    deals: copy.businessEntries[1][3],
+    category: 'businesses',
+    business: copy.items.glow.title,
+    title: copy.items.glow.deal,
+    searchText: `${copy.items.glow.title} ${copy.items.glow.deal} ${copy.items.glow.badge}`,
   },
   {
     id: 'sole-district',
-    image: { uri: images.boutique },
-    name: copy.businessEntries[2][0],
-    meta: copy.businessEntries[2][1],
-    rating: copy.businessEntries[2][2],
-    deals: copy.businessEntries[2][3],
+    category: 'deals',
+    business: copy.items.soleDistrict.title,
+    title: copy.items.soleDistrict.subtitle,
+    searchText: `${copy.items.soleDistrict.title} ${copy.items.soleDistrict.subtitle} ${copy.items.soleDistrict.discount}`,
+  },
+  {
+    id: 'cold-brew',
+    category: 'services',
+    business: copy.items.coldBrew.business,
+    title: copy.items.coldBrew.title,
+    searchText: `${copy.items.coldBrew.business} ${copy.items.coldBrew.title}`,
   },
 ];
 
-export interface SavedHubScreenProps {
-  onNotifications?: () => void;
-  onAccount?: () => void;
-  onOpenDeal?: (dealId: string) => void;
-  onOpenBusiness?: (businessId: string) => void;
-}
-
-export function SavedHubScreen({
-  onNotifications,
-  onAccount,
-  onOpenDeal,
-  onOpenBusiness,
-}: SavedHubScreenProps) {
-  const [query, setQuery] = useState('');
-  const [tab, setTab] = useState(0);
-  const normalizedQuery = query.trim().toLowerCase();
-
-  const filteredDeals = useMemo(() => {
-    if (!normalizedQuery) return dealEntries;
-    return dealEntries.filter(item =>
-      `${item.business} ${item.title} ${item.description ?? ''} ${item.discount}`
-        .toLowerCase()
-        .includes(normalizedQuery),
-    );
-  }, [normalizedQuery]);
-
-  const filteredBusinesses = useMemo(() => {
-    if (!normalizedQuery) return savedBusinesses;
-    return savedBusinesses.filter(item =>
-      `${item.name} ${item.meta} ${item.deals}`.toLowerCase().includes(normalizedQuery),
-    );
-  }, [normalizedQuery]);
-
-  const clearSearch = useCallback(() => setQuery(''), []);
-
+function BookmarkButton({
+  saved,
+  label,
+  onPress,
+  onImage = false,
+}: {
+  saved: boolean;
+  label: string;
+  onPress: () => void;
+  onImage?: boolean;
+}) {
   return (
-    <SafeAreaView edges={['top']} className="flex-1 bg-background">
-      <HubHeader
-        title={copy.title}
-        leadingIcon="localActivity"
-        titleVariant="headingSm"
-        actionNames={['notifications']}
-        actionLabels={[copy.notifications]}
-        onActions={[onNotifications]}
-        accountAction={onAccount}
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ selected: saved }}
+      onPress={onPress}
+      hitSlop={6}
+      className={
+        onImage
+          ? 'absolute right-3 top-3 h-9 w-9 items-center justify-center rounded-full bg-surface-container-lowest/90 shadow-md active:scale-90'
+          : 'shrink-0 rounded-full p-1 active:scale-90'
+      }
+    >
+      <Icon
+        name="bookmark"
+        size={onImage ? 20 : 18}
+        color={saved ? colors.primary : colors.textTertiary}
       />
-      <ScrollView
-        className="flex-1"
-        contentContainerClassName="gap-5 pb-5"
-        showsVerticalScrollIndicator={false}
-      >
-        <View className="gap-3 px-4">
-          <View className="flex-row items-center justify-between gap-2">
-            <View className="min-w-0 flex-1 flex-row items-center gap-2">
-              <VemtapText variant="headingMd" className="text-heading-md">
-                {copy.heading}
-              </VemtapText>
-              <View className="rounded-full bg-secondary-container px-2 py-0.5">
-                <VemtapText variant="caption" className="text-on-secondary-container">
-                  {copy.savedCount}
-                </VemtapText>
-              </View>
-            </View>
-            <View className="h-10 w-10 items-center justify-center rounded-full bg-surface-container-low">
-              <Icon name="tune" size={20} color={colors.surfaceDark} />
-            </View>
-          </View>
-          <HubSearchField
-            value={query}
-            onChangeText={setQuery}
-            placeholder={copy.search}
-            filterLabel={copy.filter}
-          />
-        </View>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerClassName="gap-2 px-4"
-        >
-          <StatusPillTabs
-            labels={copy.tabs}
-            selected={tab}
-            onSelect={setTab}
-            variant="subtle"
-          />
-        </ScrollView>
-        {tab !== 2 ? (
-          <View className="gap-3 px-4">
-            <View className="flex-row items-center justify-between">
-              <View className="flex-row items-center gap-2">
-                <View className="h-2 w-2 rounded-full bg-primary" />
-                <VemtapText variant="headingSm">{copy.dealsTitle}</VemtapText>
-              </View>
-              <VemtapText variant="caption" tone="tertiary">
-                {copy.available}
-              </VemtapText>
-            </View>
-            {filteredDeals.length > 0 ? (
-              filteredDeals.map(item => (
-                <SavedItemRow
-                  key={item.id}
-                  {...item}
-                  onOpen={() => onOpenDeal?.(item.id)}
-                />
-              ))
-            ) : (
-              <EmptyState
-                title={copy.noDealsResultsTitle}
-                description={copy.noResultsBody}
-                actionLabel={normalizedQuery ? copy.clearSearch : undefined}
-                onAction={normalizedQuery ? clearSearch : undefined}
-                className="py-8"
-              />
-            )}
-          </View>
-        ) : null}
-        {tab !== 1 ? (
-          <SavedBusinesses
-            businesses={filteredBusinesses}
-            onOpenBusiness={onOpenBusiness}
-            onClearSearch={clearSearch}
-            hasQuery={Boolean(normalizedQuery)}
-          />
-        ) : null}
-      </ScrollView>
-    </SafeAreaView>
+    </Pressable>
   );
 }
 
-function SavedBusinesses({
-  businesses,
-  onOpenBusiness,
-  onClearSearch,
-  hasQuery,
+function ImageBadge({
+  icon,
+  label,
+  tone,
 }: {
-  businesses: typeof savedBusinesses;
-  onOpenBusiness?: (id: string) => void;
-  onClearSearch: () => void;
-  hasQuery: boolean;
+  icon: IconName;
+  label: string;
+  tone: 'success' | 'neutral';
 }) {
   return (
-    <View className="gap-3">
-      <View className="flex-row items-center justify-between px-4">
-        <View className="flex-row items-center gap-2">
-          <View className="h-2 w-2 rounded-full bg-secondary" />
-          <VemtapText variant="headingSm">{copy.businessesTitle}</VemtapText>
-        </View>
-        <SectionLink label={copy.seeAll} />
+    <View
+      className={`absolute left-3 top-3 flex-row items-center gap-1.5 rounded-full px-2.5 py-1 shadow-sm ${
+        tone === 'success' ? 'bg-badge-discount-bg' : 'bg-surface-container-lowest/90'
+      }`}
+    >
+      <Icon
+        name={icon}
+        size={14}
+        color={tone === 'success' ? colors.badgeDiscountText : colors.primary}
+      />
+      <VemtapText
+        variant="labelSm"
+        numberOfLines={1}
+        className={tone === 'success' ? 'text-badge-discount-text' : 'text-text'}
+      >
+        {label}
+      </VemtapText>
+    </View>
+  );
+}
+
+function SavedDealCard({
+  image,
+  badge,
+  badgeIcon,
+  area,
+  distance,
+  discount,
+  title,
+  subtitle,
+  price,
+  oldPrice,
+  saved,
+  onToggleSave,
+  onOpen,
+}: {
+  image: { uri: string; alt: string };
+  badge: string;
+  badgeIcon: IconName;
+  area: string;
+  distance: string;
+  discount: string;
+  title: string;
+  subtitle: string;
+  price: string;
+  oldPrice: string;
+  saved: boolean;
+  onToggleSave: () => void;
+  onOpen: () => void;
+}) {
+  return (
+    <View className="overflow-hidden rounded-card bg-surface-canvas shadow-sm">
+      <View className="relative h-44 w-full bg-surface-container-high">
+        <Image
+          source={{ uri: image.uri }}
+          accessibilityLabel={image.alt}
+          className="h-full w-full"
+          resizeMode="cover"
+        />
+        <ImageBadge icon={badgeIcon} label={badge} tone="success" />
+        <BookmarkButton
+          saved={saved}
+          label={`${copy.removeBookmark}: ${title}`}
+          onPress={onToggleSave}
+          onImage
+        />
       </View>
-      {businesses.length > 0 ? (
+      <View className="gap-1.5 p-4">
+        <View className="flex-row items-center justify-between gap-2">
+          <View className="min-w-0 flex-1 flex-row items-center gap-1.5">
+            <Icon name="locationOn" size={16} color={colors.primary} />
+            <VemtapText variant="labelSm" numberOfLines={1}>
+              {area}
+            </VemtapText>
+            <VemtapText variant="labelSm" tone="tertiary">
+              •
+            </VemtapText>
+            <VemtapText variant="labelSm" tone="secondary" className="shrink-0">
+              {distance}
+            </VemtapText>
+          </View>
+          <View className="shrink-0 rounded-full bg-surface-container-high px-2 py-0.5">
+            <VemtapText variant="labelSm" tone="brand" className="font-sans-semibold">
+              {discount}
+            </VemtapText>
+          </View>
+        </View>
+        <VemtapText variant="bodyMd" className="font-sans-semibold" numberOfLines={1}>
+          {title}
+        </VemtapText>
+        <VemtapText variant="bodyMd" tone="secondary" numberOfLines={1}>
+          {subtitle}
+        </VemtapText>
+        <View className="mt-1 flex-row items-center justify-between gap-2">
+          <View className="min-w-0 flex-1 flex-row items-baseline gap-2">
+            <VemtapText variant="labelMd" className="font-sans-bold">
+              {price}
+            </VemtapText>
+            <VemtapText variant="labelSm" tone="tertiary" className="line-through">
+              {oldPrice}
+            </VemtapText>
+          </View>
+          <Button
+            label={copy.viewDeal}
+            size="sm"
+            fullWidth={false}
+            labelVariant="labelSm"
+            labelClassName="text-primary-foreground"
+            rightIcon={<Icon name="arrowForward" size={15} color={colors.surface} />}
+            onPress={onOpen}
+          />
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function SavedBusinessCard({
+  item,
+  saved,
+  onToggleSave,
+  onOpen,
+}: {
+  item: SavedItem;
+  saved: boolean;
+  onToggleSave: () => void;
+  onOpen: () => void;
+}) {
+  return (
+    <View className="overflow-hidden rounded-card bg-surface-canvas shadow-sm">
+      <View className="relative h-40 w-full bg-surface-container-high">
+        <Image
+          source={{ uri: savedImages.spaInterior.uri }}
+          accessibilityLabel={savedImages.spaInterior.alt}
+          className="h-full w-full"
+          resizeMode="cover"
+        />
+        <ImageBadge icon="spa" label={copy.items.glow.badge} tone="neutral" />
+        <BookmarkButton
+          saved={saved}
+          label={`${copy.removeBookmark}: ${item.business}`}
+          onPress={onToggleSave}
+          onImage
+        />
+      </View>
+      <View className="gap-1.5 p-4">
+        <View className="flex-row items-center justify-between gap-2">
+          <View className="min-w-0 flex-1 flex-row items-center gap-1">
+            <Icon name="star" size={18} color={colors.tertiaryContainer} />
+            <VemtapText
+              variant="labelMd"
+              className="font-sans-semibold text-tertiary-container"
+            >
+              {copy.items.glow.rating}
+            </VemtapText>
+            <VemtapText variant="labelSm" tone="tertiary" numberOfLines={1}>
+              {copy.items.glow.reviews}
+            </VemtapText>
+          </View>
+          <View className="min-w-0 flex-1 flex-row items-center gap-1">
+            <Icon name="nearMe" size={16} color={colors.primary} />
+            <VemtapText variant="labelSm" tone="secondary" numberOfLines={1}>
+              {copy.items.glow.distance}
+            </VemtapText>
+          </View>
+        </View>
+        <VemtapText variant="bodyMd" className="font-sans-semibold" numberOfLines={1}>
+          {item.business}
+        </VemtapText>
+        <View className="flex-row items-center gap-2 rounded-field bg-surface-tint-blue p-2.5">
+          <Icon name="localOffer" size={18} color={colors.primary} />
+          <VemtapText
+            variant="labelSm"
+            tone="brand"
+            className="min-w-0 flex-1 font-sans-medium"
+            numberOfLines={1}
+          >
+            {copy.items.glow.deal}
+          </VemtapText>
+        </View>
+        <View className="mt-1 flex-row items-center justify-between gap-2">
+          <View className="min-w-0 flex-1 flex-row items-center gap-1">
+            <View className="h-2 w-2 shrink-0 rounded-full bg-badge-discount-text" />
+            <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
+              {copy.items.glow.openToday}
+            </VemtapText>
+          </View>
+          <Button
+            label={copy.viewBusiness}
+            size="sm"
+            variant="secondary"
+            fullWidth={false}
+            labelVariant="labelSm"
+            rightIcon={<Icon name="storefront" size={15} color={colors.text} />}
+            onPress={onOpen}
+          />
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function SavedServiceCard({
+  item,
+  saved,
+  onToggleSave,
+  onOpen,
+}: {
+  item: SavedItem;
+  saved: boolean;
+  onToggleSave: () => void;
+  onOpen: () => void;
+}) {
+  return (
+    <View className="flex-row items-center gap-4 rounded-card bg-surface-canvas p-4 shadow-sm">
+      <View className="relative h-24 w-24 shrink-0 overflow-hidden rounded-field bg-surface-container-high">
+        <Image
+          source={{ uri: savedImages.coldBrew.uri }}
+          accessibilityLabel={savedImages.coldBrew.alt}
+          className="h-full w-full"
+          resizeMode="cover"
+        />
+        <View className="absolute bottom-1 right-1 rounded bg-surface-container-lowest/90 px-1.5 py-0.5">
+          <VemtapText variant="caption" tone="secondary" className="font-sans-semibold">
+            {copy.items.coldBrew.size}
+          </VemtapText>
+        </View>
+      </View>
+      <View className="min-w-0 flex-1 justify-between py-0.5">
+        <View className="flex-row items-start justify-between gap-1">
+          <View className="min-w-0">
+            <VemtapText variant="caption" tone="tertiary" numberOfLines={1}>
+              {item.business}
+            </VemtapText>
+            <VemtapText
+              variant="labelMd"
+              className="font-sans-semibold"
+              numberOfLines={1}
+            >
+              {item.title}
+            </VemtapText>
+          </View>
+          <BookmarkButton
+            saved={saved}
+            label={`${copy.removeBookmark}: ${item.title}`}
+            onPress={onToggleSave}
+          />
+        </View>
+        <View className="my-1 flex-row items-center gap-1.5">
+          <Icon name="locationOn" size={14} color={colors.primary} />
+          <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
+            {copy.items.coldBrew.location}
+          </VemtapText>
+        </View>
+        <View className="flex-row items-center justify-between gap-2">
+          <VemtapText variant="labelMd" className="font-sans-bold">
+            {copy.items.coldBrew.price}
+          </VemtapText>
+          <Button
+            label={copy.order}
+            size="sm"
+            variant="secondary"
+            fullWidth={false}
+            labelVariant="labelSm"
+            leftIcon={<Icon name="shoppingBag" size={14} color={colors.primary} />}
+            onPress={onOpen}
+          />
+        </View>
+      </View>
+    </View>
+  );
+}
+
+export interface SavedHubScreenProps {
+  onBack?: () => void;
+  onNotifications?: () => void;
+  onOpenDeal?: (dealId: string) => void;
+  onOpenBusiness?: (businessId: string) => void;
+  onOpenService?: (serviceId: string) => void;
+}
+
+export function SavedHubScreen({
+  onBack,
+  onNotifications,
+  onOpenDeal,
+  onOpenBusiness,
+  onOpenService,
+}: SavedHubScreenProps) {
+  const [query, setQuery] = useState('');
+  const [filter, setFilter] = useState<SavedCategory>('all');
+  const [bookmarks, setBookmarks] = useState<Record<string, boolean>>({});
+
+  const normalizedQuery = query.trim().toLowerCase();
+  const visible = useMemo(
+    () =>
+      savedItems.filter(
+        item =>
+          (filter === 'all' || item.category === filter) &&
+          (!normalizedQuery || item.searchText.toLowerCase().includes(normalizedQuery)),
+      ),
+    [filter, normalizedQuery],
+  );
+
+  const resetFilters = useCallback(() => {
+    setQuery('');
+    setFilter('all');
+  }, []);
+  const toggleSave = useCallback((id: string) => {
+    setBookmarks(current => ({ ...current, [id]: !current[id] }));
+  }, []);
+
+  return (
+    <SafeAreaView edges={['top']} className="flex-1 bg-surface">
+      <AccountHeader
+        title={copy.title}
+        onBack={onBack}
+        onAction={onNotifications}
+        actionIcon="notifications"
+      />
+      <ScrollView
+        className="flex-1"
+        contentContainerClassName="gap-4 px-4 pb-8 pt-1"
+        showsVerticalScrollIndicator={false}
+      >
+        <HubSearchField
+          value={query}
+          onChangeText={setQuery}
+          placeholder={copy.searchPlaceholder}
+        />
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerClassName="gap-4 px-4"
+          contentContainerClassName="flex-row gap-1.5"
         >
-          {businesses.map(item => (
-            <SavedBusinessRow
-              key={item.id}
-              image={item.image}
-              name={item.name}
-              meta={item.meta}
-              rating={item.rating}
-              deals={item.deals}
-              view={copy.viewProfile}
-              onPress={() => onOpenBusiness?.(item.name)}
-            />
-          ))}
+          {copy.filters.map(item => {
+            const active = filter === item.label.toLowerCase().split(' ')[0];
+            return (
+              <Pressable
+                key={item.label}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: active }}
+                onPress={() =>
+                  setFilter(item.label.toLowerCase().split(' ')[0] as SavedCategory)
+                }
+                className={`h-9 shrink-0 flex-row items-center gap-1.5 rounded-full px-4 shadow-sm active:scale-95 ${
+                  active ? 'bg-primary' : 'bg-surface-canvas'
+                }`}
+              >
+                <VemtapText
+                  variant="labelMd"
+                  className={active ? 'text-primary-foreground' : 'text-text-secondary'}
+                >
+                  {item.label}
+                </VemtapText>
+                <View
+                  className={`rounded-full px-1.5 py-0.5 ${
+                    active ? 'bg-surface-container-lowest/20' : 'bg-surface-container'
+                  }`}
+                >
+                  <VemtapText
+                    variant="caption"
+                    className={active ? 'text-primary-foreground' : 'text-text-secondary'}
+                  >
+                    {item.count}
+                  </VemtapText>
+                </View>
+              </Pressable>
+            );
+          })}
         </ScrollView>
-      ) : (
-        <EmptyState
-          title={copy.noBusinessesResultsTitle}
-          description={copy.noResultsBody}
-          actionLabel={hasQuery ? copy.clearSearch : undefined}
-          onAction={hasQuery ? onClearSearch : undefined}
-          className="py-8"
-        />
-      )}
-    </View>
+
+        {visible.length > 0 ? (
+          visible.map(item => {
+            const saved = bookmarks[item.id] !== false;
+            if (item.id === 'urban-grill') {
+              return (
+                <SavedDealCard
+                  key={item.id}
+                  image={savedImages.burger}
+                  badge={copy.items.urbanGrill.badge}
+                  badgeIcon="schedule"
+                  area={copy.items.urbanGrill.area}
+                  distance={copy.items.urbanGrill.distance}
+                  discount={copy.items.urbanGrill.discount}
+                  title={copy.items.urbanGrill.title}
+                  subtitle={copy.items.urbanGrill.subtitle}
+                  price={copy.items.urbanGrill.price}
+                  oldPrice={copy.items.urbanGrill.oldPrice}
+                  saved={saved}
+                  onToggleSave={() => toggleSave(item.id)}
+                  onOpen={() => onOpenDeal?.(item.id)}
+                />
+              );
+            }
+            if (item.id === 'sole-district') {
+              return (
+                <SavedDealCard
+                  key={item.id}
+                  image={savedImages.sneakers}
+                  badge={copy.items.soleDistrict.badge}
+                  badgeIcon="bolt"
+                  area={copy.items.soleDistrict.area}
+                  distance={copy.items.soleDistrict.distance}
+                  discount={copy.items.soleDistrict.discount}
+                  title={copy.items.soleDistrict.title}
+                  subtitle={copy.items.soleDistrict.subtitle}
+                  price={copy.items.soleDistrict.price}
+                  oldPrice={copy.items.soleDistrict.oldPrice}
+                  saved={saved}
+                  onToggleSave={() => toggleSave(item.id)}
+                  onOpen={() => onOpenDeal?.(item.id)}
+                />
+              );
+            }
+            if (item.id === 'glow-serenity') {
+              return (
+                <SavedBusinessCard
+                  key={item.id}
+                  item={item}
+                  saved={saved}
+                  onToggleSave={() => toggleSave(item.id)}
+                  onOpen={() => onOpenBusiness?.(item.id)}
+                />
+              );
+            }
+            return (
+              <SavedServiceCard
+                key={item.id}
+                item={item}
+                saved={saved}
+                onToggleSave={() => toggleSave(item.id)}
+                onOpen={() => onOpenService?.(item.id)}
+              />
+            );
+          })
+        ) : (
+          <EmptyState
+            title={copy.emptyTitle}
+            description={copy.emptyBody}
+            actionLabel={copy.resetFilters}
+            onAction={resetFilters}
+            className="py-12"
+          />
+        )}
+
+        <View className="flex-row items-start gap-2 rounded-card bg-surface-container-low p-4">
+          <Icon name="cloudDone" size={20} color={colors.primary} />
+          <VemtapText variant="caption" tone="secondary" className="min-w-0 flex-1">
+            {copy.syncNote}
+          </VemtapText>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }

@@ -72,6 +72,7 @@ export function AddServiceBasicsMediaScreen({
           onSecondary={onSaveDraft}
         />
       }
+      contentContainerClassName="px-6 pb-10 pt-4"
     >
       <View className="gap-6">
         <ServiceSection className="gap-2">
@@ -128,7 +129,7 @@ export function AddServiceBasicsMediaScreen({
               <VemtapText variant="button">Change</VemtapText>
             </Pressable>
           </View>
-          <View className="flex-row gap-1.5">
+          <View className="flex-row gap-2">
             {serviceFlowImages.thumbnails.map((image, index) => (
               <ServiceMediaThumbnail
                 key={image.uri}
@@ -180,7 +181,7 @@ export function AddServiceBasicsMediaScreen({
               Basic Info
             </VemtapText>
           </View>
-          <ServiceSection>
+          <ServiceSection className="gap-2">
             <ServiceTextField
               label="Service Title"
               required
@@ -192,7 +193,7 @@ export function AddServiceBasicsMediaScreen({
               hint="Be clear and descriptive so customers spot this immediately on search."
             />
           </ServiceSection>
-          <ServiceSection>
+          <ServiceSection className="gap-3">
             <VemtapText variant="labelSm" tone="secondary" className="font-sans-medium">
               Listed Under Provider
             </VemtapText>
@@ -236,7 +237,7 @@ export function AddServiceBasicsMediaScreen({
           <VemtapText variant="headingSm" className="text-heading-sm text-text">
             Category &amp; Treatment Type
           </VemtapText>
-          <ServiceSection className="gap-3">
+          <ServiceSection>
             <ServiceSettingRow
               icon="wellnessCategory"
               label="Primary Category"
@@ -253,7 +254,7 @@ export function AddServiceBasicsMediaScreen({
               <VemtapText variant="labelMd" className="font-sans-medium text-text">
                 Service Delivery Format
               </VemtapText>
-              <View accessibilityRole="radiogroup" className="gap-1.5">
+              <View accessibilityRole="radiogroup" className="gap-2">
                 {serviceDeliveryOptions.map(option => (
                   <ServiceChoiceCard
                     key={option.id}
@@ -281,7 +282,7 @@ export function AddServiceBasicsMediaScreen({
               </VemtapText>
             </View>
           </View>
-          <ServiceSection>
+          <ServiceSection className="gap-3">
             <ServiceTextField
               label="Detailed Service Overview"
               value={serviceFlowDraft.description}
@@ -292,7 +293,7 @@ export function AddServiceBasicsMediaScreen({
               <VemtapText variant="caption" tone="secondary" className="font-sans-medium">
                 Quick Highlight Tags (Tap to toggle)
               </VemtapText>
-              <View className="flex-row flex-wrap gap-1.5">
+              <View className="flex-row flex-wrap gap-2">
                 {serviceHighlightOptions.map(option => {
                   const selected = highlights.has(option);
                   return (
@@ -334,7 +335,7 @@ export function AddServiceBasicsMediaScreen({
                 ))}
               </View>
             </View>
-            <View className="flex-row flex-wrap items-center justify-between gap-3 border-t border-border pt-3">
+            <View className="flex-row flex-wrap items-center justify-between gap-3 pt-2">
               <View className="min-w-[170px] flex-1">
                 <VemtapText variant="labelMd" className="font-sans-medium text-text">
                   Minimum Age Requirement

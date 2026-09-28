@@ -33,7 +33,7 @@ export function SecuritySettingRow({
   const content = (
     <View className="min-w-0 flex-1">
       <View className="flex-row items-center gap-1.5">
-        <VemtapText variant="headingSm" className="text-body-md" numberOfLines={1}>
+        <VemtapText variant="labelMd" className="font-sans-semibold" numberOfLines={1}>
           {title}
         </VemtapText>
         {badge ? (

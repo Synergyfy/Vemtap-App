@@ -2,23 +2,17 @@ import React from 'react';
 import { Text as RNText, type TextProps } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { cn } from '@utils/cn';
+import {
+  textVariants,
+  typeMetrics,
+  typeSizeClassPattern,
+  type TextVariant,
+} from '@theme/typography';
+import { useTypeDensity } from '@theme/TypeDensityProvider';
 
 cssInterop(RNText, { className: 'style' });
 
-type Variant =
-  | 'display'
-  | 'displayMobile'
-  | 'headingXl'
-  | 'headingLg'
-  | 'headingMd'
-  | 'headingSm'
-  | 'bodyLg'
-  | 'bodyMd'
-  | 'labelMd'
-  | 'labelSm'
-  | 'micro'
-  | 'caption'
-  | 'button';
+type Variant = TextVariant;
 
 type Tone =
   'default' | 'secondary' | 'tertiary' | 'inverse' | 'brand' | 'error' | 'success';
@@ -30,22 +24,36 @@ export interface VemtapTextProps extends TextProps {
   children: React.ReactNode;
 }
 
-const variantClasses: Record<Variant, string> = {
-  display: 'font-sans-bold text-display tracking-tight',
-  displayMobile: 'font-sans-bold text-display-mobile tracking-tight',
-  headingXl: 'font-sans-semibold text-heading-xl tracking-tight',
-  headingLg: 'font-sans-semibold text-heading-lg tracking-tight',
-  headingMd: 'font-sans-semibold text-heading-md tracking-tight',
-  headingSm: 'font-sans-semibold text-heading-sm',
-  bodyLg: 'font-sans text-body-lg',
-  bodyMd: 'font-sans text-body-md',
-  labelMd: 'font-sans-medium text-label-md',
-  labelSm: 'font-sans-medium text-label-sm',
-  micro: 'font-sans text-micro',
-  caption: 'font-sans text-caption',
-  button: 'font-sans-semibold text-button-md',
-};
+const fontWeightClasses = {
+  display: 'font-sans-bold',
+  displayMobile: 'font-sans-bold',
+  headingXl: 'font-sans-semibold',
+  headingLg: 'font-sans-semibold',
+  headingMd: 'font-sans-semibold',
+  headingSm: 'font-sans-semibold',
+  bodyLg: 'font-sans',
+  bodyMd: 'font-sans',
+  labelMd: 'font-sans-medium',
+  labelSm: 'font-sans-medium',
+  micro: 'font-sans',
+  caption: 'font-sans',
+  button: 'font-sans-semibold',
+} as const satisfies Record<Variant, string>;
 
+const trackingClasses = {
+  display: 'tracking-tight',
+  displayMobile: 'tracking-tight',
+  headingXl: 'tracking-tight',
+  headingLg: 'tracking-tight',
+  headingMd: 'tracking-tight',
+} as const satisfies Partial<Record<Variant, string>>;
+
+/**
+ * Size comes from the shared type scale in `src/theme/typography.ts`, which is
+ * also what generates the Tailwind `text-*` utilities — so a scale change
+ * updates every screen at once. Under the `compact` density the size utility
+ * is dropped and the compact metrics are applied numerically instead.
+ */
 const toneClasses: Record<Tone, string> = {
   default: 'text-text',
   secondary: 'text-text-secondary',
@@ -55,6 +63,15 @@ const toneClasses: Record<Tone, string> = {
   error: 'text-error',
   success: 'text-success',
 };
+
+/** Drops only the scale's own size utilities so a density can take over. */
+function stripSizeClasses(className?: string): string | undefined {
+  if (!className) return className;
+  return className
+    .split(/\s+/)
+    .filter(token => token && !typeSizeClassPattern.test(token))
+    .join(' ');
+}
 
 /**
  * Themed Text using Tailwind tokens from tailwind.config.js.
@@ -67,12 +84,25 @@ export function VemtapText({
   children,
   ...rest
 }: VemtapTextProps) {
+  const density = useTypeDensity();
+  const scaled = density !== 'default';
+  const token = textVariants[variant];
+  const sizeClass = scaled ? undefined : `text-${token}`;
+
   return (
     <RNText
       allowFontScaling
       maxFontSizeMultiplier={1.8}
-      className={cn('font-sans', variantClasses[variant], toneClasses[tone], className)}
+      className={cn(
+        'font-sans',
+        fontWeightClasses[variant],
+        trackingClasses[variant as keyof typeof trackingClasses],
+        sizeClass,
+        toneClasses[tone],
+        scaled ? stripSizeClasses(className) : className,
+      )}
       {...rest}
+      style={scaled ? [rest.style, typeMetrics(token, density)] : rest.style}
     >
       {children}
     </RNText>

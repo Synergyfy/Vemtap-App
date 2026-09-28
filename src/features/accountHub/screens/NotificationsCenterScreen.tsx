@@ -158,7 +158,7 @@ export function NotificationsCenterScreen({
       >
         <View className="flex-row items-center justify-between gap-2">
           <View className="min-w-0 flex-1 flex-row items-center gap-2">
-            <VemtapText variant="headingXl" className="text-heading-xl" numberOfLines={1}>
+            <VemtapText variant="headingMd" className="text-heading-md" numberOfLines={1}>
               {copy.inbox}
             </VemtapText>
             <View
@@ -174,6 +174,7 @@ export function NotificationsCenterScreen({
           </View>
           <Button
             label={unread ? copy.allRead : copy.caughtUp}
+            labelVariant="labelSm"
             variant="ghost"
             size="sm"
             fullWidth={false}
@@ -240,6 +241,7 @@ export function NotificationsCenterScreen({
         <View className="gap-3 pt-3">
           <Button
             label={copy.preferences}
+            labelVariant="labelMd"
             variant="secondary"
             onPress={onManagePreferences}
             leftIcon={<Icon name="tune" size={19} color={colors.secondary} />}

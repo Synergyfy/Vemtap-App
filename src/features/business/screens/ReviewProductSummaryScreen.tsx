@@ -1,5 +1,7 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
+import { cssInterop } from 'nativewind';
+import { LinearGradient } from 'expo-linear-gradient';
 import type { Region } from 'react-native-maps';
 import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
@@ -12,10 +14,10 @@ import {
   BusinessProductImage,
   BusinessProgress,
   BusinessScreenLayout,
-  BusinessSectionHeading,
   BusinessStatusPill,
   SetupCard,
 } from '@features/business/components/BusinessPrimitives';
+import { ServiceSectionHeader } from '@features/business/components/ServiceFlowPrimitives';
 import { ProductVariantList } from '@features/business/components/BusinessProductContent';
 import {
   businessMedia,
@@ -36,6 +38,9 @@ export interface ReviewProductSummaryScreenProps {
   onEditFulfillment?: () => void;
   onEditDescription?: () => void;
 }
+
+cssInterop(View, { className: 'style' });
+cssInterop(LinearGradient, { className: 'style' });
 
 const abujaRegion: Region = {
   latitude: 9.0765,
@@ -65,7 +70,7 @@ export function ReviewProductSummaryScreen({
         stepBadge: 'Step 4 of 4',
         centerTitle: false,
       }}
-      contentContainerClassName="gap-6 pb-8"
+      contentContainerClassName="gap-6 pb-12"
     >
       <BusinessProgress
         label="Step 4 of 4: Final Review"
@@ -103,7 +108,7 @@ export function ReviewProductSummaryScreen({
                 Fresh / Made to order
               </VemtapText>
             </View>
-            <View className="flex-row items-center gap-1 rounded-full bg-surface-dark/85 px-2.5 py-1">
+            <View className="flex-row items-center gap-1 rounded-full bg-inverse-surface/85 px-2.5 py-1">
               <Icon name="camera" size={14} color={colors.inverseOnSurface} />
               <VemtapText variant="labelSm" className="text-inverse">
                 4 Photos
@@ -112,10 +117,11 @@ export function ReviewProductSummaryScreen({
           </View>
           <Button
             label="Edit Media"
+            labelVariant="labelSm"
             variant="outline"
             size="sm"
             fullWidth={false}
-            className="absolute bottom-3 right-3 min-h-9 rounded-full bg-surface/90 px-3"
+            className="absolute bottom-3 right-3 min-h-9 rounded-full border-0 bg-surface/90 px-3"
             leftIcon={<Icon name="edit" size={16} color={colors.primary} />}
             onPress={onEditMedia}
           />
@@ -151,14 +157,14 @@ export function ReviewProductSummaryScreen({
       </View>
 
       <SetupCard>
-        <View className="flex-row items-center justify-between gap-3">
-          <BusinessSectionHeading
-            title="Pricing & Variants"
-            icon="payments"
-            subtitle="3 sizes configured"
-          />
-          <BusinessInlineAction label="Edit" onPress={onEditPricing} />
-        </View>
+        <ServiceSectionHeader
+          boxedIcon
+          title="Pricing & Variants"
+          icon="payments"
+          subtitle="3 sizes configured"
+          actionLabel="Edit"
+          onAction={onEditPricing}
+        />
         <View className="flex-row items-center justify-between gap-3 rounded-xl bg-surface-subtle p-3">
           <View className="min-w-0">
             <VemtapText variant="caption" tone="secondary">
@@ -203,14 +209,14 @@ export function ReviewProductSummaryScreen({
       </SetupCard>
 
       <SetupCard>
-        <View className="flex-row items-center justify-between gap-3">
-          <BusinessSectionHeading
-            title="Branch Availability"
-            icon="hub"
-            subtitle="2 Outlets serving this item"
-          />
-          <BusinessInlineAction label="Edit" onPress={onEditBranches} />
-        </View>
+        <ServiceSectionHeader
+          boxedIcon
+          title="Branch Availability"
+          icon="hub"
+          subtitle="2 Outlets serving this item"
+          actionLabel="Edit"
+          onAction={onEditBranches}
+        />
         <View className="relative h-28 overflow-hidden rounded-lg bg-surface-container shadow-sm">
           <LocationMapView
             region={abujaRegion}
@@ -219,7 +225,7 @@ export function ReviewProductSummaryScreen({
             zoomEnabled={false}
           />
           <View className="absolute bottom-2 left-2 flex-row items-center gap-1 rounded-full bg-surface/90 px-2.5 py-1 shadow-sm">
-            <Icon name="pin" size={14} color={colors.primary} />
+            <Icon name="pinDrop" size={14} color={colors.primary} />
             <VemtapText variant="caption" className="font-sans-semibold">
               Abuja Central Metros
             </VemtapText>
@@ -272,14 +278,14 @@ export function ReviewProductSummaryScreen({
       </SetupCard>
 
       <SetupCard>
-        <View className="flex-row items-center justify-between gap-3">
-          <BusinessSectionHeading
-            title="Fulfillment & Dispatch"
-            icon="delivery"
-            subtitle="Delivery rules for this item"
-          />
-          <BusinessInlineAction label="Edit" onPress={onEditFulfillment} />
-        </View>
+        <ServiceSectionHeader
+          boxedIcon
+          title="Fulfillment & Dispatch"
+          icon="delivery"
+          subtitle="Delivery rules for this item"
+          actionLabel="Edit"
+          onAction={onEditFulfillment}
+        />
         <View className="gap-2">
           <FulfillmentRow
             title="In-Store Pickup / Dine-In Walk"
@@ -322,10 +328,13 @@ export function ReviewProductSummaryScreen({
       </SetupCard>
 
       <SetupCard>
-        <View className="flex-row items-center justify-between gap-3">
-          <BusinessSectionHeading title="Description & Story" icon="fileDocument" />
-          <BusinessInlineAction label="Edit" onPress={onEditDescription} />
-        </View>
+        <ServiceSectionHeader
+          boxedIcon
+          title="Description & Story"
+          icon="book"
+          actionLabel="Edit"
+          onAction={onEditDescription}
+        />
         <VemtapText
           tone="secondary"
           className="rounded-xl bg-surface-subtle p-3 leading-relaxed"
@@ -334,46 +343,56 @@ export function ReviewProductSummaryScreen({
         </VemtapText>
         <View className="flex-row flex-wrap gap-2">
           <BusinessStatusPill label="Gluten-free" icon="lightbulb" tone="neutral" />
-          <BusinessStatusPill label="Halal certified" icon="autoAwesome" tone="neutral" />
+          <BusinessStatusPill label="Halal certified" icon="starFilled" tone="neutral" />
           <BusinessStatusPill label="Eco packaging" icon="sync" tone="neutral" />
         </View>
       </SetupCard>
 
-      <View className="flex-row items-center justify-between gap-3 rounded-xl bg-surface-tint p-4 shadow-sm">
-        <View className="min-w-0 flex-1 flex-row items-center gap-3">
-          <View className="h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary">
-            <Icon name="visibility" size={22} color={colors.surface} />
+      <View className="overflow-hidden rounded-xl shadow-sm">
+        <LinearGradient
+          colors={['#EDF2FF', colors.surfaceTint]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          className="flex-row items-center justify-between gap-3 p-4"
+        >
+          <View className="min-w-0 flex-1 flex-row items-center gap-3">
+            <View className="h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary">
+              <Icon name="visibility" size={22} color={colors.surface} />
+            </View>
+            <View className="min-w-0 flex-1">
+              <VemtapText variant="labelMd" className="font-sans-bold">
+                Consumer View Preview
+              </VemtapText>
+              <VemtapText variant="caption" tone="secondary">
+                Simulate live tap-to-order screen
+              </VemtapText>
+            </View>
           </View>
-          <View className="min-w-0 flex-1">
-            <VemtapText variant="labelMd" className="font-sans-bold">
-              Consumer View Preview
-            </VemtapText>
-            <VemtapText variant="caption" tone="secondary">
-              Simulate live tap-to-order screen
-            </VemtapText>
-          </View>
-        </View>
-        <Button
-          label="Inspect"
-          variant="outline"
-          size="sm"
-          fullWidth={false}
-          className="min-h-10 bg-surface px-4"
-          onPress={onInspectPreview}
-        />
+          <Button
+            label="Inspect"
+            labelVariant="labelSm"
+            variant="outline"
+            size="sm"
+            fullWidth={false}
+            className="min-h-10 border-0 bg-surface px-4"
+            onPress={onInspectPreview}
+          />
+        </LinearGradient>
       </View>
 
       <View className="gap-3">
         <Button
           label="Publish Product to Storefront 🚀"
+          labelVariant="labelMd"
           labelNumberOfLines={2}
           className="shadow-lg"
           onPress={onPublish}
         />
         <Button
           label="Save as Draft"
+          labelVariant="labelMd"
           variant="secondary"
-          className="min-h-12"
+          className="min-h-12 border-0 bg-surface-container"
           leftIcon={<Icon name="bookmark" size={18} color={colors.text} />}
           onPress={onSaveDraft}
         />

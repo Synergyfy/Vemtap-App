@@ -91,7 +91,7 @@ export function BusinessIntroductionScreen({
           >
             {copy.title}
           </VemtapText>
-          <VemtapText tone="secondary" className="mt-1">
+          <VemtapText variant="labelSm" tone="secondary" className="mt-1">
             {copy.subtitle}
           </VemtapText>
         </View>
@@ -133,10 +133,10 @@ export function BusinessIntroductionScreen({
             <View className="min-w-0 flex-1 flex-row items-center gap-1.5">
               <Icon name="groupAdd" size={18} color={colors.badgeDiscountText} />
               <VemtapText
-                variant="bodyMd"
-                className="min-w-0 flex-1 font-sans-semibold text-text"
+                variant="labelSm"
+                className="min-w-0 flex-1 font-sans-medium text-text"
               >
-                <VemtapText variant="headingSm" className="text-primary">
+                <VemtapText variant="labelMd" className="font-sans-semibold text-primary">
                   {reach}
                 </VemtapText>{' '}
                 {copy.audienceReady}
@@ -146,9 +146,9 @@ export function BusinessIntroductionScreen({
           </View>
         </SetupSectionCard>
 
-        <View className="flex-row flex-wrap items-end justify-between gap-2 pt-2">
+        <View className="flex-row flex-wrap items-center justify-between gap-2 pt-3">
           <View className="min-w-0 flex-1">
-            <VemtapText variant="headingSm" className="text-text">
+            <VemtapText variant="labelMd" className="font-sans-semibold text-text">
               {copy.pillarsTitle}
             </VemtapText>
             <VemtapText variant="caption" tone="secondary">

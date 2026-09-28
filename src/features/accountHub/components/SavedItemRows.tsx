@@ -81,6 +81,7 @@ export function SavedItemRow({
           </View>
           <Button
             label={action}
+            labelVariant="labelSm"
             variant="secondary"
             size="sm"
             fullWidth={false}
@@ -119,7 +120,13 @@ export function SavedItemRow({
         </View>
         <View className="shrink-0 items-end gap-1">
           <BookmarkButton onPress={onRemove} />
-          <Button label={action} size="sm" fullWidth={false} onPress={onOpen} />
+          <Button
+            label={action}
+            size="sm"
+            fullWidth={false}
+            onPress={onOpen}
+            labelVariant="labelSm"
+          />
         </View>
       </View>
     );
@@ -187,6 +194,7 @@ export function SavedItemRow({
           </VemtapText>
           <Button
             label={action}
+            labelVariant="labelSm"
             size="sm"
             fullWidth={false}
             rightIcon={<Icon name="arrowForward" size={16} color={colors.surface} />}
@@ -229,7 +237,7 @@ export function SavedBusinessRow({
   onPress?: () => void;
 }) {
   return (
-    <View className="w-60 justify-between rounded-card bg-surface p-4 shadow-sm">
+    <View className="w-56 justify-between rounded-card bg-surface p-4 shadow-sm sm:w-60">
       <View className="flex-row items-start justify-between gap-2">
         <Image source={image} className="h-12 w-12 rounded-field" resizeMode="cover" />
         <View className="flex-row items-center gap-1 rounded-full bg-surface-container-low px-2 py-0.5">
@@ -248,11 +256,22 @@ export function SavedBusinessRow({
         </VemtapText>
       </View>
       <View className="mt-4 flex-row items-center justify-between gap-2">
-        <VemtapText variant="labelSm" tone="success" numberOfLines={1}>
+        <VemtapText
+          variant="labelSm"
+          tone="success"
+          className="min-w-0 flex-1"
+          numberOfLines={1}
+        >
           ● {deals}
         </VemtapText>
-        <Pressable accessibilityRole="button" onPress={onPress}>
-          <VemtapText variant="labelSm" tone="brand">
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={view}
+          onPress={onPress}
+          hitSlop={6}
+          className="shrink-0"
+        >
+          <VemtapText variant="labelSm" tone="brand" numberOfLines={1}>
             {view} →
           </VemtapText>
         </Pressable>

@@ -107,7 +107,7 @@ export function BusinessProfileBasicInfoScreen({
 
       <ScrollView
         className="flex-1"
-        contentContainerClassName="gap-6 px-6 pb-6 pt-4"
+        contentContainerClassName="gap-6 px-6 pb-10 pt-4"
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
@@ -133,6 +133,8 @@ export function BusinessProfileBasicInfoScreen({
           icon="verifiedUser"
           title={copy.basicInfo.trustTitle}
           body={copy.basicInfo.trustBody}
+          iconSurface="circleMd"
+          className="p-4"
         />
 
         <View className="gap-6">
@@ -220,7 +222,7 @@ export function BusinessProfileBasicInfoScreen({
           </View>
         </View>
 
-        <View className="gap-3 rounded-card bg-surface-container-lowest p-4 shadow-sm">
+        <View className="gap-2 rounded-card bg-surface-container-lowest p-4 shadow-sm">
           <View className="flex-row flex-wrap items-center justify-between gap-2">
             <VemtapText
               variant="labelSm"
@@ -246,16 +248,16 @@ export function BusinessProfileBasicInfoScreen({
         </View>
       </ScrollView>
 
-      <View className="gap-3 px-6 pb-2 pt-3">
+      <View className="gap-4 px-6 pb-6 pt-0">
         <PrimaryActionButton
           label={copy.basicInfo.continue}
           onPress={() => onContinue?.(value)}
         />
-        <TextActionButton
-          label={copy.basicInfo.saveDraft}
-          onPress={() => onSaveDraft?.(value)}
-        />
-        <View className="items-center">
+        <View className="items-center gap-3">
+          <TextActionButton
+            label={copy.basicInfo.saveDraft}
+            onPress={() => onSaveDraft?.(value)}
+          />
           <ProgressDots total={3} activeIndex={0} />
         </View>
       </View>

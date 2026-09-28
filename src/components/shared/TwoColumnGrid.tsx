@@ -1,6 +1,7 @@
 import React from 'react';
 import { View } from 'react-native';
 import { cssInterop } from 'nativewind';
+import { cn } from '@utils/cn';
 
 cssInterop(View, { className: 'style' });
 
@@ -8,12 +9,15 @@ export interface TwoColumnGridProps<T> {
   items: readonly T[];
   keyExtractor: (item: T) => string;
   renderItem: (item: T) => React.ReactNode;
+  /** Extra spacing above the grid (e.g. under a section heading). */
+  className?: string;
 }
 
 export function TwoColumnGrid<T>({
   items,
   keyExtractor,
   renderItem,
+  className,
 }: TwoColumnGridProps<T>) {
   const rows: T[][] = [];
 
@@ -22,7 +26,7 @@ export function TwoColumnGrid<T>({
   }
 
   return (
-    <View className="flex-col gap-3">
+    <View className={cn('flex-col gap-3', className)}>
       {rows.map(row => (
         <View key={keyExtractor(row[0])} className="flex-row items-start gap-3">
           {row.map(item => (

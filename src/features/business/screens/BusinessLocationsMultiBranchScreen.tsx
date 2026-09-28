@@ -82,33 +82,35 @@ export function BusinessLocationsMultiBranchScreen({
 
       <ScrollView
         className="flex-1"
-        contentContainerClassName="gap-4 px-6 pb-6 pt-4"
+        contentContainerClassName="gap-6 px-6 pb-10 pt-2"
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        <SetupStepBar
-          step={copy.locations.step}
-          percent={copy.locations.percent}
-          progress={60}
-          dot
-          pillTone="neutral"
-        />
+        <View className="gap-3">
+          <SetupStepBar
+            step={copy.locations.step}
+            percent={copy.locations.percent}
+            progress={60}
+            dot
+            pillTone="neutral"
+          />
 
-        <View className="gap-1">
-          <VemtapText
-            accessibilityRole="header"
-            variant="headingMd"
-            className="text-heading-md"
-          >
-            {copy.locations.title}
-          </VemtapText>
-          <VemtapText tone="secondary" className="mt-1">
-            {copy.locations.subtitleLead}{' '}
-            <VemtapText className="font-sans-medium text-badge-discount-text">
-              ● {copy.locations.subtitleActive}
-            </VemtapText>{' '}
-            {copy.locations.subtitleTail}
-          </VemtapText>
+          <View className="gap-1">
+            <VemtapText
+              accessibilityRole="header"
+              variant="headingMd"
+              className="text-heading-md"
+            >
+              {copy.locations.title}
+            </VemtapText>
+            <VemtapText tone="secondary" className="mt-1">
+              {copy.locations.subtitleLead}{' '}
+              <VemtapText className="font-sans-medium text-badge-discount-text">
+                ● {copy.locations.subtitleActive}
+              </VemtapText>{' '}
+              {copy.locations.subtitleTail}
+            </VemtapText>
+          </View>
         </View>
 
         <SetupSectionCard className="gap-2 border border-border">
@@ -118,7 +120,7 @@ export function BusinessLocationsMultiBranchScreen({
                 {copy.locations.multiTitle}
               </VemtapText>
               <View className="mt-0.5 flex-row items-center gap-1.5">
-                <Icon name="checkCircle" size={18} color={colors.primary} />
+                <Icon name="checkBold" size={18} color={colors.primary} />
                 <VemtapText
                   variant="labelSm"
                   className="min-w-0 flex-1 font-sans-semibold text-primary"
@@ -157,7 +159,7 @@ export function BusinessLocationsMultiBranchScreen({
         <AddBranchRow onPress={onAddBranch} />
       </ScrollView>
 
-      <View className="gap-2 px-6 pb-2 pt-3">
+      <View className="gap-2 px-6 pb-3 pt-0">
         <PrimaryActionButton
           label={copy.locations.continue}
           onPress={() => onContinue?.(value)}

@@ -35,16 +35,18 @@ export function ConversationBubble({
             <Image source={merchantThumbnail} className="h-full w-full" />
           </View>
         ) : null}
-        <VemtapText
-          variant="bodyMd"
-          tone={customer ? 'inverse' : 'default'}
-          className={`min-w-0 flex-1 rounded-2xl p-3 shadow-sm ${
-            customer ? 'rounded-tr-sm bg-primary' : 'rounded-tl-sm bg-surface text-text'
-          }`}
-        >
-          {message}
-        </VemtapText>
-        {children ? <View className="mt-2">{children}</View> : null}
+        <View className={`min-w-0 flex-1 ${customer ? 'items-end' : 'items-start'}`}>
+          <VemtapText
+            variant="bodyMd"
+            tone={customer ? 'inverse' : 'default'}
+            className={`max-w-full rounded-2xl p-3 shadow-sm ${
+              customer ? 'rounded-tr-sm bg-primary' : 'rounded-tl-sm bg-surface text-text'
+            }`}
+          >
+            {message}
+          </VemtapText>
+          {children ? <View className="mt-1 w-full">{children}</View> : null}
+        </View>
       </View>
       <View className={`mt-1 flex-row items-center gap-1 ${customer ? 'pr-1' : 'pl-10'}`}>
         <VemtapText variant="caption" tone="tertiary">

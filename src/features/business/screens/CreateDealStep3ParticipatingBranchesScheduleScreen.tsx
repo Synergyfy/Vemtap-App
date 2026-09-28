@@ -111,6 +111,7 @@ export function CreateDealStep3ParticipatingBranchesScheduleScreen({
         subtitle="Step-by-step voucher redemption flow shown to diners."
         badge="Customer Guide"
         trailingMeta="3 steps"
+        toggleGlyph="plus"
         expanded={claimExpanded}
         onToggle={() => setClaimExpanded(current => !current)}
       >
@@ -164,6 +165,7 @@ export function CreateDealStep3ParticipatingBranchesScheduleScreen({
         </View>
         <Button
           label="Add Claim Step"
+          labelVariant="labelMd"
           variant="outline"
           className="min-h-11 border-dashed bg-surface"
           leftIcon={<Icon name="plusCircle" size={18} color={colors.primary} />}
@@ -174,7 +176,8 @@ export function CreateDealStep3ParticipatingBranchesScheduleScreen({
       <BusinessCollapsibleCard
         title="Terms & Conditions Rules"
         subtitle="Clear redemption limits and restaurant policies."
-        badge="Auto-formatted"
+        trailingMeta="Auto-formatted"
+        toggleGlyph="plus"
         expanded={termsExpanded}
         onToggle={() => setTermsExpanded(current => !current)}
       >
@@ -216,7 +219,7 @@ export function CreateDealStep3ParticipatingBranchesScheduleScreen({
                 className="flex-row items-center gap-1 rounded-full bg-surface-container px-2.5 py-1 active:bg-surface-tint"
                 onPress={() => addSuggestedTerm(suggestion, setTerms, onAddTerm)}
               >
-                <Icon name="plus" size={14} color={colors.primary} />
+                <Icon name="plus" size={14} color={colors.textSecondary} />
                 <VemtapText variant="caption" tone="secondary">
                   {suggestion}
                 </VemtapText>
@@ -237,9 +240,10 @@ export function CreateDealStep3ParticipatingBranchesScheduleScreen({
           />
           <Button
             label="Add"
+            labelVariant="labelMd"
             variant="secondary"
             fullWidth={false}
-            className="min-h-11 min-w-[84px] shrink-0 px-4"
+            className="min-h-11 min-w-[84px] shrink-0 border-0 bg-surface-tint px-4"
             leftIcon={<Icon name="plus" size={18} color={colors.primary} />}
             onPress={addTerm}
           />

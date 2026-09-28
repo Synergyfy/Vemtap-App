@@ -8,6 +8,7 @@ import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { colors } from '@theme/colors';
 import { businessLocationCopy as copy } from '@features/business/businessCopy';
+import { BusinessSectionHeading } from '@features/business/components/BusinessPrimitives';
 import {
   countryFlags,
   primaryBranchRegion,
@@ -140,7 +141,7 @@ export function AddBranchLocationScreen({
 
       <ScrollView
         className="flex-1"
-        contentContainerClassName="gap-6 px-6 pb-6 pt-4"
+        contentContainerClassName="gap-6 px-6 pb-8 pt-4"
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
@@ -169,6 +170,7 @@ export function AddBranchLocationScreen({
           title={copy.addBranch.inheritTitle}
           body={copy.addBranch.inheritBody}
           titleClassName="text-primary"
+          iconSize={22}
         />
 
         <SetupSectionCard>
@@ -373,7 +375,11 @@ export function AddBranchLocationScreen({
         </SetupSectionCard>
 
         <SetupSectionCard>
-          <SetupSectionHeading title={copy.addBranch.hoursTitle} icon="schedule" dot />
+          <BusinessSectionHeading
+            title={copy.addBranch.hoursTitle}
+            dot
+            trailing={<Icon name="schedule" size={20} color={colors.textTertiary} />}
+          />
           <View className="flex-row items-center justify-between gap-3 rounded-field bg-surface-subtle p-3">
             <View className="min-w-0 flex-1 flex-row items-center gap-3">
               <View className="h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-tint-blue">
@@ -403,7 +409,7 @@ export function AddBranchLocationScreen({
         </SetupSectionCard>
       </ScrollView>
 
-      <View className="gap-2 px-6 pb-2 pt-3">
+      <View className="gap-3 px-6 pb-6 pt-0">
         <PrimaryActionButton
           label={copy.addBranch.save}
           onPress={() => onSave?.(draft)}

@@ -20,7 +20,7 @@ test('renders all six standalone account screens', async () => {
   expect(more.getByText('More')).toBeTruthy();
   expect(profile.getByText('Edit Profile')).toBeTruthy();
   expect(rewards.getByText('Rewards & Loyalty')).toBeTruthy();
-  expect(savings.getByText('Savings & Rewards History')).toBeTruthy();
+  expect(savings.getByText('Savings History & Ledger')).toBeTruthy();
   expect(activity.getByText('User Activity')).toBeTruthy();
   expect(booking.getByText('Booking Detail')).toBeTruthy();
 });

@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { AuthStack } from '@navigation/AuthStack';
 import { AppStack } from '@navigation/AppStack';
 import { BusinessSetupNavigator } from '@navigation/BusinessSetupNavigator';
+import { BusinessTabNavigator } from '@navigation/BusinessTabNavigator';
 import type { RootStackParamList } from '@navigation/types';
 import { useAuthStore, selectIsAuthenticated } from '@store/authStore';
 
@@ -85,6 +86,13 @@ export function RootNavigator() {
           <Stack.Screen name="AuthStack" component={AuthStack} />
         )}
         <Stack.Screen name="BusinessSetup" component={BusinessSetupNavigator} />
+        {/*
+          The business app is a root sibling of the onboarding flow, not a child
+          of AppStack: the flow is reachable while signed out (Sign In / Register
+          → "Set up your business"), so its exit must not depend on `AppStack`
+          existing.
+        */}
+        <Stack.Screen name="BusinessTabs" component={BusinessTabNavigator} />
       </Stack.Navigator>
     </NavigationContainer>
   );

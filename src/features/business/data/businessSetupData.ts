@@ -17,6 +17,9 @@ export const businessMedia = {
   jollofPreview: {
     uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDkfprK4b3z0fbDUF86XnoJYvvLLdI4sdfnLRFeCwVkN4wApWoEhS2XTTFal_a2bM8WIdPbkZM8KhTHNVZM2OshTBG6UR322ToSvO7qJtciL-Eo-6qN-bbjiDuORpAmjYUFfv93JVxCUmkc7OR0spZOzFsvYmbJOAcLnQG07xX1bVa1m7xpGp57t5wgl8TIUts7BamIGd-dkJmGqUX0v2mBrUsATT8qeJqWtQ_8qSbp',
   },
+  reviewMap: {
+    uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAWtUvHLIcbqcTqjm7Kx_93XfJ_fHBLr7QmFDcmIVAABkhYXEXSspRFsRgxjOCsEPgtYtQ28EK0yQWUuVXy5cy5za0PMZF5WAMIYnKg4gw9ML3glWMn4EmyvyEKGpnzxU1zKRS-akWkk7GGyVGMoHdo6JfOJCYzajOjjnX5icjnTygV1VVPm4zhcxadKg-Z1UkVG8YxFNpXvGKsTQ0TXoPvgNbl96fMziRslo72aL1M',
+  },
   customerPassPreview: {
     uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB9LSZ0igpV-CzTdKx1j3WTuqqk8z-z4zHbkTwlWq_Us36LF0sXWxrMC9drNESSSdhIOk60Y_blTQOZWSN-Qe-ptseWhVCz3tdDvzmd5QVtkBrWoLKHqpU-r_KceD4kqRqrtoPKE8EIO97exb7M41GPwNBM8JW7ClSzY6-bOtBv0awBILMrgU2-sudicSDAZN7lyGO8LRmo8iLeqeqVPxjp3ZFG9_PZbP53VjS8hQcBMiawormtvD1OMA',
   },

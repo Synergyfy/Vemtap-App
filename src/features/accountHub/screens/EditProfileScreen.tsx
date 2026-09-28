@@ -64,20 +64,26 @@ export function EditProfileScreen({
           </VemtapText>
         </View>
         <View className="flex-row items-center gap-3 rounded-card bg-surface p-4 shadow-sm">
-          <View className="h-10 w-10 items-center justify-center rounded-full bg-badge-discount-bg">
+          <View className="h-10 w-10 shrink-0 items-center justify-center rounded-full bg-badge-discount-bg">
             <Icon name="verifiedUser" size={22} color={colors.badgeDiscountText} />
           </View>
           <View className="min-w-0 flex-1">
             <View className="flex-row items-center gap-2">
-              <VemtapText variant="headingSm">{copy.verifiedConsumer}</VemtapText>
+              <VemtapText
+                variant="labelMd"
+                className="font-sans-semibold"
+                numberOfLines={1}
+              >
+                {copy.verifiedConsumer}
+              </VemtapText>
               <Icon name="checkCircle" size={16} color={colors.badgeDiscountText} />
             </View>
             <VemtapText variant="caption" tone="secondary">
               {copy.activeSince}
             </VemtapText>
           </View>
-          <View className="rounded-full bg-badge-discount-bg px-2 py-1">
-            <VemtapText variant="labelSm" tone="success">
+          <View className="shrink-0 rounded-full bg-badge-discount-bg px-2 py-1">
+            <VemtapText variant="labelSm" tone="success" numberOfLines={1}>
               {copy.level}
             </VemtapText>
           </View>
@@ -146,15 +152,22 @@ export function EditProfileScreen({
         <View className="flex-row gap-3 rounded-card bg-surface-tint p-4">
           <Icon name="localMall" size={22} color={colors.primary} />
           <View className="min-w-0 flex-1">
-            <VemtapText variant="headingSm">{copy.perks}</VemtapText>
+            <VemtapText variant="bodyMd" className="font-sans-semibold">
+              {copy.perks}
+            </VemtapText>
             <VemtapText variant="caption" tone="secondary">
               {copy.perksBody}
             </VemtapText>
           </View>
         </View>
         <View className="gap-2">
-          <Button label={copy.save} onPress={onSave} />
-          <Button label={copy.discard} variant="ghost" onPress={onDiscard} />
+          <Button label={copy.save} onPress={onSave} labelVariant="labelMd" />
+          <Button
+            label={copy.discard}
+            variant="ghost"
+            onPress={onDiscard}
+            labelVariant="labelMd"
+          />
         </View>
       </PageScroll>
     </SafeAreaView>
