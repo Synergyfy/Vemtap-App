@@ -10,6 +10,7 @@ import { ProductPublishedMakeItADealScreen } from '@features/business/screens/Pr
 import { CreateDealOfferAutoImportedScreen } from '@features/business/screens/CreateDealOfferAutoImportedScreen';
 import { CreateDealStep2LimitsGiftingRulesScreen } from '@features/business/screens/CreateDealStep2LimitsGiftingRulesScreen';
 import { CreateDealStep3ParticipatingBranchesScheduleScreen } from '@features/business/screens/CreateDealStep3ParticipatingBranchesScheduleScreen';
+import { strings } from '@constants/strings';
 import { YourVemtapBusinessQrIsReadyScreen } from '@features/business/screens/YourVemtapBusinessQrIsReadyScreen';
 
 const onBack = jest.fn();
@@ -111,5 +112,25 @@ describe('product, deal and QR setup screens', () => {
       fireEvent.press(view.getByLabelText('Copy business QR link'));
     });
     expect(view.getByText('Link copied to clipboard!')).toBeTruthy();
+  });
+
+  it('renders the setup badge and the referral perk from the revised design', async () => {
+    const onOpenReferrals = jest.fn();
+    const view = await render(
+      <YourVemtapBusinessQrIsReadyScreen
+        onBack={onBack}
+        onOpenReferrals={onOpenReferrals}
+      />,
+    );
+
+    expect(view.getByText(strings.businessQrReady.setupBadge)).toBeTruthy();
+    expect(view.getByText(strings.businessQrReady.referralBadge)).toBeTruthy();
+    expect(view.getByText(strings.businessQrReady.referralTitle)).toBeTruthy();
+    expect(view.getByText(strings.businessQrReady.referralBody)).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.press(view.getByLabelText(strings.businessQrReady.referralCta));
+    });
+    expect(onOpenReferrals).toHaveBeenCalledTimes(1);
   });
 });

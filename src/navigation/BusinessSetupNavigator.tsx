@@ -75,6 +75,12 @@ export const businessDashboardEntry = {
   screen: 'BusinessOverview',
 } as const;
 
+/** The Business Network surfaces live in the business shell, not in setup. */
+export const businessNetworkEntry = {
+  screen: 'BusinessMore',
+  params: { screen: 'BusinessNetworkIntroHub' },
+} as const;
+
 function useRootNavigation() {
   return useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 }
@@ -82,6 +88,12 @@ function useRootNavigation() {
 export function useBusinessDashboardEntry() {
   const navigation = useRootNavigation();
   return () => navigation.navigate('BusinessTabs', businessDashboardEntry);
+}
+
+/** Referral growth hand-off: drops the owner into the Business Network hub. */
+export function useBusinessNetworkEntry() {
+  const navigation = useRootNavigation();
+  return () => navigation.navigate('BusinessTabs', businessNetworkEntry);
 }
 
 function BusinessIntroductionRoute() {
@@ -382,6 +394,9 @@ function CreateDealStep4Route() {
 function BusinessQrReadyRoute() {
   const navigation = useFlowNavigation();
   const openBusinessDashboard = useBusinessDashboardEntry();
+  // The referral perk belongs to the business app, so it crosses to that shell
+  // the same way the dashboard hand-off does.
+  const openBusinessNetwork = useBusinessNetworkEntry();
   return (
     <YourVemtapBusinessQrIsReadyScreen
       onBack={navigation.goBack}
@@ -391,6 +406,7 @@ function BusinessQrReadyRoute() {
       onPresentFullscreen={() => undefined}
       onDownloadKit={() => undefined}
       onCopyLink={() => undefined}
+      onOpenReferrals={openBusinessNetwork}
       onContinue={openBusinessDashboard}
     />
   );

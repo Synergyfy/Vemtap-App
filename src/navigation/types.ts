@@ -106,6 +106,8 @@ export type BusinessStackParamList = {
   SplitTheBill: undefined;
   DigitalEReceipt: undefined;
   /** Account, trust & support surfaces (More hub). */
+  /** One chat surface for every thread on the Messages hub. */
+  BusinessConversation: { threadId: string } | undefined;
   BusinessNotifications: undefined;
   BusinessSubscriptionBilling: undefined;
   BusinessVerificationTrust: undefined;
@@ -413,7 +415,6 @@ export type AccountStackParamList = {
   Activity: undefined;
   Rewards: undefined;
   SavingsHistory: undefined;
-  Notifications: undefined;
   AccountSettings: undefined;
   EditProfile: undefined;
   ClaimedDealPass: { dealId?: string } | undefined;

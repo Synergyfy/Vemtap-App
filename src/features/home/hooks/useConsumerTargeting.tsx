@@ -30,6 +30,10 @@ export interface UseConsumerTargetingOptions extends ConsumerTargetingHeaderProp
   onOpenLocationSelect: () => void;
   /** Device-location request behind the sheet's auto-detect row. */
   onUseCurrentLocation?: () => void;
+  /** Bell action on the navbar; owned by the shell, not the hook. */
+  onPressNotifications?: () => void;
+  /** Avatar action on the navbar. */
+  onPressAvatar?: () => void;
 }
 
 export interface ConsumerTargeting {
@@ -72,6 +76,8 @@ export function useConsumerTargeting({
   showGreeting,
   onOpenLocationSelect,
   onUseCurrentLocation,
+  onPressNotifications,
+  onPressAvatar,
 }: UseConsumerTargetingOptions): ConsumerTargeting {
   const isOnline = useIsOnline();
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -104,8 +110,14 @@ export function useConsumerTargeting({
   );
 
   const headerProps = useMemo(
-    () => ({ title, showGreeting, ...controlsProps }),
-    [controlsProps, showGreeting, title],
+    () => ({
+      title,
+      showGreeting,
+      onPressAvatar,
+      onPressNotifications,
+      ...controlsProps,
+    }),
+    [controlsProps, onPressAvatar, onPressNotifications, showGreeting, title],
   );
 
   const renderRadiusSheet = useCallback(

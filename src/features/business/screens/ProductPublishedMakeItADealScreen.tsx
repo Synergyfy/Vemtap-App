@@ -115,7 +115,7 @@ export function ProductPublishedMakeItADealScreen({
               </VemtapText>
             </View>
           </View>
-          <View className="min-w-0 flex-1">
+          <View className="min-w-0 min-w-0 flex-1">
             <VemtapText
               variant="labelMd"
               className="font-sans-semibold"
@@ -185,7 +185,11 @@ export function ProductPublishedMakeItADealScreen({
         />
         <View className="flex-row items-start gap-2 rounded-lg bg-surface-tint p-3">
           <Icon name="lightbulb" size={18} color={colors.primary} />
-          <VemtapText variant="caption" tone="secondary" className="min-w-0 flex-1">
+          <VemtapText
+            variant="caption"
+            tone="secondary"
+            className="min-w-0 min-w-0 flex-1"
+          >
             <VemtapText className="font-sans-semibold">Merchant Pro Tip:</VemtapText> You
             do not have to discount everything. Pick signature dishes like this Ribeye
             Steak as magnet offers to pull first-time diners through your doors!
@@ -239,7 +243,11 @@ export function ProductPublishedMakeItADealScreen({
 
       <View className="flex-row items-center justify-center gap-1 px-2">
         <Icon name="info" size={16} color={colors.textTertiary} />
-        <VemtapText variant="caption" tone="secondary" className="flex-1 text-center">
+        <VemtapText
+          variant="caption"
+          tone="secondary"
+          className="min-w-0 flex-1 text-center"
+        >
           Flexible control: you can switch or promote any item anytime directly from your
           Products tab.
         </VemtapText>
@@ -300,7 +308,7 @@ export function ProductPublishedMakeItADealScreen({
             </View>
           </View>
           <View className="flex-row items-center justify-between gap-3 rounded-lg bg-surface-container-low p-3">
-            <View className="min-w-0 flex-1 flex-row items-center gap-2">
+            <View className="min-w-0 min-w-0 flex-1 flex-row items-center gap-2">
               <Icon name="confirmation" size={20} color={colors.primary} />
               <View className="min-w-0 flex-1">
                 <VemtapText variant="labelSm" className="font-sans-semibold">

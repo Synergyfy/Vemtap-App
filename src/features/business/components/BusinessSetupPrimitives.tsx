@@ -4,6 +4,7 @@ import {
   ScrollView,
   Switch,
   View,
+  type ImageSourcePropType,
   type KeyboardTypeOptions,
 } from 'react-native';
 import { cssInterop } from 'nativewind';
@@ -731,6 +732,8 @@ export function SectionMetaRow({
 
 export interface InlineImageCardProps {
   uri: string;
+  /** Bundled asset source; wins over `uri` so local artwork never needs a network round trip. */
+  source?: ImageSourcePropType;
   alt?: string;
   height: number;
   rounded?: 'card' | 'field' | 'lg';
@@ -740,6 +743,7 @@ export interface InlineImageCardProps {
 
 export function InlineImageCard({
   uri,
+  source,
   alt = 'Business setup image',
   height,
   rounded = 'card',
@@ -759,20 +763,26 @@ export function InlineImageCard({
       )}
       style={{ height }}
     >
-      <BusinessProductImage source={{ uri }} alt={alt} className="h-full w-full" />
+      <BusinessProductImage
+        source={source ?? { uri }}
+        alt={alt}
+        className="h-full w-full"
+      />
       {children}
     </View>
   );
 }
 
 export interface ThumbnailProps {
-  uri: string;
+  uri?: string;
+  /** Bundled asset source; wins over `uri`. */
+  source?: ImageSourcePropType;
   label?: string;
   onPress?: () => void;
   className?: string;
 }
 
-export function Thumbnail({ uri, label, onPress, className }: ThumbnailProps) {
+export function Thumbnail({ uri, source, label, onPress, className }: ThumbnailProps) {
   return (
     <Pressable
       accessibilityRole="image"
@@ -784,8 +794,8 @@ export function Thumbnail({ uri, label, onPress, className }: ThumbnailProps) {
       )}
     >
       <BusinessProductImage
-        source={{ uri }}
-        alt={label ?? uri}
+        source={source ?? { uri }}
+        alt={label ?? uri ?? 'Business image'}
         className="h-full w-full"
       />
     </Pressable>

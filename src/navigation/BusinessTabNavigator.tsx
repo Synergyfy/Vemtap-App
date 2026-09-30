@@ -2,14 +2,7 @@ import React, { useState } from 'react';
 import { View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import {
-  useNavigation,
-  useRoute,
-  type CompositeNavigationProp,
-  type RouteProp,
-} from '@react-navigation/native';
-import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useRoute, type RouteProp } from '@react-navigation/native';
 import { strings } from '@constants/strings';
 import { BusinessTabBar } from '@features/business/components/BusinessTabBar';
 import { BusinessDashboardOverviewScreen } from '@features/business/screens/BusinessDashboardOverviewScreen';
@@ -18,6 +11,7 @@ import { OrderDetailScreen } from '@features/business/screens/BusinessOrderDetai
 import { BusinessBookingsHubScreen } from '@features/business/screens/BusinessBookingsHubScreen';
 import { BusinessPosOrdersViewScreen } from '@features/business/screens/BusinessPosOrdersViewScreen';
 import { BusinessMessagesHomeScreen } from '@features/business/screens/BusinessMessagesHomeScreen';
+import { BusinessConversationScreen } from '@features/business/screens/BusinessConversationScreen';
 import { BusinessHubCentralManagementScreen } from '@features/business/screens/BusinessHubCentralManagementScreen';
 import { BusinessMoreHubScreen } from '@features/business/screens/BusinessMoreHubScreen';
 import { BusinessManagementHubScreen } from '@features/business/screens/BusinessManagementHubScreen';
@@ -121,39 +115,15 @@ import { ReferralDetailScreen } from '@features/business/screens/ReferralDetailS
 import { BusinessNetworkActiveDashboardScreen } from '@features/business/screens/BusinessNetworkActiveDashboardScreen';
 import { InviteABusinessSheet } from '@features/business/screens/InviteABusinessSheet';
 import { TypeDensityProvider } from '@theme/TypeDensityProvider';
-import type {
-  AppStackParamList,
-  BusinessStackParamList,
-  BusinessTabParamList,
-  RootStackParamList,
-} from './types';
+import { useBusinessNavigation } from './useBusinessNavigation';
+import type { BusinessTabParamList } from './types';
 
 /**
  * The business app lives inside AppStack, so tab routes need the AppStack prop and
  * root-level routes (the business onboarding flow) need the Root prop.
  */
-type AppStackNavigation = CompositeNavigationProp<
-  BottomTabNavigationProp<BusinessTabParamList>,
-  CompositeNavigationProp<
-    NativeStackNavigationProp<AppStackParamList>,
-    NativeStackNavigationProp<RootStackParamList>
-  >
->;
-
-type OrdersStackNavigation = NativeStackNavigationProp<BusinessTabParamList>;
-type MoreNavigation = NativeStackNavigationProp<BusinessStackParamList>;
 
 /** More-hub rows: direct More-stack pushes, or a hop to a sibling tab stack. */
-type MoreHubNavigation = CompositeNavigationProp<
-  NativeStackNavigationProp<BusinessStackParamList>,
-  CompositeNavigationProp<
-    BottomTabNavigationProp<BusinessTabParamList>,
-    CompositeNavigationProp<
-      NativeStackNavigationProp<AppStackParamList>,
-      NativeStackNavigationProp<RootStackParamList>
-    >
-  >
->;
 
 const Tab = createBottomTabNavigator<BusinessTabParamList>();
 const OverviewStack = createNativeStackNavigator<BusinessTabParamList>();
@@ -165,19 +135,13 @@ const MoreStack = createNativeStackNavigator<BusinessTabParamList>();
 const stackOptions = { headerShown: false } as const;
 
 function BusinessOverviewRoute() {
-  const navigation = useNavigation<AppStackNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <BusinessDashboardOverviewScreen
-      onOpenOrders={() =>
-        navigation.navigate('BusinessTabs', { screen: 'BusinessOrders' })
-      }
-      onOpenMessages={() =>
-        navigation.navigate('BusinessTabs', { screen: 'BusinessMessages' })
-      }
-      onManageLocations={() =>
-        navigation.navigate('BusinessTabs', { screen: 'BusinessHub' })
-      }
-      onAddBranch={() => navigation.navigate('BusinessTabs', { screen: 'BusinessHub' })}
+      onOpenOrders={() => navigation.navigate('BusinessOrders')}
+      onOpenMessages={() => navigation.navigate('BusinessMessages')}
+      onManageLocations={() => navigation.navigate('BusinessHub')}
+      onAddBranch={() => navigation.navigate('BusinessHub')}
     />
   );
 }
@@ -188,10 +152,14 @@ function BusinessOverviewRoute() {
  * copy: `navigate` on a route already in the stack pops back to it.
  */
 function BusinessOrdersSurfaceRoute() {
-  const navigation = useNavigation<OrdersStackNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <BusinessOrdersHubScreen
-      onOpenBookings={() => navigation.navigate('BusinessBookings')}
+      // Branch changes are reported by the shared switcher; this flow has no
+      // per-branch data fetch yet, so the selection stays local to the control.
+      // Adding a location lives in the setup stack, which this nested Orders
+      // screen cannot address; hand off to the branch management surface here.
+      onAddBranch={() => navigation.navigate('BusinessManagementHub')}
       onOpenPosOrders={() => navigation.navigate('BusinessPosOrders')}
       onOpenOrder={orderId =>
         navigation.navigate('BusinessOrderDetail', { orderId: orderId ?? 'vg-94021' })
@@ -203,7 +171,7 @@ function BusinessOrdersSurfaceRoute() {
 }
 
 function BusinessOrderDetailRoute() {
-  const navigation = useNavigation<OrdersStackNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <OrderDetailScreen
       onBack={navigation.goBack}
@@ -217,7 +185,7 @@ function BusinessOrderDetailRoute() {
 }
 
 function BusinessBookingsRoute() {
-  const navigation = useNavigation<OrdersStackNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <BusinessBookingsHubScreen
       // Returns to the Orders surface already sitting below in this stack, so
@@ -236,7 +204,7 @@ function BusinessBookingsRoute() {
 }
 
 function BusinessPosOrdersRoute() {
-  const navigation = useNavigation<OrdersStackNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <BusinessPosOrdersViewScreen
       onBack={navigation.goBack}
@@ -249,21 +217,41 @@ function BusinessPosOrdersRoute() {
 }
 
 function BusinessMessagesRoute() {
-  const navigation = useNavigation<AppStackNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <BusinessMessagesHomeScreen
-      onNewMessage={() =>
-        navigation.navigate('BusinessTabs', { screen: 'BusinessMessages' })
+      onOpenThread={threadId => navigation.navigate('BusinessConversation', { threadId })}
+    />
+  );
+}
+
+function BusinessConversationRoute() {
+  const navigation = useBusinessNavigation();
+  const route = useRoute<RouteProp<BusinessTabParamList, 'BusinessConversation'>>();
+  const threadId = route.params?.threadId ?? strings.businessMessages.threads[0].id;
+  const thread = strings.businessMessages.threads.find(item => item.id === threadId);
+
+  return (
+    <BusinessConversationScreen
+      threadId={threadId}
+      onBack={navigation.goBack}
+      thread={
+        thread
+          ? {
+              name: thread.name,
+              time: thread.time,
+              context: thread.context,
+              contextIcon: thread.contextIcon,
+            }
+          : undefined
       }
     />
   );
 }
 
-type HubNavigation = NativeStackNavigationProp<BusinessTabParamList>;
-
 /** Every Business-tab module id resolves to exactly one destination. */
 function BusinessHubRoute() {
-  const navigation = useNavigation<HubNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <BusinessHubCentralManagementScreen
       onOpenDeals={() =>
@@ -283,7 +271,7 @@ function BusinessHubRoute() {
 }
 
 function BusinessManagementHubRoute() {
-  const navigation = useNavigation<HubNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <BusinessManagementHubScreen
       onNotifications={() => undefined}
@@ -321,7 +309,7 @@ function BusinessManagementHubRoute() {
 }
 
 function BusinessProfilePreviewRoute() {
-  const navigation = useNavigation<HubNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <BusinessProfilePreviewScreen
       onBack={navigation.goBack}
@@ -341,7 +329,7 @@ function BusinessProfilePreviewRoute() {
 }
 
 function CentralDealsManagementRoute() {
-  const navigation = useNavigation<HubNavigation>();
+  const navigation = useBusinessNavigation();
   const route = useRoute<RouteProp<BusinessTabParamList, 'CentralDealsManagement'>>();
   const layout = route.params?.layout ?? 'hero';
   return (
@@ -363,7 +351,7 @@ function CentralDealsManagementRoute() {
 }
 
 function DealDetailsPerformanceRoute() {
-  const navigation = useNavigation<HubNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <DealDetailsPerformanceScreen
       onBack={navigation.goBack}
@@ -381,7 +369,7 @@ function DealDetailsPerformanceRoute() {
 }
 
 function CreateDealLocationAssignmentRoute() {
-  const navigation = useNavigation<HubNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <CreateDealLocationAssignmentScreen
       onBack={navigation.goBack}
@@ -394,7 +382,7 @@ function CreateDealLocationAssignmentRoute() {
 }
 
 function DealLocationAssignmentPricingRoute() {
-  const navigation = useNavigation<HubNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <DealLocationAssignmentPricingScreen
       onBack={navigation.goBack}
@@ -406,7 +394,7 @@ function DealLocationAssignmentPricingRoute() {
 }
 
 function ProductLocationAssignmentRoute() {
-  const navigation = useNavigation<HubNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <LocationAssignmentBranchPricingScreen
       onBack={navigation.goBack}
@@ -417,7 +405,7 @@ function ProductLocationAssignmentRoute() {
 }
 
 function BranchAvailabilityLocationPricingRoute() {
-  const navigation = useNavigation<HubNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <BranchAvailabilityLocationPricingScreen
       onBack={navigation.goBack}
@@ -428,7 +416,7 @@ function BranchAvailabilityLocationPricingRoute() {
 }
 
 function CentralCatalogueRoute() {
-  const navigation = useNavigation<HubNavigation>();
+  const navigation = useBusinessNavigation();
   const route = useRoute<RouteProp<BusinessTabParamList, 'CentralCatalogue'>>();
   const layout = route.params?.layout ?? 'directory';
   return (
@@ -463,7 +451,7 @@ function ServicesCategoriesRoute() {
 }
 
 function AddProductBasicsMediaRoute() {
-  const navigation = useNavigation<HubNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <AddProductBasicsMediaScreen
       onBack={navigation.goBack}
@@ -476,7 +464,7 @@ function AddProductBasicsMediaRoute() {
 }
 
 function LocationsBranchesRoute() {
-  const navigation = useNavigation<HubNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <LocationsBranchesScreen
       onNotifications={() => undefined}
@@ -492,7 +480,7 @@ function LocationsBranchesRoute() {
 }
 
 function WuseBranchDetailsRoute() {
-  const navigation = useNavigation<HubNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <WuseBranchDetailsScreen
       onBack={navigation.goBack}
@@ -509,7 +497,7 @@ function WuseBranchDetailsRoute() {
 }
 
 function CustomerCrmDirectoryRoute() {
-  const navigation = useNavigation<HubNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <CustomerCrmDirectoryScreen
       onNotifications={() => undefined}
@@ -526,7 +514,7 @@ function CustomerCrmDirectoryRoute() {
 }
 
 function CustomerProfileDossierRoute() {
-  const navigation = useNavigation<HubNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <CustomerProfileDossierScreen
       onBack={navigation.goBack}
@@ -544,7 +532,7 @@ function CustomerProfileDossierRoute() {
 }
 
 function LoyaltyProgrammeRoute() {
-  const navigation = useNavigation<HubNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <LoyaltyProgrammeConfigurationScreen
       onNotifications={() => undefined}
@@ -559,7 +547,7 @@ function LoyaltyProgrammeRoute() {
 }
 
 function LoyaltyRewardsRoute() {
-  const navigation = useNavigation<HubNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <LoyaltyRewardsRulesScreen
       onBack={navigation.goBack}
@@ -573,7 +561,7 @@ function LoyaltyRewardsRoute() {
 }
 
 function StaffDirectoryRoute() {
-  const navigation = useNavigation<HubNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <StaffTeamAccessDirectoryScreen
       onNotifications={() => undefined}
@@ -590,7 +578,7 @@ function StaffDirectoryRoute() {
 }
 
 function InviteStaffRoute() {
-  const navigation = useNavigation<HubNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <InviteStaffPermissionsScreen
       onBack={navigation.goBack}
@@ -607,7 +595,7 @@ function InviteStaffRoute() {
 /* -------------------------------------------------------------------------- */
 
 function BusinessCustomerIntelligenceRoute() {
-  const navigation = useNavigation<HubNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <CustomerIntelligenceAnalyticsScreen
       onBack={navigation.goBack}
@@ -625,7 +613,7 @@ function BusinessCustomerIntelligenceRoute() {
 }
 
 function BusinessPerformanceAnalyticsRoute() {
-  const navigation = useNavigation<HubNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <BusinessAnalyticsPerformanceScreen
       onBack={navigation.goBack}
@@ -649,7 +637,7 @@ function BusinessPerformanceAnalyticsRoute() {
  * so it keeps its own back-stack entry; the screen component is shared.
  */
 function DealsFlashRadarRoute() {
-  const navigation = useNavigation<HubNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <CentralDealsManagementScreen
       layout="compact"
@@ -670,7 +658,7 @@ function DealsFlashRadarRoute() {
 
 /** `central_deals_management_3` — the campaigns & deals treatment. */
 function CampaignsDealsManagementRoute() {
-  const navigation = useNavigation<HubNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <CentralDealsManagementScreen
       layout="discovery"
@@ -691,7 +679,7 @@ function CampaignsDealsManagementRoute() {
 
 /** `central_products_services_catalogue_2` — the business-hub catalogue. */
 function BusinessHubCatalogueRoute() {
-  const navigation = useNavigation<HubNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <CentralCatalogueScreen
       layout="businessHub"
@@ -709,7 +697,7 @@ function BusinessHubCatalogueRoute() {
 }
 
 function BranchComparisonRoute() {
-  const navigation = useNavigation<HubNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <LocationsBranchComparisonScreen
       onBack={navigation.goBack}
@@ -721,7 +709,7 @@ function BranchComparisonRoute() {
 }
 
 function BusinessReviewsReputationRoute() {
-  const navigation = useNavigation<HubNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <BusinessReviewsReputationScreen
       onBack={navigation.goBack}
@@ -740,7 +728,7 @@ function BusinessReviewsReputationRoute() {
 /* -------------------------------------------------------------------------- */
 
 function CustomerDisplayOrderRoute() {
-  const navigation = useNavigation<OrdersStackNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <CustomerDisplayOrderTotalScreen
       onEditOrder={navigation.goBack}
@@ -752,7 +740,7 @@ function CustomerDisplayOrderRoute() {
 }
 
 function CustomerDisplayPaymentRoute() {
-  const navigation = useNavigation<OrdersStackNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <CustomerDisplayTapQrPayScreen
       onBack={navigation.goBack}
@@ -765,7 +753,7 @@ function CustomerDisplayPaymentRoute() {
 }
 
 function CustomerDisplayRatingRoute() {
-  const navigation = useNavigation<OrdersStackNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <CustomerDisplayTipRatingScreen
       onBack={navigation.goBack}
@@ -778,7 +766,7 @@ function CustomerDisplayRatingRoute() {
 }
 
 function SplitTheBillRoute() {
-  const navigation = useNavigation<OrdersStackNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <SplitTheBillScreen
       onBack={navigation.goBack}
@@ -790,7 +778,7 @@ function SplitTheBillRoute() {
 }
 
 function DigitalEReceiptRoute() {
-  const navigation = useNavigation<OrdersStackNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <DigitalEReceiptScreen
       onBack={navigation.goBack}
@@ -807,7 +795,7 @@ function DigitalEReceiptRoute() {
 /* -------------------------------------------------------------------------- */
 
 function BusinessNotificationsRoute() {
-  const navigation = useNavigation<MoreNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <BusinessNotificationsCenterScreen
       onBack={navigation.goBack}
@@ -821,7 +809,7 @@ function BusinessNotificationsRoute() {
 }
 
 function BusinessSubscriptionBillingRoute() {
-  const navigation = useNavigation<MoreNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <BusinessSubscriptionBillingScreen
       onBack={navigation.goBack}
@@ -838,7 +826,7 @@ function BusinessSubscriptionBillingRoute() {
 }
 
 function BusinessVerificationTrustRoute() {
-  const navigation = useNavigation<MoreNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <BusinessVerificationTrustScreen
       onBack={navigation.goBack}
@@ -851,7 +839,7 @@ function BusinessVerificationTrustRoute() {
 }
 
 function BusinessSupportHelpRoute() {
-  const navigation = useNavigation<MoreNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <BusinessSupportHelpScreen
       onBack={navigation.goBack}
@@ -867,7 +855,7 @@ function BusinessSupportHelpRoute() {
 }
 
 function BusinessSettingsRoute() {
-  const navigation = useNavigation<MoreNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <BusinessSettingsScreen
       onBack={navigation.goBack}
@@ -881,7 +869,7 @@ function BusinessSettingsRoute() {
 }
 
 function SwitchToCustomerRoute() {
-  const navigation = useNavigation<MoreNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <SwitchToCustomerScreen
       onBack={navigation.goBack}
@@ -900,7 +888,7 @@ function SwitchToCustomerRoute() {
 /* -------------------------------------------------------------------------- */
 
 function CampaignsHubRoute() {
-  const navigation = useNavigation<MoreHubNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <CampaignsHubScreen
       onBack={navigation.goBack}
@@ -923,7 +911,7 @@ function CampaignsHubRoute() {
 }
 
 function CustomerSegmentsRoute() {
-  const navigation = useNavigation<MoreHubNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <CustomerSegmentsScreen
       onBack={navigation.goBack}
@@ -946,7 +934,7 @@ function CustomerSegmentsRoute() {
 }
 
 function BoostEngineRoute() {
-  const navigation = useNavigation<MoreHubNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <BoostEngineScreen
       onBack={navigation.goBack}
@@ -979,7 +967,7 @@ const analyticsTabByRoute: Record<string, string> = {
 };
 
 function BusinessAnalyticsRoute() {
-  const navigation = useNavigation<MoreHubNavigation>();
+  const navigation = useBusinessNavigation();
   const [filterOpen, setFilterOpen] = useState(false);
   const openExport = () => navigation.navigate('AnalyticsExportReport');
   return (
@@ -1006,7 +994,7 @@ function BusinessAnalyticsRoute() {
 }
 
 function CustomersAnalyticsRoute() {
-  const navigation = useNavigation<MoreHubNavigation>();
+  const navigation = useBusinessNavigation();
   const [filterOpen, setFilterOpen] = useState(false);
   return (
     <View className="flex-1">
@@ -1032,7 +1020,7 @@ function CustomersAnalyticsRoute() {
 }
 
 function DealsAnalyticsRoute() {
-  const navigation = useNavigation<MoreHubNavigation>();
+  const navigation = useBusinessNavigation();
   const [filterOpen, setFilterOpen] = useState(false);
   return (
     <View className="flex-1">
@@ -1058,7 +1046,7 @@ function DealsAnalyticsRoute() {
 }
 
 function LocationsAnalyticsRoute() {
-  const navigation = useNavigation<MoreHubNavigation>();
+  const navigation = useBusinessNavigation();
   const [filterOpen, setFilterOpen] = useState(false);
   return (
     <View className="flex-1">
@@ -1084,7 +1072,7 @@ function LocationsAnalyticsRoute() {
 }
 
 function PosAnalyticsRoute() {
-  const navigation = useNavigation<MoreHubNavigation>();
+  const navigation = useBusinessNavigation();
   const [filterOpen, setFilterOpen] = useState(false);
   return (
     <View className="flex-1">
@@ -1110,7 +1098,7 @@ function PosAnalyticsRoute() {
 }
 
 function AnalyticsExportReportRoute() {
-  const navigation = useNavigation<MoreHubNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <ExportAnalyticsReportScreen onClose={navigation.goBack} onExport={() => undefined} />
   );
@@ -1121,7 +1109,7 @@ function AnalyticsExportReportRoute() {
 /* -------------------------------------------------------------------------- */
 
 function BoostGoalAudienceRoute() {
-  const navigation = useNavigation<MoreHubNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <BoostGoalAudienceScreen
       onBack={navigation.goBack}
@@ -1140,7 +1128,7 @@ function BoostGoalAudienceRoute() {
 }
 
 function BoostBudgetScheduleRoute() {
-  const navigation = useNavigation<MoreHubNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <BoostBudgetScheduleScreen
       onBack={navigation.goBack}
@@ -1157,7 +1145,7 @@ function BoostBudgetScheduleRoute() {
 }
 
 function BoostPreviewPaymentRoute() {
-  const navigation = useNavigation<MoreHubNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <BoostPreviewPaymentScreen
       onBack={navigation.goBack}
@@ -1170,7 +1158,7 @@ function BoostPreviewPaymentRoute() {
 }
 
 function BoostPerformanceRoute() {
-  const navigation = useNavigation<MoreHubNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <BoostPerformanceScreen
       onBack={navigation.goBack}
@@ -1184,7 +1172,7 @@ function BoostPerformanceRoute() {
 }
 
 function BoostWalletRoute() {
-  const navigation = useNavigation<MoreHubNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <BoostWalletScreen
       onBack={navigation.goBack}
@@ -1203,7 +1191,7 @@ function BoostWalletRoute() {
 /* -------------------------------------------------------------------------- */
 
 function CampaignCreateObjectiveRoute() {
-  const navigation = useNavigation<MoreHubNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <CampaignStep1ObjectiveScreen
       onBack={navigation.goBack}
@@ -1216,7 +1204,7 @@ function CampaignCreateObjectiveRoute() {
 }
 
 function CampaignCreateContentRoute() {
-  const navigation = useNavigation<MoreHubNavigation>();
+  const navigation = useBusinessNavigation();
   const route = useRoute<RouteProp<BusinessTabParamList, 'CampaignCreateContent'>>();
   return (
     <CampaignStep2ContentScreen
@@ -1233,7 +1221,7 @@ function CampaignCreateContentRoute() {
 }
 
 function CampaignCreateAudienceRoute() {
-  const navigation = useNavigation<MoreHubNavigation>();
+  const navigation = useBusinessNavigation();
   const route = useRoute<RouteProp<BusinessTabParamList, 'CampaignCreateAudience'>>();
   const { objectiveId, assetIds, segmentId } = route.params ?? {};
   return (
@@ -1253,7 +1241,7 @@ function CampaignCreateAudienceRoute() {
 }
 
 function CampaignCreateScheduleRoute() {
-  const navigation = useNavigation<MoreHubNavigation>();
+  const navigation = useBusinessNavigation();
   const route = useRoute<RouteProp<BusinessTabParamList, 'CampaignCreateSchedule'>>();
   const { objectiveId, assetIds, segmentId, radius } = route.params ?? {};
   return (
@@ -1273,7 +1261,7 @@ function CampaignCreateScheduleRoute() {
 }
 
 function CampaignCreateBudgetRoute() {
-  const navigation = useNavigation<MoreHubNavigation>();
+  const navigation = useBusinessNavigation();
   const route = useRoute<RouteProp<BusinessTabParamList, 'CampaignCreateBudget'>>();
   const { objectiveId, assetIds, segmentId, radius, durationDays } = route.params ?? {};
   return (
@@ -1296,7 +1284,7 @@ function CampaignCreateBudgetRoute() {
 }
 
 function CampaignReviewLaunchRoute() {
-  const navigation = useNavigation<MoreHubNavigation>();
+  const navigation = useBusinessNavigation();
   const route = useRoute<RouteProp<BusinessTabParamList, 'CampaignReviewLaunch'>>();
   const params = route.params ?? {};
   return (
@@ -1329,7 +1317,7 @@ function CampaignReviewLaunchRoute() {
 /* -------------------------------------------------------------------------- */
 
 function SegmentActionsRoute() {
-  const navigation = useNavigation<MoreHubNavigation>();
+  const navigation = useBusinessNavigation();
   const route = useRoute<RouteProp<BusinessTabParamList, 'SegmentActions'>>();
   return (
     <SegmentActionsSheet
@@ -1347,7 +1335,7 @@ function SegmentActionsRoute() {
 }
 
 function CreateCustomSegmentRoute() {
-  const navigation = useNavigation<MoreHubNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <CreateCustomSegmentScreen
       onClose={navigation.goBack}
@@ -1358,7 +1346,7 @@ function CreateCustomSegmentRoute() {
 }
 
 function SegmentAudienceDetailsRoute() {
-  const navigation = useNavigation<MoreHubNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <SegmentAudienceDetailsScreen
       onClose={navigation.goBack}
@@ -1371,7 +1359,7 @@ function SegmentAudienceDetailsRoute() {
 }
 
 function BusinessQrRoute() {
-  const navigation = useNavigation<MoreHubNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <BusinessQrScreen
       onBack={navigation.goBack}
@@ -1394,7 +1382,7 @@ function BusinessQrRoute() {
 }
 
 function LocationQrRoute() {
-  const navigation = useNavigation<MoreHubNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <LocationQrScreen
       onBack={navigation.goBack}
@@ -1419,7 +1407,7 @@ function LocationQrRoute() {
 }
 
 function BusinessDiscoveryFeedRoute() {
-  const navigation = useNavigation<MoreHubNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <BusinessDiscoveryFeedScreen
       onBack={navigation.goBack}
@@ -1445,7 +1433,7 @@ function BusinessDiscoveryFeedRoute() {
 /* -------------------------------------------------------------------------- */
 
 function BusinessNetworkIntroHubRoute() {
-  const navigation = useNavigation<MoreHubNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <BusinessNetworkIntroHubScreen
       onBack={navigation.goBack}
@@ -1464,7 +1452,7 @@ function BusinessNetworkIntroHubRoute() {
 }
 
 function MyBusinessNetworkRoute() {
-  const navigation = useNavigation<MoreHubNavigation>();
+  const navigation = useBusinessNavigation();
   const [inviteOpen, setInviteOpen] = useState(false);
   return (
     <>
@@ -1498,7 +1486,7 @@ function MyBusinessNetworkRoute() {
 }
 
 function NetworkMilestonesRoute() {
-  const navigation = useNavigation<MoreHubNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <NetworkMilestonesScreen
       onBack={navigation.goBack}
@@ -1514,7 +1502,7 @@ function NetworkMilestonesRoute() {
 }
 
 function BusinessNetworkInfoRoute() {
-  const navigation = useNavigation<MoreHubNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <BusinessNetworkInfoScreen
       onBack={navigation.goBack}
@@ -1528,7 +1516,7 @@ function BusinessNetworkInfoRoute() {
 }
 
 function MyReferralsRoute() {
-  const navigation = useNavigation<MoreHubNavigation>();
+  const navigation = useBusinessNavigation();
   const [inviteOpen, setInviteOpen] = useState(false);
   return (
     <>
@@ -1556,7 +1544,7 @@ function MyReferralsRoute() {
 }
 
 function ReferralDetailRoute() {
-  const navigation = useNavigation<MoreHubNavigation>();
+  const navigation = useBusinessNavigation();
   const route = useRoute<RouteProp<BusinessTabParamList, 'ReferralDetail'>>();
   return (
     <ReferralDetailScreen
@@ -1573,7 +1561,7 @@ function ReferralDetailRoute() {
 }
 
 function BusinessNetworkDashboardRoute() {
-  const navigation = useNavigation<MoreHubNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <BusinessNetworkActiveDashboardScreen
       onBack={navigation.goBack}
@@ -1607,7 +1595,7 @@ function BusinessNetworkDashboardRoute() {
  * through its owning tab rather than by screen name.
  */
 function BusinessMoreHubOperationsRoute() {
-  const navigation = useNavigation<MoreHubNavigation>();
+  const navigation = useBusinessNavigation();
 
   // Tile id -> the tab and screen that own it.
   /*
@@ -1728,7 +1716,7 @@ function BusinessMoreHubOperationsRoute() {
 
 /** `pos_home_offline_mode_active` — the local till running without a network. */
 function PosHomeOfflineModeRoute() {
-  const navigation = useNavigation<OrdersStackNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <PosHomeOfflineModeScreen
       onBack={navigation.goBack}
@@ -1756,7 +1744,7 @@ function PosHomeOfflineModeRoute() {
 /* -------------------------------------------------------------------------- */
 
 function PosBranchTillSwitcherRoute() {
-  const navigation = useNavigation<OrdersStackNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <PosBranchTillSwitcherScreen
       onBack={navigation.goBack}
@@ -1770,7 +1758,7 @@ function PosBranchTillSwitcherRoute() {
 }
 
 function PosHomeSalesOperationsRoute() {
-  const navigation = useNavigation<OrdersStackNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <PosHomeSalesOperationsScreen
       onBack={navigation.goBack}
@@ -1803,7 +1791,7 @@ function PosHomeSalesOperationsRoute() {
 }
 
 function PosNewSaleCatalogRoute() {
-  const navigation = useNavigation<OrdersStackNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <PosNewSaleCatalogScreen
       onBack={navigation.goBack}
@@ -1821,7 +1809,7 @@ function PosNewSaleCatalogRoute() {
 }
 
 function PosCurrentSaleCartRoute() {
-  const navigation = useNavigation<OrdersStackNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <PosCurrentSaleCartScreen
       onBack={navigation.goBack}
@@ -1841,7 +1829,7 @@ function PosCurrentSaleCartRoute() {
 }
 
 function PosTenderCheckoutRoute() {
-  const navigation = useNavigation<OrdersStackNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <PosTenderCheckoutScreen
       onBack={navigation.goBack}
@@ -1862,7 +1850,7 @@ function PosTenderCheckoutRoute() {
 }
 
 function PosSaleCompletedRoute() {
-  const navigation = useNavigation<OrdersStackNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <PosSaleCompletedScreen
       onOpenProfile={() => undefined}
@@ -1874,7 +1862,7 @@ function PosSaleCompletedRoute() {
 }
 
 function PosReceiptCustomizationRoute() {
-  const navigation = useNavigation<OrdersStackNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <PosReceiptCustomizationScreen
       onBack={navigation.goBack}
@@ -1887,7 +1875,7 @@ function PosReceiptCustomizationRoute() {
 }
 
 function PosCustomerLookupActiveRoute() {
-  const navigation = useNavigation<OrdersStackNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <PosCustomerLookupActiveScreen
       onBack={navigation.goBack}
@@ -1906,7 +1894,7 @@ function PosCustomerLookupActiveRoute() {
 }
 
 function PosCustomerLookupListRoute() {
-  const navigation = useNavigation<OrdersStackNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <PosCustomerLookupListScreen
       onBack={navigation.goBack}
@@ -1932,7 +1920,7 @@ function PosCustomerLookupListRoute() {
 }
 
 function PosCustomerLookupLoyaltyRoute() {
-  const navigation = useNavigation<OrdersStackNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <PosCustomerLookupLoyaltyScreen
       onBack={navigation.goBack}
@@ -1950,7 +1938,7 @@ function PosCustomerLookupLoyaltyRoute() {
 }
 
 function PosCustomerDossierRoute() {
-  const navigation = useNavigation<OrdersStackNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <PosCustomerDossierScreen
       onBack={navigation.goBack}
@@ -1965,7 +1953,7 @@ function PosCustomerDossierRoute() {
 }
 
 function PosProductsInventoryRoute() {
-  const navigation = useNavigation<OrdersStackNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <PosProductsInventoryScreen
       onBack={navigation.goBack}
@@ -1993,7 +1981,7 @@ function PosProductsInventoryRoute() {
 }
 
 function PosProductShiftStockStatusRoute() {
-  const navigation = useNavigation<OrdersStackNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <PosProductShiftStockStatusScreen
       onBack={navigation.goBack}
@@ -2010,7 +1998,7 @@ function PosProductShiftStockStatusRoute() {
 }
 
 function PosTransactionsLedgerShiftRoute() {
-  const navigation = useNavigation<OrdersStackNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <PosTransactionsLedgerShiftScreen
       onBack={navigation.goBack}
@@ -2032,7 +2020,7 @@ function PosTransactionsLedgerShiftRoute() {
 }
 
 function PosTransactionsLedgerReceiptsRoute() {
-  const navigation = useNavigation<OrdersStackNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <PosTransactionsLedgerReceiptsScreen
       onBack={navigation.goBack}
@@ -2051,7 +2039,7 @@ function PosTransactionsLedgerReceiptsRoute() {
 }
 
 function PosTransactionDetailsRoute() {
-  const navigation = useNavigation<OrdersStackNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <PosTransactionDetailsScreen
       onBack={navigation.goBack}
@@ -2069,7 +2057,7 @@ function PosTransactionDetailsRoute() {
 }
 
 function PosOfflineCheckoutTerminalRoute() {
-  const navigation = useNavigation<OrdersStackNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <PosOfflineCheckoutTerminalScreen
       onBack={navigation.goBack}
@@ -2088,7 +2076,7 @@ function PosOfflineCheckoutTerminalRoute() {
 }
 
 function PosOfflineBufferQueueRoute() {
-  const navigation = useNavigation<OrdersStackNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <PosOfflineBufferQueueScreen
       onBack={navigation.goBack}
@@ -2103,7 +2091,7 @@ function PosOfflineBufferQueueRoute() {
 }
 
 function PosSyncReconciliationRoute() {
-  const navigation = useNavigation<OrdersStackNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <PosSyncReconciliationScreen
       onBack={navigation.goBack}
@@ -2120,7 +2108,7 @@ function PosSyncReconciliationRoute() {
 }
 
 function PublicPosOrderMenuRoute() {
-  const navigation = useNavigation<OrdersStackNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <PublicPosOrderMenuScreen
       onBack={navigation.goBack}
@@ -2139,7 +2127,7 @@ function PublicPosOrderMenuRoute() {
 }
 
 function PublicPosCartReviewRoute() {
-  const navigation = useNavigation<OrdersStackNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <PublicPosCartReviewScreen
       onBack={navigation.goBack}
@@ -2156,7 +2144,7 @@ function PublicPosCartReviewRoute() {
 }
 
 function PublicPosOrderTrackingRoute() {
-  const navigation = useNavigation<OrdersStackNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <PublicPosOrderTrackingScreen
       onBack={navigation.goBack}
@@ -2169,7 +2157,7 @@ function PublicPosOrderTrackingRoute() {
 }
 
 function MerchantPosKitchenStreamRoute() {
-  const navigation = useNavigation<OrdersStackNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <MerchantPosKitchenStreamScreen
       onBack={navigation.goBack}
@@ -2186,7 +2174,7 @@ function MerchantPosKitchenStreamRoute() {
 }
 
 function PosGeneralSettingsRoute() {
-  const navigation = useNavigation<OrdersStackNavigation>();
+  const navigation = useBusinessNavigation();
   // The settings hub is a pure directory: each row owns its own destination.
   // Written per branch rather than looked up from a map, so TypeScript verifies
   // every (row, screen) pairing at the call site.
@@ -2232,7 +2220,7 @@ function PosGeneralSettingsRoute() {
 }
 
 function PaymentHardwareSetupRoute() {
-  const navigation = useNavigation<OrdersStackNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <PaymentHardwareSetupScreen
       onBack={navigation.goBack}
@@ -2251,7 +2239,7 @@ function PaymentHardwareSetupRoute() {
 }
 
 function TaxesSurchargesRoute() {
-  const navigation = useNavigation<OrdersStackNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <TaxesSurchargesScreen
       onBack={navigation.goBack}
@@ -2269,7 +2257,7 @@ function TaxesSurchargesRoute() {
 }
 
 function StaffPermissionsPasscodesRoute() {
-  const navigation = useNavigation<OrdersStackNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <StaffPermissionsPasscodesScreen
       onBack={navigation.goBack}
@@ -2289,9 +2277,10 @@ function BusinessMoreRoute() {
   // root hop for the surfaces that live in the Business hub stack. Going through
   // the root for a sibling stack does not bubble, so each row takes the
   // shortest correct path.
-  const navigation = useNavigation<MoreHubNavigation>();
+  const navigation = useBusinessNavigation();
   return (
     <BusinessMoreHubScreen
+      onAddBranch={() => navigation.navigate('BusinessManagementHub')}
       onOpenRow={id => {
         switch (id) {
           case 'reviews':
@@ -2351,6 +2340,327 @@ function BusinessMoreRoute() {
  * (`BusinessTabBar`) and wraps every business screen in the compact density so
  * type sizes stay consistent across the whole business side.
  */
+function BusinessOverviewTabNavigator() {
+  return (
+    <OverviewStack.Navigator screenOptions={stackOptions}>
+      <OverviewStack.Screen
+        name="BusinessOverviewHome"
+        component={BusinessOverviewRoute}
+      />
+    </OverviewStack.Navigator>
+  );
+}
+
+function BusinessOrdersTabNavigator() {
+  return (
+    <OrdersStack.Navigator screenOptions={stackOptions}>
+      <OrdersStack.Screen
+        name="BusinessOrdersHome"
+        component={BusinessOrdersSurfaceRoute}
+      />
+      <OrdersStack.Screen
+        name="BusinessOrderDetail"
+        component={BusinessOrderDetailRoute}
+      />
+      <OrdersStack.Screen name="BusinessBookings" component={BusinessBookingsRoute} />
+      <OrdersStack.Screen name="BusinessPosOrders" component={BusinessPosOrdersRoute} />
+      <OrdersStack.Screen
+        name="CustomerDisplayOrder"
+        component={CustomerDisplayOrderRoute}
+      />
+      <OrdersStack.Screen
+        name="CustomerDisplayPayment"
+        component={CustomerDisplayPaymentRoute}
+      />
+      <OrdersStack.Screen
+        name="CustomerDisplayRating"
+        component={CustomerDisplayRatingRoute}
+      />
+      <OrdersStack.Screen name="SplitTheBill" component={SplitTheBillRoute} />
+      <OrdersStack.Screen name="DigitalEReceipt" component={DigitalEReceiptRoute} />
+      <OrdersStack.Screen name="PosHomeOfflineMode" component={PosHomeOfflineModeRoute} />
+      <OrdersStack.Screen
+        name="PosBranchTillSwitcher"
+        component={PosBranchTillSwitcherRoute}
+      />
+      <OrdersStack.Screen
+        name="PosHomeSalesOperations"
+        component={PosHomeSalesOperationsRoute}
+      />
+      <OrdersStack.Screen name="PosNewSaleCatalog" component={PosNewSaleCatalogRoute} />
+      <OrdersStack.Screen name="PosCurrentSaleCart" component={PosCurrentSaleCartRoute} />
+      <OrdersStack.Screen name="PosTenderCheckout" component={PosTenderCheckoutRoute} />
+      <OrdersStack.Screen name="PosSaleCompleted" component={PosSaleCompletedRoute} />
+      <OrdersStack.Screen
+        name="PosReceiptCustomization"
+        component={PosReceiptCustomizationRoute}
+      />
+      <OrdersStack.Screen
+        name="PosCustomerLookupActive"
+        component={PosCustomerLookupActiveRoute}
+      />
+      <OrdersStack.Screen
+        name="PosCustomerLookupList"
+        component={PosCustomerLookupListRoute}
+      />
+      <OrdersStack.Screen
+        name="PosCustomerLookupLoyalty"
+        component={PosCustomerLookupLoyaltyRoute}
+      />
+      <OrdersStack.Screen name="PosCustomerDossier" component={PosCustomerDossierRoute} />
+      <OrdersStack.Screen
+        name="PosProductsInventory"
+        component={PosProductsInventoryRoute}
+      />
+      <OrdersStack.Screen
+        name="PosProductShiftStockStatus"
+        component={PosProductShiftStockStatusRoute}
+      />
+      <OrdersStack.Screen
+        name="PosTransactionsLedgerShift"
+        component={PosTransactionsLedgerShiftRoute}
+      />
+      <OrdersStack.Screen
+        name="PosTransactionsLedgerReceipts"
+        component={PosTransactionsLedgerReceiptsRoute}
+      />
+      <OrdersStack.Screen
+        name="PosTransactionDetails"
+        component={PosTransactionDetailsRoute}
+      />
+      <OrdersStack.Screen
+        name="PosOfflineCheckoutTerminal"
+        component={PosOfflineCheckoutTerminalRoute}
+      />
+      <OrdersStack.Screen
+        name="PosOfflineBufferQueue"
+        component={PosOfflineBufferQueueRoute}
+      />
+      <OrdersStack.Screen
+        name="PosSyncReconciliation"
+        component={PosSyncReconciliationRoute}
+      />
+      <OrdersStack.Screen name="PublicPosOrderMenu" component={PublicPosOrderMenuRoute} />
+      <OrdersStack.Screen
+        name="PublicPosCartReview"
+        component={PublicPosCartReviewRoute}
+      />
+      <OrdersStack.Screen
+        name="PublicPosOrderTracking"
+        component={PublicPosOrderTrackingRoute}
+      />
+      <OrdersStack.Screen
+        name="MerchantPosKitchenStream"
+        component={MerchantPosKitchenStreamRoute}
+      />
+      <OrdersStack.Screen name="PosGeneralSettings" component={PosGeneralSettingsRoute} />
+      <OrdersStack.Screen
+        name="PaymentHardwareSetup"
+        component={PaymentHardwareSetupRoute}
+      />
+      <OrdersStack.Screen name="TaxesSurcharges" component={TaxesSurchargesRoute} />
+      <OrdersStack.Screen
+        name="StaffPermissionsPasscodes"
+        component={StaffPermissionsPasscodesRoute}
+      />
+    </OrdersStack.Navigator>
+  );
+}
+
+function BusinessMessagesTabNavigator() {
+  return (
+    <MessagesStack.Navigator screenOptions={stackOptions}>
+      <MessagesStack.Screen
+        name="BusinessMessagesHome"
+        component={BusinessMessagesRoute}
+      />
+      <MessagesStack.Screen
+        name="BusinessConversation"
+        component={BusinessConversationRoute}
+      />
+    </MessagesStack.Navigator>
+  );
+}
+
+function BusinessHubTabNavigator() {
+  return (
+    <HubStack.Navigator screenOptions={stackOptions}>
+      <HubStack.Screen name="BusinessHubHome" component={BusinessHubRoute} />
+      <HubStack.Screen
+        name="BusinessManagementHub"
+        component={BusinessManagementHubRoute}
+      />
+      <HubStack.Screen
+        name="BusinessProfilePreview"
+        component={BusinessProfilePreviewRoute}
+      />
+      <HubStack.Screen
+        name="CentralDealsManagement"
+        component={CentralDealsManagementRoute}
+      />
+      <HubStack.Screen name="DealsFlashRadar" component={DealsFlashRadarRoute} />
+      <HubStack.Screen
+        name="CampaignsDealsManagement"
+        component={CampaignsDealsManagementRoute}
+      />
+      <HubStack.Screen
+        name="BusinessHubCatalogue"
+        component={BusinessHubCatalogueRoute}
+      />
+      <HubStack.Screen
+        name="DealDetailsPerformance"
+        component={DealDetailsPerformanceRoute}
+      />
+      <HubStack.Screen
+        name="CreateDealLocationAssignment"
+        component={CreateDealLocationAssignmentRoute}
+      />
+      <HubStack.Screen
+        name="DealLocationAssignmentPricing"
+        component={DealLocationAssignmentPricingRoute}
+      />
+      <HubStack.Screen
+        name="ProductLocationAssignment"
+        component={ProductLocationAssignmentRoute}
+      />
+      <HubStack.Screen
+        name="BranchAvailabilityLocationPricing"
+        component={BranchAvailabilityLocationPricingRoute}
+      />
+      <HubStack.Screen name="CentralCatalogue" component={CentralCatalogueRoute} />
+      <HubStack.Screen name="ServicesCategories" component={ServicesCategoriesRoute} />
+      <HubStack.Screen
+        name="AddProductBasicsMedia"
+        component={AddProductBasicsMediaRoute}
+      />
+      <HubStack.Screen name="LocationsBranches" component={LocationsBranchesRoute} />
+      <HubStack.Screen name="WuseBranchDetails" component={WuseBranchDetailsRoute} />
+      <HubStack.Screen
+        name="CustomerCrmDirectory"
+        component={CustomerCrmDirectoryRoute}
+      />
+      <HubStack.Screen
+        name="CustomerProfileDossier"
+        component={CustomerProfileDossierRoute}
+      />
+      <HubStack.Screen name="LoyaltyProgramme" component={LoyaltyProgrammeRoute} />
+      <HubStack.Screen name="LoyaltyRewards" component={LoyaltyRewardsRoute} />
+      <HubStack.Screen name="StaffDirectory" component={StaffDirectoryRoute} />
+      <HubStack.Screen name="InviteStaff" component={InviteStaffRoute} />
+      <HubStack.Screen
+        name="BusinessCustomerIntelligence"
+        component={BusinessCustomerIntelligenceRoute}
+      />
+      <HubStack.Screen
+        name="BusinessPerformanceAnalytics"
+        component={BusinessPerformanceAnalyticsRoute}
+      />
+      <HubStack.Screen name="BranchComparison" component={BranchComparisonRoute} />
+      <HubStack.Screen
+        name="BusinessReviewsReputation"
+        component={BusinessReviewsReputationRoute}
+      />
+    </HubStack.Navigator>
+  );
+}
+
+function BusinessMoreTabNavigator() {
+  return (
+    <MoreStack.Navigator screenOptions={stackOptions}>
+      <MoreStack.Screen name="BusinessMoreHome" component={BusinessMoreRoute} />
+      <MoreStack.Screen
+        name="BusinessNotifications"
+        component={BusinessNotificationsRoute}
+      />
+      <MoreStack.Screen
+        name="BusinessSubscriptionBilling"
+        component={BusinessSubscriptionBillingRoute}
+      />
+      <MoreStack.Screen
+        name="BusinessVerificationTrust"
+        component={BusinessVerificationTrustRoute}
+      />
+      <MoreStack.Screen name="BusinessSupportHelp" component={BusinessSupportHelpRoute} />
+      <MoreStack.Screen name="BusinessSettings" component={BusinessSettingsRoute} />
+      <MoreStack.Screen name="SwitchToCustomer" component={SwitchToCustomerRoute} />
+      <MoreStack.Screen name="CampaignsHub" component={CampaignsHubRoute} />
+      <MoreStack.Screen name="CustomerSegments" component={CustomerSegmentsRoute} />
+      <MoreStack.Screen name="BoostEngine" component={BoostEngineRoute} />
+      {/* VEMTAP Intelligence */}
+      <MoreStack.Screen name="BusinessAnalytics" component={BusinessAnalyticsRoute} />
+      <MoreStack.Screen name="CustomersAnalytics" component={CustomersAnalyticsRoute} />
+      <MoreStack.Screen name="DealsAnalytics" component={DealsAnalyticsRoute} />
+      <MoreStack.Screen name="LocationsAnalytics" component={LocationsAnalyticsRoute} />
+      <MoreStack.Screen name="PosAnalytics" component={PosAnalyticsRoute} />
+      <MoreStack.Screen
+        name="AnalyticsExportReport"
+        component={AnalyticsExportReportRoute}
+      />
+      {/* Boost */}
+      <MoreStack.Screen name="BoostGoalAudience" component={BoostGoalAudienceRoute} />
+      <MoreStack.Screen name="BoostBudgetSchedule" component={BoostBudgetScheduleRoute} />
+      <MoreStack.Screen name="BoostPreviewPayment" component={BoostPreviewPaymentRoute} />
+      <MoreStack.Screen name="BoostPerformance" component={BoostPerformanceRoute} />
+      <MoreStack.Screen name="BoostWallet" component={BoostWalletRoute} />
+      {/* Create Campaign wizard */}
+      <MoreStack.Screen
+        name="CampaignCreateObjective"
+        component={CampaignCreateObjectiveRoute}
+      />
+      <MoreStack.Screen
+        name="CampaignCreateContent"
+        component={CampaignCreateContentRoute}
+      />
+      <MoreStack.Screen
+        name="CampaignCreateAudience"
+        component={CampaignCreateAudienceRoute}
+      />
+      <MoreStack.Screen
+        name="CampaignCreateSchedule"
+        component={CampaignCreateScheduleRoute}
+      />
+      <MoreStack.Screen
+        name="CampaignCreateBudget"
+        component={CampaignCreateBudgetRoute}
+      />
+      <MoreStack.Screen
+        name="CampaignReviewLaunch"
+        component={CampaignReviewLaunchRoute}
+      />
+      {/* Customer segments */}
+      <MoreStack.Screen name="SegmentActions" component={SegmentActionsRoute} />
+      <MoreStack.Screen name="CreateCustomSegment" component={CreateCustomSegmentRoute} />
+      <MoreStack.Screen
+        name="SegmentAudienceDetails"
+        component={SegmentAudienceDetailsRoute}
+      />
+      <MoreStack.Screen name="BusinessQr" component={BusinessQrRoute} />
+      <MoreStack.Screen name="LocationQr" component={LocationQrRoute} />
+      <MoreStack.Screen
+        name="BusinessDiscoveryFeed"
+        component={BusinessDiscoveryFeedRoute}
+      />
+      <MoreStack.Screen
+        name="BusinessNetworkIntroHub"
+        component={BusinessNetworkIntroHubRoute}
+      />
+      <MoreStack.Screen name="MyBusinessNetwork" component={MyBusinessNetworkRoute} />
+      <MoreStack.Screen name="NetworkMilestones" component={NetworkMilestonesRoute} />
+      <MoreStack.Screen name="BusinessNetworkInfo" component={BusinessNetworkInfoRoute} />
+      <MoreStack.Screen name="MyReferrals" component={MyReferralsRoute} />
+      <MoreStack.Screen name="ReferralDetail" component={ReferralDetailRoute} />
+      <MoreStack.Screen
+        name="BusinessNetworkDashboard"
+        component={BusinessNetworkDashboardRoute}
+      />
+      <MoreStack.Screen
+        name="BusinessMoreHubOperations"
+        component={BusinessMoreHubOperationsRoute}
+      />
+    </MoreStack.Navigator>
+  );
+}
+
 export function BusinessTabNavigator() {
   return (
     <TypeDensityProvider density="compact">
@@ -2358,417 +2668,31 @@ export function BusinessTabNavigator() {
         screenOptions={{ headerShown: false }}
         tabBar={props => <BusinessTabBar {...props} />}
       >
-        <Tab.Screen name="BusinessOverview" options={{ title: 'Overview' }}>
-          {() => (
-            <OverviewStack.Navigator screenOptions={stackOptions}>
-              <OverviewStack.Screen
-                name="BusinessOverviewHome"
-                component={BusinessOverviewRoute}
-              />
-            </OverviewStack.Navigator>
-          )}
-        </Tab.Screen>
-        <Tab.Screen name="BusinessOrders" options={{ title: 'Orders' }}>
-          {() => (
-            <OrdersStack.Navigator screenOptions={stackOptions}>
-              <OrdersStack.Screen
-                name="BusinessOrdersHome"
-                component={BusinessOrdersSurfaceRoute}
-              />
-              <OrdersStack.Screen
-                name="BusinessOrderDetail"
-                component={BusinessOrderDetailRoute}
-              />
-              <OrdersStack.Screen
-                name="BusinessBookings"
-                component={BusinessBookingsRoute}
-              />
-              <OrdersStack.Screen
-                name="BusinessPosOrders"
-                component={BusinessPosOrdersRoute}
-              />
-              <OrdersStack.Screen
-                name="CustomerDisplayOrder"
-                component={CustomerDisplayOrderRoute}
-              />
-              <OrdersStack.Screen
-                name="CustomerDisplayPayment"
-                component={CustomerDisplayPaymentRoute}
-              />
-              <OrdersStack.Screen
-                name="CustomerDisplayRating"
-                component={CustomerDisplayRatingRoute}
-              />
-              <OrdersStack.Screen name="SplitTheBill" component={SplitTheBillRoute} />
-              <OrdersStack.Screen
-                name="DigitalEReceipt"
-                component={DigitalEReceiptRoute}
-              />
-              <OrdersStack.Screen
-                name="PosHomeOfflineMode"
-                component={PosHomeOfflineModeRoute}
-              />
-              <OrdersStack.Screen
-                name="PosBranchTillSwitcher"
-                component={PosBranchTillSwitcherRoute}
-              />
-              <OrdersStack.Screen
-                name="PosHomeSalesOperations"
-                component={PosHomeSalesOperationsRoute}
-              />
-              <OrdersStack.Screen
-                name="PosNewSaleCatalog"
-                component={PosNewSaleCatalogRoute}
-              />
-              <OrdersStack.Screen
-                name="PosCurrentSaleCart"
-                component={PosCurrentSaleCartRoute}
-              />
-              <OrdersStack.Screen
-                name="PosTenderCheckout"
-                component={PosTenderCheckoutRoute}
-              />
-              <OrdersStack.Screen
-                name="PosSaleCompleted"
-                component={PosSaleCompletedRoute}
-              />
-              <OrdersStack.Screen
-                name="PosReceiptCustomization"
-                component={PosReceiptCustomizationRoute}
-              />
-              <OrdersStack.Screen
-                name="PosCustomerLookupActive"
-                component={PosCustomerLookupActiveRoute}
-              />
-              <OrdersStack.Screen
-                name="PosCustomerLookupList"
-                component={PosCustomerLookupListRoute}
-              />
-              <OrdersStack.Screen
-                name="PosCustomerLookupLoyalty"
-                component={PosCustomerLookupLoyaltyRoute}
-              />
-              <OrdersStack.Screen
-                name="PosCustomerDossier"
-                component={PosCustomerDossierRoute}
-              />
-              <OrdersStack.Screen
-                name="PosProductsInventory"
-                component={PosProductsInventoryRoute}
-              />
-              <OrdersStack.Screen
-                name="PosProductShiftStockStatus"
-                component={PosProductShiftStockStatusRoute}
-              />
-              <OrdersStack.Screen
-                name="PosTransactionsLedgerShift"
-                component={PosTransactionsLedgerShiftRoute}
-              />
-              <OrdersStack.Screen
-                name="PosTransactionsLedgerReceipts"
-                component={PosTransactionsLedgerReceiptsRoute}
-              />
-              <OrdersStack.Screen
-                name="PosTransactionDetails"
-                component={PosTransactionDetailsRoute}
-              />
-              <OrdersStack.Screen
-                name="PosOfflineCheckoutTerminal"
-                component={PosOfflineCheckoutTerminalRoute}
-              />
-              <OrdersStack.Screen
-                name="PosOfflineBufferQueue"
-                component={PosOfflineBufferQueueRoute}
-              />
-              <OrdersStack.Screen
-                name="PosSyncReconciliation"
-                component={PosSyncReconciliationRoute}
-              />
-              <OrdersStack.Screen
-                name="PublicPosOrderMenu"
-                component={PublicPosOrderMenuRoute}
-              />
-              <OrdersStack.Screen
-                name="PublicPosCartReview"
-                component={PublicPosCartReviewRoute}
-              />
-              <OrdersStack.Screen
-                name="PublicPosOrderTracking"
-                component={PublicPosOrderTrackingRoute}
-              />
-              <OrdersStack.Screen
-                name="MerchantPosKitchenStream"
-                component={MerchantPosKitchenStreamRoute}
-              />
-              <OrdersStack.Screen
-                name="PosGeneralSettings"
-                component={PosGeneralSettingsRoute}
-              />
-              <OrdersStack.Screen
-                name="PaymentHardwareSetup"
-                component={PaymentHardwareSetupRoute}
-              />
-              <OrdersStack.Screen
-                name="TaxesSurcharges"
-                component={TaxesSurchargesRoute}
-              />
-              <OrdersStack.Screen
-                name="StaffPermissionsPasscodes"
-                component={StaffPermissionsPasscodesRoute}
-              />
-            </OrdersStack.Navigator>
-          )}
-        </Tab.Screen>
-        <Tab.Screen name="BusinessMessages" options={{ title: 'Messages' }}>
-          {() => (
-            <MessagesStack.Navigator screenOptions={stackOptions}>
-              <MessagesStack.Screen
-                name="BusinessMessagesHome"
-                component={BusinessMessagesRoute}
-              />
-            </MessagesStack.Navigator>
-          )}
-        </Tab.Screen>
-        <Tab.Screen name="BusinessHub" options={{ title: 'Business' }}>
-          {() => (
-            <HubStack.Navigator screenOptions={stackOptions}>
-              <HubStack.Screen name="BusinessHubHome" component={BusinessHubRoute} />
-              <HubStack.Screen
-                name="BusinessManagementHub"
-                component={BusinessManagementHubRoute}
-              />
-              <HubStack.Screen
-                name="BusinessProfilePreview"
-                component={BusinessProfilePreviewRoute}
-              />
-              <HubStack.Screen
-                name="CentralDealsManagement"
-                component={CentralDealsManagementRoute}
-              />
-              <HubStack.Screen name="DealsFlashRadar" component={DealsFlashRadarRoute} />
-              <HubStack.Screen
-                name="CampaignsDealsManagement"
-                component={CampaignsDealsManagementRoute}
-              />
-              <HubStack.Screen
-                name="BusinessHubCatalogue"
-                component={BusinessHubCatalogueRoute}
-              />
-              <HubStack.Screen
-                name="DealDetailsPerformance"
-                component={DealDetailsPerformanceRoute}
-              />
-              <HubStack.Screen
-                name="CreateDealLocationAssignment"
-                component={CreateDealLocationAssignmentRoute}
-              />
-              <HubStack.Screen
-                name="DealLocationAssignmentPricing"
-                component={DealLocationAssignmentPricingRoute}
-              />
-              <HubStack.Screen
-                name="ProductLocationAssignment"
-                component={ProductLocationAssignmentRoute}
-              />
-              <HubStack.Screen
-                name="BranchAvailabilityLocationPricing"
-                component={BranchAvailabilityLocationPricingRoute}
-              />
-              <HubStack.Screen
-                name="CentralCatalogue"
-                component={CentralCatalogueRoute}
-              />
-              <HubStack.Screen
-                name="ServicesCategories"
-                component={ServicesCategoriesRoute}
-              />
-              <HubStack.Screen
-                name="AddProductBasicsMedia"
-                component={AddProductBasicsMediaRoute}
-              />
-              <HubStack.Screen
-                name="LocationsBranches"
-                component={LocationsBranchesRoute}
-              />
-              <HubStack.Screen
-                name="WuseBranchDetails"
-                component={WuseBranchDetailsRoute}
-              />
-              <HubStack.Screen
-                name="CustomerCrmDirectory"
-                component={CustomerCrmDirectoryRoute}
-              />
-              <HubStack.Screen
-                name="CustomerProfileDossier"
-                component={CustomerProfileDossierRoute}
-              />
-              <HubStack.Screen
-                name="LoyaltyProgramme"
-                component={LoyaltyProgrammeRoute}
-              />
-              <HubStack.Screen name="LoyaltyRewards" component={LoyaltyRewardsRoute} />
-              <HubStack.Screen name="StaffDirectory" component={StaffDirectoryRoute} />
-              <HubStack.Screen name="InviteStaff" component={InviteStaffRoute} />
-              <HubStack.Screen
-                name="BusinessCustomerIntelligence"
-                component={BusinessCustomerIntelligenceRoute}
-              />
-              <HubStack.Screen
-                name="BusinessPerformanceAnalytics"
-                component={BusinessPerformanceAnalyticsRoute}
-              />
-              <HubStack.Screen
-                name="BranchComparison"
-                component={BranchComparisonRoute}
-              />
-              <HubStack.Screen
-                name="BusinessReviewsReputation"
-                component={BusinessReviewsReputationRoute}
-              />
-            </HubStack.Navigator>
-          )}
-        </Tab.Screen>
-        <Tab.Screen name="BusinessMore" options={{ title: 'More' }}>
-          {() => (
-            <MoreStack.Navigator screenOptions={stackOptions}>
-              <MoreStack.Screen name="BusinessMoreHome" component={BusinessMoreRoute} />
-              <MoreStack.Screen
-                name="BusinessNotifications"
-                component={BusinessNotificationsRoute}
-              />
-              <MoreStack.Screen
-                name="BusinessSubscriptionBilling"
-                component={BusinessSubscriptionBillingRoute}
-              />
-              <MoreStack.Screen
-                name="BusinessVerificationTrust"
-                component={BusinessVerificationTrustRoute}
-              />
-              <MoreStack.Screen
-                name="BusinessSupportHelp"
-                component={BusinessSupportHelpRoute}
-              />
-              <MoreStack.Screen
-                name="BusinessSettings"
-                component={BusinessSettingsRoute}
-              />
-              <MoreStack.Screen
-                name="SwitchToCustomer"
-                component={SwitchToCustomerRoute}
-              />
-              <MoreStack.Screen name="CampaignsHub" component={CampaignsHubRoute} />
-              <MoreStack.Screen
-                name="CustomerSegments"
-                component={CustomerSegmentsRoute}
-              />
-              <MoreStack.Screen name="BoostEngine" component={BoostEngineRoute} />
-              {/* VEMTAP Intelligence */}
-              <MoreStack.Screen
-                name="BusinessAnalytics"
-                component={BusinessAnalyticsRoute}
-              />
-              <MoreStack.Screen
-                name="CustomersAnalytics"
-                component={CustomersAnalyticsRoute}
-              />
-              <MoreStack.Screen name="DealsAnalytics" component={DealsAnalyticsRoute} />
-              <MoreStack.Screen
-                name="LocationsAnalytics"
-                component={LocationsAnalyticsRoute}
-              />
-              <MoreStack.Screen name="PosAnalytics" component={PosAnalyticsRoute} />
-              <MoreStack.Screen
-                name="AnalyticsExportReport"
-                component={AnalyticsExportReportRoute}
-              />
-              {/* Boost */}
-              <MoreStack.Screen
-                name="BoostGoalAudience"
-                component={BoostGoalAudienceRoute}
-              />
-              <MoreStack.Screen
-                name="BoostBudgetSchedule"
-                component={BoostBudgetScheduleRoute}
-              />
-              <MoreStack.Screen
-                name="BoostPreviewPayment"
-                component={BoostPreviewPaymentRoute}
-              />
-              <MoreStack.Screen
-                name="BoostPerformance"
-                component={BoostPerformanceRoute}
-              />
-              <MoreStack.Screen name="BoostWallet" component={BoostWalletRoute} />
-              {/* Create Campaign wizard */}
-              <MoreStack.Screen
-                name="CampaignCreateObjective"
-                component={CampaignCreateObjectiveRoute}
-              />
-              <MoreStack.Screen
-                name="CampaignCreateContent"
-                component={CampaignCreateContentRoute}
-              />
-              <MoreStack.Screen
-                name="CampaignCreateAudience"
-                component={CampaignCreateAudienceRoute}
-              />
-              <MoreStack.Screen
-                name="CampaignCreateSchedule"
-                component={CampaignCreateScheduleRoute}
-              />
-              <MoreStack.Screen
-                name="CampaignCreateBudget"
-                component={CampaignCreateBudgetRoute}
-              />
-              <MoreStack.Screen
-                name="CampaignReviewLaunch"
-                component={CampaignReviewLaunchRoute}
-              />
-              {/* Customer segments */}
-              <MoreStack.Screen name="SegmentActions" component={SegmentActionsRoute} />
-              <MoreStack.Screen
-                name="CreateCustomSegment"
-                component={CreateCustomSegmentRoute}
-              />
-              <MoreStack.Screen
-                name="SegmentAudienceDetails"
-                component={SegmentAudienceDetailsRoute}
-              />
-              <MoreStack.Screen name="BusinessQr" component={BusinessQrRoute} />
-              <MoreStack.Screen name="LocationQr" component={LocationQrRoute} />
-              <MoreStack.Screen
-                name="BusinessDiscoveryFeed"
-                component={BusinessDiscoveryFeedRoute}
-              />
-              <MoreStack.Screen
-                name="BusinessNetworkIntroHub"
-                component={BusinessNetworkIntroHubRoute}
-              />
-              <MoreStack.Screen
-                name="MyBusinessNetwork"
-                component={MyBusinessNetworkRoute}
-              />
-              <MoreStack.Screen
-                name="NetworkMilestones"
-                component={NetworkMilestonesRoute}
-              />
-              <MoreStack.Screen
-                name="BusinessNetworkInfo"
-                component={BusinessNetworkInfoRoute}
-              />
-              <MoreStack.Screen name="MyReferrals" component={MyReferralsRoute} />
-              <MoreStack.Screen name="ReferralDetail" component={ReferralDetailRoute} />
-              <MoreStack.Screen
-                name="BusinessNetworkDashboard"
-                component={BusinessNetworkDashboardRoute}
-              />
-              <MoreStack.Screen
-                name="BusinessMoreHubOperations"
-                component={BusinessMoreHubOperationsRoute}
-              />
-            </MoreStack.Navigator>
-          )}
-        </Tab.Screen>
+        <Tab.Screen
+          name="BusinessOverview"
+          component={BusinessOverviewTabNavigator}
+          options={{ title: 'Overview' }}
+        />
+        <Tab.Screen
+          name="BusinessOrders"
+          component={BusinessOrdersTabNavigator}
+          options={{ title: 'Orders' }}
+        />
+        <Tab.Screen
+          name="BusinessMessages"
+          component={BusinessMessagesTabNavigator}
+          options={{ title: 'Messages' }}
+        />
+        <Tab.Screen
+          name="BusinessHub"
+          component={BusinessHubTabNavigator}
+          options={{ title: 'Business' }}
+        />
+        <Tab.Screen
+          name="BusinessMore"
+          component={BusinessMoreTabNavigator}
+          options={{ title: 'More' }}
+        />
       </Tab.Navigator>
     </TypeDensityProvider>
   );

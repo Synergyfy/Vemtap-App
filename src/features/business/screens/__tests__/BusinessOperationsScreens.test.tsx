@@ -1,5 +1,5 @@
 import React from 'react';
-import { act, fireEvent, render } from '@testing-library/react-native';
+import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 import { BusinessDashboardOverviewScreen } from '@features/business/screens/BusinessDashboardOverviewScreen';
 import { BusinessOrdersHubScreen } from '@features/business/screens/BusinessOrdersHubScreen';
 import { BusinessMessagesHomeScreen } from '@features/business/screens/BusinessMessagesHomeScreen';
@@ -12,6 +12,48 @@ import { businessTabMeta } from '@features/business/components/BusinessTabBar';
 import { strings } from '@constants/strings';
 
 const shell = strings.businessShell;
+
+describe('business tab hubs', () => {
+  /**
+   * The five Business tab surfaces are dense hubs: many rows read at a glance.
+   * They render at the compact type density (navbar included) so the type scale
+   * does the work instead of per-row overrides, and no row may render above the
+   * label end of the scale.
+   */
+  const hubs: [string, React.ComponentType<{ onBack?: () => void }>][] = [
+    ['overview', BusinessDashboardOverviewScreen as never],
+    ['orders', BusinessOrdersHubScreen as never],
+    ['business', BusinessHubCentralManagementScreen as never],
+    ['messages', BusinessMessagesHomeScreen as never],
+    ['more', BusinessMoreHubScreen as never],
+  ];
+
+  function fontSizesOf(view: Awaited<ReturnType<typeof render>>): number[] {
+    const sizes: number[] = [];
+    const walk = (node: unknown) => {
+      const n = node as { props?: Record<string, unknown>; children?: unknown[] };
+      if (!n || typeof n !== 'object') return;
+      const style = n.props?.style as { fontSize?: number } | undefined;
+      if (style && typeof style.fontSize === 'number') sizes.push(style.fontSize);
+      (n.children ?? []).forEach(walk);
+    };
+    walk(view.toJSON());
+    return sizes;
+  }
+
+  it.each(hubs)('renders the %s hub with no raw pixel font sizes', async (_name, Hub) => {
+    const view = await render(<Hub onBack={jest.fn()} />);
+    const sizes = fontSizesOf(view);
+
+    // `VemtapText` resolves its size from the type scale (compact under these
+    // hubs), so any literal fontSize in the tree is a hand-typed size that
+    // escaped the scale. Allowed values are exactly the scale's steps.
+    const allowed = new Set([
+      11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 24, 26, 28, 29,
+    ]);
+    expect(sizes.filter(size => !allowed.has(size))).toEqual([]);
+  });
+});
 
 describe('business bottom navigation', () => {
   it('owns the five design tabs with their badges', () => {
@@ -110,6 +152,43 @@ describe('business dashboard overview', () => {
       fireEvent.press(view.getByLabelText(copy.branches[1].name));
     });
     expect(view.queryByText(copy.branchSheetTitle)).toBeNull();
+  });
+});
+
+describe('branch switching across the business shell', () => {
+  const copy = strings.businessBranchSwitcher;
+
+  /** Press a branch control and let the shared sheet finish animating in. */
+  async function openSheet(view: Awaited<ReturnType<typeof render>>, branchName: string) {
+    await act(async () => {
+      fireEvent.press(view.getByLabelText(`${copy.switchLabel}: ${branchName}`));
+    });
+    await waitFor(() => expect(view.getByText(copy.sheetTitle)).toBeTruthy());
+  }
+
+  it('opens the shared sheet on each surface', async () => {
+    const first = strings.businessBranchSwitcher.branches[0];
+    const orders = await render(<BusinessOrdersHubScreen />);
+    await openSheet(orders, first.name);
+    orders.unmount();
+  });
+
+  it('reflects the branch selection on the pill', async () => {
+    const first = strings.businessBranchSwitcher.branches[0];
+    const second = strings.businessBranchSwitcher.branches[1];
+    const dashboard = await render(<BusinessDashboardOverviewScreen />);
+    await openSheet(dashboard, first.name);
+    await act(async () => {
+      fireEvent.press(dashboard.getByLabelText(second.name));
+    });
+    // The pill now shows the branch that was picked, not the static default.
+    expect(dashboard.getByLabelText(`${copy.switchLabel}: ${second.name}`)).toBeTruthy();
+    dashboard.unmount();
+  });
+
+  it('opens the shared sheet from the More hub', async () => {
+    const more = await render(<BusinessMoreHubScreen />);
+    await openSheet(more, strings.businessBranchSwitcher.branches[0].name);
   });
 });
 
@@ -375,6 +454,26 @@ describe('business bookings hub', () => {
 });
 
 describe('business POS orders view', () => {
+  it('keeps every size at or below the label end of the scale', async () => {
+    // A dense register list: scanning many tickets, not reading prose. A
+    // `heading*` token creeping back in is what makes every label look like it
+    // is shouting, so the rendered tree is checked directly.
+    const view = await render(<BusinessPosOrdersViewScreen onBack={jest.fn()} />);
+
+    const sizes: number[] = [];
+    const walk = (node: unknown) => {
+      const n = node as { props?: Record<string, unknown>; children?: unknown[] };
+      if (!n || typeof n !== 'object') return;
+      const style = n.props?.style as { fontSize?: number } | undefined;
+      if (style && typeof style.fontSize === 'number') sizes.push(style.fontSize);
+      (n.children ?? []).forEach(walk);
+    };
+    walk(view.toJSON());
+
+    expect(sizes.length).toBeGreaterThan(0);
+    expect(Math.max(...sizes)).toBeLessThanOrEqual(18);
+  });
+
   it('renders the terminal banner, volume and the unified order stream', async () => {
     const view = await render(<BusinessPosOrdersViewScreen onBack={jest.fn()} />);
     const copy = strings.businessPos;

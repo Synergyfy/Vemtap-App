@@ -133,6 +133,7 @@ export function StatusPillTabs({
   onSelect,
   variant = 'solid',
   segmented = false,
+  disabledTabs = [],
 }: {
   labels: readonly string[];
   /** Optional per-tab badge counts (business Orders / Bookings switcher). */
@@ -142,6 +143,8 @@ export function StatusPillTabs({
   variant?: 'solid' | 'subtle' | 'switcher';
   /** Fills the row width with equal segments inside one track (timeframe pickers). */
   segmented?: boolean;
+  /** Tab indexes that must not react, e.g. a destination that is not wired yet. */
+  disabledTabs?: readonly number[];
 }) {
   const activeClass =
     variant === 'subtle'
@@ -158,16 +161,20 @@ export function StatusPillTabs({
       <View className="flex-row items-center gap-1 rounded-card bg-surface-container-high p-1">
         {labels.map((label, index) => {
           const isSelected = index === selected;
+          const isDisabled = disabledTabs.includes(index);
           return (
             <Pressable
               key={label}
               accessibilityRole="tab"
               accessibilityLabel={label}
-              accessibilityState={{ selected: isSelected }}
+              accessibilityState={{ selected: isSelected, disabled: isDisabled }}
+              accessibilityHint={isDisabled ? `${label} is unavailable` : undefined}
+              disabled={isDisabled}
               onPress={() => onSelect(index)}
               className={cn(
                 'min-w-0 flex-1 flex-row items-center justify-center gap-2 rounded-lg py-2',
                 isSelected && 'bg-surface-container-lowest shadow-sm',
+                isDisabled && 'opacity-40',
               )}
             >
               <VemtapText

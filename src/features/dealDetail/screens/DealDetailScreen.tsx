@@ -299,6 +299,48 @@ export function DealDetailScreen({ route, navigation }: Props) {
             <AttributePill icon="person" label="1 Claim / Person" />
           </ScrollView>
 
+          <View style={styles.engagementCard}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Like deal"
+              onPress={() => setLiked(value => !value)}
+              style={styles.engagementButton}
+            >
+              <Icon
+                name={liked ? 'favoriteFilled' : 'favorite'}
+                size={18}
+                color={liked ? colors.error : colors.textSecondary}
+              />
+              <VemtapText className="font-sans-semibold text-label-md text-text-secondary">
+                {details.likes + (liked ? 1 : 0)}
+              </VemtapText>
+            </Pressable>
+            <View style={styles.divider} />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Open comments"
+              onPress={() => setCommentsVisible(true)}
+              style={styles.engagementButton}
+            >
+              <Icon name="comment" size={18} color={colors.textSecondary} />
+              <VemtapText className="font-sans-semibold text-label-md text-text-secondary">
+                {details.comments}
+              </VemtapText>
+            </Pressable>
+            <View style={styles.divider} />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Share deal"
+              onPress={handleShare}
+              style={styles.engagementButton}
+            >
+              <Icon name="share" size={18} color={colors.textSecondary} />
+              <VemtapText className="font-sans-semibold text-label-md text-text-secondary">
+                Share
+              </VemtapText>
+            </Pressable>
+          </View>
+
           <View style={styles.card}>
             <VemtapText variant="headingSm" className="text-text">
               About this deal
@@ -375,48 +417,6 @@ export function DealDetailScreen({ route, navigation }: Props) {
                 navigation.navigate('DealTermsConditions', { dealId: deal.id })
               }
             />
-          </View>
-
-          <View style={styles.engagementCard}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Like deal"
-              onPress={() => setLiked(value => !value)}
-              style={styles.engagementButton}
-            >
-              <Icon
-                name={liked ? 'favoriteFilled' : 'favorite'}
-                size={18}
-                color={liked ? colors.error : colors.textSecondary}
-              />
-              <VemtapText className="font-sans-semibold text-label-md text-text-secondary">
-                {details.likes + (liked ? 1 : 0)}
-              </VemtapText>
-            </Pressable>
-            <View style={styles.divider} />
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Open comments"
-              onPress={() => setCommentsVisible(true)}
-              style={styles.engagementButton}
-            >
-              <Icon name="comment" size={18} color={colors.textSecondary} />
-              <VemtapText className="font-sans-semibold text-label-md text-text-secondary">
-                {details.comments}
-              </VemtapText>
-            </Pressable>
-            <View style={styles.divider} />
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Share deal"
-              onPress={handleShare}
-              style={styles.engagementButton}
-            >
-              <Icon name="share" size={18} color={colors.textSecondary} />
-              <VemtapText className="font-sans-semibold text-label-md text-text-secondary">
-                Share
-              </VemtapText>
-            </Pressable>
           </View>
 
           <View style={styles.guarantee}>

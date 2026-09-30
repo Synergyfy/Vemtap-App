@@ -2,7 +2,7 @@ import React from 'react';
 import { Image, Pressable, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { VemtapText } from '@components/ui/Text';
-import { DealEngagementRow } from '@components/home/DealEngagementRow';
+import { DealEngagementRow } from '@components/shared/DealEngagementRow';
 import type { TrendingDeal } from '@features/home/data/homeFeed';
 
 cssInterop(View, { className: 'style' });

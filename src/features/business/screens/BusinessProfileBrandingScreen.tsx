@@ -288,7 +288,7 @@ export function BusinessProfileBrandingScreen({
                 </Pressable>
                 <VemtapText
                   variant="caption"
-                  className="hidden flex-1 text-right text-primary-foreground opacity-90 sm:flex"
+                  className="hidden min-w-0 flex-1 text-right text-primary-foreground opacity-90 sm:flex"
                   numberOfLines={1}
                 >
                   {copy.branding.coverFormats}

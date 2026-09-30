@@ -3,6 +3,7 @@ import { Image, Pressable, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
+import { DealEngagementRow } from '@components/shared/DealEngagementRow';
 import { colors } from '@theme/colors';
 import type { FeaturedDealOfDay } from '@features/deals/data/dealsFeed';
 
@@ -11,15 +12,23 @@ cssInterop(Pressable, { className: 'style' });
 
 export interface FeaturedDealOfDayCardProps {
   deal: FeaturedDealOfDay;
+  liked?: boolean;
   onClaim?: (id: string) => void;
+  onToggleLike?: (id: string) => void;
+  onOpenComments?: (id: string) => void;
   onOpenDetail?: (id: string) => void;
 }
 
 export function FeaturedDealOfDayCard({
   deal,
+  liked = false,
   onClaim,
+  onToggleLike,
+  onOpenComments,
   onOpenDetail,
 }: FeaturedDealOfDayCardProps) {
+  const likeCount = deal.likes + (liked ? 1 : 0);
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -98,20 +107,14 @@ export function FeaturedDealOfDayCard({
           </VemtapText>
         </View>
         <View className="flex-row items-center justify-between border-t border-border pt-2.5">
-          <View className="flex-row items-center gap-3">
-            <View className="flex-row items-center gap-1">
-              <Icon name="favoriteFilled" size={15} color={colors.error} />
-              <VemtapText className="font-sans text-caption text-text-secondary">
-                {deal.likes}
-              </VemtapText>
-            </View>
-            <View className="flex-row items-center gap-1">
-              <Icon name="comment" size={15} color={colors.textSecondary} />
-              <VemtapText className="font-sans text-caption text-text-secondary">
-                {deal.comments}
-              </VemtapText>
-            </View>
-          </View>
+          <DealEngagementRow
+            size="sm"
+            liked={liked}
+            likeCount={likeCount}
+            commentCount={deal.comments}
+            onToggleLike={onToggleLike ? () => onToggleLike(deal.id) : undefined}
+            onOpenComments={onOpenComments ? () => onOpenComments(deal.id) : undefined}
+          />
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={deal.claimLabel}

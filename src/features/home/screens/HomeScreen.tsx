@@ -43,6 +43,12 @@ export interface HomeScreenProps {
   onOpenFeaturedDeals?: () => void;
   /** Location-selection page behind the navbar district name. */
   onOpenLocationSelect?: () => void;
+  /** Shared deals filter sheet behind the search bar's filter icon. */
+  onOpenFilters?: () => void;
+  /** Bell action on the shared navbar; owned by the tab shell. */
+  onOpenNotifications?: () => void;
+  /** Avatar action on the shared navbar. */
+  onOpenAccount?: () => void;
   /** Manual district search behind the sheet's "Or Select / Search District" row. */
   onSearchArea?: () => void;
   /** Device-location request behind the sheet's auto-detect row. */
@@ -53,10 +59,13 @@ export function HomeScreen({
   onOpenDiscover,
   onOpenDeal,
   onOpenBusinessSetup,
+  onOpenFilters,
   onOpenDealsTab,
   onOpenDiscoverTab,
   onOpenFeaturedDeals,
   onOpenLocationSelect,
+  onOpenNotifications,
+  onOpenAccount,
   onSearchArea,
   onUseCurrentLocation,
 }: HomeScreenProps) {
@@ -92,6 +101,8 @@ export function HomeScreen({
   const targeting = useConsumerTargeting({
     onOpenLocationSelect: onOpenLocationSelect ?? (() => onSearchArea?.()),
     onUseCurrentLocation,
+    onPressNotifications: onOpenNotifications,
+    onPressAvatar: onOpenAccount,
   });
 
   const commentsDeal = useMemo(
@@ -108,7 +119,12 @@ export function HomeScreen({
         showsVerticalScrollIndicator={false}
       >
         <View className="gap-4">
-          <HomeSearchBar />
+          {/* Same shared filter page the Deals feed opens, so the two feeds
+              cannot drift into separate filtering behaviour. */}
+          <HomeSearchBar
+            filterLabel={strings.home.filter}
+            onFilterPress={onOpenFilters}
+          />
           <CategoryChips categories={strings.home.categories} horizontalGutter={false} />
         </View>
 

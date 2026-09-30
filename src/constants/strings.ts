@@ -1,3 +1,26 @@
+/** Canonical business branch list. Every branch switcher renders these, so
+ *  Overview, Orders and More can never disagree about the options. */
+const businessBranchList = [
+  {
+    id: 'wuse',
+    name: 'Wuse II Branch',
+    address: 'Aminu Kano Cres \u00b7 Primary Location',
+    active: true,
+  },
+  {
+    id: 'maitama',
+    name: 'Maitama Branch',
+    address: 'Gana Street \u00b7 Secondary Location',
+    active: false,
+  },
+  {
+    id: 'all',
+    name: 'All Branches (Consolidated)',
+    address: '2 active locations combined view',
+    active: false,
+  },
+] as const;
+
 export const strings = {
   app: {
     name: 'Vemtap',
@@ -3370,6 +3393,155 @@ export const strings = {
       { label: 'Deals', count: '(5)', icon: 'localOffer', dot: false },
       { label: 'Bookings', count: '(3)', icon: 'calendar', dot: false },
     ] as const,
+    conversation: {
+      transcriptLabel: 'Conversation transcript',
+      contextLabel: 'About this thread',
+      quickRepliesLabel: 'Quick replies',
+      composerPlaceholder: 'Message the customer\u2026',
+      sendLabel: 'Send message',
+      sendHint: 'Sends a direct in-app message',
+      emptyTitle: 'No messages yet',
+      emptyBody: 'Start the conversation with a short note about their enquiry.',
+      quickReplies: [
+        'Thanks for reaching out!',
+        'Your voucher is ready to use.',
+        'We can hold that for 30 minutes.',
+      ] as const,
+      transcripts: {
+        sarah: {
+          intro: 'Thread opened from your Deals enquiry',
+          messages: [
+            {
+              id: 'sarah-1',
+              sender: 'customer' as const,
+              time: '10:32 AM',
+              text: 'Hi, is the 20% lunch combo still available for 4 people today?',
+            },
+            {
+              id: 'sarah-2',
+              sender: 'merchant' as const,
+              time: '10:35 AM',
+              text: 'It is! Four vouchers are still unclaimed for today\u2019s service.',
+            },
+            {
+              id: 'sarah-3',
+              sender: 'customer' as const,
+              time: '10:39 AM',
+              text: 'Perfect. Can I claim two now and two when my sister arrives at 2pm?',
+            },
+            {
+              id: 'sarah-4',
+              sender: 'merchant' as const,
+              time: '10:42 AM',
+              text: 'Absolutely. Claim whenever you like \u2014 each voucher is valid until 4pm today.',
+            },
+          ],
+        },
+        michael: {
+          intro: 'Thread opened from your Orders inbox',
+          messages: [
+            {
+              id: 'michael-1',
+              sender: 'customer' as const,
+              time: '9:18 AM',
+              text: 'My ribeye order shows confirmed but I have not received the table confirmation.',
+            },
+            {
+              id: 'michael-2',
+              sender: 'merchant' as const,
+              time: '9:21 AM',
+              text: 'Let me check that for you \u2014 one moment.',
+            },
+            {
+              id: 'michael-3',
+              sender: 'merchant' as const,
+              time: '9:24 AM',
+              text: 'Found it: your table is held under the name James. Confirmation re-sent just now.',
+            },
+          ],
+        },
+        amaka: {
+          intro: 'Thread opened from your Products inbox',
+          messages: [
+            {
+              id: 'amaka-1',
+              sender: 'customer' as const,
+              time: 'Yesterday',
+              text: 'Do you restock the Glow Radiance Serum this month?',
+            },
+            {
+              id: 'amaka-2',
+              sender: 'merchant' as const,
+              time: 'Yesterday',
+              text: 'We do \u2014 a new batch lands on Thursday. I can reserve one for you.',
+            },
+            {
+              id: 'amaka-3',
+              sender: 'customer' as const,
+              time: 'Yesterday',
+              text: 'Yes please, reserve one for pickup.',
+            },
+          ],
+        },
+        chidi: {
+          intro: 'Thread opened from your Bookings inbox',
+          messages: [
+            {
+              id: 'chidi-1',
+              sender: 'customer' as const,
+              time: 'Yesterday',
+              text: 'I booked table for 4 on Saturday at 7:30pm \u2014 can I move it to 8pm?',
+            },
+            {
+              id: 'chidi-2',
+              sender: 'merchant' as const,
+              time: 'Yesterday',
+              text: '8pm is free. I have moved the booking and re-sent the confirmation.',
+            },
+          ],
+        },
+        tunde: {
+          intro: 'General enquiry from your storefront',
+          messages: [
+            {
+              id: 'tunde-1',
+              sender: 'customer' as const,
+              time: 'Mon',
+              text: 'What are your opening hours on public holidays?',
+            },
+            {
+              id: 'tunde-2',
+              sender: 'merchant' as const,
+              time: 'Mon',
+              text: 'We open 11am\u201310pm on public holidays, same as weekends.',
+            },
+          ],
+        },
+        halima: {
+          intro: 'Thread opened from your Bookings inbox',
+          messages: [
+            {
+              id: 'halima-1',
+              sender: 'customer' as const,
+              time: 'Oct 14',
+              text: 'I need to reschedule my Swedish massage to Thursday at 5:15pm.',
+            },
+            {
+              id: 'halima-2',
+              sender: 'merchant' as const,
+              time: 'Oct 14',
+              text: 'Done \u2014 you are booked for Thursday 5:15pm with Amina.',
+            },
+            {
+              id: 'halima-3',
+              sender: 'customer' as const,
+              time: 'Oct 14',
+              text: 'Thank you, see you then.',
+            },
+          ],
+        },
+      } as const,
+    },
     threads: [
       {
         id: 'sarah',
@@ -4512,26 +4684,7 @@ export const strings = {
     dismiss: 'Later',
     branchSheetTitle: 'Select Active Branch',
     branchSheetSubtitle: 'Urban Grill & Bistro Business Account',
-    branches: [
-      {
-        id: 'wuse',
-        name: 'Wuse II Branch',
-        address: 'Aminu Kano Cres \u00b7 Primary Location',
-        active: true,
-      },
-      {
-        id: 'maitama',
-        name: 'Maitama Branch',
-        address: 'Gana Street \u00b7 Secondary Location',
-        active: false,
-      },
-      {
-        id: 'all',
-        name: 'All Branches (Consolidated)',
-        address: '2 active locations combined view',
-        active: false,
-      },
-    ] as const,
+    branches: businessBranchList,
     addBranch: '+ Add New Branch',
     viewAll: 'View All \u2192',
   },
@@ -10105,6 +10258,55 @@ export const strings = {
       title: 'Could not load permissions',
       body: 'The till may be offline. Retry once it syncs.',
     },
+  },
+  /** `your_vemtap_business_qr_is_ready` - post-setup business pass. */
+  businessQrReady: {
+    headerTitle: 'Business Qr',
+    shareActionLabel: 'Share QR code',
+    supportActionLabel: 'Merchant support',
+    setupBadge: 'Business Setup Complete',
+    title: 'Your VEMTAP Business QR is ready',
+    subtitle:
+      'Display this at your cashier counter, table stands, or entrance so customers can instantly tap, claim deals, and join your store.',
+    kitLabel: 'Print-ready standard:',
+    kitValue: 'Table Tent & A5 Acrylic',
+    kitCta: 'Order Kits \u2192',
+    kitActionLabel: 'Order print-ready QR kits',
+    passBadge: 'VEMTAP PASS',
+    passEnabledLabel: 'NFC + QR ENABLED',
+    copyLinkActionLabel: 'Copy business QR link',
+    copiedLabel: 'Link copied to clipboard!',
+    fullscreenCta: 'Present Fullscreen',
+    downloadCta: 'Download Kit',
+    previewTitle: 'What Customers See',
+    previewBadge: 'Instant Web View',
+    previewImageAlt: 'Warm gourmet smoked brisket platter inside a modern restaurant',
+    previewStatus: 'Open \u2022 Maitama, Abuja',
+    previewPass: 'Instant Pass',
+    previewDeal: '20% Off Prime Lunch Combo',
+    previewDealBody: 'One-tap redemption at checkout',
+    previewPoints: 'Earn 100 Welcome Tap Points',
+    previewMenu: 'Digital Menu',
+    previewReassurance: 'Customers do not need to download an app to scan',
+    accessTitle: 'Where to access this later',
+    accessPath: 'More \u2192 Business Management \u2192 QR & Entry',
+    accessBodySuffix: 'You can generate custom table codes anytime.',
+    referralBadge: 'Referral Perk',
+    referralTitle: 'Grow with the VEMTAP Business Network',
+    referralBody:
+      'Know other businesses around you? Refer them to VEMTAP and unlock network benefits as your network grows.',
+    referralCta: 'Get Started',
+    continueCta: 'Continue to Business Dashboard',
+    shareLinkCta: 'Share digital link via WhatsApp or socials',
+  },
+  /** Branch switcher shared by Business Overview, Orders and More. */
+  businessBranchSwitcher: {
+    switchLabel: 'Switch branch',
+    sheetTitle: 'Select Active Branch',
+    sheetSubtitle: 'Urban Grill & Bistro Business Account',
+    addBranch: '+ Add New Branch',
+    liveSuffix: '(Live)',
+    branches: businessBranchList,
   },
   errors: {
     network: 'Network error. Check your connection.',

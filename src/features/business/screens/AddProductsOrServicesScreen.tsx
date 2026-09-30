@@ -107,8 +107,8 @@ export function AddProductsOrServicesScreen({
         <View className="gap-1">
           <VemtapText
             accessibilityRole="header"
-            variant="headingMd"
-            className="text-heading-md"
+            variant="headingSm"
+            className="text-heading-sm"
           >
             {copy.title}
           </VemtapText>
@@ -171,7 +171,7 @@ export function AddProductsOrServicesScreen({
         <View className="gap-3">
           <View className="flex-row flex-wrap items-center justify-between gap-2">
             <View className="min-w-0 flex-row items-center gap-1.5">
-              <VemtapText variant="headingSm" className="text-text">
+              <VemtapText variant="labelMd" className="font-sans-semibold text-text">
                 {copy.currentCatalog}
               </VemtapText>
               <StatusPill

@@ -98,8 +98,8 @@ export function AddProductLocationPricingScreen({
         <View className="gap-1">
           <VemtapText
             accessibilityRole="header"
-            variant="headingMd"
-            className="text-heading-md"
+            variant="headingSm"
+            className="text-heading-sm"
           >
             Add Product
           </VemtapText>
@@ -112,7 +112,11 @@ export function AddProductLocationPricingScreen({
 
       <SetupCard>
         <View className="flex-row items-center justify-between gap-3">
-          <BusinessSectionHeading title="General Details" icon="dining" />
+          <BusinessSectionHeading
+            title="General Details"
+            titleVariant="labelMd"
+            icon="dining"
+          />
           <VemtapText variant="caption" tone="tertiary">
             Core Item
           </VemtapText>
@@ -180,6 +184,7 @@ export function AddProductLocationPricingScreen({
       <SetupCard>
         <BusinessSectionHeading
           title="Where is this product available?"
+          titleVariant="labelMd"
           icon="storefront"
           subtitle="Select which branches stock or prepare this item."
         />
@@ -201,6 +206,7 @@ export function AddProductLocationPricingScreen({
         <View className="gap-1">
           <BusinessSectionHeading
             title="Pricing Configuration"
+            titleVariant="labelMd"
             icon="payments"
             trailing={
               <BusinessStatusPill label="Per-Branch Mode" tone="brandHigh" icon="tune" />

@@ -3,7 +3,7 @@ import { Image, Pressable, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
-import { DealEngagementRow } from '@components/home/DealEngagementRow';
+import { DealEngagementRow } from '@components/shared/DealEngagementRow';
 import { cn } from '@utils/cn';
 import { strings } from '@constants/strings';
 import type { NearbyDeal } from '@features/home/data/homeFeed';
@@ -66,7 +66,7 @@ export function NearbyDealListCard({
           <VemtapText
             variant="labelSm"
             tone="secondary"
-            className="flex-1 font-sans-medium"
+            className="min-w-0 flex-1 font-sans-medium"
             numberOfLines={1}
           >
             {deal.merchant}

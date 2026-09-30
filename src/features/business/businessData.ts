@@ -1,4 +1,8 @@
+import type { ImageSourcePropType } from 'react-native';
 import type { IconName } from '@components/ui/Icon';
+
+const imgGrillSteak = require('../../../assets/images/saved-urban-grill.jpg');
+const imgTruffleBurger = require('../../../assets/images/urban-burger.svg');
 
 export interface BusinessPillar {
   id: string;
@@ -26,7 +30,7 @@ export interface CatalogItem {
   kind: 'product' | 'service';
   category: string;
   title: string;
-  imageUri?: string;
+  image?: ImageSourcePropType;
   priceSummary: string;
   priceNote?: string;
   multiPrice?: boolean;
@@ -214,8 +218,7 @@ export const catalogItems: CatalogItem[] = [
     kind: 'product',
     category: 'Food & Dining • Grill',
     title: 'Woodfire Aged Ribeye Steak',
-    imageUri:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuABbKjokKZfYnhkmkPG0delg2rbojNtiWCZuXNEG-TmKjzMssurv4U7qxC0XnDffcdwgf6dcUEUNWsdomozflqPJc-6iKc7HyaKcSRJ5RKMY1xuwBXFriZTh--f5doW6ldMXJbczU8nzp7_fgTyBcVuE3q9hJ_fR4FuHkmbDWn-82fdaOi1aJx4ahPZT5oYRaJs71DhbsQmZlPb26qGtKtCz471A8G1yITeOPLx_d6HH3G0v7mFnEvHnQ',
+    image: imgGrillSteak,
     priceSummary: '₦12,000 (Wuse) • ₦12,500 (Garki)',
     multiPrice: true,
     availability: 'Available at 2/2 branches',
@@ -228,8 +231,7 @@ export const catalogItems: CatalogItem[] = [
     kind: 'product',
     category: 'Food & Dining • Gourmet',
     title: 'Artisanal Prime Truffle Burger',
-    imageUri:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuAyFEhGUOn7is2xk7hx6KF3AVcivyGLVD46lcCgBkKjVhNUJecR7fnZiUp0KRTQxSjROA6jeEPPeG6SgLolLOtUr7hhvdMJQw8AhyBzLcC17LAnFdAnS8-saYlk1Q6ab9IhIc5QGe2IWBhB1-e5OctM3xj9vUo8GSk11m-ia_aGXw3SpCanGZe1Nf2knEm0j5UMNEeS-UbQLd2CTgcmWnXEYeAZ1EDm0d4dCzPQD3xzSmNx1anFuyzHKw',
+    image: imgTruffleBurger,
     priceSummary: '₦9,600',
     priceNote: 'Uniform price',
     availability: 'Wuse Branch only',

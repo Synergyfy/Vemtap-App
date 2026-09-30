@@ -42,6 +42,15 @@ module.exports = {
         message:
           'onTouchEnd/onTouchStart is dead on a plain View and provides no press semantics. Use Pressable for tappable elements.',
       },
+      {
+        // A fixed pixel size that spans a phone viewport always overflows the
+        // 24px content gutter and does not adapt to narrow devices. Size from
+        // flex / max-w-* / percentage instead.
+        selector:
+          'JSXAttribute[name.name="className"][value.value=/(^|\s)[wh]-\\[(?:3[2-9]\\d|[4-9]\\d\\d|[1-9]\\d{3,})px\\]/]',
+        message:
+          'Fixed px size of 320px or more overflows the content gutter on small screens. Use flex / max-w-* / percentage sizing instead.',
+      },
     ],
     '@typescript-eslint/no-shadow': 'error',
     'no-unused-vars': 'off',

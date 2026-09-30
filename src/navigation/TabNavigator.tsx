@@ -28,7 +28,6 @@ import { MoreHubScreen } from '@features/accountHub/screens/MoreHubScreen';
 import { MyActivityScreen } from '@features/accountHub/screens/MyActivityScreen';
 import { RewardsScreen } from '@features/accountHub/screens/RewardsScreen';
 import { SavingsHistoryScreen } from '@features/accountHub/screens/SavingsHistoryScreen';
-import { NotificationsCenterScreen } from '@features/accountHub/screens/NotificationsCenterScreen';
 import { AccountSettingsSecurityScreen } from '@features/accountHub/screens/AccountSettingsSecurityScreen';
 import { EditProfileScreen } from '@features/accountHub/screens/EditProfileScreen';
 import { BookingDetailScreen } from '@features/accountHub/screens/BookingDetailScreen';
@@ -68,7 +67,8 @@ const AccountStack = createNativeStackNavigator<AccountStackParamList>();
 const TAB_BAR_CONTENT_HEIGHT = 64;
 
 type DealsTabNavigation = BottomTabNavigationProp<MainTabParamList> &
-  NativeStackNavigationProp<AppStackParamList>;
+  NativeStackNavigationProp<AppStackParamList> &
+  NativeStackNavigationProp<RootStackParamList>;
 
 function DealsTabScreen() {
   const navigation = useNavigation<DealsTabNavigation>();
@@ -88,6 +88,16 @@ function DealsTabScreen() {
     () => () => navigation.navigate('LocationSelect', { currentArea: area }),
     [area, navigation],
   );
+  // Notifications and the account hub live in the account shell, so the bell
+  // hands off across shells instead of duplicating those screens here.
+  const onOpenNotifications = useMemo(
+    () => () => navigation.navigate('PersonalHub', { screen: 'PersonalNotifications' }),
+    [navigation],
+  );
+  const onOpenAccount = useMemo(
+    () => () => navigation.navigate('Account', { screen: 'AccountHome' }),
+    [navigation],
+  );
 
   return (
     <DealsDiscoveryScreen
@@ -95,6 +105,8 @@ function DealsTabScreen() {
       onOpenFilters={onOpenFilters}
       onOpenDeal={onOpenDeal}
       onOpenLocationSelect={onOpenLocationSelect}
+      onOpenNotifications={onOpenNotifications}
+      onOpenAccount={onOpenAccount}
     />
   );
 }
@@ -127,6 +139,12 @@ function HomeFeedScreen() {
     () => (dealId: string) => navigation.navigate('DealDetail', { dealId }),
     [navigation],
   );
+  // Home's search-bar filter icon opens the same shared page as the Deals feed,
+  // so both surfaces filter through one implementation.
+  const openFilters = useMemo(
+    () => () => navigation.navigate('DealFilters'),
+    [navigation],
+  );
   const onOpenBusinessSetup = useMemo(
     () => () => navigation.navigate('BusinessSetup'),
     [navigation],
@@ -140,10 +158,19 @@ function HomeFeedScreen() {
     () => () => navigation.navigate('HomeFeaturedDeals'),
     [navigation],
   );
+  const onOpenNotifications = useMemo(
+    () => () => navigation.navigate('PersonalHub', { screen: 'PersonalNotifications' }),
+    [navigation],
+  );
+  const onOpenAccount = useMemo(
+    () => () => navigation.navigate('Account', { screen: 'AccountHome' }),
+    [navigation],
+  );
 
   return (
     <HomeScreen
       onOpenDiscover={onOpenDiscover}
+      onOpenFilters={openFilters}
       onOpenDeal={onOpenDeal}
       onOpenBusinessSetup={onOpenBusinessSetup}
       onOpenDealsTab={onOpenDealsTab}
@@ -151,6 +178,8 @@ function HomeFeedScreen() {
       onOpenFeaturedDeals={onOpenFeaturedDeals}
       onOpenLocationSelect={openLocationSelect}
       onSearchArea={openLocationSelect}
+      onOpenNotifications={onOpenNotifications}
+      onOpenAccount={onOpenAccount}
     />
   );
 }
@@ -197,6 +226,14 @@ function HomeDealsDiscoveryScreen() {
     () => () => navigation.navigate('LocationSelect', { currentArea: area }),
     [area, navigation],
   );
+  const onOpenNotifications = useMemo(
+    () => () => navigation.navigate('PersonalHub', { screen: 'PersonalNotifications' }),
+    [navigation],
+  );
+  const onOpenAccount = useMemo(
+    () => () => navigation.navigate('Account', { screen: 'AccountHome' }),
+    [navigation],
+  );
 
   return (
     <DealsDiscoveryScreen
@@ -204,6 +241,8 @@ function HomeDealsDiscoveryScreen() {
       onOpenFilters={onOpenFilters}
       onOpenDeal={onOpenDeal}
       onOpenLocationSelect={onOpenLocationSelect}
+      onOpenNotifications={onOpenNotifications}
+      onOpenAccount={onOpenAccount}
     />
   );
 }
@@ -248,10 +287,17 @@ function DiscoverHomeScreen() {
     [area, navigation],
   );
 
+  // Discover's filter icon is a real control, so it opens the shared filter
+  // page rather than a Discover-only variant.
+  const openFilters = useMemo(
+    () => () => navigation.navigate('DealFilters'),
+    [navigation],
+  );
+
   return (
     <DiscoverScreen
       onOpenBusiness={onOpenBusiness}
-      onOpenFilters={() => undefined}
+      onOpenFilters={openFilters}
       onToggleMap={() => undefined}
       onOpenNotifications={() => undefined}
       onOpenAccount={() => navigation.navigate('Tabs', { screen: 'Account' })}
@@ -382,7 +428,8 @@ function DiscoverTabScreen() {
 }
 
 type SavedTabNavigation = BottomTabNavigationProp<MainTabParamList> &
-  NativeStackNavigationProp<AppStackParamList>;
+  NativeStackNavigationProp<AppStackParamList> &
+  NativeStackNavigationProp<RootStackParamList>;
 
 function SavedTabScreen() {
   const navigation = useNavigation<SavedTabNavigation>();
@@ -411,7 +458,9 @@ function SavedTabScreen() {
   return (
     <SavedHubScreen
       onBack={navigation.goBack}
-      onNotifications={() => navigation.navigate('Account', { screen: 'Notifications' })}
+      onNotifications={() =>
+        navigation.navigate('PersonalHub', { screen: 'PersonalNotifications' })
+      }
       onOpenDeal={onOpenDeal}
       onOpenBusiness={onOpenBusiness}
       onOpenService={onOpenDeal}
@@ -615,11 +664,6 @@ function SavingsHistoryRoute() {
   return <SavingsHistoryScreen onBack={() => navigation.goBack()} />;
 }
 
-function NotificationsRoute() {
-  const navigation = useNavigation<AccountStackNavigation>();
-  return <NotificationsCenterScreen onBack={() => navigation.goBack()} />;
-}
-
 function AccountSettingsRoute() {
   const navigation = useNavigation<AccountStackNavigation>();
   return (
@@ -695,7 +739,6 @@ export function AccountStackNavigator() {
         <AccountStack.Screen name="Activity" component={ActivityRoute} />
         <AccountStack.Screen name="Rewards" component={RewardsRoute} />
         <AccountStack.Screen name="SavingsHistory" component={SavingsHistoryRoute} />
-        <AccountStack.Screen name="Notifications" component={NotificationsRoute} />
         <AccountStack.Screen name="AccountSettings" component={AccountSettingsRoute} />
         <AccountStack.Screen name="EditProfile" component={EditProfileRoute} />
         <AccountStack.Screen name="ClaimedDealPass" component={ClaimedDealPassRoute} />

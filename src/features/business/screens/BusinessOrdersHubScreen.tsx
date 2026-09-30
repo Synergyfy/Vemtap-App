@@ -5,7 +5,9 @@ import { cssInterop } from 'nativewind';
 import { Icon, type IconName } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
+import { TypeDensityProvider } from '@theme/TypeDensityProvider';
 import { colors } from '@theme/colors';
+import { BusinessBranchSwitcher } from '@features/business/components/BusinessBranchSwitcher';
 import {
   BusinessModeMark,
   BusinessScreenLayout,
@@ -117,7 +119,9 @@ const ctaStyles: Record<CtaStyle, { chip: string; text: string; icon: IconName }
 };
 
 export interface BusinessOrdersHubScreenProps {
-  onOpenBranchSwitcher?: () => void;
+  /** Fired when the cashier picks a different branch from the shared switcher. */
+  onChangeBranch?: (branchId: string) => void;
+  onAddBranch?: () => void;
   onOpenBookings?: () => void;
   onOpenPosOrders?: () => void;
   onOpenOrder?: (id: string) => void;
@@ -129,7 +133,8 @@ export interface BusinessOrdersHubScreenProps {
 }
 
 export function BusinessOrdersHubScreen({
-  onOpenBranchSwitcher,
+  onChangeBranch,
+  onAddBranch,
   onOpenBookings,
   onOpenPosOrders,
   onOpenOrder,
@@ -142,304 +147,301 @@ export function BusinessOrdersHubScreen({
   const [surface, setSurface] = useState(0);
   const [filter, setFilter] = useState(0);
 
+  // Dense hub: many rows read at a glance, so the subtree (navbar included)
+  // uses the compact type density rather than per-row size overrides.
   return (
-    <BusinessScreenLayout
-      header={{
-        title: shell.tabs.orders,
-        eyebrow: shell.modeLabel,
-        centerTitle: false,
-        leading: <BusinessModeMark label={shell.modeMark} />,
-        showAvatar: true,
-        actions: [
-          {
-            icon: 'notifications',
-            label: shell.notificationsLabel,
-            onPress: onOpenNotifications,
-          },
-        ],
-      }}
-      contentContainerClassName="pb-8"
-    >
-      <View className="flex-row items-center justify-between gap-2">
+    <TypeDensityProvider density="compact">
+      <BusinessScreenLayout
+        header={{
+          title: shell.tabs.orders,
+          eyebrow: shell.modeLabel,
+          centerTitle: false,
+          leading: <BusinessModeMark label={shell.modeMark} />,
+          showAvatar: true,
+          actions: [
+            {
+              icon: 'notifications',
+              label: shell.notificationsLabel,
+              onPress: onOpenNotifications,
+            },
+          ],
+        }}
+        contentContainerClassName="pb-8"
+      >
+        <View className="flex-row items-center justify-between gap-2">
+          <BusinessBranchSwitcher
+            branches={strings.businessBranchSwitcher.branches}
+            className="flex-1"
+            onChangeBranch={onChangeBranch}
+            onAddBranch={onAddBranch}
+          />
+          <View className="flex-row items-center gap-2">
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={copy.searchLabel}
+              onPress={onSearchOrders}
+              className="h-10 w-10 items-center justify-center rounded-full bg-surface-container-low active:scale-95"
+            >
+              <Icon name="search" size={20} color={colors.surfaceDark} />
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={copy.filterLabel}
+              onPress={onFilterOrders}
+              className="h-10 w-10 items-center justify-center rounded-full bg-surface-container-low active:scale-95"
+            >
+              <Icon name="tune" size={20} color={colors.surfaceDark} />
+              <View className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary-container" />
+            </Pressable>
+          </View>
+        </View>
+
+        <StatusPillTabs
+          variant="switcher"
+          labels={copy.switcher}
+          counts={copy.switcherCounts}
+          selected={surface}
+          disabledTabs={onOpenBookings ? [] : [1]}
+          onSelect={index => {
+            setSurface(index);
+            if (index === 1) onOpenBookings?.();
+          }}
+        />
+
+        <View className="-mx-6">
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerClassName="gap-2 px-6 py-1"
+          >
+            {copy.filters.map((chip, index) => (
+              <BusinessSelectionChip
+                key={chip.label}
+                label={`${chip.label} (${chip.count})`}
+                selected={index === filter}
+                onPress={() => setFilter(index)}
+                tone="brand"
+                leading={
+                  chip.dot ? (
+                    <View className="h-2 w-2 rounded-full bg-primary-container" />
+                  ) : undefined
+                }
+              />
+            ))}
+          </ScrollView>
+        </View>
+
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={copy.branch}
-          onPress={onOpenBranchSwitcher}
-          className="min-w-0 flex-1 flex-row items-center gap-2 self-start rounded-full bg-surface-container-low px-3 py-1.5 active:scale-95"
+          accessibilityLabel={copy.alertTitle}
+          onPress={onOpenPosOrders}
+          className="mb-3 mt-4 overflow-hidden rounded-card shadow-sm active:scale-[0.99]"
         >
-          <Icon name="storefront" size={17} color={colors.primary} />
-          <VemtapText
-            variant="labelMd"
-            className="min-w-0 flex-1 font-sans-semibold"
-            numberOfLines={1}
+          <LinearGradient
+            colors={[
+              colors.tertiaryFixed,
+              colors.surfaceContainer,
+              colors.surfaceContainerLow,
+            ]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            className="flex-row items-center justify-between gap-3 px-3.5 py-4"
           >
-            {copy.branch}
-          </VemtapText>
-          <Icon name="expandMore" size={18} color={colors.onSurfaceVariant} />
-        </Pressable>
-        <View className="flex-row items-center gap-2">
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={copy.searchLabel}
-            onPress={onSearchOrders}
-            className="h-10 w-10 items-center justify-center rounded-full bg-surface-container-low active:scale-95"
-          >
-            <Icon name="search" size={20} color={colors.surfaceDark} />
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={copy.filterLabel}
-            onPress={onFilterOrders}
-            className="h-10 w-10 items-center justify-center rounded-full bg-surface-container-low active:scale-95"
-          >
-            <Icon name="tune" size={20} color={colors.surfaceDark} />
-            <View className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary-container" />
-          </Pressable>
-        </View>
-      </View>
-
-      <StatusPillTabs
-        variant="switcher"
-        labels={copy.switcher}
-        counts={copy.switcherCounts}
-        selected={surface}
-        onSelect={index => {
-          setSurface(index);
-          if (index === 1) onOpenBookings?.();
-        }}
-      />
-
-      <View className="-mx-6">
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerClassName="gap-2 px-6 py-1"
-        >
-          {copy.filters.map((chip, index) => (
-            <BusinessSelectionChip
-              key={chip.label}
-              label={`${chip.label} (${chip.count})`}
-              selected={index === filter}
-              onPress={() => setFilter(index)}
-              tone="brand"
-              leading={
-                chip.dot ? (
-                  <View className="h-2 w-2 rounded-full bg-primary-container" />
-                ) : undefined
-              }
-            />
-          ))}
-        </ScrollView>
-      </View>
-
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={copy.alertTitle}
-        onPress={onOpenPosOrders}
-        className="mb-3 mt-4 overflow-hidden rounded-card shadow-sm active:scale-[0.99]"
-      >
-        <LinearGradient
-          colors={[
-            colors.tertiaryFixed,
-            colors.surfaceContainer,
-            colors.surfaceContainerLow,
-          ]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          className="flex-row items-center justify-between gap-3 px-3.5 py-4"
-        >
-          <View className="min-w-0 flex-1 flex-row items-center gap-3">
-            <View className="h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-tertiary-container shadow-sm">
-              <Icon name="bolt" size={22} color={colors.surface} />
-            </View>
-            <View className="min-w-0 flex-1">
-              <VemtapText
-                variant="labelMd"
-                className="font-sans-semibold"
-                numberOfLines={1}
-              >
-                {copy.alertTitle}
-              </VemtapText>
-              <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-                {copy.alertBody}
-              </VemtapText>
-            </View>
-          </View>
-          <Icon name="arrowForward" size={20} color={colors.textSecondary} />
-        </LinearGradient>
-      </Pressable>
-
-      <View className="gap-3">
-        {copy.orders.map(order => {
-          const channel = channelStyles[order.channelTone];
-          const payment = paymentStyles[order.id] ?? defaultPaymentStyle;
-          const cta = order.cta && order.ctaStyle ? ctaStyles[order.ctaStyle] : null;
-          return (
-            <Pressable
-              key={order.reference}
-              accessibilityRole="button"
-              accessibilityLabel={order.reference}
-              onPress={() => onOpenOrder?.(order.id)}
-              className={cn(
-                'gap-2 rounded-card bg-surface-container-lowest p-3.5 shadow-sm',
-                channel.accent,
-                order.muted && 'opacity-90',
-              )}
-            >
-              <View className="flex-row items-center justify-between gap-2">
-                <View className="min-w-0 flex-1 flex-row flex-wrap items-center gap-1.5">
-                  <VemtapText
-                    variant="labelMd"
-                    className={cn(
-                      'shrink font-sans-semibold',
-                      !order.muted && 'font-sans-bold',
-                    )}
-                    numberOfLines={1}
-                  >
-                    {order.reference}
-                  </VemtapText>
-                  <View
-                    className={cn(
-                      'flex-row items-center gap-1 self-start rounded-full px-2 py-0.5',
-                      channel.chip,
-                    )}
-                  >
-                    {order.channel !== 'New' && order.channel !== 'POS' ? (
-                      <Icon
-                        name={channelIcons[order.channel] ?? 'receipt'}
-                        size={12}
-                        color={channel.icon}
-                      />
-                    ) : null}
-                    <VemtapText
-                      variant="micro"
-                      className={cn(
-                        'font-sans-semibold uppercase',
-                        channel.text,
-                        (order.channel === 'New' || order.channel === 'POS') &&
-                          'font-sans-bold',
-                      )}
-                    >
-                      {order.channel}
-                    </VemtapText>
-                  </View>
-                  <View className="max-w-[46%] shrink rounded-full bg-surface-container px-2 py-0.5">
-                    <VemtapText
-                      variant="micro"
-                      className="font-sans-medium text-secondary"
-                      numberOfLines={1}
-                    >
-                      {order.fulfilment}
-                    </VemtapText>
-                  </View>
-                </View>
-                <View className="shrink-0 flex-row items-center gap-1">
-                  {order.urgent ? (
-                    <View className="h-1.5 w-1.5 rounded-full bg-primary-container" />
-                  ) : null}
-                  <VemtapText
-                    variant="caption"
-                    className={cn(
-                      order.urgent && 'font-sans-semibold text-primary',
-                      order.muted && 'text-text-tertiary',
-                    )}
-                  >
-                    {order.time}
-                  </VemtapText>
-                </View>
+            <View className="min-w-0 flex-1 flex-row items-center gap-3">
+              <View className="h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-tertiary-container shadow-sm">
+                <Icon name="bolt" size={22} color={colors.surface} />
               </View>
-
-              <View className="flex-row items-center justify-between gap-2">
-                <View className="min-w-0 flex-1 flex-row items-center gap-1.5">
-                  <VemtapText
-                    variant="labelMd"
-                    className="shrink font-sans-semibold"
-                    numberOfLines={1}
-                  >
-                    {order.customer}
-                  </VemtapText>
-                  <VemtapText variant="caption" tone="tertiary" className="shrink-0">
-                    •
-                  </VemtapText>
-                  <VemtapText
-                    variant="caption"
-                    tone="secondary"
-                    className="min-w-0 flex-1"
-                    numberOfLines={1}
-                  >
-                    {order.items}
-                  </VemtapText>
-                </View>
+              <View className="min-w-0 flex-1">
                 <VemtapText
                   variant="labelMd"
-                  className="shrink-0 pl-1 font-sans-bold"
+                  className="font-sans-semibold"
                   numberOfLines={1}
                 >
-                  {order.amount}
+                  {copy.alertTitle}
+                </VemtapText>
+                <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
+                  {copy.alertBody}
                 </VemtapText>
               </View>
+            </View>
+            <Icon name="arrowForward" size={20} color={colors.textSecondary} />
+          </LinearGradient>
+        </Pressable>
 
-              <View className="flex-row items-center justify-between gap-2 pt-1">
-                <View
-                  className={cn(
-                    'min-w-0 max-w-[62%] shrink flex-row items-center gap-1 self-start rounded-full px-2 py-0.5',
-                    payment.chip,
-                  )}
-                >
-                  <Icon
-                    name={paymentIcons[order.id] ?? 'creditCard'}
-                    size={14}
-                    color={payment.icon}
-                  />
-                  <VemtapText
-                    variant="micro"
-                    className={cn('font-sans-semibold', payment.text)}
-                    numberOfLines={1}
-                  >
-                    {order.payment}
-                  </VemtapText>
-                </View>
-                {order.cta && cta ? (
-                  <View className="shrink-0 flex-row items-center gap-1.5">
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel={order.cta}
-                      onPress={() =>
-                        order.channel === 'POS'
-                          ? onSendToKitchen?.(order.id)
-                          : onAcceptOrder?.(order.id)
-                      }
+        <View className="gap-3">
+          {copy.orders.map(order => {
+            const channel = channelStyles[order.channelTone];
+            const payment = paymentStyles[order.id] ?? defaultPaymentStyle;
+            const cta = order.cta && order.ctaStyle ? ctaStyles[order.ctaStyle] : null;
+            return (
+              <Pressable
+                key={order.reference}
+                accessibilityRole="button"
+                accessibilityLabel={order.reference}
+                onPress={() => onOpenOrder?.(order.id)}
+                className={cn(
+                  'gap-2 rounded-card bg-surface-container-lowest p-3.5 shadow-sm',
+                  channel.accent,
+                  order.muted && 'opacity-90',
+                )}
+              >
+                <View className="flex-row items-center justify-between gap-2">
+                  <View className="min-w-0 flex-1 flex-row flex-wrap items-center gap-1.5">
+                    <VemtapText
+                      variant="labelMd"
                       className={cn(
-                        'h-8 shrink-0 flex-row items-center gap-1 rounded-field px-2.5',
-                        cta.chip,
-                        cta.chip && 'shadow-sm active:scale-95',
+                        'shrink font-sans-semibold',
+                        !order.muted && 'font-sans-bold',
+                      )}
+                      numberOfLines={1}
+                    >
+                      {order.reference}
+                    </VemtapText>
+                    <View
+                      className={cn(
+                        'flex-row items-center gap-1 self-start rounded-full px-2 py-0.5',
+                        channel.chip,
                       )}
                     >
+                      {order.channel !== 'New' && order.channel !== 'POS' ? (
+                        <Icon
+                          name={channelIcons[order.channel] ?? 'receipt'}
+                          size={12}
+                          color={channel.icon}
+                        />
+                      ) : null}
                       <VemtapText
-                        variant="labelSm"
-                        className={cn('font-sans-semibold', cta.text)}
+                        variant="micro"
+                        className={cn(
+                          'font-sans-semibold uppercase',
+                          channel.text,
+                          (order.channel === 'New' || order.channel === 'POS') &&
+                            'font-sans-bold',
+                        )}
+                      >
+                        {order.channel}
+                      </VemtapText>
+                    </View>
+                    <View className="max-w-[46%] shrink rounded-full bg-surface-container px-2 py-0.5">
+                      <VemtapText
+                        variant="micro"
+                        className="font-sans-medium text-secondary"
                         numberOfLines={1}
                       >
-                        {order.cta}
+                        {order.fulfilment}
                       </VemtapText>
-                      <Icon
-                        name={cta.icon}
-                        size={16}
-                        color={order.ctaStyle === 'link' ? channel.icon : colors.surface}
-                      />
-                    </Pressable>
-                    {order.ctaStyle === 'link' ? null : (
-                      <Icon name="forward" size={18} color={colors.textTertiary} />
-                    )}
+                    </View>
                   </View>
-                ) : (
-                  <Icon name="forward" size={18} color={colors.textTertiary} />
-                )}
-              </View>
-            </Pressable>
-          );
-        })}
-      </View>
-    </BusinessScreenLayout>
+                  <View className="shrink-0 flex-row items-center gap-1">
+                    {order.urgent ? (
+                      <View className="h-1.5 w-1.5 rounded-full bg-primary-container" />
+                    ) : null}
+                    <VemtapText
+                      variant="caption"
+                      className={cn(
+                        order.urgent && 'font-sans-semibold text-primary',
+                        order.muted && 'text-text-tertiary',
+                      )}
+                    >
+                      {order.time}
+                    </VemtapText>
+                  </View>
+                </View>
+
+                <View className="flex-row items-center justify-between gap-2">
+                  <View className="min-w-0 flex-1 flex-row items-center gap-1.5">
+                    <VemtapText
+                      variant="labelMd"
+                      className="shrink font-sans-semibold"
+                      numberOfLines={1}
+                    >
+                      {order.customer}
+                    </VemtapText>
+                    <VemtapText variant="caption" tone="tertiary" className="shrink-0">
+                      •
+                    </VemtapText>
+                    <VemtapText
+                      variant="caption"
+                      tone="secondary"
+                      className="min-w-0 flex-1"
+                      numberOfLines={1}
+                    >
+                      {order.items}
+                    </VemtapText>
+                  </View>
+                  <VemtapText
+                    variant="labelMd"
+                    className="shrink-0 pl-1 font-sans-bold"
+                    numberOfLines={1}
+                  >
+                    {order.amount}
+                  </VemtapText>
+                </View>
+
+                <View className="flex-row items-center justify-between gap-2 pt-1">
+                  <View
+                    className={cn(
+                      'min-w-0 max-w-[62%] shrink flex-row items-center gap-1 self-start rounded-full px-2 py-0.5',
+                      payment.chip,
+                    )}
+                  >
+                    <Icon
+                      name={paymentIcons[order.id] ?? 'creditCard'}
+                      size={14}
+                      color={payment.icon}
+                    />
+                    <VemtapText
+                      variant="micro"
+                      className={cn('font-sans-semibold', payment.text)}
+                      numberOfLines={1}
+                    >
+                      {order.payment}
+                    </VemtapText>
+                  </View>
+                  {order.cta && cta ? (
+                    <View className="shrink-0 flex-row items-center gap-1.5">
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={order.cta}
+                        onPress={() =>
+                          order.channel === 'POS'
+                            ? onSendToKitchen?.(order.id)
+                            : onAcceptOrder?.(order.id)
+                        }
+                        className={cn(
+                          'h-8 shrink-0 flex-row items-center gap-1 rounded-field px-2.5',
+                          cta.chip,
+                          cta.chip && 'shadow-sm active:scale-95',
+                        )}
+                      >
+                        <VemtapText
+                          variant="labelSm"
+                          className={cn('font-sans-semibold', cta.text)}
+                          numberOfLines={1}
+                        >
+                          {order.cta}
+                        </VemtapText>
+                        <Icon
+                          name={cta.icon}
+                          size={16}
+                          color={
+                            order.ctaStyle === 'link' ? channel.icon : colors.surface
+                          }
+                        />
+                      </Pressable>
+                      {order.ctaStyle === 'link' ? null : (
+                        <Icon name="forward" size={18} color={colors.textTertiary} />
+                      )}
+                    </View>
+                  ) : (
+                    <Icon name="forward" size={18} color={colors.textTertiary} />
+                  )}
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
+      </BusinessScreenLayout>
+    </TypeDensityProvider>
   );
 }

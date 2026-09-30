@@ -396,8 +396,8 @@ export function CatalogItemCard({
   return (
     <View className="overflow-hidden rounded-card bg-surface-container-lowest shadow-sm">
       <View className="flex-row items-start gap-3 p-4">
-        {item.imageUri ? (
-          <Thumbnail uri={item.imageUri} label={item.title} className="h-20 w-20" />
+        {item.image ? (
+          <Thumbnail source={item.image} label={item.title} className="h-20 w-20" />
         ) : (
           <View className="h-20 w-20 shrink-0 flex-col items-center justify-center rounded-lg bg-surface-tint-blue">
             <Icon name="wine" size={30} color={colors.primary} />
@@ -421,8 +421,8 @@ export function CatalogItemCard({
                 {item.category}
               </VemtapText>
               <VemtapText
-                variant="headingSm"
-                className="mt-0.5 text-text"
+                variant="labelMd"
+                className="mt-0.5 font-sans-semibold text-text"
                 numberOfLines={1}
               >
                 {item.title}
@@ -521,7 +521,7 @@ export function AddChoiceCard({ icon, title, body, tone, onPress }: AddChoiceCar
         />
       </View>
       <View className="flex-row items-center gap-1">
-        <VemtapText variant="headingSm" className="text-text">
+        <VemtapText variant="labelMd" className="font-sans-semibold text-text">
           {title}
         </VemtapText>
       </View>

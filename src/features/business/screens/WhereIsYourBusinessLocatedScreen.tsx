@@ -113,8 +113,8 @@ export function WhereIsYourBusinessLocatedScreen({
         <View className="gap-1">
           <VemtapText
             accessibilityRole="header"
-            variant="headingMd"
-            className="text-heading-md"
+            variant="headingSm"
+            className="text-heading-sm"
           >
             {copy.whereLocated.title}
           </VemtapText>
@@ -249,7 +249,7 @@ export function WhereIsYourBusinessLocatedScreen({
               <View className="h-7 w-7 items-center justify-center rounded-lg bg-surface-tint-blue">
                 <Icon name="hub" size={17} color={colors.primary} />
               </View>
-              <VemtapText variant="headingSm" className="text-text">
+              <VemtapText variant="labelMd" className="font-sans-semibold text-text">
                 {copy.whereLocated.territoryTitle}
               </VemtapText>
             </View>
@@ -319,6 +319,7 @@ export function WhereIsYourBusinessLocatedScreen({
         <View className="gap-3">
           <BusinessSectionHeading
             title={copy.whereLocated.detailsTitle}
+            titleVariant="labelMd"
             trailing={
               <VemtapText variant="caption" tone="secondary">
                 {copy.whereLocated.detailsBadge}

@@ -6,6 +6,7 @@ import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { colors } from '@theme/colors';
+import { strings } from '@constants/strings';
 import { cn } from '@utils/cn';
 import {
   BusinessProductImage,
@@ -20,6 +21,8 @@ import {
 cssInterop(View, { className: 'style' });
 cssInterop(LinearGradient, { className: 'style' });
 
+const copy = strings.businessQrReady;
+
 export interface YourVemtapBusinessQrIsReadyScreenProps {
   onBack: () => void;
   onShare?: () => void;
@@ -29,6 +32,8 @@ export interface YourVemtapBusinessQrIsReadyScreenProps {
   onDownloadKit?: () => void;
   onCopyLink?: (link: string) => void;
   onContinue?: () => void;
+  /** Business Network hand-off behind the referral perk's "Get Started". */
+  onOpenReferrals?: () => void;
 }
 
 export function YourVemtapBusinessQrIsReadyScreen({
@@ -40,6 +45,7 @@ export function YourVemtapBusinessQrIsReadyScreen({
   onDownloadKit,
   onCopyLink,
   onContinue,
+  onOpenReferrals,
 }: YourVemtapBusinessQrIsReadyScreenProps) {
   const [copied, setCopied] = useState(false);
   const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -62,20 +68,20 @@ export function YourVemtapBusinessQrIsReadyScreen({
   return (
     <BusinessScreenLayout
       header={{
-        title: 'Business Qr',
+        title: copy.headerTitle,
         onBack,
         actions: [
-          { label: 'Share QR code', icon: 'share', onPress: onShare },
-          { label: 'Merchant support', icon: 'help', onPress: onSupport },
+          { label: copy.shareActionLabel, icon: 'share', onPress: onShare },
+          { label: copy.supportActionLabel, icon: 'help', onPress: onSupport },
         ],
       }}
       contentContainerClassName="pb-10"
     >
       <View className="items-start">
         <View className="mb-3 flex-row items-center gap-1 rounded-full bg-surface-container-high px-3 py-1 shadow-sm">
-          <Icon name="verified" size={16} color={colors.primary} />
+          <Icon name="checkCircle" size={16} color={colors.primary} />
           <VemtapText variant="labelSm" className="text-primary">
-            Ready for Storefront & Tables
+            {copy.setupBadge}
           </VemtapText>
         </View>
         <VemtapText
@@ -83,17 +89,16 @@ export function YourVemtapBusinessQrIsReadyScreen({
           variant="headingMd"
           className="text-heading-md"
         >
-          Your VEMTAP Business QR is ready
+          {copy.title}
         </VemtapText>
         <VemtapText tone="secondary" className="mt-1 leading-relaxed">
-          Display this at your cashier counter, table stands, or entrance so customers can
-          instantly tap, claim deals, and join your store.
+          {copy.subtitle}
         </VemtapText>
       </View>
 
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Order print-ready QR kits"
+        accessibilityLabel={copy.kitActionLabel}
         className="my-2 flex-row items-center justify-between gap-3 rounded-xl bg-surface-container-low p-3"
         onPress={onOrderKits}
       >
@@ -107,9 +112,9 @@ export function YourVemtapBusinessQrIsReadyScreen({
             className="min-w-0 flex-1"
             numberOfLines={1}
           >
-            Print-ready standard:{' '}
+            {`${copy.kitLabel} `}
             <VemtapText className="font-sans-semibold text-text">
-              Table Tent &amp; A5 Acrylic
+              {copy.kitValue}
             </VemtapText>
           </VemtapText>
         </View>
@@ -117,7 +122,7 @@ export function YourVemtapBusinessQrIsReadyScreen({
           variant="labelSm"
           className="shrink-0 font-sans-semibold text-primary"
         >
-          Order Kits →
+          {copy.kitCta}
         </VemtapText>
       </Pressable>
 
@@ -135,7 +140,7 @@ export function YourVemtapBusinessQrIsReadyScreen({
               variant="caption"
               className="min-w-0 shrink font-sans-semibold uppercase tracking-wider text-primary"
             >
-              VEMTAP PASS
+              {copy.passBadge}
             </VemtapText>
           </View>
           <View className="shrink-0 flex-row items-center gap-1">
@@ -146,7 +151,7 @@ export function YourVemtapBusinessQrIsReadyScreen({
               variant="caption"
               className="shrink-0 uppercase tracking-wider text-text-tertiary"
             >
-              NFC + QR ENABLED
+              {copy.passEnabledLabel}
             </VemtapText>
           </View>
         </View>
@@ -160,7 +165,7 @@ export function YourVemtapBusinessQrIsReadyScreen({
           </VemtapText>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Copy business QR link"
+            accessibilityLabel={copy.copyLinkActionLabel}
             className="mt-3 flex-row items-center gap-1 rounded-full bg-surface-container-low px-3 py-1.5 active:scale-95"
             onPress={copyLink}
           >
@@ -178,14 +183,14 @@ export function YourVemtapBusinessQrIsReadyScreen({
             variant="caption"
             className={cn('mt-1 text-success', !copied && 'opacity-0')}
           >
-            Link copied to clipboard!
+            {copy.copiedLabel}
           </VemtapText>
         </View>
       </View>
 
       <View className="mb-6 flex-row gap-3">
         <Button
-          label="Present Fullscreen"
+          label={copy.fullscreenCta}
           labelVariant="labelMd"
           labelNumberOfLines={2}
           variant="secondary"
@@ -194,7 +199,7 @@ export function YourVemtapBusinessQrIsReadyScreen({
           onPress={onPresentFullscreen}
         />
         <Button
-          label="Download Kit"
+          label={copy.downloadCta}
           labelVariant="labelMd"
           labelNumberOfLines={2}
           variant="secondary"
@@ -209,12 +214,12 @@ export function YourVemtapBusinessQrIsReadyScreen({
           <View className="flex-row items-center gap-1">
             <Icon name="visibility" size={18} color={colors.primary} />
             <VemtapText variant="labelMd" className="font-sans-semibold">
-              What Customers See
+              {copy.previewTitle}
             </VemtapText>
           </View>
           <View className="rounded-full bg-badge-discount-bg px-2 py-0.5">
             <VemtapText variant="caption" className="text-success">
-              Instant Web View
+              {copy.previewBadge}
             </VemtapText>
           </View>
         </View>
@@ -222,7 +227,7 @@ export function YourVemtapBusinessQrIsReadyScreen({
           <View className="relative h-28 w-full overflow-hidden">
             <BusinessProductImage
               source={businessMedia.customerPassPreview}
-              alt="Warm gourmet smoked brisket platter inside a modern restaurant"
+              alt={copy.previewImageAlt}
               className="h-full w-full"
             />
             <LinearGradient
@@ -237,13 +242,13 @@ export function YourVemtapBusinessQrIsReadyScreen({
                   {businessQrIdentity.businessName}
                 </VemtapText>
                 <VemtapText variant="caption" className="text-inverse">
-                  Open • Maitama, Abuja
+                  {copy.previewStatus}
                 </VemtapText>
               </View>
               <View className="shrink-0 flex-row items-center gap-1 rounded bg-surface/20 px-2 py-0.5">
                 <Icon name="bolt" size={12} color={colors.surface} />
                 <VemtapText variant="caption" className="text-inverse font-sans-semibold">
-                  Instant Pass
+                  {copy.previewPass}
                 </VemtapText>
               </View>
             </View>
@@ -259,10 +264,10 @@ export function YourVemtapBusinessQrIsReadyScreen({
                     variant="labelSm"
                     className="font-sans-semibold text-success"
                   >
-                    20% Off Prime Lunch Combo
+                    {copy.previewDeal}
                   </VemtapText>
                   <VemtapText variant="caption" tone="secondary">
-                    One-tap redemption at checkout
+                    {copy.previewDealBody}
                   </VemtapText>
                 </View>
               </View>
@@ -272,7 +277,7 @@ export function YourVemtapBusinessQrIsReadyScreen({
               <View className="min-w-0 flex-row items-center gap-1">
                 <Icon name="star" size={16} color={colors.primary} />
                 <VemtapText variant="caption" tone="secondary" className="min-w-0">
-                  Earn 100 Welcome Tap Points
+                  {copy.previewPoints}
                 </VemtapText>
               </View>
               <View className="min-w-0 flex-row items-center gap-1">
@@ -282,14 +287,14 @@ export function YourVemtapBusinessQrIsReadyScreen({
                   tone="secondary"
                   className="min-w-0 text-right"
                 >
-                  Digital Menu
+                  {copy.previewMenu}
                 </VemtapText>
               </View>
             </View>
             <View className="flex-row items-center justify-center gap-1 pt-1">
               <Icon name="bolt" size={14} color={colors.textTertiary} />
               <VemtapText variant="caption" tone="tertiary" className="text-center">
-                Customers do not need to download an app to scan
+                {copy.previewReassurance}
               </VemtapText>
             </View>
           </View>
@@ -302,21 +307,59 @@ export function YourVemtapBusinessQrIsReadyScreen({
         </View>
         <View className="min-w-0 flex-1">
           <VemtapText variant="labelSm" className="font-sans-semibold">
-            Where to access this later
+            {copy.accessTitle}
           </VemtapText>
           <VemtapText variant="caption" tone="secondary" className="mt-0.5">
-            Find or customize desk-specific codes under{' '}
+            {`Find or customize desk-specific codes under `}
             <VemtapText className="font-sans-medium text-text">
-              More → Business Management → QR &amp; Entry
+              {copy.accessPath}
             </VemtapText>
-            . You can generate custom table codes anytime.
+            {`. ${copy.accessBodySuffix}`}
           </VemtapText>
         </View>
       </View>
 
+      {/* New in the revised design: the referral perk sits above the bottom
+          progression block, at the same type scale as the rest of the screen
+          (micro eyebrow, labelMd title, caption body, labelSm action). */}
+      <View className="border-border-subtle mb-4 flex-row items-start gap-3 overflow-hidden rounded-2xl border bg-surface p-4 shadow-sm">
+        <View className="h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-tint">
+          <Icon name="groupAdd" size={22} color={colors.primary} />
+        </View>
+        <View className="min-w-0 flex-1">
+          <View className="mb-0.5 flex-row items-center gap-1">
+            <View className="rounded bg-primary/10 px-1.5 py-0.5">
+              <VemtapText
+                variant="micro"
+                className="font-sans-semibold uppercase tracking-wider text-primary"
+                numberOfLines={1}
+              >
+                {copy.referralBadge}
+              </VemtapText>
+            </View>
+          </View>
+          <VemtapText variant="labelMd" className="font-sans-semibold" numberOfLines={2}>
+            {copy.referralTitle}
+          </VemtapText>
+          <VemtapText tone="secondary" className="mt-1 leading-relaxed" numberOfLines={4}>
+            {copy.referralBody}
+          </VemtapText>
+        </View>
+      </View>
+      <View className="mb-4">
+        <Button
+          label={copy.referralCta}
+          accessibilityLabel={copy.referralCta}
+          labelVariant="labelSm"
+          variant="secondary"
+          className="min-h-8 self-start rounded-lg px-3"
+          onPress={onOpenReferrals}
+        />
+      </View>
+
       <View className="flex-col items-center gap-3">
         <Button
-          label="Continue to Business Dashboard"
+          label={copy.continueCta}
           labelVariant="labelMd"
           labelNumberOfLines={2}
           className="min-h-[54px] rounded-2xl shadow-lg"
@@ -324,7 +367,7 @@ export function YourVemtapBusinessQrIsReadyScreen({
           onPress={onContinue}
         />
         <Button
-          label="Share digital link via WhatsApp or socials"
+          label={copy.shareLinkCta}
           labelVariant="labelMd"
           labelNumberOfLines={2}
           variant="ghost"

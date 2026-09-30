@@ -122,7 +122,7 @@ export function CreateDealStep1DiscountStrategyScreen({
           }
           footer={
             <View className="-mx-3 -mb-3 mt-1 flex-row items-center justify-between gap-3 bg-surface-subtle px-3 py-1.5">
-              <View className="min-w-0 flex-1 flex-row items-center gap-1">
+              <View className="min-w-0 min-w-0 flex-1 flex-row items-center gap-1">
                 <Icon name="storefront" size={15} color={colors.primary} />
                 <VemtapText variant="caption" numberOfLines={1}>
                   {copy.itemLocation}
@@ -271,7 +271,11 @@ function PricingMath({ discountRate }: { discountRate: number }) {
 
       <View className="gap-2 pt-1">
         <View className="flex-row items-center justify-between gap-3">
-          <VemtapText variant="bodyMd" tone="secondary" className="min-w-0 flex-1">
+          <VemtapText
+            variant="bodyMd"
+            tone="secondary"
+            className="min-w-0 min-w-0 flex-1"
+          >
             {copy.regularPrice}
           </VemtapText>
           <VemtapText variant="labelMd" tone="tertiary" className="shrink-0 line-through">
@@ -280,7 +284,7 @@ function PricingMath({ discountRate }: { discountRate: number }) {
         </View>
 
         <View className="flex-row items-center justify-between gap-3">
-          <View className="min-w-0 flex-1 flex-row items-center gap-1">
+          <View className="min-w-0 min-w-0 flex-1 flex-row items-center gap-1">
             <VemtapText variant="labelMd" className="font-sans-semibold">
               {copy.memberPrice}
             </VemtapText>
@@ -297,7 +301,7 @@ function PricingMath({ discountRate }: { discountRate: number }) {
         <View className="flex-row items-center justify-between gap-3">
           <VemtapText
             variant="bodyMd"
-            className="min-w-0 flex-1 text-badge-discount-text"
+            className="min-w-0 min-w-0 flex-1 text-badge-discount-text"
           >
             {copy.netSavings}
           </VemtapText>
@@ -310,7 +314,7 @@ function PricingMath({ discountRate }: { discountRate: number }) {
         </View>
 
         <View className="mt-2 flex-row items-center justify-between gap-3 rounded-lg bg-surface-canvas p-2.5 shadow-sm">
-          <View className="min-w-0 flex-1">
+          <View className="min-w-0 min-w-0 flex-1">
             <VemtapText variant="labelSm" className="font-sans-bold">
               {copy.merchantTakeHome}
             </VemtapText>

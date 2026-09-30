@@ -98,8 +98,8 @@ export function BusinessLocationsMultiBranchScreen({
           <View className="gap-1">
             <VemtapText
               accessibilityRole="header"
-              variant="headingMd"
-              className="text-heading-md"
+              variant="headingSm"
+              className="text-heading-sm"
             >
               {copy.locations.title}
             </VemtapText>
@@ -116,7 +116,7 @@ export function BusinessLocationsMultiBranchScreen({
         <SetupSectionCard className="gap-2 border border-border">
           <View className="flex-row items-start justify-between gap-3">
             <View className="min-w-0 flex-1 gap-0.5">
-              <VemtapText variant="headingSm" className="text-text">
+              <VemtapText variant="labelMd" className="font-sans-semibold text-text">
                 {copy.locations.multiTitle}
               </VemtapText>
               <View className="mt-0.5 flex-row items-center gap-1.5">

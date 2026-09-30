@@ -242,3 +242,8 @@ export {
   SegmentAudienceDetailsScreen,
   type SegmentAudienceDetailsScreenProps,
 } from './SegmentAudienceDetailsScreen';
+export {
+  BusinessConversationScreen,
+  type BusinessConversationScreenProps,
+  type BusinessThreadId,
+} from './BusinessConversationScreen';

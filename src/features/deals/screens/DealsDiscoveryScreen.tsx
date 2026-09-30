@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -14,6 +14,7 @@ import { Icon } from '@components/ui/Icon';
 import { colors } from '@theme/colors';
 import { strings } from '@constants/strings';
 import { dealsGrid, dealsList, featuredDealOfDay } from '@features/deals/data/dealsFeed';
+import { DealCommentsSheet } from '@features/dealDetail/components/DealCommentsSheet';
 import { useConsumerTargeting } from '@features/home/hooks/useConsumerTargeting';
 
 /** The Deals feed names its own section; the standard variant keeps the greeting. */
@@ -35,6 +36,8 @@ export interface DealsDiscoveryScreenProps {
   /** Opens the shared district-selection page behind the navbar district name. */
   onOpenLocationSelect?: () => void;
   onUseCurrentLocation?: () => void;
+  onOpenNotifications?: () => void;
+  onOpenAccount?: () => void;
 }
 
 /**
@@ -47,13 +50,36 @@ export function DealsDiscoveryScreen({
   onOpenDeal,
   onOpenLocationSelect,
   onUseCurrentLocation,
+  onOpenNotifications,
+  onOpenAccount,
 }: DealsDiscoveryScreenProps) {
   const [viewMode, setViewMode] = useState<DealsViewMode>('grid');
+  const [likedIds, setLikedIds] = useState<readonly string[]>([]);
+  const [commentsDealId, setCommentsDealId] = useState<string | null>(null);
+
+  const isLiked = useCallback((id: string) => likedIds.includes(id), [likedIds]);
+
+  const toggleLike = useCallback((id: string) => {
+    setLikedIds(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]));
+  }, []);
+
+  const openComments = useCallback((id: string) => setCommentsDealId(id), []);
+
+  // Only the cards that expose a comment count can open the sheet; the grid
+  // card has no engagement row, so it is not a source here.
+  const commentsDeal = useMemo(() => {
+    if (commentsDealId === featuredDealOfDay.id) {
+      return featuredDealOfDay;
+    }
+    return dealsList.find(deal => deal.id === commentsDealId) ?? null;
+  }, [commentsDealId]);
   // Same navbar, same targeting behaviour as Home — only the overline differs.
   const targeting = useConsumerTargeting({
     title: isFeaturedTitle(variant),
     onOpenLocationSelect: onOpenLocationSelect ?? (() => undefined),
     onUseCurrentLocation,
+    onPressNotifications: onOpenNotifications,
+    onPressAvatar: onOpenAccount,
   });
 
   const openFilters = useCallback(() => {
@@ -64,65 +90,89 @@ export function DealsDiscoveryScreen({
   const feedCount = viewMode === 'list' ? dealsList.length : dealsGrid.length;
 
   return targeting.renderChrome(
-    <ScrollView
-      contentContainerClassName="px-6 pb-16 pt-4 gap-4"
-      showsVerticalScrollIndicator={false}
-    >
-      <HomeSearchBar
-        variant={isFeatured ? 'outlined' : 'default'}
-        placeholder={
-          isFeatured
-            ? strings.deals.searchPlaceholderDots
-            : strings.home.searchPlaceholder
-        }
-        filterLabel={isFeatured ? strings.deals.filters : strings.home.filter}
-        onFilterPress={openFilters}
-      />
-
-      {isFeatured ? (
-        <View className="flex-col gap-2">
-          <View className="flex-row items-center justify-between">
-            <View className="min-w-0 flex-1 flex-row items-center gap-1.5">
-              <Icon name="fire" size={18} color={colors.primary} />
-              <VemtapText className="font-sans-bold text-label-sm uppercase tracking-wider text-text-secondary">
-                {strings.deals.featuredEyebrow}
-              </VemtapText>
-            </View>
-            <View className="rounded-full bg-badge-discount-bg px-2 py-0.5">
-              <VemtapText className="font-sans-bold text-caption text-badge-discount-text">
-                {strings.deals.featuredPercentOff}
-              </VemtapText>
-            </View>
-          </View>
-          <FeaturedDealOfDayCard deal={featuredDealOfDay} onOpenDetail={onOpenDeal} />
-        </View>
-      ) : null}
-
-      <View className="flex-col gap-3">
-        <DealsResultsRow
-          mode={viewMode}
-          onChangeMode={setViewMode}
-          variant={variant}
-          count={feedCount}
-          countLabel={
-            isFeatured && viewMode === 'list' ? strings.deals.dealsInFound(18) : undefined
+    <>
+      <ScrollView
+        contentContainerClassName="px-6 pb-16 pt-4 gap-4"
+        showsVerticalScrollIndicator={false}
+      >
+        <HomeSearchBar
+          variant={isFeatured ? 'outlined' : 'default'}
+          placeholder={
+            isFeatured
+              ? strings.deals.searchPlaceholderDots
+              : strings.home.searchPlaceholder
           }
+          filterLabel={isFeatured ? strings.deals.filters : strings.home.filter}
+          onFilterPress={openFilters}
         />
 
-        {viewMode === 'list' ? (
-          <View className="flex-col gap-4">
-            {dealsList.map(deal => (
-              <DealsListCard key={deal.id} deal={deal} onOpenDetail={onOpenDeal} />
-            ))}
+        {isFeatured ? (
+          <View className="flex-col gap-2">
+            <View className="flex-row items-center justify-between">
+              <View className="min-w-0 flex-1 flex-row items-center gap-1.5">
+                <Icon name="fire" size={18} color={colors.primary} />
+                <VemtapText className="font-sans-bold text-label-sm uppercase tracking-wider text-text-secondary">
+                  {strings.deals.featuredEyebrow}
+                </VemtapText>
+              </View>
+              <View className="rounded-full bg-badge-discount-bg px-2 py-0.5">
+                <VemtapText className="font-sans-bold text-caption text-badge-discount-text">
+                  {strings.deals.featuredPercentOff}
+                </VemtapText>
+              </View>
+            </View>
+            <FeaturedDealOfDayCard
+              deal={featuredDealOfDay}
+              liked={isLiked(featuredDealOfDay.id)}
+              onToggleLike={toggleLike}
+              onOpenComments={openComments}
+              onOpenDetail={onOpenDeal}
+            />
           </View>
-        ) : (
-          <TwoColumnGrid
-            items={dealsGrid}
-            keyExtractor={deal => deal.id}
-            renderItem={deal => <DealsGridCard deal={deal} onOpenDetail={onOpenDeal} />}
+        ) : null}
+
+        <View className="flex-col gap-3">
+          <DealsResultsRow
+            mode={viewMode}
+            onChangeMode={setViewMode}
+            variant={variant}
+            count={feedCount}
+            countLabel={
+              isFeatured && viewMode === 'list'
+                ? strings.deals.dealsInFound(18)
+                : undefined
+            }
           />
-        )}
-      </View>
-    </ScrollView>,
+
+          {viewMode === 'list' ? (
+            <View className="flex-col gap-4">
+              {dealsList.map(deal => (
+                <DealsListCard
+                  key={deal.id}
+                  deal={deal}
+                  liked={isLiked(deal.id)}
+                  onToggleLike={toggleLike}
+                  onOpenComments={openComments}
+                  onOpenDetail={onOpenDeal}
+                />
+              ))}
+            </View>
+          ) : (
+            <TwoColumnGrid
+              items={dealsGrid}
+              keyExtractor={deal => deal.id}
+              renderItem={deal => <DealsGridCard deal={deal} onOpenDetail={onOpenDeal} />}
+            />
+          )}
+        </View>
+      </ScrollView>
+      <DealCommentsSheet
+        visible={commentsDeal !== null}
+        onClose={() => setCommentsDealId(null)}
+        dealTitle={commentsDeal?.title ?? ''}
+        merchant={commentsDeal?.merchant ?? ''}
+        commentCount={commentsDeal?.comments ?? 0}
+      />
+    </>,
   );
 }
