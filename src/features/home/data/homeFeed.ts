@@ -46,6 +46,7 @@ export type TrendingDeal = {
   distance: string;
   likes: number;
   comments: number;
+  liked?: boolean;
 };
 
 export type NearbyBusiness = {

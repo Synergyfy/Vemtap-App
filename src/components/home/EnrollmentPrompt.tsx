@@ -11,9 +11,43 @@ cssInterop(Pressable, { className: 'style' });
 
 export interface EnrollmentPromptProps {
   onOpenBusinessSetup?: () => void;
+  /**
+   * `card` is the Home/Discover treatment (tinted panel, icon, supporting line).
+   * `inline` is the spec's featured-deals footer: a plain centred prompt + link
+   * with no panel. One owner, two documented presentations (AGENTS rule 17).
+   */
+  variant?: 'card' | 'inline';
 }
 
-export function EnrollmentPrompt({ onOpenBusinessSetup }: EnrollmentPromptProps) {
+export function EnrollmentPrompt({
+  onOpenBusinessSetup,
+  variant = 'card',
+}: EnrollmentPromptProps) {
+  if (variant === 'inline') {
+    return (
+      <View className="flex-row flex-wrap items-center justify-center gap-1.5">
+        <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
+          {strings.home.enrollmentPrompt}
+        </VemtapText>
+        <Pressable
+          accessibilityRole="link"
+          accessibilityLabel={strings.home.enrollmentLink}
+          onPress={onOpenBusinessSetup}
+          className="flex-row items-center gap-0.5 active:opacity-75"
+        >
+          <VemtapText
+            variant="caption"
+            className="font-sans-semibold text-primary"
+            numberOfLines={1}
+          >
+            {strings.home.enrollmentLink}
+          </VemtapText>
+          <Icon name="arrowForward" size={14} color={colors.primary} />
+        </Pressable>
+      </View>
+    );
+  }
+
   return (
     <View className="flex-row items-center justify-between gap-3 rounded-2xl bg-surface-tint-blue p-4 shadow-md">
       <View className="min-w-0 flex-1 flex-col">

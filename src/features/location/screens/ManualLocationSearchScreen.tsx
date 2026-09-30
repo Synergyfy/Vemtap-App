@@ -12,7 +12,7 @@ import { LocationMapView } from '@components/shared/LocationMapView';
 import { colors } from '@theme/colors';
 import { navbarBottomShadow } from '@theme/shadows';
 import { strings } from '@constants/strings';
-import { areaCoords } from '@constants/locations';
+import { AREA_OPTIONS, areaCoords } from '@constants/locations';
 import type { AuthStackParamList } from '@navigation/types';
 
 cssInterop(View, { className: 'style' });
@@ -26,33 +26,53 @@ cssInterop(TextInput, { className: 'style' });
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'ManualLocationSearch'>;
 
-const AREAS = [
-  { name: 'Apo', distance: '0.0 mi' },
-  { name: 'Wuse 2', distance: '3.4 mi' },
-  { name: 'Maitama', distance: '5.1 mi' },
-  { name: 'Garki', distance: '2.8 mi' },
-  { name: 'Jabi', distance: '4.9 mi' },
-] as const;
+export interface ManualLocationSearchScreenProps {
+  /**
+   * Applies the chosen district and leaves the screen. Supplied by the signed-in
+   * home flow; when omitted the screen falls back to its own navigator and
+   * continues into the signup confirmation step. One component, two shells —
+   * the area list and validation cannot drift between them (AGENTS rule 17).
+   */
+  onSelected?: (area: string) => void;
+  onBack?: () => void;
+  /** Suggested district to preselect. */
+  initialArea?: string;
+}
 
 /**
  * Conversion of stitch_vemtap_design_system/5._manual_location_search/code.html
  */
-export function ManualLocationSearchScreen() {
+export function ManualLocationSearchScreen({
+  onSelected,
+  onBack,
+  initialArea = 'Apo',
+}: ManualLocationSearchScreenProps = {}) {
   const navigation = useNavigation<Nav>();
-  const [query, setQuery] = useState('Apo');
-  const [selected, setSelected] = useState('Apo');
+  const [query, setQuery] = useState(initialArea);
+  const [selected, setSelected] = useState(initialArea);
+
+  const goBack = useMemo(
+    () => onBack ?? (() => navigation.goBack()),
+    [navigation, onBack],
+  );
+  const applyArea = useMemo(
+    () =>
+      onSelected ??
+      ((area: string) => navigation.navigate('LocationConfirmation', { area })),
+    [navigation, onSelected],
+  );
 
   const onClear = useCallback(() => setQuery(''), []);
 
   const onUseCurrent = useCallback(() => {
     setSelected('Apo');
     setQuery('Apo');
-    navigation.navigate('LocationConfirmation', { area: 'Apo' });
-  }, [navigation]);
+    applyArea('Apo');
+  }, [applyArea]);
 
   const onContinue = useCallback(() => {
-    navigation.navigate('LocationConfirmation', { area: selected });
-  }, [navigation, selected]);
+    applyArea(selected);
+  }, [applyArea, selected]);
 
   const ctaLabel = useMemo(() => strings.auth.manualContinueWith(selected), [selected]);
 
@@ -70,7 +90,7 @@ export function ManualLocationSearchScreen() {
           accessibilityLabel={strings.common.goBack}
           hitSlop={8}
           className="-ml-2 h-11 w-11 items-center justify-center rounded-full active:bg-surface-container-low"
-          onPress={() => navigation.goBack()}
+          onPress={goBack}
         >
           <Icon name="backIos" size={22} color={colors.surfaceDark} />
         </Pressable>
@@ -200,7 +220,7 @@ export function ManualLocationSearchScreen() {
           accessibilityRole="radiogroup"
           accessibilityLabel={strings.auth.manualSuggested}
         >
-          {AREAS.map(area => {
+          {AREA_OPTIONS.map(area => {
             const isSelected = selected === area.name;
             return (
               <Pressable

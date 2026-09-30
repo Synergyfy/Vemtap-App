@@ -1,11 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  PanResponder,
-  Pressable,
-  StyleSheet,
-  View,
-  type LayoutChangeEvent,
-} from 'react-native';
+import React, { useState } from 'react';
+import { RangeSlider } from '@components/ui/RangeSlider';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Icon, type IconName } from '@components/ui/Icon';
@@ -251,12 +246,14 @@ export interface RadiusSliderProps {
   step: number;
   initialValue: number;
   onChange?: (value: number) => void;
+  accessibilityLabel?: string;
 }
 
 /**
- * Touch radius estimator from business_introduction_vemtap_for_business.
- * Drag anywhere on the rail — the thumb is pointerEvents="none" so every touch
- * resolves against the track and behaves identically on iOS and Android.
+ * Business-setup wrapper over the shared `RadiusSlider` owner so branch radius
+ * and the consumer location/filter sheets share one rail implementation
+ * (AGENTS rule 17). Uncontrolled here via `initialValue`; the shared primitive
+ * is controlled.
  */
 export function RadiusSlider({
   min,
@@ -264,83 +261,21 @@ export function RadiusSlider({
   step,
   initialValue,
   onChange,
+  accessibilityLabel = 'Radius',
 }: RadiusSliderProps) {
   const [value, setValue] = useState(initialValue);
-  const [width, setWidth] = useState(0);
-  const widthRef = useRef(0);
-  const valueRef = useRef(initialValue);
-  const onChangeRef = useRef(onChange);
-
-  useEffect(() => {
-    onChangeRef.current = onChange;
-  }, [onChange]);
-
-  const commit = useCallback(
-    (x: number) => {
-      const trackWidth = widthRef.current;
-      if (trackWidth <= 0) {
-        return;
-      }
-      const ratio = Math.min(1, Math.max(0, x / trackWidth));
-      const raw = min + ratio * (max - min);
-      const snapped = Math.round(raw / step) * step;
-      const next = Math.min(max, Math.max(min, snapped));
-      if (next !== valueRef.current) {
-        valueRef.current = next;
-        setValue(next);
-        onChangeRef.current?.(next);
-      }
-    },
-    [max, min, step],
-  );
-
-  const responder = useMemo(
-    () =>
-      PanResponder.create({
-        onStartShouldSetPanResponder: () => true,
-        onMoveShouldSetPanResponder: () => true,
-        onPanResponderGrant: event => commit(event.nativeEvent.locationX),
-        onPanResponderMove: event => commit(event.nativeEvent.locationX),
-      }),
-    [commit],
-  );
-
-  const onTrackLayout = useCallback((event: LayoutChangeEvent) => {
-    const next = event.nativeEvent.layout.width;
-    widthRef.current = next;
-    setWidth(next);
-  }, []);
-
-  const thumbLeft = width > 0 ? ((value - min) / (max - min)) * width : 0;
-
   return (
-    <View className="flex-row items-center gap-3 pt-1">
-      <VemtapText variant="caption" tone="tertiary">
-        {businessIntroCopy.audienceRangeMin}
-      </VemtapText>
-      <View
-        accessibilityRole="adjustable"
-        accessibilityLabel={businessIntroCopy.audienceTitle}
-        accessibilityValue={{ min, max, now: value }}
-        onLayout={onTrackLayout}
-        className="h-8 flex-1 justify-center"
-        {...responder.panHandlers}
-      >
-        <View className="h-2 w-full rounded-lg bg-surface-container-highest" />
-        <View
-          className="absolute h-2 rounded-lg bg-primary"
-          style={{ width: Math.max(0, thumbLeft) }}
-        />
-        <View
-          pointerEvents="none"
-          className="absolute -ml-2.5 h-5 w-5 rounded-full border-2 border-primary bg-surface shadow-sm"
-          style={{ left: thumbLeft }}
-        />
-      </View>
-      <VemtapText variant="caption" tone="tertiary">
-        {businessIntroCopy.audienceRangeMax}
-      </VemtapText>
-    </View>
+    <RangeSlider
+      value={value}
+      min={min}
+      max={max}
+      step={step}
+      accessibilityLabel={accessibilityLabel}
+      onChange={next => {
+        setValue(next);
+        onChange?.(next);
+      }}
+    />
   );
 }
 

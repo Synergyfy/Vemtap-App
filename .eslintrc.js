@@ -26,6 +26,23 @@ module.exports = {
       },
     ],
     'no-shadow': 'off',
+    /*
+     * `onTouchEnd`/`onTouchStart` on a plain `View` is silently dead: it does
+     * not fire for `fireEvent.press` and gives the row no press semantics (no
+     * ripple, no `accessibilityRole="button"`, no keyboard/assistive
+     * activation). Use `Pressable` (or `Button` / `BusinessActionTile` /
+     * `BusinessSettingRow`) for anything tappable. This has been reintroduced
+     * by mistake four times, so it is now a hard error. `no-restricted-properties`
+     * only covers property *access*, so JSX attributes need a selector rule.
+     */
+    'no-restricted-syntax': [
+      'error',
+      {
+        selector: 'JSXAttribute[name.name=/^(onTouchEnd|onTouchStart)$/]',
+        message:
+          'onTouchEnd/onTouchStart is dead on a plain View and provides no press semantics. Use Pressable for tappable elements.',
+      },
+    ],
     '@typescript-eslint/no-shadow': 'error',
     'no-unused-vars': 'off',
     '@typescript-eslint/no-unused-vars': [
@@ -35,12 +52,12 @@ module.exports = {
     'react-native/no-unused-styles': 'error',
     'react-native/no-inline-styles': 'warn',
     'react-native/no-color-literals': 'off',
-    'react-native/no-raw-text': [
-      'error',
-      { skip: ['Text', 'ThemedText', 'VemtapText'] },
-    ],
+    'react-native/no-raw-text': ['error', { skip: ['Text', 'ThemedText', 'VemtapText'] }],
     'react/jsx-no-bind': 'off',
-    'react/jsx-filename-extension': ['error', { extensions: ['.js', '.jsx', '.ts', '.tsx'] }],
+    'react/jsx-filename-extension': [
+      'error',
+      { extensions: ['.js', '.jsx', '.ts', '.tsx'] },
+    ],
     'no-console': ['warn', { allow: ['warn', 'error'] }],
   },
   overrides: [

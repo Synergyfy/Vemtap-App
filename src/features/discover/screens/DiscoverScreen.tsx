@@ -4,6 +4,7 @@ import { cssInterop } from 'nativewind';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BusinessDiscoveryCard } from '@components/discover/BusinessDiscoveryCard';
 import { CategoryChips } from '@components/home/CategoryChips';
+import { LocationTargetingControls } from '@components/home/LocationTargetingControls';
 import { HomeSearchBar } from '@components/home/HomeSearchBar';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
@@ -15,6 +16,7 @@ import {
   discoverCategories,
   type DiscoverCategory,
 } from '@features/discover/data/discoverData';
+import { useConsumerTargeting } from '@features/home/hooks/useConsumerTargeting';
 
 cssInterop(View, { className: 'style' });
 cssInterop(Pressable, { className: 'style' });
@@ -31,12 +33,21 @@ export interface DiscoverScreenProps {
   onOpenNotifications: () => void;
   onOpenAccount: () => void;
   onOpenEnrollment: () => void;
+  /** Opens the shared district-selection page from the location control. */
+  onOpenLocationSelect?: () => void;
+  onUseCurrentLocation?: () => void;
 }
 
 export function DiscoverScreen(props: DiscoverScreenProps): React.JSX.Element;
 export function DiscoverScreen(): React.JSX.Element;
 export function DiscoverScreen(props: Partial<DiscoverScreenProps> = {}) {
   const [searchQuery, setSearchQuery] = useState('');
+  // Same targeting owner as the Home and Deals navbars, so the district and the
+  // radius stay in step across all three feeds.
+  const targeting = useConsumerTargeting({
+    onOpenLocationSelect: props.onOpenLocationSelect ?? (() => undefined),
+    onUseCurrentLocation: props.onUseCurrentLocation,
+  });
   const [activeCategory, setActiveCategory] = useState<DiscoverCategory>('All');
   const [mapIcon, setMapIcon] = useState<'map' | 'agenda'>('map');
 
@@ -130,19 +141,7 @@ export function DiscoverScreen(props: Partial<DiscoverScreenProps> = {}) {
           </View>
 
           <View className="flex-row items-center justify-between gap-2">
-            <View className="flex-row items-center gap-1 rounded-full bg-surface-tint px-3 py-1.5">
-              <Icon name="locationOn" size={18} color={colors.primaryContainer} />
-              <VemtapText className="font-sans-semibold text-label-md text-primary">
-                {strings.discoverFeed.location}
-              </VemtapText>
-              <Icon name="expandMore" size={16} color={colors.primaryContainer} />
-            </View>
-            <View className="min-w-0 flex-row items-center gap-1">
-              <Icon name="radar" size={14} color={colors.textTertiary} />
-              <VemtapText variant="caption" tone="tertiary" numberOfLines={1}>
-                {strings.discoverFeed.radius}
-              </VemtapText>
-            </View>
+            <LocationTargetingControls {...targeting.controlsProps} />
           </View>
 
           <HomeSearchBar
@@ -202,6 +201,7 @@ export function DiscoverScreen(props: Partial<DiscoverScreenProps> = {}) {
           </Pressable>
         </View>
       </ScrollView>
+      {targeting.renderRadiusSheet()}
     </SafeAreaView>
   );
 }

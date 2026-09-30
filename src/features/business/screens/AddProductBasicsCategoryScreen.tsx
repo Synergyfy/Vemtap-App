@@ -7,6 +7,10 @@ import { VemtapText } from '@components/ui/Text';
 import { colors } from '@theme/colors';
 import { cn } from '@utils/cn';
 import {
+  BusinessConditionTileRow,
+  BusinessHighlightChipRow,
+} from '@features/business/components/BusinessOpsPrimitives';
+import {
   BusinessActionDock,
   BusinessCheckRow,
   BusinessProductImage,
@@ -350,25 +354,15 @@ export function AddProductBasicsCategoryScreen({
             placeholder="List ingredients, taste notes, or preparation specifics..."
             minHeight={128}
           />
-          <View className="flex-row flex-wrap gap-1.5 pt-1">
-            {highlights.map(highlight => (
-              <Pressable
-                key={highlight}
-                accessibilityRole="button"
-                accessibilityLabel={`Add ${highlight}`}
-                className="flex-row items-center gap-1 rounded-full bg-surface-container-low px-2.5 py-1 active:bg-surface-container-high"
-                onPress={() => {
-                  setDescription(current => `${current}\n• ${highlight}`);
-                  onAddHighlight?.(highlight);
-                }}
-              >
-                <Icon name="plus" size={13} color={colors.textSecondary} />
-                <VemtapText variant="caption" tone="secondary">
-                  {highlight}
-                </VemtapText>
-              </Pressable>
-            ))}
-          </View>
+          <BusinessHighlightChipRow
+            className="pt-1"
+            options={highlights}
+            mode="append"
+            onPress={highlight => {
+              setDescription(current => `${current}\n• ${highlight}`);
+              onAddHighlight?.(highlight);
+            }}
+          />
         </SetupCard>
 
         <SetupCard className="gap-3">
@@ -378,39 +372,16 @@ export function AddProductBasicsCategoryScreen({
           <VemtapText variant="caption" tone="secondary">
             Accurate conditions build customer credibility
           </VemtapText>
-          <View className="flex-row gap-2">
-            {conditions.map(option => {
-              const selected = condition === option.id;
-              return (
-                <Pressable
-                  key={option.id}
-                  accessibilityRole="radio"
-                  accessibilityState={{ selected }}
-                  accessibilityLabel={option.label}
-                  className={cn(
-                    'min-w-0 flex-1 flex-col items-center gap-1 rounded-xl p-3 active:scale-95',
-                    selected ? 'bg-surface-tint shadow-sm' : 'bg-surface-subtle',
-                  )}
-                  onPress={() => setCondition(option.id)}
-                >
-                  <Icon
-                    name={option.icon}
-                    size={22}
-                    color={selected ? colors.primary : colors.textSecondary}
-                  />
-                  <VemtapText
-                    variant="labelSm"
-                    className={cn('text-center', selected ? 'text-primary' : 'text-text')}
-                  >
-                    {option.label}
-                  </VemtapText>
-                  <VemtapText variant="caption" tone="secondary" className="text-center">
-                    {option.detail}
-                  </VemtapText>
-                </Pressable>
-              );
-            })}
-          </View>
+          <BusinessConditionTileRow
+            options={conditions.map(option => ({
+              id: option.id,
+              icon: option.icon,
+              label: option.label,
+              sub: option.detail,
+            }))}
+            value={condition}
+            onChange={id => setCondition(id as ProductBasicsValue['condition'])}
+          />
         </SetupCard>
       </View>
     </BusinessScreenLayout>

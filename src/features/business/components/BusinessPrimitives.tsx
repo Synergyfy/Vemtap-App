@@ -7,7 +7,6 @@ import {
   Switch,
   TextInput,
   View,
-  type GestureResponderEvent,
   type ImageSourcePropType,
   type KeyboardTypeOptions,
 } from 'react-native';
@@ -16,6 +15,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Card } from '@components/ui/Card';
 import { Icon, type IconName } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
+import { RangeSlider } from '@components/ui/RangeSlider';
 import { colors } from '@theme/colors';
 import { navbarBottomShadow } from '@theme/shadows';
 import type { TextVariant } from '@theme/typography';
@@ -755,25 +755,29 @@ const actionTileIcon: Record<BusinessActionTileTone, string> = {
   errorContainer: colors.error,
 };
 
+export type BusinessActionTileSize = 'sm' | 'md' | 'lg' | 'stacked';
+
 const actionTileBox: Record<BusinessActionTileSize, string> = {
   sm: 'min-h-11 rounded-lg px-2.5',
   md: 'min-h-11 rounded-lg px-3',
   lg: 'min-h-12 rounded-card px-3',
+  // Vertical CTA card: icon above the label, with an optional hint beneath it.
+  stacked: 'min-h-[76px] flex-col items-start gap-1.5 rounded-card px-3 py-2.5',
 };
 
 const actionTileIconSize: Record<BusinessActionTileSize, number> = {
   sm: 17,
   md: 18,
   lg: 18,
+  stacked: 20,
 };
 
 const actionTileText: Record<BusinessActionTileSize, TextVariant> = {
   sm: 'labelSm',
   md: 'labelMd',
   lg: 'labelMd',
+  stacked: 'labelMd',
 };
-
-export type BusinessActionTileSize = 'sm' | 'md' | 'lg';
 
 export interface BusinessActionTileProps {
   label: string;
@@ -782,6 +786,8 @@ export interface BusinessActionTileProps {
   accessibilityLabel?: string;
   tone?: BusinessActionTileTone;
   size?: BusinessActionTileSize;
+  /** Second line under the label. Only the `stacked` size renders it. */
+  hint?: string;
   className?: string;
   labelClassName?: string;
 }
@@ -797,6 +803,7 @@ export function BusinessActionTile({
   label,
   icon,
   onPress,
+  hint,
   accessibilityLabel,
   tone = 'neutral',
   size = 'md',
@@ -819,7 +826,8 @@ export function BusinessActionTile({
       <VemtapText
         variant={actionTileText[size]}
         className={cn(
-          'min-w-0 flex-1 text-center font-sans-semibold',
+          'min-w-0 flex-1 font-sans-semibold',
+          size === 'stacked' ? 'text-left' : 'text-center',
           actionTileLabel[tone],
           labelClassName,
         )}
@@ -827,6 +835,11 @@ export function BusinessActionTile({
       >
         {label}
       </VemtapText>
+      {size === 'stacked' && hint ? (
+        <VemtapText variant="caption" tone="secondary" numberOfLines={2}>
+          {hint}
+        </VemtapText>
+      ) : null}
     </Pressable>
   );
 }
@@ -840,6 +853,7 @@ export function BusinessSwitchRow({
   disabled = false,
   badge,
   activeTone = 'primary',
+  accessibilityLabel,
 }: {
   title: string;
   subtitle?: string;
@@ -849,6 +863,8 @@ export function BusinessSwitchRow({
   disabled?: boolean;
   badge?: string;
   activeTone?: 'primary' | 'success';
+  /** Overrides the announced label when the title is not the visible copy. */
+  accessibilityLabel?: string;
 }) {
   return (
     <View className="flex-row items-center gap-3">
@@ -878,7 +894,7 @@ export function BusinessSwitchRow({
       </View>
       <Switch
         accessibilityRole="switch"
-        accessibilityLabel={title}
+        accessibilityLabel={accessibilityLabel ?? title}
         value={value}
         onValueChange={onValueChange}
         disabled={disabled}
@@ -1053,6 +1069,11 @@ export interface BusinessRangeProps {
   step?: number;
 }
 
+/**
+ * Business wrapper over the shared `RangeSlider` owner so business percentage and
+ * branch-radius rails share one implementation with the consumer location sheet
+ * (AGENTS rule 17) — and gain drag-to-scrub, which this local version lacked.
+ */
 export function BusinessRange({
   value,
   minimum,
@@ -1061,35 +1082,15 @@ export function BusinessRange({
   accessibilityLabel,
   step = 1,
 }: BusinessRangeProps) {
-  const [trackWidth, setTrackWidth] = useState(0);
-  const percentage = ((value - minimum) / (maximum - minimum)) * 100;
-  const handlePress = (event: GestureResponderEvent) => {
-    if (trackWidth <= 0) return;
-    const ratio = Math.max(0, Math.min(1, event.nativeEvent.locationX / trackWidth));
-    const raw = minimum + ratio * (maximum - minimum);
-    const snapped = step > 0 ? minimum + Math.round((raw - minimum) / step) * step : raw;
-    onChange(Math.round(Math.max(minimum, Math.min(maximum, snapped))));
-  };
   return (
-    <Pressable
-      accessibilityRole="adjustable"
+    <RangeSlider
+      value={value}
+      min={minimum}
+      max={maximum}
+      step={step}
       accessibilityLabel={accessibilityLabel}
-      accessibilityValue={{ min: minimum, max: maximum, now: value }}
-      onLayout={event => setTrackWidth(event.nativeEvent.layout.width)}
-      onPress={handlePress}
-      className="py-2"
-    >
-      <View className="h-2 justify-center rounded-full bg-surface-container-high">
-        <View
-          className="absolute left-0 h-2 rounded-full bg-primary"
-          style={{ width: `${percentage}%` }}
-        />
-        <View
-          className="absolute h-5 w-5 rounded-full border-2 border-surface bg-primary shadow-sm"
-          style={[{ left: `${percentage}%` }, rangeStyles.thumb]}
-        />
-      </View>
-    </Pressable>
+      onChange={onChange}
+    />
   );
 }
 
@@ -1275,10 +1276,6 @@ export function BusinessNumberInput({
     </View>
   );
 }
-
-const rangeStyles = StyleSheet.create({
-  thumb: { marginLeft: -10 },
-});
 
 const collapsibleStyles = StyleSheet.create({
   expanded: { transform: [{ rotate: '180deg' }] },

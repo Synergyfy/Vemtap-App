@@ -230,6 +230,37 @@ the **Account / customer dashboard** flow is the current user.
     status-bar colors, duplicate safe-area spacers, or let a background image/header bleed into
     the status-bar area. Verify on iOS and Android after changes.
 
+21. **One screen → one bottom navigation. A screen belongs to exactly one shell.**
+    Bottom navigation is owned by a navigator, never by a screen, and the app has **three
+    shells** with different bars:
+
+    | Shell                 | Owner                                        | Tabs                                           |
+    | --------------------- | -------------------------------------------- | ---------------------------------------------- |
+    | Consumer              | `TabNavigator` (`MainTabParamList`)          | Home · Deals · Discover · Saved · Account      |
+    | Customer personal hub | `PersonalHubNavigator` → `PersonalHubTabBar` | Home · My Deals · Messages · Orders · More     |
+    | Business              | `BusinessTabNavigator` → `BusinessTabBar`    | Overview · Orders · Messages · Business · More |
+    - The customer dashboard **general** flow (`Tabs` → Account) uses the consumer bar. The
+      **personal** flow (Customer Dashboard Personal Overview and everything reached from it)
+      uses the personal bar. They are separate shells, mounted as root-level siblings.
+    - **Never register the same screen in two shells.** A screen rendered by two navigators
+      shows a different bar depending on how it was opened — the "is this screen duplicated?"
+      bug. Each personal-flow screen (dashboard overview, My Deals, Messages, Orders &
+      Bookings, Rewards, Activity, Savings, Notifications, Settings, Edit Profile, Help
+      Centre, Claimed Deal Pass, Order/Booking Detail, Conversation) is hosted by the
+      personal-hub shell **only**.
+    - Rows that live outside the personal flow (Account hub, Account → More, Saved, Discover)
+      must **hand off** to the personal shell — `navigate('PersonalHub', { screen: … })` —
+      rather than pushing a second copy of the screen inside their own stack.
+    - Cross-shell navigation goes through the **root** stack. A NAVIGATE action only bubbles to
+      _ancestors_, never to siblings: from the root-level `BusinessSetup` you must
+      `navigate('BusinessTabs', …)`, and navigating a sibling route that the current navigator
+      does not own (e.g. `AppStack` while signed out) is a silent no-op that throws
+      "Do you have a screen named …?" in dev. Type the navigation object against the
+      navigator that actually owns the route; never cast it to paper over a mismatch.
+    - Guard tests: `__tests__/NavigatorRouteNames.test.tsx` (no nested screen reuses an
+      ancestor route name) and `__tests__/AccountStack.test.tsx` (personal-flow rows land in
+      the personal shell). Run them after touching any navigator.
+
 ## Key files
 
 - `src/navigation/AuthStack.tsx`, `src/navigation/types.ts` — onboarding stack routes

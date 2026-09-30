@@ -74,7 +74,6 @@ type DealDetailProps = {
 export function DealDetailScreen({ route, navigation }: Props) {
   const insets = useSafeAreaInsets();
   const [expanded, setExpanded] = useState(false);
-  const [saved, setSaved] = useState(false);
   const [liked, setLiked] = useState(false);
   const [claimed, setClaimed] = useState(false);
   const [commentsVisible, setCommentsVisible] = useState(false);
@@ -196,16 +195,22 @@ export function DealDetailScreen({ route, navigation }: Props) {
               </Pressable>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Save deal"
-                accessibilityState={{ selected: saved }}
-                onPress={() => setSaved(value => !value)}
-                style={styles.utilityButton}
+                accessibilityLabel="Like deal"
+                accessibilityState={{ selected: liked }}
+                onPress={() => setLiked(value => !value)}
+                style={styles.likePill}
               >
                 <Icon
-                  name={saved ? 'favoriteFilled' : 'favorite'}
+                  name={liked ? 'favoriteFilled' : 'favorite'}
                   size={20}
-                  color={saved ? colors.error : colors.text}
+                  color={liked ? colors.error : colors.text}
                 />
+                <VemtapText
+                  className="font-sans-semibold text-label-sm"
+                  style={{ color: liked ? colors.error : colors.text }}
+                >
+                  {details.likes + (liked ? 1 : 0)}
+                </VemtapText>
               </Pressable>
             </View>
           </View>
@@ -628,6 +633,16 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+  },
+  likePill: {
+    height: 40,
+    minWidth: 40,
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
   },
   heroBadges: {

@@ -1,7 +1,9 @@
 import React from 'react';
 import { fireEvent, render } from '@testing-library/react-native';
 import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { AccountStackNavigator } from '@navigation/TabNavigator';
+import { PersonalHubNavigator } from '@navigation/PersonalHubNavigator';
 import {
   compactTypeScale,
   comfortableTypeScale,
@@ -13,15 +15,33 @@ jest.mock('@store/authStore', () => ({
   useAuthStore: { getState: () => ({ markUnauthenticated: jest.fn() }) },
 }));
 
+const Root = createNativeStackNavigator();
+
+/**
+ * Mirrors the real root: the consumer account stack and the personal-hub shell are
+ * siblings, so the blue card's "Go to Customer Dashboard" swaps shells and the
+ * personal bottom navigation owns the bar from there on.
+ */
+function TestRoot() {
+  return (
+    <Root.Navigator screenOptions={{ headerShown: false }}>
+      <Root.Screen name="Account" component={AccountStackNavigator} />
+      <Root.Screen name="PersonalHub" component={PersonalHubNavigator} />
+    </Root.Navigator>
+  );
+}
+
 async function renderAccountStack() {
   return render(
     <NavigationContainer>
-      <AccountStackNavigator />
+      <TestRoot />
     </NavigationContainer>,
   );
 }
 
-/** The Account tab now lands on the account hub, which opens the dashboard. */
+const personalNavLabels = ['Home', 'My Deals', 'Messages', 'Orders', 'More'];
+
+/** The account hub's blue card enters the personal-hub shell. */
 async function renderDashboard() {
   const screen = await renderAccountStack();
   await fireEvent.press(screen.getByText('Go to Customer Dashboard'));
@@ -37,6 +57,17 @@ test('Account tab opens the account hub and links to the customer dashboard', as
 
   await fireEvent.press(screen.getByText('Go to Customer Dashboard'));
   expect(screen.getByText('Hello, Zainab 👋')).toBeTruthy();
+  // The personal flow shows the personal nav, not the general consumer one.
+  personalNavLabels.forEach(label => expect(screen.getByLabelText(label)).toBeTruthy());
+  expect(screen.queryByLabelText('Discover')).toBeNull();
+});
+
+test('the personal navigation stays visible across the personal flow', async () => {
+  const screen = await renderDashboard();
+
+  await fireEvent.press(screen.getByText('Rewards'));
+  expect(screen.getByText('Rewards & Loyalty')).toBeTruthy();
+  personalNavLabels.forEach(label => expect(screen.getByLabelText(label)).toBeTruthy());
 });
 
 test('account hub rows route to their hubs', async () => {
@@ -85,7 +116,8 @@ test('account menu pushes settings and activity', async () => {
   const screen = await renderDashboard();
 
   await fireEvent.press(screen.getByLabelText('Open account menu'));
-  expect(screen.getByText('More')).toBeTruthy();
+  // "More" is both the personal nav tab and the hub heading once the bar is present.
+  expect(screen.getAllByText('More').length).toBeGreaterThan(0);
 
   await fireEvent.press(screen.getByText('My Activity'));
   expect(screen.getByText('User Activity')).toBeTruthy();
@@ -146,4 +178,20 @@ test('rewards card price text is reduced', async () => {
 
   expect(styles.fontSize).toBe(denseTypeScale.caption.size);
   expect(styles.fontSize).toBeLessThan(denseTypeScale['label-sm'].size);
+});
+
+test('personal-flow rows from Account open in the personal shell, not the consumer nav', async () => {
+  const screen = await renderAccountStack();
+
+  // Account hub → My Deals.
+  await fireEvent.press(screen.getByText('My Deals'));
+  personalNavLabels.forEach(label => expect(screen.getByLabelText(label)).toBeTruthy());
+  // The general consumer tab is gone once the personal shell owns the bar.
+  expect(screen.queryAllByLabelText('Discover')).toHaveLength(0);
+
+  // Account → More → Activity keeps the personal bar too.
+  await fireEvent.press(screen.getByLabelText('More'));
+  await fireEvent.press(screen.getByText('My Activity'));
+  expect(screen.getByText('User Activity')).toBeTruthy();
+  personalNavLabels.forEach(label => expect(screen.getByLabelText(label)).toBeTruthy());
 });

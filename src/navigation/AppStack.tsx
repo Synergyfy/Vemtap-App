@@ -2,6 +2,10 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { TabNavigator } from '@navigation/TabNavigator';
 import { ProfileScreen } from '@features/profile/screens/ProfileScreen';
+import { ManualLocationSearchScreen } from '@features/location/screens/ManualLocationSearchScreen';
+import { useLocationStore } from '@store/locationStore';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { AreaName } from '@constants/locations';
 import { DealFiltersScreen } from '@features/deals/screens/DealFiltersScreen';
 import { DealDetailScreen } from '@features/dealDetail/screens/DealDetailScreen';
 import { DealTermsConditionsScreen } from '@features/dealDetail/screens/DealTermsConditionsScreen';
@@ -21,6 +25,29 @@ import type { AppStackParamList } from '@navigation/types';
 
 const Stack = createNativeStackNavigator<AppStackParamList>();
 
+/**
+ * District selection shared by the Home and Deals navbars. It reuses the same
+ * component the signup flow registers as `ManualLocationSearch` and writes the
+ * chosen district to the shared store, so both navbars stay in step.
+ */
+function LocationSelectScreen({
+  navigation,
+  route,
+}: NativeStackScreenProps<AppStackParamList, 'LocationSelect'>) {
+  const setArea = useLocationStore(state => state.setArea);
+
+  return (
+    <ManualLocationSearchScreen
+      initialArea={route.params?.currentArea}
+      onBack={navigation.goBack}
+      onSelected={next => {
+        setArea(next as AreaName);
+        navigation.goBack();
+      }}
+    />
+  );
+}
+
 export function AppStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -30,6 +57,8 @@ export function AppStack() {
         component={ProfileScreen}
         options={{ headerShown: true, title: 'Profile' }}
       />
+      {/* Shared by the Home and Deals navbars — one registration, both tabs. */}
+      <Stack.Screen name="LocationSelect" component={LocationSelectScreen} />
       <Stack.Screen name="DealFilters" component={DealFiltersScreen} />
       <Stack.Screen name="DealDetail" component={DealDetailScreen} />
       <Stack.Screen name="DealTermsConditions" component={DealTermsConditionsScreen} />

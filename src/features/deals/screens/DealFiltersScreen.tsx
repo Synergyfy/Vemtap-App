@@ -1,13 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  View,
-  type GestureResponderEvent,
-} from 'react-native';
+import { Pressable, ScrollView, TextInput, View } from 'react-native';
 import { cssInterop } from 'nativewind';
+import { RangeSlider } from '@components/ui/RangeSlider';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -34,10 +28,6 @@ cssInterop(Pressable, { className: 'style' });
 cssInterop(TextInput, { className: 'style' });
 
 type Nav = NativeStackNavigationProp<AppStackParamList, 'DealFilters'>;
-
-const sliderStyles = StyleSheet.create({
-  thumbCenter: { marginLeft: -10 },
-});
 
 const DISTANCE_CHIPS: {
   key: string;
@@ -122,7 +112,6 @@ export function DealFiltersScreen() {
     strings.filters.beautySpa,
   ]);
   const [availability, setAvailability] = useState<string[]>(['now']);
-  const [trackWidth, setTrackWidth] = useState(0);
 
   const activeCount = useMemo(() => {
     let n = categories.length;
@@ -139,16 +128,6 @@ export function DealFiltersScreen() {
     setDistanceKey(key);
     setDistanceKm(km);
   }, []);
-
-  const onTrackPress = useCallback(
-    (evt: GestureResponderEvent) => {
-      if (trackWidth <= 0) return;
-      const ratio = Math.min(1, Math.max(0, evt.nativeEvent.locationX / trackWidth));
-      setDistanceKm(Math.round(1 + ratio * 24));
-      setDistanceKey('custom');
-    },
-    [trackWidth],
-  );
 
   const toggleCategory = useCallback((label: string) => {
     setCategories(prev =>
@@ -172,8 +151,6 @@ export function DealFiltersScreen() {
     setCategories([strings.filters.foodDrinks, strings.filters.beautySpa]);
     setAvailability(['now']);
   }, []);
-
-  const thumbPct = ((distanceKm - 1) / 24) * 100;
 
   return (
     <SafeAreaView className="flex-1 bg-surface" edges={['top', 'bottom']}>
@@ -279,29 +256,18 @@ export function DealFiltersScreen() {
                 {strings.filters.maxKm(25)}
               </VemtapText>
             </View>
-            <Pressable
-              accessibilityRole="adjustable"
+            <RangeSlider
+              value={distanceKm}
+              min={1}
+              max={25}
+              ticks={AREA_LABELS}
+              formatTick={() => ''}
               accessibilityLabel={strings.filters.distance}
-              accessibilityValue={{
-                min: 1,
-                max: 25,
-                now: distanceKm,
+              onChange={km => {
+                setDistanceKm(km);
+                setDistanceKey('custom');
               }}
-              onLayout={e => setTrackWidth(e.nativeEvent.layout.width)}
-              onPress={onTrackPress}
-              className="py-2"
-            >
-              <View className="h-2 justify-center rounded-full bg-surface-container">
-                <View
-                  className="absolute left-0 h-2 rounded-full bg-primary-container"
-                  style={{ width: `${thumbPct}%` }}
-                />
-                <View
-                  className="absolute h-5 w-5 rounded-full border-2 border-surface-canvas bg-primary-container shadow-sm"
-                  style={[{ left: `${thumbPct}%` }, sliderStyles.thumbCenter]}
-                />
-              </View>
-            </Pressable>
+            />
             <View className="flex-row items-center justify-between">
               {AREA_LABELS.map(area => (
                 <VemtapText

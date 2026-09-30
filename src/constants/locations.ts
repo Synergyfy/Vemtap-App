@@ -23,3 +23,27 @@ export const DEFAULT_AREA: AreaName = 'Apo';
 export function areaCoords(area: string): AreaCoord {
   return AREA_COORDS[area as AreaName] ?? AREA_COORDS[DEFAULT_AREA];
 }
+
+/**
+ * The one owner of the selectable Abuja area list. Manual location search and
+ * the home "Change Location & Radius" sheet both read this, so a new area (or a
+ * corrected distance) can never drift between them.
+ */
+export const AREA_OPTIONS: readonly { name: AreaName; distance: string }[] = [
+  { name: 'Apo', distance: '0.0 mi' },
+  { name: 'Wuse 2', distance: '3.4 mi' },
+  { name: 'Maitama', distance: '5.1 mi' },
+  { name: 'Garki', distance: '2.8 mi' },
+  { name: 'Jabi', distance: '4.9 mi' },
+] as const;
+
+export const AREA_NAMES: readonly AreaName[] = AREA_OPTIONS.map(area => area.name);
+
+/** How each area is written in the home location sheet's popular pill row. */
+export const AREA_PILL_LABELS: Record<AreaName, string> = {
+  Apo: 'Apo',
+  'Wuse 2': 'Wuse II',
+  Maitama: 'Maitama',
+  Garki: 'Garki',
+  Jabi: 'Jabi',
+};

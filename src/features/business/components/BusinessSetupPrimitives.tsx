@@ -516,6 +516,7 @@ export interface FieldSelectProps {
   onPress: () => void;
   accessibilityLabel: string;
   tone?: 'subtle' | 'lowest';
+  leadingIcon?: IconName;
   className?: string;
 }
 
@@ -526,6 +527,7 @@ export function FieldSelect({
   onPress,
   accessibilityLabel,
   tone = 'subtle',
+  leadingIcon,
   className,
 }: FieldSelectProps) {
   return (
@@ -534,6 +536,7 @@ export function FieldSelect({
       value={value}
       onPress={onPress}
       accessibilityLabel={accessibilityLabel}
+      leadingIcon={leadingIcon}
       className={cn(
         tone === 'subtle' ? 'bg-surface-subtle' : 'bg-surface-container-lowest shadow-sm',
         className,

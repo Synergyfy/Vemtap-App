@@ -19,6 +19,10 @@ module.exports = {
     '\\.(css)$': '<rootDir>/__mocks__/styleMock.js',
     '\\.(ttf|otf|png|jpg|jpeg)$': '<rootDir>/__mocks__/fontStub.js',
   },
+  // Several suites mount the full business tab navigator, which legitimately
+  // takes a few seconds. Without this the default 5s cap turns a slow parallel
+  // run into a spurious timeout failure.
+  testTimeout: 20000,
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   transformIgnorePatterns: [
     'node_modules/(?!(react-native|@react-native|react-native-.*|@react-navigation|nativewind|react-native-css-interop|@tanstack|zustand|@expo-google-fonts|@expo/vector-icons|expo|expo-.*|expo-modules-core)/)',

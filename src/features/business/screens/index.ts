@@ -144,3 +144,101 @@ export {
   PaymentSuccessVemtapGrowthScreen,
   type PaymentSuccessVemtapGrowthScreenProps,
 } from './PaymentSuccessVemtapGrowthScreen';
+
+/* VEMTAP Intelligence — analytics surfaces (shared shell + filter/export). */
+export {
+  BusinessAnalyticsVemtapIntelligenceScreen,
+  type BusinessAnalyticsVemtapIntelligenceScreenProps,
+} from './BusinessAnalyticsVemtapIntelligenceScreen';
+export {
+  CustomersAnalyticsVemtapIntelligenceScreen,
+  type CustomersAnalyticsVemtapIntelligenceScreenProps,
+} from './CustomersAnalyticsVemtapIntelligenceScreen';
+export {
+  DealsAnalyticsVemtapIntelligenceScreen,
+  type DealsAnalyticsVemtapIntelligenceScreenProps,
+} from './DealsAnalyticsVemtapIntelligenceScreen';
+export {
+  LocationsAnalyticsVemtapIntelligenceScreen,
+  type LocationsAnalyticsVemtapIntelligenceScreenProps,
+} from './LocationsAnalyticsVemtapIntelligenceScreen';
+export {
+  PosAnalyticsVemtapIntelligenceScreen,
+  type PosAnalyticsVemtapIntelligenceScreenProps,
+} from './PosAnalyticsVemtapIntelligenceScreen';
+export {
+  AnalyticsFilterSettingsSheet,
+  type AnalyticsFilterSettingsSheetProps,
+  type AnalyticsFilterSelection,
+} from './AnalyticsFilterSettingsSheet';
+export {
+  ExportAnalyticsReportScreen,
+  type ExportAnalyticsReportScreenProps,
+  type ExportAnalyticsReportPayload,
+} from './ExportAnalyticsReportScreen';
+
+/* Boost — wizard steps, performance and wallet. */
+export {
+  BoostGoalAudienceScreen,
+  type BoostGoalAudienceScreenProps,
+  type BoostGoalAudienceSelection,
+} from './BoostGoalAudienceScreen';
+export {
+  BoostBudgetScheduleScreen,
+  type BoostBudgetScheduleScreenProps,
+  type BoostBudgetSelection,
+} from './BoostBudgetScheduleScreen';
+export {
+  BoostPreviewPaymentScreen,
+  type BoostPreviewPaymentScreenProps,
+} from './BoostPreviewPaymentScreen';
+export {
+  BoostPerformanceScreen,
+  type BoostPerformanceScreenProps,
+} from './BoostPerformanceScreen';
+export { BoostWalletScreen, type BoostWalletScreenProps } from './BoostWalletScreen';
+
+/* Create Campaign wizard — one screen per step. */
+export {
+  CampaignStep1ObjectiveScreen,
+  type CampaignStep1ObjectiveScreenProps,
+} from './CampaignStep1ObjectiveScreen';
+export {
+  CampaignStep2ContentScreen,
+  type CampaignStep2ContentScreenProps,
+} from './CampaignStep2ContentScreen';
+export {
+  CampaignStep3AudienceScreen,
+  type CampaignStep3AudienceScreenProps,
+  type CampaignAudienceSelection,
+} from './CampaignStep3AudienceScreen';
+export {
+  CampaignStep4ScheduleScreen,
+  type CampaignStep4ScheduleScreenProps,
+  type CampaignScheduleSelection,
+} from './CampaignStep4ScheduleScreen';
+export {
+  CampaignStep5BudgetScreen,
+  type CampaignStep5BudgetScreenProps,
+  type CampaignBudgetSelection,
+} from './CampaignStep5BudgetScreen';
+export {
+  CampaignStep6ReviewScreen,
+  type CampaignStep6ReviewScreenProps,
+  type CampaignReviewPayload,
+} from './CampaignStep6ReviewScreen';
+
+/* Customer segments. */
+export {
+  SegmentActionsSheet,
+  type SegmentActionsSheetProps,
+} from './SegmentActionsSheet';
+export {
+  CreateCustomSegmentScreen,
+  type CreateCustomSegmentScreenProps,
+  type CustomSegmentSelection,
+} from './CreateCustomSegmentScreen';
+export {
+  SegmentAudienceDetailsScreen,
+  type SegmentAudienceDetailsScreenProps,
+} from './SegmentAudienceDetailsScreen';

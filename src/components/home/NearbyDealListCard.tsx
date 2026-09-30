@@ -3,6 +3,8 @@ import { Image, Pressable, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
+import { DealEngagementRow } from '@components/home/DealEngagementRow';
+import { cn } from '@utils/cn';
 import { strings } from '@constants/strings';
 import type { NearbyDeal } from '@features/home/data/homeFeed';
 import { colors } from '@theme/colors';
@@ -13,12 +15,16 @@ cssInterop(Pressable, { className: 'style' });
 export interface NearbyDealListCardProps {
   deal: NearbyDeal;
   onToggleLike?: (id: string) => void;
+  onOpenComments?: (id: string) => void;
+  onShare?: (id: string) => void;
   onOpenDetail?: (id: string) => void;
 }
 
 export function NearbyDealListCard({
   deal,
   onToggleLike,
+  onOpenComments,
+  onShare,
   onOpenDetail,
 }: NearbyDealListCardProps) {
   const liked = deal.liked === true;
@@ -94,33 +100,19 @@ export function NearbyDealListCard({
           </VemtapText>
         </View>
         <View className="flex-row items-center justify-between pt-3">
-          <View className="flex-row items-center gap-4">
-            <Pressable
-              accessibilityRole="button"
-              accessibilityState={{ selected: liked }}
-              onPress={() => onToggleLike?.(deal.id)}
-              className="flex-row items-center gap-1.5"
-            >
-              <Icon
-                name={liked ? 'favoriteFilled' : 'favorite'}
-                size={18}
-                color={liked ? '#BA1A1A' : '#4B5563'}
-              />
-              <VemtapText variant="labelSm" tone="secondary">
-                {likeCount}
-              </VemtapText>
-            </Pressable>
-            <View className="flex-row items-center gap-1.5">
-              <Icon name="comment" size={18} color={colors.textSecondary} />
-              <VemtapText variant="labelSm" tone="secondary">
-                {deal.comments}
-              </VemtapText>
-            </View>
-          </View>
+          <DealEngagementRow
+            liked={liked}
+            likeCount={likeCount}
+            commentCount={deal.comments}
+            onToggleLike={onToggleLike ? () => onToggleLike(deal.id) : undefined}
+            onOpenComments={onOpenComments ? () => onOpenComments(deal.id) : undefined}
+          />
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={strings.home.share}
-            className="flex-row items-center gap-1"
+            disabled={!onShare}
+            onPress={() => onShare?.(deal.id)}
+            className={cn('flex-row items-center gap-1', !onShare && 'opacity-60')}
           >
             <Icon name="share" size={18} color={colors.textSecondary} />
             <VemtapText variant="labelSm" tone="secondary">

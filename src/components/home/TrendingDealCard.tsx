@@ -1,21 +1,27 @@
 import React from 'react';
 import { Image, Pressable, View } from 'react-native';
 import { cssInterop } from 'nativewind';
-import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
+import { DealEngagementRow } from '@components/home/DealEngagementRow';
 import type { TrendingDeal } from '@features/home/data/homeFeed';
-import { colors } from '@theme/colors';
 
 cssInterop(View, { className: 'style' });
 cssInterop(Pressable, { className: 'style' });
 
 export function TrendingDealCard({
   deal,
+  onToggleLike,
+  onOpenComments,
   onOpenDetail,
 }: {
   deal: TrendingDeal;
+  onToggleLike?: (id: string) => void;
+  onOpenComments?: (id: string) => void;
   onOpenDetail?: (id: string) => void;
 }) {
+  const liked = deal.liked === true;
+  const likeCount = deal.likes + (liked ? 1 : 0);
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -54,20 +60,14 @@ export function TrendingDealCard({
           <VemtapText variant="caption" tone="secondary">
             {deal.distance}
           </VemtapText>
-          <View className="flex-row items-center gap-2">
-            <View className="flex-row items-center gap-0.5">
-              <Icon name="favorite" size={14} color={colors.textSecondary} />
-              <VemtapText variant="caption" tone="secondary">
-                {deal.likes}
-              </VemtapText>
-            </View>
-            <View className="flex-row items-center gap-0.5">
-              <Icon name="comment" size={14} color={colors.textSecondary} />
-              <VemtapText variant="caption" tone="secondary">
-                {deal.comments}
-              </VemtapText>
-            </View>
-          </View>
+          <DealEngagementRow
+            size="sm"
+            liked={liked}
+            likeCount={likeCount}
+            commentCount={deal.comments}
+            onToggleLike={onToggleLike ? () => onToggleLike(deal.id) : undefined}
+            onOpenComments={onOpenComments ? () => onOpenComments(deal.id) : undefined}
+          />
         </View>
       </View>
     </Pressable>
