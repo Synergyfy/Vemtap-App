@@ -18,6 +18,7 @@ import { RegistrationHeader } from '@components/auth/RegistrationHeader';
 import { colors } from '@theme/colors';
 import { strings } from '@constants/strings';
 import type { AuthStackParamList } from '@navigation/types';
+import { useVerifyAndSetPin } from '@features/auth/hooks/useCustomerRegister';
 
 cssInterop(View, { className: 'style' });
 cssInterop(ScrollView, {
@@ -199,7 +200,8 @@ function PinBoxes({
  */
 export function ProfileSetupScreen() {
   const navigation = useNavigation<Nav>();
-  useRoute<Rt>();
+  const { params } = useRoute<Rt>();
+  const verifyAndSetPin = useVerifyAndSetPin();
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -232,15 +234,39 @@ export function ProfileSetupScreen() {
     hasAcceptedPolicy;
 
   const onComplete = useCallback(() => {
-    if (!canSubmit) {
+    if (!canSubmit || verifyAndSetPin.isPending) {
       return;
     }
 
-    navigation.reset({
-      index: 0,
-      routes: [{ name: 'LocationPermission' }],
-    });
-  }, [canSubmit, navigation]);
+    verifyAndSetPin.mutate(
+      {
+        email: params.email,
+        code: params.code,
+        pin: pin1,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        phone: phone.trim(),
+      },
+      {
+        onSuccess: () => {
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'LocationPermission' }],
+          });
+        },
+      },
+    );
+  }, [
+    canSubmit,
+    firstName,
+    lastName,
+    navigation,
+    params.code,
+    params.email,
+    phone,
+    pin1,
+    verifyAndSetPin,
+  ]);
 
   return (
     <SafeAreaView className="flex-1 bg-surface-canvas" edges={['top', 'bottom']}>
@@ -443,10 +469,24 @@ export function ProfileSetupScreen() {
           </Pressable>
 
           {/* Actions */}
+          {verifyAndSetPin.error ? (
+            <VemtapText
+              tone="error"
+              accessibilityRole="alert"
+              className="text-center text-caption"
+            >
+              {(verifyAndSetPin.error as Error).message || strings.auth.verifyFailed}
+            </VemtapText>
+          ) : null}
           <View className="gap-3 pt-2">
             <Button
-              label={strings.auth.profileCompleteSetup}
-              disabled={!canSubmit}
+              label={
+                verifyAndSetPin.isPending
+                  ? strings.common.loading
+                  : strings.auth.profileCompleteSetup
+              }
+              disabled={!canSubmit || verifyAndSetPin.isPending}
+              loading={verifyAndSetPin.isPending}
               rightIcon={<Icon name="arrowForward" size={20} color="#FFFFFF" />}
               onPress={onComplete}
             />

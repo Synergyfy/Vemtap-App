@@ -1,13 +1,9 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { authApi, type Session } from '@api/authApi';
+import { authApi, type RegisterInput, type Session } from '@api/authApi';
 import { setTokenPair } from '@utils/secureStorage';
 import { useAuthStore } from '@store/authStore';
 
-interface RegisterInput {
-  displayName: string;
-  email: string;
-  password: string;
-}
+export type { RegisterInput };
 
 export function useRegister() {
   const queryClient = useQueryClient();
@@ -16,10 +12,7 @@ export function useRegister() {
   return useMutation<Session, Error, RegisterInput>({
     mutationFn: async input => {
       const session = await authApi.register(input);
-      await setTokenPair({
-        accessToken: session.tokens.accessToken,
-        refreshToken: session.tokens.refreshToken,
-      });
+      await setTokenPair({ accessToken: session.access_token });
       return session;
     },
     onSuccess: session => {

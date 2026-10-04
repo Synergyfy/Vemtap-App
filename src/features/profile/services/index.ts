@@ -1,1 +1,1 @@
-export { userApi, userSchema } from '@api/userApi';
+export { authApi, userSchema, type User } from '@api/authApi';

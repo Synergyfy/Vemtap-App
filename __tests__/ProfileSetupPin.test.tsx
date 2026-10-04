@@ -9,7 +9,21 @@ const mockNavigation = {
 
 jest.mock('@react-navigation/native', () => ({
   useNavigation: () => mockNavigation,
-  useRoute: () => ({ params: {} }),
+  useRoute: () => ({ params: { email: 'user@example.com', code: '123456' } }),
+}));
+
+const mockVerifyAndSetPin = jest.fn();
+jest.mock('@features/auth/hooks/useCustomerRegister', () => ({
+  useVerifyAndSetPin: () => ({
+    mutate: mockVerifyAndSetPin,
+    isPending: false,
+    error: null,
+  }),
+  useRequestSignupOtp: () => ({
+    mutate: jest.fn(),
+    isPending: false,
+    error: null,
+  }),
 }));
 
 test('toggles PIN visibility and restores filled dots when hidden', async () => {

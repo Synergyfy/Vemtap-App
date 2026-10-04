@@ -1,15 +1,15 @@
 import { useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { userApi } from '@api/userApi';
+import { authApi } from '@api/authApi';
 import { useAuthStore } from '@store/authStore';
 
 export function useProfile() {
-  const user = useAuthStore(state => state.user);
+  const status = useAuthStore(state => state.status);
 
   const query = useQuery({
-    queryKey: ['users', 'me', user?.id],
-    enabled: Boolean(user?.id),
-    queryFn: ({ signal }) => userApi.fetchUserById(user!.id, { signal }),
+    queryKey: ['users', 'me'],
+    enabled: status === 'authenticated',
+    queryFn: ({ signal }) => authApi.fetchProfile({ signal }),
     staleTime: 60_000,
   });
 

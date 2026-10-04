@@ -16,6 +16,7 @@ import { z } from 'zod';
 import { colors } from '@theme/colors';
 import { strings } from '@constants/strings';
 import type { AuthStackParamList, RootStackParamList } from '@navigation/types';
+import { useRequestSignupOtp } from '@features/auth/hooks/useCustomerRegister';
 
 cssInterop(View, { className: 'style' });
 cssInterop(ScrollView, {
@@ -39,6 +40,7 @@ type Nav = CompositeNavigationProp<
 export function RegisterScreen() {
   const navigation = useNavigation<Nav>();
   const [submitState, setSubmitState] = useState<'idle' | 'sending' | 'sent'>('idle');
+  const requestOtp = useRequestSignupOtp();
 
   const { control, handleSubmit, formState } = useForm<RegisterInput>({
     resolver: zodResolver(registerSchema),
@@ -49,12 +51,18 @@ export function RegisterScreen() {
   const onSubmit = useCallback(
     (values: RegisterInput) => {
       setSubmitState('sending');
-      setTimeout(() => {
-        setSubmitState('sent');
-        navigation.navigate('VerifyEmail', { email: values.email });
-      }, 1200);
+      requestOtp.mutate(
+        { email: values.email },
+        {
+          onSuccess: () => {
+            setSubmitState('sent');
+            navigation.navigate('VerifyEmail', { email: values.email });
+          },
+          onError: () => setSubmitState('idle'),
+        },
+      );
     },
-    [navigation],
+    [navigation, requestOtp],
   );
 
   return (

@@ -24,7 +24,7 @@ export function ProfileScreen() {
 
         <Card elevated>
           <VemtapText variant="headingSm">
-            {user?.displayName ?? 'Vemtap user'}
+            {[user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Vemtap user'}
           </VemtapText>
           <VemtapText tone="secondary" className="mt-1">
             {user?.email}

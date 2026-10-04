@@ -57,7 +57,7 @@ export function SignInScreen() {
   const onSubmit = useCallback(
     (values: SignInFormInput) => {
       login.mutate({
-        email: values.identifier,
+        identifier: values.identifier,
         password: values.credential,
       });
     },

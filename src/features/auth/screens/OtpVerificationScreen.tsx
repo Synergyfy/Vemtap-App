@@ -11,6 +11,7 @@ import { RegistrationHeader } from '@components/auth/RegistrationHeader';
 import { colors } from '@theme/colors';
 import { strings } from '@constants/strings';
 import type { AuthStackParamList } from '@navigation/types';
+import { useRequestSignupOtp } from '@features/auth/hooks/useCustomerRegister';
 
 cssInterop(View, { className: 'style' });
 cssInterop(ScrollView, {
@@ -33,7 +34,9 @@ const OTP_CELL_IDS = Array.from({ length: OTP_LENGTH }, (_, i) => `otp-cell-${i}
 export function OtpVerificationScreen() {
   const navigation = useNavigation<Nav>();
   const { params } = useRoute<Rt>();
+  const requestOtp = useRequestSignupOtp();
   const [code, setCode] = useState('');
+  const [resent, setResent] = useState(false);
   const [timeLeft, setTimeLeft] = useState(45);
   const inputRef = useRef<TextInput>(null);
 
@@ -176,12 +179,33 @@ export function OtpVerificationScreen() {
         </Pressable>
 
         {/* Resend */}
+        {requestOtp.error || resent ? (
+          <VemtapText
+            tone={requestOtp.error ? 'error' : 'success'}
+            accessibilityRole="alert"
+            className="mt-4 text-center text-caption"
+          >
+            {requestOtp.error
+              ? (requestOtp.error as Error).message || strings.auth.otpSendFailed
+              : strings.auth.otpResent}
+          </VemtapText>
+        ) : null}
         <View className="mt-4 flex-row items-center justify-center gap-1.5">
           <VemtapText tone="secondary">{strings.auth.otpDidntReceive}</VemtapText>
           <Pressable
             accessibilityRole="button"
-            disabled={timeLeft > 0}
-            onPress={() => setTimeLeft(45)}
+            disabled={timeLeft > 0 || requestOtp.isPending}
+            onPress={() =>
+              requestOtp.mutate(
+                { email: params.email },
+                {
+                  onSuccess: () => {
+                    setTimeLeft(45);
+                    setResent(true);
+                  },
+                },
+              )
+            }
             className="flex-row items-center gap-1"
           >
             <VemtapText
@@ -217,7 +241,9 @@ export function OtpVerificationScreen() {
             label={strings.auth.otpContinue}
             disabled={!canContinue}
             rightIcon={<Icon name="arrowForward" size={20} color="#FFFFFF" />}
-            onPress={() => navigation.navigate('ProfileSetup', { email: params.email })}
+            onPress={() =>
+              navigation.navigate('ProfileSetup', { email: params.email, code })
+            }
           />
           <View className="items-center">
             <Pressable

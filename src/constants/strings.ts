@@ -79,6 +79,10 @@ export const strings = {
     emailPlaceholder: 'Email address',
     passwordPlaceholder: 'Password',
     invalidCredentials: 'Invalid email or password.',
+    otpSendFailed: "We couldn't send a code to that email. Try again.",
+    otpResent: 'A new code is on its way.',
+    verifyFailed: "That code or PIN isn't right. Check and try again.",
+    signupComplete: 'Your account is ready. Welcome to VEMTAP!',
     signInHeader: 'Sign In',
     signInTitle: 'Welcome Back',
     signInSubtitle:

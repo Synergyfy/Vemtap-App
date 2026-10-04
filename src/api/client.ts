@@ -6,24 +6,26 @@ import axios, {
   type InternalAxiosRequestConfig,
 } from 'axios';
 import { z } from 'zod';
-import { API_BASE_URL, API_TIMEOUT_MS, IS_PRODUCTION, SENTRY_ENABLED } from '@constants/config';
+import {
+  API_BASE_URL,
+  API_TIMEOUT_MS,
+  IS_PRODUCTION,
+  SENTRY_ENABLED,
+} from '@constants/config';
 import { strings } from '@constants/strings';
 import { ApiError } from '@api/ApiError';
-import { apiErrorResponseSchema, type ApiResponse, type ApiRequestOptions } from '@app-types/api';
-import { getSecureItem, setTokenPair } from '@utils/secureStorage';
+import {
+  apiErrorResponseSchema,
+  type ApiResponse,
+  type ApiRequestOptions,
+} from '@app-types/api';
+import { getSecureItem } from '@utils/secureStorage';
 import { logger } from '@utils/logger';
 import * as Sentry from '@sentry/react-native';
 
 type RetriableRequest = InternalAxiosRequestConfig & {
-  _retry?: boolean;
   _idempotencyKey?: string;
-  skipAuthRefreshRetry?: boolean;
 };
-
-export interface AuthTokens {
-  accessToken: string;
-  refreshToken?: string;
-}
 
 /** Callbacks wired by the auth feature (keeps this module free of store imports). */
 interface AuthBridge {
@@ -37,47 +39,6 @@ export function registerAuthBridge(bridge: AuthBridge): void {
 }
 
 // ---------------------------------------------------------------------------
-// Refresh-token queue: concurrent 401s wait behind ONE in-flight refresh call.
-// ---------------------------------------------------------------------------
-let refreshPromise: Promise<string | null> | null = null;
-
-async function performTokenRefresh(): Promise<string | null> {
-  try {
-    const refreshToken = await getSecureItem('refreshToken');
-    if (!refreshToken) {
-      return null;
-    }
-
-    // Raw client: must not recurse into its own refresh interceptor.
-    const response = await axios.post<{ success: boolean; data: { accessToken: string; refreshToken?: string } }>(
-      `${API_BASE_URL}/auth/refresh`,
-      { refreshToken },
-      { timeout: API_TIMEOUT_MS, headers: { 'Content-Type': 'application/json' } },
-    );
-
-    const { accessToken, refreshToken: nextRefresh } = response.data.data;
-    await setTokenPair({ accessToken, refreshToken: nextRefresh ?? refreshToken });
-    logger.info('auth', 'Token refresh succeeded');
-    return accessToken;
-  } catch {
-    logger.warn('auth', 'Token refresh failed — session expired');
-    return null;
-  }
-}
-
-export function refreshAuthToken(): Promise<string | null> {
-  if (!refreshPromise) {
-    refreshPromise = performTokenRefresh().finally(() => {
-      // Release the slot on the next tick so queued callers can await this result first.
-      setTimeout(() => {
-        refreshPromise = null;
-      }, 0);
-    });
-  }
-  return refreshPromise;
-}
-
-// ---------------------------------------------------------------------------
 // Client
 // ---------------------------------------------------------------------------
 export const apiClient: AxiosInstance = axios.create({
@@ -87,7 +48,6 @@ export const apiClient: AxiosInstance = axios.create({
     'Content-Type': 'application/json',
     Accept: 'application/json',
   },
-  // Refresh is handled manually in the response interceptor.
   validateStatus: status => status >= 200 && status < 300,
 });
 
@@ -119,7 +79,6 @@ apiClient.interceptors.response.use(
     return response;
   },
   async (error: AxiosError) => {
-    const original = (error.config ?? {}) as RetriableRequest;
     const status = error.response?.status;
 
     // Normalize network / timeout failures first.
@@ -130,23 +89,7 @@ apiClient.interceptors.response.use(
       throw ApiError.network(error);
     }
 
-    // --- Refresh-token queueing (race-condition safe) ---
-    if (status === 401 && !original._retry && !original.skipAuthRefreshRetry) {
-      original._retry = true;
-
-      const newToken = await refreshAuthToken();
-      if (!newToken) {
-        authBridge?.onSessionExpired();
-        throw ApiError.unauthorized(strings.errors.unauthorized);
-      }
-
-      original.headers = AxiosHeaders.from(original.headers).set(
-        'Authorization',
-        `Bearer ${newToken}`,
-      );
-      return apiClient.request(original);
-    }
-
+    // The API has no refresh endpoint, so a 401 is terminal for this session.
     if (status === 401) {
       authBridge?.onSessionExpired();
     }
@@ -167,11 +110,15 @@ function normalizeAxiosError(error: AxiosError): ApiError {
       : undefined);
 
   if (parsed.success) {
-    return new ApiError(parsed.data.error.message, {
-      code: parsed.data.error.code,
-      status: parsed.data.error.status,
-      details: parsed.data.error.details,
-      requestId: parsed.data.error.requestId ?? requestId,
+    const { message, statusCode, details } = parsed.data;
+    const text = Array.isArray(message)
+      ? message.join('\n')
+      : (message ?? parsed.data.error);
+    return new ApiError(text ?? strings.errors.server, {
+      code: parsed.data.error ?? `HTTP_${statusCode}`,
+      status: statusCode,
+      details: details as Record<string, unknown> | undefined,
+      requestId: parsed.data.requestId ?? requestId,
       cause: error,
     });
   }
@@ -184,7 +131,7 @@ function normalizeAxiosError(error: AxiosError): ApiError {
         ? strings.errors.notFound
         : status === 403
           ? strings.errors.forbidden
-          : (error.message || strings.errors.server);
+          : error.message || strings.errors.server;
 
   if (SENTRY_ENABLED && status >= 500) {
     Sentry.captureException(error);
@@ -248,8 +195,7 @@ export async function getValidated<T>(
 }
 
 export function createIdempotencyKey(): string {
-  const webCrypto = (globalThis as { crypto?: { randomUUID?: () => string } })
-    .crypto;
+  const webCrypto = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto;
   if (webCrypto?.randomUUID) {
     return webCrypto.randomUUID();
   }

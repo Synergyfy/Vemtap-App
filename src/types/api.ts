@@ -26,23 +26,32 @@ export const paginationMetaSchema = z.object({
   hasNextPage: z.boolean(),
 });
 
+/**
+ * Error envelope as the live API returns it:
+ * { success:false, statusCode, timestamp, path, method, error, message }
+ * `message` is a string for auth/runtime errors and a string[] for validation
+ * failures, so it is normalised to one readable string.
+ */
 export const apiErrorSchema = z.object({
-  code: z.string(),
-  message: z.string(),
-  status: z.number(),
-  details: z.record(z.string(), z.unknown()).optional(),
+  success: z.literal(false),
+  statusCode: z.number(),
+  timestamp: z.string().optional(),
+  path: z.string().optional(),
+  method: z.string().optional(),
+  error: z.string().optional(),
+  message: z.union([z.string(), z.array(z.string())]).optional(),
+  details: z.unknown().optional(),
   requestId: z.string().optional(),
 });
 
-export const apiErrorResponseSchema = z.object({
-  success: z.literal(false),
-  error: apiErrorSchema,
-});
+export const apiErrorResponseSchema = apiErrorSchema;
 
 export type PaginationMeta = z.infer<typeof paginationMetaSchema>;
 export type ApiErrorShape = z.infer<typeof apiErrorSchema>;
 
-export type ApiResponse<T> = z.infer<ReturnType<typeof apiResponseSchema<z.ZodType<T>>>> & {
+export type ApiResponse<T> = z.infer<
+  ReturnType<typeof apiResponseSchema<z.ZodType<T>>>
+> & {
   data: T;
 };
 

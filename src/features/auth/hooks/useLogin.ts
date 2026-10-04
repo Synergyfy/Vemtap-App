@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { authApi, type LoginInput, type Session } from '@api/authApi';
-import { setTokenPair, getSecureItem } from '@utils/secureStorage';
+import { getSecureItem, setTokenPair } from '@utils/secureStorage';
 import { useAuthStore } from '@store/authStore';
 import { logger } from '@utils/logger';
 
@@ -12,17 +12,13 @@ export function useLogin() {
   const mutation = useMutation<Session, Error, LoginInput>({
     mutationFn: async input => {
       const session = await authApi.login(input);
-      // Tokens → Keychain only (never MMKV / Zustand / Redux).
-      await setTokenPair({
-        accessToken: session.tokens.accessToken,
-        refreshToken: session.tokens.refreshToken,
-      });
+      await setTokenPair({ accessToken: session.access_token });
       return session;
     },
     onSuccess: session => {
       setSession(session);
       queryClient.invalidateQueries({ queryKey: ['users'] });
-      logger.info('auth', 'Login succeeded', { userId: session.user.id });
+      logger.info('auth', 'Login succeeded', { user: session.user.uniqueCode });
     },
   });
 
@@ -34,12 +30,10 @@ export function useBootstrapSession() {
 
   return useCallback(async () => {
     const token = await getSecureItem('accessToken');
-    if (token) {
-      // Token present — hydrate profile from /auth/me here when available.
-      // Until then, keep the user unauthenticated so AuthStack shows.
+    if (!token) {
       markUnauthenticated();
-      return;
+      return false;
     }
-    markUnauthenticated();
+    return true;
   }, [markUnauthenticated]);
 }

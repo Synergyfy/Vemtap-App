@@ -119,12 +119,30 @@ export function DiscoveringNearbyDealsScreen() {
     if (step >= strings.auth.discoveringStatuses.length - 1) {
       const done = setTimeout(() => {
         setSession({
+          access_token: 'local-onboarding',
           user: {
-            id: 'local-onboarding',
             email: 'guest@vemtap.local',
-            displayName: 'VEMTAP User',
+            firstName: 'VEMTAP',
+            lastName: 'User',
+            role: 'customer',
+            roleTag: '',
+            status: 'active',
+            uniqueCode: 'local-onboarding',
+            referralCode: '',
+            avatar: '',
+            phone: '',
+            jobTitle: '',
+            authProvider: '',
+            googleId: '',
+            businessId: '',
+            branchId: '',
+            lastActive: '',
+            isPasswordChanged: false,
+            twoFactorEnabled: false,
+            optOut: false,
+            permissions: [],
+            optInChannels: [],
           },
-          tokens: { accessToken: 'local-onboarding' },
         });
       }, STEP_MS);
       return () => clearTimeout(done);
