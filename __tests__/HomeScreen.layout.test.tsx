@@ -7,6 +7,9 @@ import { TabNavigator } from '@navigation/TabNavigator';
 jest.mock('@features/deals/hooks/usePublicOffers', () =>
   jest.requireActual('./helpers/mockOffersFeed').mockOffersFeedModule(),
 );
+jest.mock('@features/deals/hooks/useDealEngagementActions', () =>
+  jest.requireActual('./helpers/mockOffersFeed').mockDealEngagementActionsModule(),
+);
 
 jest.mock('@hooks/useNetworkStatus', () => ({
   useIsOnline: () => true,

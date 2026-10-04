@@ -7,6 +7,9 @@ import { NavigationContainer } from '@react-navigation/native';
 jest.mock('@features/deals/hooks/usePublicOffers', () =>
   jest.requireActual('./helpers/mockOffersFeed').mockOffersFeedModule(),
 );
+jest.mock('@features/deals/hooks/useDealEngagementActions', () =>
+  jest.requireActual('./helpers/mockOffersFeed').mockDealEngagementActionsModule(),
+);
 
 /**
  * The filter icon must open the one shared filter page from every feed that

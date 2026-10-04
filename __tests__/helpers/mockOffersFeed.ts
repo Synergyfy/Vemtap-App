@@ -29,3 +29,27 @@ export const mockOffersFeedModule = () => {
     useDealEngagement: () => ({ data: undefined, isLoading: false, isError: false }),
   };
 };
+
+/**
+ * Test double for the optimistic like/save hooks. Those need a QueryClient,
+ * which the UI suites do not mount, so they are stubbed to the neutral state.
+ */
+export const mockDealEngagementActionsModule = () => ({
+  engagementKeys: {
+    counts: (offerId: string) => ['offers', 'engagement', offerId],
+    reaction: (offerId: string) => ['offers', 'reaction', offerId],
+    saved: (offerId: string) => ['offers', 'saved', offerId],
+  },
+  useDealReaction: () => ({
+    liked: false,
+    toggle: jest.fn(),
+    isPending: false,
+    needsAuth: false,
+  }),
+  useDealSave: () => ({
+    saved: false,
+    toggle: jest.fn(),
+    isPending: false,
+    needsAuth: false,
+  }),
+});

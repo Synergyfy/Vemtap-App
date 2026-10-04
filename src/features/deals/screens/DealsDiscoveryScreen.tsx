@@ -17,7 +17,8 @@ import {
   usePublicOffersFeed,
   useDealEngagement,
 } from '@features/deals/hooks/usePublicOffers';
-import type { DealListItem } from '@features/deals/data/dealsFeed';
+import { useDealReaction } from '@features/deals/hooks/useDealEngagementActions';
+import type { DealListItem, FeaturedDealOfDay } from '@features/deals/data/dealsFeed';
 import { DealCommentsSheet } from '@features/dealDetail/components/DealCommentsSheet';
 import { useConsumerTargeting } from '@features/home/hooks/useConsumerTargeting';
 
@@ -48,21 +49,21 @@ export interface DealsDiscoveryScreenProps {
  * Featured variant: vemtap_deals_discovery_grid_view_featured_deal_location_header
  * Standard variant:  vemtap_deals_discovery_grid_view_location_header_filter_icon
  */
-/** One list row plus its own engagement counts, fetched lazily per visible deal. */
+/**
+ * One list row: real engagement counts and a real like toggle, both scoped to
+ * this deal's id and cached per offerId.
+ */
 function DealsListRow({
   deal,
-  liked,
-  onToggleLike,
   onOpenComments,
   onOpenDetail,
 }: {
   deal: DealListItem;
-  liked: boolean;
-  onToggleLike: (id: string) => void;
   onOpenComments: (id: string) => void;
   onOpenDetail: (id: string) => void;
 }) {
   const { data } = useDealEngagement(deal.id);
+  const reaction = useDealReaction(deal.id);
   const enriched = useMemo(
     () =>
       data ? { ...deal, likes: data.likesCount, comments: data.reviewsCount } : deal,
@@ -72,8 +73,30 @@ function DealsListRow({
   return (
     <DealsListCard
       deal={enriched}
-      liked={liked}
-      onToggleLike={onToggleLike}
+      liked={reaction.liked}
+      onToggleLike={reaction.toggle}
+      onOpenComments={onOpenComments}
+      onOpenDetail={onOpenDetail}
+    />
+  );
+}
+
+/** The featured card, wired to the same real like toggle as the rows. */
+function FeaturedDealCard({
+  deal,
+  onOpenComments,
+  onOpenDetail,
+}: {
+  deal: FeaturedDealOfDay;
+  onOpenComments: (id: string) => void;
+  onOpenDetail: (id: string) => void;
+}) {
+  const reaction = useDealReaction(deal.id);
+  return (
+    <FeaturedDealOfDayCard
+      deal={deal}
+      liked={reaction.liked}
+      onToggleLike={reaction.toggle}
       onOpenComments={onOpenComments}
       onOpenDetail={onOpenDetail}
     />
@@ -90,19 +113,12 @@ export function DealsDiscoveryScreen({
   onOpenAccount,
 }: DealsDiscoveryScreenProps) {
   const [viewMode, setViewMode] = useState<DealsViewMode>('grid');
-  const [likedIds, setLikedIds] = useState<readonly string[]>([]);
   const {
     feed: { featured: featuredDealOfDay, list: dealsList, grid: dealsGrid },
     isLoading,
     isError,
   } = usePublicOffersFeed();
   const [commentsDealId, setCommentsDealId] = useState<string | null>(null);
-
-  const isLiked = useCallback((id: string) => likedIds.includes(id), [likedIds]);
-
-  const toggleLike = useCallback((id: string) => {
-    setLikedIds(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]));
-  }, []);
 
   const openComments = useCallback((id: string) => setCommentsDealId(id), []);
 
@@ -164,10 +180,8 @@ export function DealsDiscoveryScreen({
               </View>
             </View>
             {featuredDealOfDay ? (
-              <FeaturedDealOfDayCard
+              <FeaturedDealCard
                 deal={featuredDealOfDay}
-                liked={isLiked(featuredDealOfDay.id)}
-                onToggleLike={toggleLike}
                 onOpenComments={openComments}
                 onOpenDetail={onOpenDeal}
               />
@@ -213,8 +227,6 @@ export function DealsDiscoveryScreen({
                 <DealsListRow
                   key={deal.id}
                   deal={deal}
-                  liked={isLiked(deal.id)}
-                  onToggleLike={toggleLike}
                   onOpenComments={openComments}
                   onOpenDetail={onOpenDeal}
                 />

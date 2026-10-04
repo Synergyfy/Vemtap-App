@@ -16,6 +16,9 @@ import { useLocationStore } from '@store/locationStore';
 jest.mock('@features/deals/hooks/usePublicOffers', () =>
   jest.requireActual('./helpers/mockOffersFeed').mockOffersFeedModule(),
 );
+jest.mock('@features/deals/hooks/useDealEngagementActions', () =>
+  jest.requireActual('./helpers/mockOffersFeed').mockDealEngagementActionsModule(),
+);
 
 const { homeLocation: loc, featuredDeals: fd, home } = strings;
 
