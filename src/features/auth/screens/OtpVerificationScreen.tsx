@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, TextInput, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -8,6 +8,7 @@ import { VemtapText } from '@components/ui/Text';
 import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
 import { RegistrationHeader } from '@components/auth/RegistrationHeader';
+import { OtpInput } from '@components/auth/OtpInput';
 import { colors } from '@theme/colors';
 import { strings } from '@constants/strings';
 import type { AuthStackParamList } from '@navigation/types';
@@ -25,9 +26,6 @@ cssInterop(TextInput, { className: 'style' });
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'VerifyEmail'>;
 type Rt = RouteProp<AuthStackParamList, 'VerifyEmail'>;
 
-const OTP_LENGTH = 6;
-const OTP_CELL_IDS = Array.from({ length: OTP_LENGTH }, (_, i) => `otp-cell-${i}`);
-
 /**
  * Conversion of stitch_vemtap_design_system/customer_registration_step_2_verification_1/code.html
  */
@@ -36,22 +34,15 @@ export function OtpVerificationScreen() {
   const { params } = useRoute<Rt>();
   const requestOtp = useRequestSignupOtp();
   const [code, setCode] = useState('');
+  const OTP_LENGTH = 6;
   const [resent, setResent] = useState(false);
   const [timeLeft, setTimeLeft] = useState(45);
-  const inputRef = useRef<TextInput>(null);
 
   useEffect(() => {
     if (timeLeft <= 0) return;
     const id = setTimeout(() => setTimeLeft(t => t - 1), 1000);
     return () => clearTimeout(id);
   }, [timeLeft]);
-
-  const digits = useMemo(() => {
-    const arr = Array.from({ length: OTP_LENGTH }, (_, i) => code[i] ?? '');
-    return arr;
-  }, [code]);
-
-  const activeIndex = Math.min(code.length, OTP_LENGTH - 1);
 
   const handleChange = useCallback((text: string) => {
     const cleaned = text.replace(/[^0-9]/g, '').slice(0, OTP_LENGTH);
@@ -126,57 +117,7 @@ export function OtpVerificationScreen() {
           </View>
         </View>
 
-        {/* OTP matrix */}
-        <Pressable
-          className="my-2 w-full items-center"
-          onPress={() => inputRef.current?.focus()}
-          accessibilityRole="none"
-        >
-          <View className="w-full max-w-[345px] flex-row justify-between gap-1.5">
-            {OTP_CELL_IDS.map((cellId, i) => {
-              const d = digits[i];
-              const isActive = i === activeIndex && code.length < OTP_LENGTH;
-              const isFilled = Boolean(d);
-              return (
-                <View
-                  key={cellId}
-                  className={
-                    isActive
-                      ? 'h-14 min-w-0 max-w-[52px] flex-1 items-center justify-center overflow-hidden rounded-xl bg-surface-canvas shadow-md'
-                      : isFilled
-                        ? 'h-14 min-w-0 max-w-[52px] flex-1 items-center justify-center rounded-xl bg-surface-subtle shadow-sm'
-                        : 'h-14 min-w-0 max-w-[52px] flex-1 items-center justify-center rounded-xl bg-surface-container-low shadow-sm'
-                  }
-                >
-                  {isActive ? (
-                    <View className="h-6 w-0.5 rounded-full bg-primary" />
-                  ) : isFilled ? (
-                    <VemtapText className="font-sans-semibold text-heading-md text-primary">
-                      {d}
-                    </VemtapText>
-                  ) : (
-                    <VemtapText className="text-heading-md text-text-tertiary">
-                      •
-                    </VemtapText>
-                  )}
-                </View>
-              );
-            })}
-          </View>
-          <TextInput
-            ref={inputRef}
-            value={code}
-            onChangeText={handleChange}
-            keyboardType="number-pad"
-            textContentType="oneTimeCode"
-            autoComplete="sms-otp"
-            maxLength={OTP_LENGTH}
-            caretHidden
-            className="absolute h-14 w-full opacity-0"
-            accessibilityLabel="6-digit verification code"
-            autoFocus
-          />
-        </Pressable>
+        <OtpInput value={code} onChangeText={handleChange} autoFocus />
 
         {/* Resend */}
         {requestOtp.error || resent ? (

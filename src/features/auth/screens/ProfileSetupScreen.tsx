@@ -1,12 +1,5 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  Animated,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  View,
-} from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { Pressable, ScrollView, TextInput, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
@@ -15,6 +8,7 @@ import { VemtapText } from '@components/ui/Text';
 import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
 import { RegistrationHeader } from '@components/auth/RegistrationHeader';
+import { PinInput } from '@components/auth/PinInput';
 import { colors } from '@theme/colors';
 import { strings } from '@constants/strings';
 import type { AuthStackParamList } from '@navigation/types';
@@ -29,18 +23,6 @@ cssInterop(SafeAreaView, { className: 'style' });
 cssInterop(Pressable, { className: 'style' });
 cssInterop(TextInput, { className: 'style' });
 
-const styles = StyleSheet.create({
-  filledPinBackground: { opacity: 1 },
-  filledPinDot: { opacity: 1, transform: [{ scale: 1.25 }] },
-  hiddenPinState: { opacity: 0 },
-  pinCaret: {
-    width: 2,
-    height: 24,
-    borderRadius: 1,
-    backgroundColor: colors.primary,
-  },
-});
-
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'ProfileSetup'>;
 type Rt = RouteProp<AuthStackParamList, 'ProfileSetup'>;
 
@@ -50,148 +32,6 @@ function RequiredLabel({ children }: { children: string }) {
       {children}
       <VemtapText className="text-error"> *</VemtapText>
     </VemtapText>
-  );
-}
-
-function PinBoxes({
-  value,
-  onPinChange,
-  label,
-  counter,
-  match,
-  pinVisible,
-  onToggleVisibility,
-  showToggle,
-}: {
-  value: string;
-  onPinChange: (v: string) => void;
-  label: string;
-  counter?: string;
-  match?: 'match' | 'mismatch' | null;
-  pinVisible: boolean;
-  onToggleVisibility: () => void;
-  showToggle?: boolean;
-}) {
-  const inputRef = useRef<TextInput>(null);
-  const [focused, setFocused] = useState(false);
-  const caretOpacity = useRef(new Animated.Value(1)).current;
-  const pinSlots = ['pin-1', 'pin-2', 'pin-3', 'pin-4', 'pin-5', 'pin-6'];
-  const caretActive = focused && value.length < pinSlots.length;
-
-  useEffect(() => {
-    if (!caretActive) {
-      caretOpacity.setValue(1);
-      return undefined;
-    }
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(caretOpacity, {
-          toValue: 0,
-          duration: 450,
-          useNativeDriver: true,
-        }),
-        Animated.timing(caretOpacity, {
-          toValue: 1,
-          duration: 450,
-          useNativeDriver: true,
-        }),
-      ]),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [caretActive, caretOpacity]);
-
-  return (
-    <View className="gap-2 pt-1">
-      <View className="flex-row items-center justify-between">
-        <RequiredLabel>{label}</RequiredLabel>
-        {counter ? (
-          <VemtapText className="text-caption text-text-tertiary">{counter}</VemtapText>
-        ) : null}
-        {match === 'match' ? (
-          <View className="flex-row items-center gap-1">
-            <Icon name="checkCircle" size={16} color={colors.badgeDiscountText} />
-            <VemtapText className="font-sans-semibold text-caption text-badge-discount-text">
-              {strings.auth.profilePinMatches}
-            </VemtapText>
-          </View>
-        ) : null}
-        {match === 'mismatch' ? (
-          <View className="flex-row items-center gap-1">
-            <Icon name="close" size={16} color={colors.error} />
-            <VemtapText className="font-sans-semibold text-caption text-error">
-              {strings.auth.profilePinMismatch}
-            </VemtapText>
-          </View>
-        ) : null}
-        {showToggle ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={pinVisible ? strings.auth.hidePin : strings.auth.showPin}
-            hitSlop={8}
-            onPress={onToggleVisibility}
-            className="h-9 w-9 items-center justify-center"
-          >
-            <Icon
-              name={pinVisible ? 'visibilityOff' : 'visibility'}
-              size={19}
-              color={colors.textSecondary}
-            />
-          </Pressable>
-        ) : null}
-      </View>
-      <Pressable onPress={() => inputRef.current?.focus()}>
-        <View className="flex-row gap-2">
-          {pinSlots.map((slotId, i) => {
-            const filled = i < value.length;
-            const isCaretSlot = caretActive && i === value.length;
-            return (
-              <View
-                key={slotId}
-                className="h-12 flex-1 items-center justify-center overflow-hidden rounded-xl bg-surface-canvas shadow-sm"
-              >
-                <View
-                  pointerEvents="none"
-                  className="absolute inset-0 rounded-xl bg-surface-tint"
-                  style={filled ? styles.filledPinBackground : styles.hiddenPinState}
-                />
-                {isCaretSlot ? (
-                  <Animated.View
-                    testID={`pin-caret-${slotId}`}
-                    style={[styles.pinCaret, { opacity: caretOpacity }]}
-                  />
-                ) : filled && pinVisible ? (
-                  <VemtapText variant="headingMd" className="text-heading-md">
-                    {value[i]}
-                  </VemtapText>
-                ) : (
-                  <>
-                    <View className="h-2.5 w-2.5 rounded-full bg-surface-dim" />
-                    <View
-                      pointerEvents="none"
-                      className="absolute h-2.5 w-2.5 rounded-full bg-primary"
-                      style={filled ? styles.filledPinDot : styles.hiddenPinState}
-                    />
-                  </>
-                )}
-              </View>
-            );
-          })}
-        </View>
-        <TextInput
-          ref={inputRef}
-          value={value}
-          onChangeText={t => onPinChange(t.replace(/[^0-9]/g, '').slice(0, 6))}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          keyboardType="number-pad"
-          secureTextEntry={!pinVisible}
-          maxLength={6}
-          className="absolute h-12 w-full opacity-0"
-          accessibilityLabel={label}
-        />
-      </Pressable>
-    </View>
   );
 }
 
@@ -406,7 +246,7 @@ export function ProfileSetupScreen() {
               </VemtapText>
             </View>
 
-            <PinBoxes
+            <PinInput
               value={pin1}
               onPinChange={onPin1}
               label={strings.auth.profileCreatePin}
@@ -415,7 +255,7 @@ export function ProfileSetupScreen() {
               onToggleVisibility={() => setPinVisible(visible => !visible)}
               showToggle
             />
-            <PinBoxes
+            <PinInput
               value={pin2}
               onPinChange={onPin2}
               label={strings.auth.profileConfirmPin}

@@ -320,6 +320,7 @@ export type AuthStackParamList = {
   Register: undefined;
   VerifyEmail: { email: string };
   ProfileSetup: { email: string; code: string };
+  ForgotPin: undefined;
   LocationPermission: undefined;
   ManualLocationSearch: undefined;
   LocationConfirmation: { area?: string };

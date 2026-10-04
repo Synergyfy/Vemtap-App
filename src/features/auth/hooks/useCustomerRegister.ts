@@ -3,6 +3,7 @@ import {
   customerAuthApi,
   type MessageResponse,
   type RequestSignupOtpInput,
+  type ResetPinInput,
   type Session,
   type VerifyAndSetPinInput,
 } from '@api/authApi';
@@ -38,5 +39,18 @@ export function useVerifyAndSetPin() {
         user: session.user.uniqueCode,
       });
     },
+  });
+}
+
+export function useRequestPinReset() {
+  return useMutation<MessageResponse, Error, { email: string }>({
+    mutationFn: input => customerAuthApi.requestPinReset(input),
+  });
+}
+
+/** Completes a PIN reset. The API returns no session, so the user signs in again. */
+export function useResetPin() {
+  return useMutation<MessageResponse, Error, ResetPinInput>({
+    mutationFn: input => customerAuthApi.resetPin(input),
   });
 }

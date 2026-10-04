@@ -135,9 +135,7 @@ export function SignInScreen() {
               <Pressable
                 accessibilityRole="link"
                 hitSlop={8}
-                onPress={() => {
-                  // Forgot-password flow not designed yet — no route invented.
-                }}
+                onPress={() => navigation.navigate('ForgotPin')}
               >
                 <VemtapText variant="labelSm" className="text-primary">
                   {strings.auth.signInForgot}
