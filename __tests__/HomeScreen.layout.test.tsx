@@ -4,6 +4,10 @@ import { NavigationContainer } from '@react-navigation/native';
 import { HomeScreen } from '@features/home/screens/HomeScreen';
 import { TabNavigator } from '@navigation/TabNavigator';
 
+jest.mock('@features/deals/hooks/usePublicOffers', () =>
+  jest.requireActual('./helpers/mockOffersFeed').mockOffersFeedModule(),
+);
+
 jest.mock('@hooks/useNetworkStatus', () => ({
   useIsOnline: () => true,
 }));

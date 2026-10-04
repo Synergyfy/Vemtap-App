@@ -5,6 +5,10 @@ import { TabNavigator } from '@navigation/TabNavigator';
 import { BusinessTabNavigator } from '@navigation/BusinessTabNavigator';
 import { PersonalHubNavigator } from '@navigation/PersonalHubNavigator';
 
+jest.mock('@features/deals/hooks/usePublicOffers', () =>
+  jest.requireActual('./helpers/mockOffersFeed').mockOffersFeedModule(),
+);
+
 jest.mock('@store/authStore', () => ({
   useAuthStore: Object.assign(
     jest.fn(() => ({ markUnauthenticated: jest.fn() })),

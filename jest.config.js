@@ -23,6 +23,9 @@ module.exports = {
   // takes a few seconds. Without this the default 5s cap turns a slow parallel
   // run into a spurious timeout failure.
   testTimeout: 20000,
+  // Jest's default matches everything under __tests__, so shared helpers and
+  // fixtures would be collected as empty suites.
+  testPathIgnorePatterns: ['/node_modules/', '<rootDir>/__tests__/helpers/'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   transformIgnorePatterns: [
     'node_modules/(?!(react-native|@react-native|react-native-.*|@react-navigation|nativewind|react-native-css-interop|@tanstack|zustand|@expo-google-fonts|@expo/vector-icons|expo|expo-.*|expo-modules-core)/)',

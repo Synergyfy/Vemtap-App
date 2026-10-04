@@ -13,7 +13,11 @@ import { VemtapText } from '@components/ui/Text';
 import { Icon } from '@components/ui/Icon';
 import { colors } from '@theme/colors';
 import { strings } from '@constants/strings';
-import { dealsGrid, dealsList, featuredDealOfDay } from '@features/deals/data/dealsFeed';
+import {
+  usePublicOffersFeed,
+  useDealEngagement,
+} from '@features/deals/hooks/usePublicOffers';
+import type { DealListItem } from '@features/deals/data/dealsFeed';
 import { DealCommentsSheet } from '@features/dealDetail/components/DealCommentsSheet';
 import { useConsumerTargeting } from '@features/home/hooks/useConsumerTargeting';
 
@@ -44,6 +48,38 @@ export interface DealsDiscoveryScreenProps {
  * Featured variant: vemtap_deals_discovery_grid_view_featured_deal_location_header
  * Standard variant:  vemtap_deals_discovery_grid_view_location_header_filter_icon
  */
+/** One list row plus its own engagement counts, fetched lazily per visible deal. */
+function DealsListRow({
+  deal,
+  liked,
+  onToggleLike,
+  onOpenComments,
+  onOpenDetail,
+}: {
+  deal: DealListItem;
+  liked: boolean;
+  onToggleLike: (id: string) => void;
+  onOpenComments: (id: string) => void;
+  onOpenDetail: (id: string) => void;
+}) {
+  const { data } = useDealEngagement(deal.id);
+  const enriched = useMemo(
+    () =>
+      data ? { ...deal, likes: data.likesCount, comments: data.reviewsCount } : deal,
+    [data, deal],
+  );
+
+  return (
+    <DealsListCard
+      deal={enriched}
+      liked={liked}
+      onToggleLike={onToggleLike}
+      onOpenComments={onOpenComments}
+      onOpenDetail={onOpenDetail}
+    />
+  );
+}
+
 export function DealsDiscoveryScreen({
   variant = 'featured',
   onOpenFilters,
@@ -55,6 +91,11 @@ export function DealsDiscoveryScreen({
 }: DealsDiscoveryScreenProps) {
   const [viewMode, setViewMode] = useState<DealsViewMode>('grid');
   const [likedIds, setLikedIds] = useState<readonly string[]>([]);
+  const {
+    feed: { featured: featuredDealOfDay, list: dealsList, grid: dealsGrid },
+    isLoading,
+    isError,
+  } = usePublicOffersFeed();
   const [commentsDealId, setCommentsDealId] = useState<string | null>(null);
 
   const isLiked = useCallback((id: string) => likedIds.includes(id), [likedIds]);
@@ -68,11 +109,11 @@ export function DealsDiscoveryScreen({
   // Only the cards that expose a comment count can open the sheet; the grid
   // card has no engagement row, so it is not a source here.
   const commentsDeal = useMemo(() => {
-    if (commentsDealId === featuredDealOfDay.id) {
+    if (commentsDealId === featuredDealOfDay?.id) {
       return featuredDealOfDay;
     }
     return dealsList.find(deal => deal.id === commentsDealId) ?? null;
-  }, [commentsDealId]);
+  }, [commentsDealId, dealsList, featuredDealOfDay]);
   // Same navbar, same targeting behaviour as Home — only the overline differs.
   const targeting = useConsumerTargeting({
     title: isFeaturedTitle(variant),
@@ -88,6 +129,7 @@ export function DealsDiscoveryScreen({
 
   const isFeatured = variant === 'featured';
   const feedCount = viewMode === 'list' ? dealsList.length : dealsGrid.length;
+  const isEmpty = !isLoading && !isError && dealsList.length === 0;
 
   return targeting.renderChrome(
     <>
@@ -121,13 +163,34 @@ export function DealsDiscoveryScreen({
                 </VemtapText>
               </View>
             </View>
-            <FeaturedDealOfDayCard
-              deal={featuredDealOfDay}
-              liked={isLiked(featuredDealOfDay.id)}
-              onToggleLike={toggleLike}
-              onOpenComments={openComments}
-              onOpenDetail={onOpenDeal}
-            />
+            {featuredDealOfDay ? (
+              <FeaturedDealOfDayCard
+                deal={featuredDealOfDay}
+                liked={isLiked(featuredDealOfDay.id)}
+                onToggleLike={toggleLike}
+                onOpenComments={openComments}
+                onOpenDetail={onOpenDeal}
+              />
+            ) : null}
+          </View>
+        ) : null}
+
+        {isError ? (
+          <View className="rounded-2xl bg-surface-container-low p-4">
+            <VemtapText tone="error" accessibilityRole="alert">
+              {strings.common.error}
+            </VemtapText>
+          </View>
+        ) : null}
+
+        {isEmpty ? (
+          <View className="rounded-2xl bg-surface-container-low px-4 py-8">
+            <VemtapText className="text-text-primary text-center text-heading-sm">
+              {strings.featuredDeals.emptyTitle}
+            </VemtapText>
+            <VemtapText className="mt-1 text-center text-caption text-text-secondary">
+              {strings.featuredDeals.emptyBody}
+            </VemtapText>
           </View>
         ) : null}
 
@@ -147,7 +210,7 @@ export function DealsDiscoveryScreen({
           {viewMode === 'list' ? (
             <View className="flex-col gap-4">
               {dealsList.map(deal => (
-                <DealsListCard
+                <DealsListRow
                   key={deal.id}
                   deal={deal}
                   liked={isLiked(deal.id)}

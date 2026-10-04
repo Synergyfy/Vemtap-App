@@ -4,6 +4,10 @@ import { strings } from '@constants/strings';
 import { AppStack } from '@navigation/AppStack';
 import { NavigationContainer } from '@react-navigation/native';
 
+jest.mock('@features/deals/hooks/usePublicOffers', () =>
+  jest.requireActual('./helpers/mockOffersFeed').mockOffersFeedModule(),
+);
+
 /**
  * The filter icon must open the one shared filter page from every feed that
  * shows it. Deals, Home and Discover each render their own icon, so a handler
