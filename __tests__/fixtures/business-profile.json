@@ -1,0 +1,120 @@
+{
+  "id": "c94b445a-78f6-4d0d-a86c-f22c74afa109",
+  "createdAt": "2026-03-17T12:26:58.993Z",
+  "updatedAt": "2026-08-13T18:16:32.065Z",
+  "deletedAt": null,
+  "uniqueCode": "QFN2OX8BJ",
+  "name": "Test store",
+  "status": "active",
+  "suspensionReason": null,
+  "suspendedAt": null,
+  "balance": "0.00",
+  "isRegistered": true,
+  "registrationNumber": null,
+  "category": {
+    "id": "aa310aad-8ea2-46fe-8952-d62df47df045",
+    "createdAt": "2026-03-17T11:30:18.041Z",
+    "updatedAt": "2026-03-17T11:30:18.041Z",
+    "deletedAt": null,
+    "name": "Technology & Digital Services",
+    "description": "Businesses that provide technology services, digital solutions, or IT-related services."
+  },
+  "categoryId": "aa310aad-8ea2-46fe-8952-d62df47df045",
+  "subcategory": {
+    "id": "51c36443-eb25-47fd-97ba-64b5530fed33",
+    "createdAt": "2026-03-17T11:30:30.487Z",
+    "updatedAt": "2026-03-17T11:30:30.487Z",
+    "deletedAt": null,
+    "name": "Digital Marketing Agency",
+    "description": null,
+    "categoryId": "aa310aad-8ea2-46fe-8952-d62df47df045"
+  },
+  "subcategoryId": "51c36443-eb25-47fd-97ba-64b5530fed33",
+  "otherSubcategoryName": null,
+  "monthlyVisitors": "501-2000",
+  "goal": "Capture Leads, Customer Feedback, Automated Rewards, Digital Loyalty",
+  "officialEmail": "synergyfyglobal@gmail.com",
+  "phone": "08165155312",
+  "logoUrl": null,
+  "address": "Nigeria, Abuja, AMAC, Dei-dei, Abuja",
+  "website": null,
+  "description": "gcv ,hjv ",
+  "socials": null,
+  "openingHours": {
+    "monday": {
+      "from": "09:00",
+      "to": "18:00",
+      "isClosed": false
+    },
+    "tuesday": {
+      "from": "09:00",
+      "to": "18:00",
+      "isClosed": false
+    },
+    "wednesday": {
+      "from": "09:00",
+      "to": "18:00",
+      "isClosed": false
+    },
+    "thursday": {
+      "from": "09:00",
+      "to": "18:00",
+      "isClosed": false
+    },
+    "friday": {
+      "from": "09:00",
+      "to": "18:00",
+      "isClosed": false
+    },
+    "saturday": {
+      "from": "09:00",
+      "to": "18:00",
+      "isClosed": false
+    },
+    "sunday": {
+      "from": "09:00",
+      "to": "18:00",
+      "isClosed": false
+    }
+  },
+  "timezone": "Africa/Lagos",
+  "isVisible": true,
+  "state": "Federal Capital Territory",
+  "city": "Abuja",
+  "latitude": 9.0567,
+  "longitude": 7.4969,
+  "whatsappNumber": "08165155313",
+  "isVerified": false,
+  "verifiedAt": null,
+  "requireReviewApproval": false,
+  "ownerId": "11a2632e-bf35-47de-9b90-9ef0bb3f2895",
+  "referralCode": null,
+  "branches": [
+    {
+      "id": "5c779a19-f6eb-44dc-9fb9-d24b85035099",
+      "name": "Abuja Main Branch",
+      "uniqueCode": "6I3DZ375V",
+      "username": "abuja-main-branch",
+      "address": "Nigeria, Abuja, AMAC, gwa-gwa",
+      "city": null,
+      "state": null,
+      "latitude": null,
+      "longitude": null,
+      "isActive": true,
+      "isMainBranch": false,
+      "businessId": "c94b445a-78f6-4d0d-a86c-f22c74afa109"
+    }
+  ],
+  "rewards": [
+    {
+      "id": "6c0ed90a-f860-497f-a499-46548556118e",
+      "createdAt": "2026-03-17T18:42:21.233Z",
+      "updatedAt": "2026-03-17T18:42:21.233Z",
+      "deletedAt": null,
+      "name": "\u20a61,000 Voucher",
+      "description": "Redeemable store credit.",
+      "pointsRequired": 0,
+      "category": "free_product"
+    }
+  ]
+}
