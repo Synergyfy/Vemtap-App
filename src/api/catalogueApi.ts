@@ -96,6 +96,67 @@ export const productTypeSchema = z.object({
   slug: z.string().nullable().optional(),
 });
 
+/**
+ * The business owner's own catalogue. Unlike the public list this returns every
+ * item regardless of status, so drafts and suspended items stay visible to the
+ * owner instead of silently disappearing. `status` is therefore explicit here
+ * rather than defaulting to `active`.
+ *
+ * The spec declares this path as bearer-secured but documents no response body,
+ * so the shape is the live-verified public item schema widened to cover the
+ * extra statuses. It has not been checked against a live authenticated
+ * response — that needs a business-owner token.
+ */
+export const businessCatalogueItemSchema = catalogueItemSchema.extend({
+  status: z.string(),
+  createdAt: z.string().nullish(),
+  updatedAt: z.string().nullish(),
+  deletedAt: z.string().nullish(),
+  costPrice: money,
+  minStock: z.number().nullish(),
+  weight: money,
+  barcode: z.string().nullish(),
+  variants: z.unknown().nullish(),
+  tags: z.array(z.string()).nullish(),
+  suspensionNote: z.string().nullish(),
+  loyaltyPointsValue: money,
+  enableLoyaltyPoints: z.boolean().nullish(),
+  dimensions: z.unknown().nullish(),
+});
+export type BusinessCatalogueItem = z.infer<typeof businessCatalogueItemSchema>;
+
+export const businessCatalogueFeedSchema = z.object({
+  data: z.array(businessCatalogueItemSchema),
+  total: z.number().default(0),
+  page: z.number().nullish(),
+  limit: z.number().nullish(),
+  totalPages: z.number().nullish(),
+  hasNextPage: z.boolean().default(false),
+  hasPrevPage: z.boolean().default(false),
+});
+export type BusinessCatalogueFeed = z.infer<typeof businessCatalogueFeedSchema>;
+
+/**
+ * `GET /branches` is bearer-secured and has no documented response DTO. The
+ * read fields below are taken from the branch entity as exposed by
+ * `UpdateBranchDto`, with only id and name required, so an added or renamed
+ * branch field cannot break parsing.
+ */
+export const businessBranchSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  username: z.string().nullish(),
+  address: z.string().nullish(),
+  state: z.string().nullish(),
+  city: z.string().nullish(),
+  latitude: z.number().nullish(),
+  longitude: z.number().nullish(),
+  phone: z.string().nullish(),
+  isActive: z.boolean().nullish(),
+  businessId: z.string().nullish(),
+});
+export type BusinessBranch = z.infer<typeof businessBranchSchema>;
+
 export type CatalogueItemQuery = {
   page?: number;
   limit?: number;
@@ -164,6 +225,35 @@ export const catalogueApi = {
     return requestValidated(
       { method: 'GET', url: '/products', params: { ...query }, ...options },
       publishedProductFeedSchema,
+    );
+  },
+
+  /**
+   * The owner's own catalogue: every item at the branch, any status. Requires a
+   * business-owner token.
+   */
+  async listBusinessItems(
+    branchId: string,
+    query: Omit<CatalogueItemQuery, 'categoryId'> & { categoryId?: string } = {},
+    options: ApiRequestOptions = {},
+  ): Promise<BusinessCatalogueFeed> {
+    return requestValidated<BusinessCatalogueFeed>(
+      {
+        method: 'GET',
+        url: '/catalogue/items',
+        // branchId is a required query parameter here, not part of the path.
+        params: { ...query, branchId },
+        ...options,
+      },
+      businessCatalogueFeedSchema,
+    );
+  },
+
+  /** Every branch for the signed-in business. Requires a business-owner token. */
+  async listBusinessBranches(options: ApiRequestOptions = {}): Promise<BusinessBranch[]> {
+    return requestValidated<BusinessBranch[]>(
+      { method: 'GET', url: '/branches', ...options },
+      z.array(businessBranchSchema),
     );
   },
 
