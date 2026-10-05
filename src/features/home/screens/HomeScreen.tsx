@@ -17,13 +17,20 @@ import { DealCommentsSheet } from '@features/dealDetail/components/DealCommentsS
 import { DealShareSheet } from '@features/dealDetail/components/DealShareSheet';
 import { strings } from '@constants/strings';
 import { useConsumerTargeting } from '@features/home/hooks/useConsumerTargeting';
+import { useHomeDeals } from '@features/home/hooks/useHomeDeals';
+import { useDealEngagement } from '@features/deals/hooks/usePublicOffers';
 import {
-  featuredDeal as featuredDealSeed,
-  nearbyDeals as nearbyDealsSeed,
-  nearbyBusinesses,
-  popularProducts,
-  trendingDeals,
+  useDealReaction,
+  useDealSave,
+} from '@features/deals/hooks/useDealEngagementActions';
+import type {
+  FeaturedDeal,
+  NearbyDeal,
+  TrendingDeal,
 } from '@features/home/data/homeFeed';
+import { nearbyBusinesses, popularProducts } from '@features/home/data/homeFeed';
+import { LoadingState } from '@components/shared/LoadingState';
+import { EmptyState } from '@components/shared/EmptyState';
 
 cssInterop(View, { className: 'style' });
 cssInterop(ScrollView, {
@@ -55,6 +62,120 @@ export interface HomeScreenProps {
   onUseCurrentLocation?: () => void;
 }
 
+/**
+ * The Home cards, wired to the real engagement endpoints.
+ *
+ * Like and save are authenticated and optimistic, and the counts come from the
+ * per-offer engagement endpoint — the same wiring the Deals feed uses, so a
+ * like tapped on Home is the same like as on the Deals tab rather than a second
+ * opinion held in local state. Each wrapper is its own component because the
+ * hooks are per-offer.
+ */
+function useEnriched<T extends { id: string; likes: number; comments: number }>(deal: T) {
+  const { data } = useDealEngagement(deal.id);
+  const reaction = useDealReaction(deal.id);
+  const saved = useDealSave(deal.id);
+
+  return {
+    deal: useMemo(
+      () =>
+        data ? { ...deal, likes: data.likesCount, comments: data.reviewsCount } : deal,
+      [data, deal],
+    ),
+    liked: reaction.liked,
+    saved: saved.saved,
+    toggleLike: reaction.toggle,
+    toggleSave: saved.toggle,
+  };
+}
+
+function LiveFeaturedCard({
+  deal,
+  onOpenComments,
+  onShare,
+  onOpenDetail,
+}: {
+  deal: FeaturedDeal;
+  onOpenComments: (id: string) => void;
+  onShare: (id: string) => void;
+  onOpenDetail: (id: string) => void;
+}) {
+  const { deal: enriched, liked, toggleLike } = useEnriched(deal);
+
+  return (
+    <FeaturedDealCard
+      deal={{ ...enriched, liked }}
+      onToggleLike={toggleLike}
+      onOpenComments={onOpenComments}
+      onShare={onShare}
+      onOpenDetail={onOpenDetail}
+    />
+  );
+}
+
+function LiveNearbyListCard({
+  deal,
+  onOpenComments,
+  onShare,
+  onOpenDetail,
+}: {
+  deal: NearbyDeal;
+  onOpenComments: (id: string) => void;
+  onShare: (id: string) => void;
+  onOpenDetail: (id: string) => void;
+}) {
+  const { deal: enriched, liked, toggleLike } = useEnriched(deal);
+
+  return (
+    <NearbyDealListCard
+      deal={{ ...enriched, liked }}
+      onToggleLike={toggleLike}
+      onOpenComments={onOpenComments}
+      onShare={onShare}
+      onOpenDetail={onOpenDetail}
+    />
+  );
+}
+
+function LiveNearbyGridCard({
+  deal,
+  onOpenDetail,
+}: {
+  deal: NearbyDeal;
+  onOpenDetail: (id: string) => void;
+}) {
+  const { deal: enriched, liked, toggleLike } = useEnriched(deal);
+
+  return (
+    <NearbyDealGridCard
+      deal={{ ...enriched, liked }}
+      onToggleLike={toggleLike}
+      onOpenDetail={onOpenDetail}
+    />
+  );
+}
+
+function LiveTrendingCard({
+  deal,
+  onOpenComments,
+  onOpenDetail,
+}: {
+  deal: TrendingDeal;
+  onOpenComments: (id: string) => void;
+  onOpenDetail: (id: string) => void;
+}) {
+  const { deal: enriched, liked, toggleLike } = useEnriched(deal);
+
+  return (
+    <TrendingDealCard
+      deal={{ ...enriched, liked }}
+      onToggleLike={toggleLike}
+      onOpenComments={onOpenComments}
+      onOpenDetail={onOpenDetail}
+    />
+  );
+}
+
 export function HomeScreen({
   onOpenDiscover,
   onOpenDeal,
@@ -70,18 +191,22 @@ export function HomeScreen({
   onUseCurrentLocation,
 }: HomeScreenProps) {
   const [viewMode, setViewMode] = useState<DealsViewMode>('list');
-  const [featured, setFeatured] = useState(featuredDealSeed);
-  const [nearbyDeals, setNearbyDeals] = useState(nearbyDealsSeed);
-  const [trending, setTrending] = useState(trendingDeals);
   const [commentsDealId, setCommentsDealId] = useState<string | null>(null);
   const [shareDealId, setShareDealId] = useState<string | null>(null);
-  const toggleLike = useCallback((id: string) => {
-    const flip = <T extends { id: string; liked?: boolean }>(deal: T) =>
-      deal.id === id ? { ...deal, liked: !deal.liked } : deal;
-    setFeatured(prev => flip(prev));
-    setNearbyDeals(prev => prev.map(flip));
-    setTrending(prev => prev.map(flip));
-  }, []);
+
+  // Real offers, filtered to the active district. The previous version of this
+  // screen kept its own copy of the seed data and flipped `liked` in local
+  // state, so every card on Home pointed at an id the API has never heard of:
+  // likes could not reach the server and tapping a card opened whatever
+  // `resolveDeal` fell back to.
+  const {
+    featured,
+    nearby: nearbyDeals,
+    trending,
+    isLoading,
+    isError,
+    refetch,
+  } = useHomeDeals();
 
   const openDeal = useCallback((dealId: string) => onOpenDeal?.(dealId), [onOpenDeal]);
 
@@ -89,11 +214,14 @@ export function HomeScreen({
 
   const openShare = useCallback((dealId: string) => setShareDealId(dealId), []);
 
+  const allDeals = useMemo(
+    () => (featured ? [featured, ...nearbyDeals] : nearbyDeals),
+    [featured, nearbyDeals],
+  );
+
   const shareDeal = useMemo(
-    () =>
-      [featured, ...nearbyDeals, ...trending].find(deal => deal.id === shareDealId) ??
-      null,
-    [featured, nearbyDeals, trending, shareDealId],
+    () => [...allDeals, ...trending].find(deal => deal.id === shareDealId) ?? null,
+    [allDeals, trending, shareDealId],
   );
 
   // Same navbar + targeting behaviour as the Deals feed — one owner, so the two
@@ -106,10 +234,8 @@ export function HomeScreen({
   });
 
   const commentsDeal = useMemo(
-    () =>
-      [featured, ...nearbyDeals, ...trending].find(deal => deal.id === commentsDealId) ??
-      null,
-    [featured, nearbyDeals, trending, commentsDealId],
+    () => [...allDeals, ...trending].find(deal => deal.id === commentsDealId) ?? null,
+    [allDeals, trending, commentsDealId],
   );
 
   return targeting.renderChrome(
@@ -135,13 +261,17 @@ export function HomeScreen({
             seeAllLabel={strings.home.seeAll}
             onSeeAll={onOpenFeaturedDeals}
           />
-          <FeaturedDealCard
-            deal={featured}
-            onToggleLike={toggleLike}
-            onOpenComments={openComments}
-            onShare={openShare}
-            onOpenDetail={openDeal}
-          />
+          {isLoading && !featured ? (
+            <LoadingState label={strings.common.loading} />
+          ) : null}
+          {featured ? (
+            <LiveFeaturedCard
+              deal={featured}
+              onOpenComments={openComments}
+              onShare={openShare}
+              onOpenDetail={openDeal}
+            />
+          ) : null}
         </View>
 
         <View className="flex-col gap-3.5">
@@ -161,10 +291,9 @@ export function HomeScreen({
           {viewMode === 'list' ? (
             <View className="flex-col gap-3.5">
               {nearbyDeals.map(deal => (
-                <NearbyDealListCard
+                <LiveNearbyListCard
                   key={deal.id}
                   deal={deal}
-                  onToggleLike={toggleLike}
                   onOpenComments={openComments}
                   onShare={openShare}
                   onOpenDetail={openDeal}
@@ -176,11 +305,7 @@ export function HomeScreen({
               items={nearbyDeals}
               keyExtractor={deal => deal.id}
               renderItem={deal => (
-                <NearbyDealGridCard
-                  deal={deal}
-                  onToggleLike={toggleLike}
-                  onOpenDetail={openDeal}
-                />
+                <LiveNearbyGridCard deal={deal} onOpenDetail={openDeal} />
               )}
             />
           )}
@@ -200,10 +325,9 @@ export function HomeScreen({
             contentContainerClassName="px-6 gap-3.5 pb-2"
           >
             {trending.map(deal => (
-              <TrendingDealCard
+              <LiveTrendingCard
                 key={deal.id}
                 deal={deal}
-                onToggleLike={toggleLike}
                 onOpenComments={openComments}
                 onOpenDetail={openDeal}
               />
@@ -236,6 +360,29 @@ export function HomeScreen({
             renderItem={product => <PopularProductCard product={product} />}
           />
         </View>
+
+        {isError ? (
+          <EmptyState
+            variant="contained"
+            icon="cloudOff"
+            title={strings.common.error}
+            actionLabel={strings.common.retry}
+            onAction={refetch}
+          />
+        ) : null}
+
+        {!isLoading && !isError && !featured && nearbyDeals.length === 0 ? (
+          // "Nothing nearby" is a normal outcome once the feed filters by
+          // distance, not a failure — so it points at the control that fixes it.
+          <EmptyState
+            variant="contained"
+            icon="nearMe"
+            title={strings.featuredDeals.emptyTitle}
+            description={strings.featuredDeals.emptyBody}
+            actionLabel={strings.featuredDeals.emptyCta}
+            onAction={onOpenLocationSelect ?? (() => onSearchArea?.())}
+          />
+        ) : null}
 
         <EnrollmentPrompt onOpenBusinessSetup={onOpenBusinessSetup} />
       </ScrollView>

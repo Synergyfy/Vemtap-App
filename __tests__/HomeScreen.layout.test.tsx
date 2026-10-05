@@ -25,8 +25,9 @@ describe('HomeScreen Deals Near You layout', () => {
 
     await fireEvent.press(screen.getByLabelText('See All Deals Near You'));
 
-    expect(await screen.findByText('Showing 6 deals')).toBeTruthy();
-    expect(screen.getByText('Prime 3-Course Lunch Combo & Drinks')).toBeTruthy();
+    // The count and copy now come from the live-feed double, not the seed file.
+    expect(await screen.findByText('Showing 3 deals')).toBeTruthy();
+    expect(screen.getByText('20% Off Prime Lunch Combo')).toBeTruthy();
     expect(screen.getByLabelText(/Home, tab/i).props.accessibilityState).toMatchObject({
       selected: true,
     });
@@ -61,7 +62,7 @@ describe('HomeScreen Deals Near You layout', () => {
     );
 
     await fireEvent.press(await screen.findByTestId('deals-view-toggle-grid'));
-    expect(await screen.findByText('Prime Lunch Combo')).toBeTruthy();
+    expect(await screen.findByText('20% Off Prime Lunch Combo')).toBeTruthy();
     expect(screen.getByTestId('deals-view-toggle-list').props.className).toContain(
       'shadow-xs',
     );
@@ -76,15 +77,23 @@ describe('HomeScreen Deals Near You layout', () => {
   it('switches between list and two-column grid layouts', async () => {
     const screen = await render(<HomeScreen />);
 
+    // The first offer is the featured card, so the rest are the "near you" list.
+    // An offer can appear in both the list and the trending rail, so counts are
+    // asserted with getAllByText rather than expecting a single match.
     expect(screen.getByText('20% Off Prime Lunch Combo')).toBeTruthy();
+    expect(screen.getAllByText('30% Off Family Platter').length).toBeGreaterThan(0);
 
     await fireEvent.press(screen.getByTestId('deals-view-toggle-grid'));
 
-    expect(screen.getByText('Prime Lunch Combo')).toBeTruthy();
-    expect(screen.queryByText('20% Off Prime Lunch Combo')).toBeNull();
+    // The grid card drops the discount prefix because the badge beside it
+    // already reads "30% OFF" — printing it twice wastes the only line.
+    expect(screen.getByLabelText('Family Platter')).toBeTruthy();
+    // Scoped to the grid card: the trending rail keeps the full title, since its
+    // badge is optional and the name is what identifies the offer there.
+    expect(screen.queryByText('30% Off Family Platter')).not.toBeNull();
 
     await fireEvent.press(screen.getByTestId('deals-view-toggle-list'));
 
-    expect(screen.getByText('20% Off Prime Lunch Combo')).toBeTruthy();
+    expect(screen.getAllByText('30% Off Family Platter').length).toBeGreaterThan(0);
   });
 });

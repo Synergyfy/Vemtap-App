@@ -84,7 +84,8 @@ export function offerCountdown(
   return strings.deals.endsInMinutes(minutes);
 }
 
-function discountLabel(offer: Offer): string {
+/** Exported for the Home cards, which render the same badge in their own layout. */
+export function discountLabel(offer: Offer): string {
   if (typeof offer.discountPercent === 'number' && offer.discountPercent > 0) {
     return strings.deals.percentOff(offer.discountPercent);
   }
@@ -97,7 +98,8 @@ function statusIcon(offer: Offer): DealGridItem['statusIcon'] {
   return (offer.discountPercent ?? 0) >= 50 ? 'hot' : 'none';
 }
 
-function merchantLabel(offer: Offer): string {
+/** Exported for the Home cards. */
+export function merchantLabel(offer: Offer): string {
   const name = offer.business?.name ?? offer.branchName ?? '';
   const city = offer.business?.city;
   return city ? `${name} • ${city}` : name;

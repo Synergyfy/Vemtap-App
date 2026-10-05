@@ -8,6 +8,15 @@ import { CategoryChips } from '@components/home/CategoryChips';
 import { DiscoverScreen } from '@features/discover/screens/DiscoverScreen';
 import { AppStack } from '@navigation/AppStack';
 
+// Home reads the live offers feed through React Query, so any test that mounts
+// the real shell needs the feed double (and its neutral engagement hooks).
+jest.mock('@features/deals/hooks/usePublicOffers', () =>
+  jest.requireActual('./helpers/mockOffersFeed').mockOffersFeedModule(),
+);
+jest.mock('@features/deals/hooks/useDealEngagementActions', () =>
+  jest.requireActual('./helpers/mockOffersFeed').mockDealEngagementActionsModule(),
+);
+
 const { homeLocation: loc, home } = strings;
 
 /** The chip scroller's content-container class, read off the rendered tree. */

@@ -9,6 +9,15 @@ import { UrbanGrillAllDealsScreen } from '@features/discover/screens/UrbanGrillA
 import { GlowSerenityProfileScreen } from '@features/discover/screens/GlowSerenityProfileScreen';
 import { GlowSerenityServicesScreen } from '@features/discover/screens/GlowSerenityServicesScreen';
 
+// Home reads the live offers feed through React Query, so any test that mounts
+// the real shell needs the feed double (and its neutral engagement hooks).
+jest.mock('@features/deals/hooks/usePublicOffers', () =>
+  jest.requireActual('./helpers/mockOffersFeed').mockOffersFeedModule(),
+);
+jest.mock('@features/deals/hooks/useDealEngagementActions', () =>
+  jest.requireActual('./helpers/mockOffersFeed').mockDealEngagementActionsModule(),
+);
+
 const navigation = {
   goBack: jest.fn(),
   navigate: jest.fn(),
