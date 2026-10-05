@@ -1,4 +1,9 @@
-import { AREA_COORDS, type AreaName, type GeoCoords } from '@constants/locations';
+import {
+  AREA_COORDS,
+  areaCoords,
+  type AreaName,
+  type GeoCoords,
+} from '@constants/locations';
 
 /**
  * Shared geometry for anything that compares two coordinates.
@@ -46,4 +51,19 @@ export function nearestArea(point: GeoCoords): AreaName {
   }
 
   return best;
+}
+
+/**
+ * Where discovery is measured from: the user's real position when they used
+ * "use my location", otherwise the centre of the district they picked.
+ *
+ * Both the feed's proximity filter and the distance on a deal card have to
+ * agree, so they read this one function rather than each deciding for
+ * themselves — otherwise a card could say "0.4 km" while the API had filtered
+ * against a different origin.
+ */
+export function discoveryOrigin(area: string, coords: GeoCoords | null): GeoCoords {
+  if (coords) return coords;
+  const { latitude, longitude } = areaCoords(area);
+  return { latitude, longitude };
 }

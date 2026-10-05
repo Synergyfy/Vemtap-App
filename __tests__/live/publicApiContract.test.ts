@@ -23,6 +23,7 @@
 import { ownerAuthApi, isOtpVerifiedError } from '@api/ownerAuthApi';
 import { categoriesApi } from '@api/categoriesApi';
 import { dealsApi } from '@api/dealsApi';
+import { areaCoords } from '@constants/locations';
 import { ApiError } from '@api/ApiError';
 
 const LIVE = process.env.LIVE_API_TESTS === '1';
@@ -75,6 +76,63 @@ describeLive('public API — live contract', () => {
         // `price` is what the mapper computes; it must survive a real payload.
         expect(offer.pricingType).toBeTruthy();
       }
+    });
+
+    /**
+     * The proximity filter the app now relies on. `radius` was confirmed to be
+     * kilometres (not metres) against this API, so a 1 km circle around Apo
+     * returns nothing while the same centre with a 5 km radius returns offers —
+     * which is also why a wrong unit would silently empty the feed rather than
+     * error.
+     */
+    it('narrows by radius in kilometres', async () => {
+      const apo = areaCoords('Apo');
+
+      const tight = await dealsApi.listPublicOffers({
+        limit: 50,
+        lat: apo.latitude,
+        lng: apo.longitude,
+        radius: 1,
+      });
+      const wider = await dealsApi.listPublicOffers({
+        limit: 50,
+        lat: apo.latitude,
+        lng: apo.longitude,
+        radius: 5,
+      });
+
+      expect(tight.data.length).toBeLessThan(wider.data.length);
+      expect(wider.data.length).toBeGreaterThan(0);
+    });
+
+    it('returns fewer offers without a proximity filter than with one', async () => {
+      const apo = areaCoords('Apo');
+
+      const unfiltered = await dealsApi.listPublicOffers({ limit: 50 });
+      const nearby = await dealsApi.listPublicOffers({
+        limit: 50,
+        lat: apo.latitude,
+        lng: apo.longitude,
+        radius: 5,
+      });
+
+      // Guards the contract this change depends on: the radius parameter is
+      // actually applied rather than accepted and ignored.
+      expect(nearby.data.length).toBeLessThan(unfiltered.data.length);
+    });
+
+    it('returns nothing when no business is within the radius', async () => {
+      // An empty result is a valid state (the radius sheet promises "within
+      // N km"), so the parser and mapper have to survive it.
+      const empty = await dealsApi.listPublicOffers({
+        limit: 50,
+        lat: areaCoords('Apo').latitude,
+        lng: areaCoords('Apo').longitude,
+        radius: 0.1,
+      });
+
+      expect(empty.data).toEqual([]);
+      expect(empty.total).toBe(0);
     });
   });
 

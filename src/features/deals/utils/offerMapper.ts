@@ -1,5 +1,5 @@
 import type { Offer } from '@api/dealsApi';
-import { areaCoords } from '@constants/locations';
+import type { GeoCoords } from '@constants/locations';
 import { haversineMeters } from '@utils/geo';
 import { formatCurrency } from '@utils/formatters';
 import { strings } from '@constants/strings';
@@ -13,8 +13,8 @@ import type {
  * Maps API offers onto the view models the deal cards already consume.
  *
  * The feed endpoint returns no distance, so it is computed here from the
- * business coordinates against the selected district (AREA_COORDS is the single
- * source for those). Images come from the first catalogue item that has one;
+ * business coordinates against the discovery origin (the user's position, or the
+ * centre of the district they picked). Images come from the first catalogue item that has one;
  * money arrives as numbers or numeric strings; the countdown is derived from
  * `endDate`, which is an absolute instant, so no timezone assumption is needed.
  */
@@ -29,12 +29,18 @@ const PLACEHOLDER_IMAGE =
  */
 export { haversineMeters } from '@utils/geo';
 
-/** Distance from the selected district to the offer's business, or null. */
-export function offerDistanceMeters(offer: Offer, area: string): number | null {
+/**
+ * Distance from the discovery origin to the offer's business, or null.
+ *
+ * The origin is a position rather than a district name because it is either the
+ * user's real coordinates or the district centre they picked — `discoveryOrigin`
+ * decides which, so the number here always matches the proximity filter the API
+ * applied.
+ */
+export function offerDistanceMeters(offer: Offer, origin: GeoCoords): number | null {
   const { latitude, longitude } = offer.business ?? {};
   if (typeof latitude !== 'number' || typeof longitude !== 'number') return null;
 
-  const origin = areaCoords(area);
   return haversineMeters(origin, { latitude, longitude });
 }
 
@@ -145,7 +151,7 @@ function expiryLabel(offer: Offer): { meta: string; metaTone: DealListItem['meta
 
 export function mapOfferToListItem(
   offer: Offer,
-  area: string,
+  origin: GeoCoords,
   engagement?: { likesCount: number; reviewsCount: number },
 ): DealListItem {
   const countdown = offerCountdown(offer.endDate);
@@ -170,7 +176,7 @@ export function mapOfferToListItem(
     price: prices.price,
     priceWas: prices.priceWas,
     save: prices.save,
-    location: formatDistanceLabel(offerDistanceMeters(offer, area)),
+    location: formatDistanceLabel(offerDistanceMeters(offer, origin)),
     meta: expiry.meta,
     metaTone: expiry.metaTone,
     likes: engagement?.likesCount ?? 0,
@@ -179,7 +185,7 @@ export function mapOfferToListItem(
   };
 }
 
-export function mapOfferToGridItem(offer: Offer, area: string): DealGridItem {
+export function mapOfferToGridItem(offer: Offer, origin: GeoCoords): DealGridItem {
   const countdown = offerCountdown(offer.endDate);
   const prices = priceLabels(offer);
 
@@ -201,12 +207,12 @@ export function mapOfferToGridItem(offer: Offer, area: string): DealGridItem {
     price: prices.price,
     priceWas: prices.priceWas,
     save: prices.save,
-    distance: formatDistanceLabel(offerDistanceMeters(offer, area)),
+    distance: formatDistanceLabel(offerDistanceMeters(offer, origin)),
     claimLabel: strings.deals.claimDeal,
   };
 }
 
-export function mapOfferToFeatured(offer: Offer, area: string): FeaturedDealOfDay {
+export function mapOfferToFeatured(offer: Offer, origin: GeoCoords): FeaturedDealOfDay {
   const countdown = offerCountdown(offer.endDate);
   const prices = priceLabels(offer);
   const limit = offer.remainingLimit ?? offer.totalLimit;
@@ -218,7 +224,7 @@ export function mapOfferToFeatured(offer: Offer, area: string): FeaturedDealOfDa
     specialPromo: discountLabel(offer),
     endsLabel: countdown ?? strings.deals.endsIn('today'),
     merchant: merchantLabel(offer),
-    distance: formatDistanceLabel(offerDistanceMeters(offer, area)),
+    distance: formatDistanceLabel(offerDistanceMeters(offer, origin)),
     title: offer.name,
     price: prices.price,
     priceWas: prices.priceWas,

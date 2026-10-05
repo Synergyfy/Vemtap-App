@@ -9,6 +9,15 @@ type PaginatedQuery = {
   limit?: number;
   search?: string;
   sortBy?: string;
+  /**
+   * Proximity filter. `radius` is in **kilometres** — verified live against the
+   * test API, where `lat`/`lng` of Apo with `radius=1` returns nothing and
+   * `radius=5` returns the nearby offers. The server compares against each
+   * offer's business coordinates, so businesses without coordinates never match.
+   */
+  lat?: number;
+  lng?: number;
+  radius?: number;
 };
 
 /**
@@ -166,6 +175,9 @@ export const dealsApi = {
           limit: query.limit,
           search: query.search,
           sortBy: query.sortBy,
+          lat: query.lat,
+          lng: query.lng,
+          radius: query.radius,
         },
         ...options,
       },
