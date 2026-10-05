@@ -127,8 +127,6 @@ export const strings = {
     registerWelcomeTitle: 'Welcome to VEMTAP',
     registerWelcomeSubtitle:
       'Create your account or sign in to save deals and claim exclusive offers near you.',
-    registerContinueWithGoogle: 'Continue with Google',
-    registerOr: 'OR',
     registerEmailLabel: 'Enter your email to continue',
     registerEmailPlaceholder: 'name@example.com',
     registerEmailHint:
@@ -162,6 +160,11 @@ export const strings = {
     profileSubtitle:
       'Complete your profile and set your security PIN to access your account and claimed deals.',
     profileRequiredFields: 'All fields marked with * are required.',
+    profileNeedsFirstName: 'Enter your first name to continue.',
+    profileNeedsLastName: 'Enter your last name to continue.',
+    profileNeedsPhone: 'Enter a phone number of at least 7 digits.',
+    profileNeedsPin: 'Enter a 6-digit PIN twice.',
+    profileNeedsConsent: 'Accept the Privacy Policy and Terms to continue.',
     profileConsent: 'I agree to the VEMTAP Privacy Policy and Terms of Service.',
     profilePersonalInfo: 'Personal Information',
     profileFirstName: 'First name',

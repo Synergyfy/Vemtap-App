@@ -73,6 +73,26 @@ export function ProfileSetupScreen() {
     match === 'match' &&
     hasAcceptedPolicy;
 
+  /**
+   * The CTA is disabled until every requirement is met, which used to look
+   * identical to a broken tap. Name the first unmet requirement so the button
+   * always explains itself.
+   */
+  const blockingReason =
+    firstName.trim().length === 0
+      ? strings.auth.profileNeedsFirstName
+      : lastName.trim().length === 0
+        ? strings.auth.profileNeedsLastName
+        : phone.replace(/\D/g, '').length < 7
+          ? strings.auth.profileNeedsPhone
+          : match === null
+            ? strings.auth.profileNeedsPin
+            : !hasAcceptedPolicy
+              ? strings.auth.profileNeedsConsent
+              : null;
+  // A PIN mismatch is deliberately absent: `PinInput` already renders that
+  // message inline, so naming it here would print the same sentence twice.
+
   const onComplete = useCallback(() => {
     if (!canSubmit || verifyAndSetPin.isPending) {
       return;
@@ -319,6 +339,15 @@ export function ProfileSetupScreen() {
             </VemtapText>
           ) : null}
           <View className="gap-3 pt-2">
+            {blockingReason && !verifyAndSetPin.isPending ? (
+              <VemtapText
+                tone="secondary"
+                accessibilityRole="alert"
+                className="text-center text-caption"
+              >
+                {blockingReason}
+              </VemtapText>
+            ) : null}
             <Button
               label={
                 verifyAndSetPin.isPending

@@ -24,7 +24,7 @@ export function useRequestSignupOtp() {
  */
 export function useVerifyAndSetPin() {
   const queryClient = useQueryClient();
-  const setSession = useAuthStore(state => state.setSession);
+  const beginOnboarding = useAuthStore(state => state.beginOnboarding);
 
   return useMutation<Session, Error, VerifyAndSetPinInput>({
     mutationFn: async input => {
@@ -33,7 +33,11 @@ export function useVerifyAndSetPin() {
       return session;
     },
     onSuccess: session => {
-      setSession(session);
+      // Deliberately NOT `setSession`: that flips RootNavigator to AppStack and
+      // unmounts AuthStack before the location screens can run. The token is
+      // already in secure storage, so requests stay authenticated while the
+      // account stays in the onboarding state.
+      beginOnboarding(session);
       queryClient.invalidateQueries();
       logger.info('auth', 'Customer registration complete', {
         user: session.user.uniqueCode,

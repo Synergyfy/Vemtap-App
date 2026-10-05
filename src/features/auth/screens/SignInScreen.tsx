@@ -10,7 +10,6 @@ import { z } from 'zod';
 import { VemtapText } from '@components/ui/Text';
 import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
-import { GoogleLogo } from '@components/ui/GoogleLogo';
 import { RegistrationHeader } from '@components/auth/RegistrationHeader';
 import { TextField } from '@components/forms/TextField';
 import { CheckboxField } from '@components/forms/CheckboxField';
@@ -91,20 +90,8 @@ export function SignInScreen() {
           </VemtapText>
         </View>
 
-        {/* Social Authentication */}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={strings.auth.registerContinueWithGoogle}
-          className="h-[52px] w-full flex-row items-center justify-center gap-3 rounded-cta bg-surface shadow-sm active:scale-[0.98]"
-        >
-          <GoogleLogo size={20} />
-          <VemtapText className="font-sans-medium text-button-md text-text">
-            {strings.auth.registerContinueWithGoogle}
-          </VemtapText>
-        </Pressable>
-
         {/* Visual Divider */}
-        <View className="my-5 flex-row items-center">
+        <View className="mb-5 flex-row items-center">
           <View className="h-px flex-1 bg-surface-container-highest" />
           <VemtapText className="px-4 font-sans-medium text-label-sm uppercase tracking-wider text-text-tertiary">
             {strings.auth.signInOr}

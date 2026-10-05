@@ -31,6 +31,7 @@ import { useIsOnline } from '@hooks/useNetworkStatus';
 import { useUiStore } from '@store/uiStore';
 import { registerAuthBridge } from '@api/client';
 import { useAuthStore } from '@store/authStore';
+import { useAuthBootstrap } from '@features/auth/hooks/useAuthBootstrap';
 import { startOfflineReplay } from '@services/offlineReplay';
 import { refreshFeatureFlags } from '@services/featureFlags';
 import { initPushNotifications } from '@services/pushNotifications';
@@ -110,6 +111,8 @@ export default function App() {
     'Inter-Bold': Inter_700Bold,
   });
   const [fontTimeout, setFontTimeout] = useState(false);
+
+  useAuthBootstrap();
 
   useEffect(() => {
     const timer = setTimeout(() => setFontTimeout(true), 8000);

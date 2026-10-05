@@ -14,6 +14,8 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HomeScreen } from '@features/home/screens/HomeScreen';
 import { useLocationStore } from '@store/locationStore';
+import { queryClient } from '@store/queryClient';
+import { clearSecureStorage } from '@utils/secureStorage';
 import { FeaturedDealsScreen } from '@features/home/screens/FeaturedDealsScreen';
 import { SavedHubScreen } from '@features/accountHub/screens/SavedHubScreen';
 import { AccountHomeScreen } from '@features/accountHub/screens/AccountHomeScreen';
@@ -476,7 +478,22 @@ type AccountStackNavigation = CompositeNavigationProp<
   >
 >;
 
-const signOut = () => useAuthStore.getState().markUnauthenticated();
+/**
+ * `markUnauthenticated` alone left the bearer token in secure storage, so every
+ * later request still carried a dead token and the flow could not be re-run
+ * cleanly. Delegate to the logout hook so storage and the query cache clear too.
+ */
+const signOut = () => {
+  const store = useAuthStore.getState();
+  if (store.status === 'authenticated') {
+    queryClient.clear();
+    clearSecureStorage()
+      .catch(() => undefined)
+      .finally(() => store.clearSession());
+  } else {
+    store.markUnauthenticated();
+  }
+};
 
 /**
  * Personal-flow destinations (My Deals, Messages, Orders, Rewards, …) are hosted by

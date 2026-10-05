@@ -31,7 +31,7 @@ const STEP_MS = 1200;
  * Design arena is h-[380px] with rings w-72 / w-64 / w-48 / w-32 (px = 4 * n).
  */
 export function DiscoveringNearbyDealsScreen() {
-  const setSession = useAuthStore(s => s.setSession);
+  const completeOnboarding = useAuthStore(s => s.completeOnboarding);
   const [step, setStep] = useState(0);
   const { width, height } = useWindowDimensions();
   // Scale the arena so slim phones fit and short phones can still scroll.
@@ -118,38 +118,16 @@ export function DiscoveringNearbyDealsScreen() {
   useEffect(() => {
     if (step >= strings.auth.discoveringStatuses.length - 1) {
       const done = setTimeout(() => {
-        setSession({
-          access_token: 'local-onboarding',
-          user: {
-            email: 'guest@vemtap.local',
-            firstName: 'VEMTAP',
-            lastName: 'User',
-            role: 'customer',
-            roleTag: '',
-            status: 'active',
-            uniqueCode: 'local-onboarding',
-            referralCode: '',
-            avatar: '',
-            phone: '',
-            jobTitle: '',
-            authProvider: '',
-            googleId: '',
-            businessId: '',
-            branchId: '',
-            lastActive: '',
-            isPasswordChanged: false,
-            twoFactorEnabled: false,
-            optOut: false,
-            permissions: [],
-            optInChannels: [],
-          },
-        });
+        // Promote the real account. This screen used to fabricate a
+        // `local-onboarding` session, which overwrote the genuine API session
+        // the register call had just stored.
+        completeOnboarding();
       }, STEP_MS);
       return () => clearTimeout(done);
     }
     const id = setTimeout(() => setStep(s => s + 1), STEP_MS);
     return () => clearTimeout(id);
-  }, [step, setSession]);
+  }, [step, completeOnboarding]);
 
   const progress = strings.auth.discoveringProgress[step] ?? 45;
   const status = strings.auth.discoveringStatuses[step] ?? '';

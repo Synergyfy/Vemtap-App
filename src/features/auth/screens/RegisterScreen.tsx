@@ -9,7 +9,6 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { VemtapText } from '@components/ui/Text';
 import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
-import { GoogleLogo } from '@components/ui/GoogleLogo';
 import { TextField } from '@components/forms/TextField';
 import { emailSchema } from '@utils/validators';
 import { z } from 'zod';
@@ -116,27 +115,6 @@ export function RegisterScreen() {
           </VemtapText>
         </View>
 
-        {/* Social Authentication Deck */}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={strings.auth.registerContinueWithGoogle}
-          className="mb-3 h-[52px] w-full flex-row items-center justify-center gap-3 rounded-cta bg-surface shadow-sm active:scale-[0.99]"
-        >
-          <GoogleLogo size={20} />
-          <VemtapText className="font-sans-medium text-button-md text-text">
-            {strings.auth.registerContinueWithGoogle}
-          </VemtapText>
-        </Pressable>
-
-        {/* Visual Divider */}
-        <View className="my-6 flex-row items-center">
-          <View className="h-px flex-1 bg-surface-dim opacity-40" />
-          <VemtapText className="px-3 font-sans-medium text-caption uppercase tracking-wider text-text-tertiary">
-            {strings.auth.registerOr}
-          </VemtapText>
-          <View className="h-px flex-1 bg-surface-dim opacity-40" />
-        </View>
-
         {/* Email Input Form */}
         <View className="w-full gap-4">
           <TextField
@@ -161,6 +139,16 @@ export function RegisterScreen() {
             </VemtapText>
           </View>
 
+          {requestOtp.error ? (
+            <VemtapText
+              tone="error"
+              accessibilityRole="alert"
+              className="text-center text-caption"
+            >
+              {(requestOtp.error as Error).message || strings.auth.otpSendFailed}
+            </VemtapText>
+          ) : null}
+
           <Button
             label={
               submitState === 'sending'
@@ -183,12 +171,16 @@ export function RegisterScreen() {
           <View className="items-center py-2">
             <VemtapText tone="secondary">
               {strings.auth.registerHaveAccount}{' '}
-              <VemtapText
-                className="font-sans-bold text-primary"
+              <Pressable
                 accessibilityRole="link"
+                accessibilityLabel={strings.common.signIn}
+                hitSlop={8}
+                onPress={() => navigation.navigate('SignIn')}
               >
-                {strings.common.signIn}
-              </VemtapText>
+                <VemtapText className="font-sans-bold text-primary">
+                  {strings.common.signIn}
+                </VemtapText>
+              </Pressable>
             </VemtapText>
           </View>
         </View>
