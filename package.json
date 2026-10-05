@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit",
     "test": "jest",
     "test:watch": "jest --watch",
+    "test:live": "LIVE_API_TESTS=1 EXPO_PUBLIC_API_BASE_URL=https://testapi.vemtap.com/api EXPO_PUBLIC_API_VERSION=v1 jest __tests__/live",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
     "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,md}\"",
     "start:env": "expo start --environment development",
