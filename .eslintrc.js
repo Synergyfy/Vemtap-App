@@ -176,6 +176,10 @@ module.exports = {
     'index.js',
     'jest.setup.js',
     'app.config.js',
+    // Scratch/debug tests — see .gitignore.
+    '**/zz_*',
+    '**/zz-*',
+    '**/scratch-*',
   ],
   settings: {
     'import/resolver': {

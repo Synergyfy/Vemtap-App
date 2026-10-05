@@ -25,7 +25,14 @@ module.exports = {
   testTimeout: 20000,
   // Jest's default matches everything under __tests__, so shared helpers and
   // fixtures would be collected as empty suites.
-  testPathIgnorePatterns: ['/node_modules/', '<rootDir>/__tests__/helpers/'],
+  testPathIgnorePatterns: [
+    '/node_modules/',
+    '<rootDir>/__tests__/helpers/',
+    // Scratch/debug tests — see .gitignore.
+    '/zz_',
+    '/zz-',
+    '/scratch-',
+  ],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   transformIgnorePatterns: [
     'node_modules/(?!(react-native|@react-native|react-native-.*|@react-navigation|nativewind|react-native-css-interop|@tanstack|zustand|@expo-google-fonts|@expo/vector-icons|expo|expo-.*|expo-modules-core)/)',

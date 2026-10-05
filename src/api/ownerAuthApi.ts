@@ -1,0 +1,170 @@
+import { z } from 'zod';
+import { messageResponseSchema, sessionSchema } from '@api/authApi';
+import type { Session } from '@api/authApi';
+import { createIdempotencyKey, requestValidated } from '@api/client';
+import { apiErrorSchema } from '@app-types/api';
+import type { ApiRequestOptions } from '@app-types/api';
+
+/**
+ * Business-owner registration. Schemas come from live probes on the test API.
+ *
+ * The important discovery: `registerOwner` takes **no OTP code**, yet the
+ * endpoint refuses to run until the email's OTP has been verified by a
+ * separate call. So the flow is three requests, in order:
+ *
+ *   1. `requestOwnerOtp`  — identity only, keyed by email + role
+ *   2. `verifyOtp`        — email + a **4-character** code (longer codes are
+ *                           rejected outright by the API, not merely invalid)
+ *   3. `registerOwner`    — 400 "OTP must be verified before completing
+ *                           registration" if step 2 has not happened
+ *
+ * Because the gate lives on the server, there is no client-side flag to track:
+ * `registerOwner` failing with that message means the user needs step 2, so
+ * `isOtpVerifiedError` exists to recognise it rather than matching on copy at
+ * the call site.
+ *
+ * Everything in the DTO beyond the credentials is business profile data, so the
+ * profile screens are pre-signup collection that batches into one payload — the
+ * API has no separate "create business profile" step for an owner who has not
+ * registered yet (`POST /business-profiling` is a different, unmapped flow).
+ */
+
+/** Only `email` is required; everything else is rejected or ignored. */
+export const ownerOtpRequestSchema = z.object({
+  email: z.string().email(),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  phone: z.string().optional(),
+  role: z.string().optional(),
+});
+export type OwnerOtpRequest = z.infer<typeof ownerOtpRequestSchema>;
+
+/**
+ * The code is exactly 4 characters. The API validates length before value, so a
+ * 6-digit code fails with "code must be shorter than or equal to 4 characters"
+ * rather than "Invalid OTP" — the length is a hard constraint, not a hint.
+ */
+export const ownerOtpVerifySchema = z.object({
+  email: z.string().email(),
+  code: z.string().length(4),
+});
+export type OwnerOtpVerify = z.infer<typeof ownerOtpVerifySchema>;
+
+/** Loose on purpose: the API accepts a wide business profile in one payload. */
+export const ownerRegistrationSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(1),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+
+  businessName: z.string().optional(),
+  businessLogo: z.string().optional(),
+  categoryId: z.string().optional(),
+  subcategoryId: z.string().optional(),
+  otherSubcategoryName: z.string().optional(),
+  visitors: z.string().optional(),
+  goals: z.array(z.string()).optional(),
+
+  whatsappNumber: z.string().optional(),
+  officialEmail: z.string().optional(),
+  businessNumber: z.string().optional(),
+  businessAddress: z.string().optional(),
+  state: z.string().optional(),
+  city: z.string().optional(),
+  latitude: z.number().optional(),
+  longitude: z.number().optional(),
+  businessWebsite: z.string().optional(),
+  isRegistered: z.boolean().optional(),
+  engagement: z.record(z.string(), z.unknown()).optional(),
+  referralCode: z.string().optional(),
+});
+export type OwnerRegistration = z.infer<typeof ownerRegistrationSchema>;
+
+/**
+ * `check-status` is what an owner polls while waiting for admin approval. The
+ * spec documents this as an empty 201; the live API actually returns
+ * `{exists:boolean}`, so the spec is wrong here and the fixture is the truth.
+ */
+export const accountStatusSchema = z.object({
+  exists: z.boolean(),
+});
+export type AccountStatus = z.infer<typeof accountStatusSchema>;
+
+const OTP_GATE_MESSAGE = 'OTP must be verified before completing registration';
+
+export function isOtpVerifiedError(error: unknown): boolean {
+  const parsed = apiErrorSchema.safeParse(error);
+  if (!parsed.success) return false;
+  const { message } = parsed.data;
+  return message === OTP_GATE_MESSAGE;
+}
+
+export const ownerAuthApi = {
+  /** Step 1. Returns `{message}`; the code goes to the given email. */
+  async requestOwnerOtp(
+    payload: OwnerOtpRequest,
+    options: ApiRequestOptions = {},
+  ): Promise<void> {
+    await requestValidated(
+      {
+        method: 'POST',
+        url: '/auth/register/owner/request-otp',
+        data: payload,
+        idempotencyKey: createIdempotencyKey(),
+        ...options,
+      },
+      messageResponseSchema,
+    );
+  },
+
+  /** Step 2. `code` is exactly 4 characters. Returns `{message}`. */
+  async verifyOtp(
+    payload: OwnerOtpVerify,
+    options: ApiRequestOptions = {},
+  ): Promise<void> {
+    await requestValidated(
+      {
+        method: 'POST',
+        url: '/auth/otp/verify',
+        data: payload,
+        idempotencyKey: createIdempotencyKey(),
+        ...options,
+      },
+      messageResponseSchema,
+    );
+  },
+
+  /** Step 3. 400s with `isOtpVerifiedError` unless step 2 has succeeded. */
+  async registerOwner(
+    payload: OwnerRegistration,
+    options: ApiRequestOptions = {},
+  ): Promise<Session> {
+    return requestValidated(
+      {
+        method: 'POST',
+        url: '/auth/register/owner',
+        data: payload,
+        idempotencyKey: createIdempotencyKey(),
+        ...options,
+      },
+      sessionSchema,
+    );
+  },
+
+  /** Poll while an owner waits on admin approval. */
+  async checkStatus(
+    identifier: string,
+    options: ApiRequestOptions = {},
+  ): Promise<AccountStatus> {
+    return requestValidated(
+      {
+        method: 'POST',
+        url: '/auth/check-status',
+        data: { identifier },
+        idempotencyKey: createIdempotencyKey(),
+        ...options,
+      },
+      accountStatusSchema,
+    );
+  },
+};

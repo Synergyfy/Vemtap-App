@@ -190,7 +190,11 @@ describe('offerImage', () => {
 
 describe('mapping', () => {
   test('list item carries the discount, countdown, distance and engagement', () => {
-    const end = new Date(Date.now() + 5 * 3_600_000).toISOString();
+    // `offerCountdown` floors whole hours, and it reads `now` a moment after we
+    // build `end`. At exactly 5h the elapsed milliseconds push the remainder just
+    // under the boundary, so the label flips 5h -> 4h. The extra minute keeps the
+    // floor safely inside the 5h bucket.
+    const end = new Date(Date.now() + 5 * 3_600_000 + 60_000).toISOString();
     const item = mapOfferToListItem(makeOffer({ endDate: end }), 'Apo', {
       likesCount: 12,
       reviewsCount: 3,

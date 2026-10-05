@@ -110,6 +110,14 @@ stitch_vemtap_mobile_app_design/
 *.log
 !npm-debug.log
 
+# Scratch / throwaway test files (zz_tmp.test.tsx, scratch-debug.test.ts, …).
+# Created while debugging and never intended for the repo. Ignoring them here
+# and in .eslintrc.js + jest.config.js keeps them out of `git add -A` AND stops
+# them failing `npm run verify` in the pre-push hook while they are untracked.
+zz_*
+zz-*
+scratch-*
+
 # Editor / OS noise
 .vscode/
 !.vscode/extensions.json
