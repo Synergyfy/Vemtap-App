@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { requestValidated } from '@api/client';
-import { nullableFlag } from '@api/schemaHelpers';
+import { nullableArray, nullableFlag } from '@api/schemaHelpers';
 import type { ApiRequestOptions } from '@app-types/api';
 
 /**
@@ -115,9 +115,9 @@ export const businessProfileSchema = z.object({
   balance: money,
   posSettings: z.record(z.string(), z.unknown()).nullish(),
 
-  branches: z.array(profileBranchSchema).default([]),
+  branches: nullableArray(profileBranchSchema),
   owner: businessOwnerSchema.nullish(),
-  rewards: z.array(loyaltyRewardSchema).default([]),
+  rewards: nullableArray(loyaltyRewardSchema),
 });
 export type BusinessProfile = z.infer<typeof businessProfileSchema>;
 

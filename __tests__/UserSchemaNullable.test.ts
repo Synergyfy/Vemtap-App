@@ -1,12 +1,14 @@
 import { z } from 'zod';
 import { sessionSchema, userSchema } from '@api/authApi';
 import { nullableFlag } from '@api/schemaHelpers';
-import { offerFeedSchema } from '@api/dealsApi';
+import { dealEngagementSchema, offerFeedSchema, offerSchema } from '@api/dealsApi';
 import { businessProfileSchema } from '@api/businessProfileApi';
 import { catalogueItemFeedSchema } from '@api/catalogueApi';
+import { categorySchema } from '@api/categoriesApi';
 import offersFeed from './fixtures/offers-feed.json';
 import profile from './fixtures/business-profile.json';
 import catalogueItems from './fixtures/catalogue-items.json';
+import categories from './fixtures/categories.json';
 
 /**
  * Regression coverage for the login failure where the API returned 200 with a
@@ -167,5 +169,82 @@ describe('nullable helpers across the response schemas', () => {
 
   test('the captured catalogue fixtures still parse', () => {
     expect(catalogueItemFeedSchema.safeParse(catalogueItems).success).toBe(true);
+  });
+});
+
+/**
+ * The array/count version of the same bug: `z.array(x).default([])` and
+ * `.nullish().default([])` both accept an explicit null but let it through, so
+ * screens would receive `null` where they expect a list. Asserted against the
+ * real feed/profile/category schemas rather than toy objects.
+ */
+describe('null arrays and counts', () => {
+  test('a deal with null items, terms and counts parses to empty values', () => {
+    const parsed = offerSchema.safeParse({
+      ...offersFeed.data[0],
+      items: null,
+      terms: null,
+      claimedCount: null,
+      isExpired: null,
+    });
+
+    expect(parsed.success).toBe(true);
+    if (!parsed.success) return;
+    expect(parsed.data.items).toEqual([]);
+    expect(parsed.data.terms).toEqual([]);
+    expect(parsed.data.claimedCount).toBe(0);
+    expect(parsed.data.isExpired).toBe(false);
+
+    // The reaction counters live on their own schema.
+    const engagement = dealEngagementSchema.safeParse({
+      likesCount: null,
+      dislikesCount: null,
+      reviewsCount: null,
+    });
+    expect(engagement.success).toBe(true);
+    if (!engagement.success) return;
+    expect(engagement.data.likesCount).toBe(0);
+    expect(engagement.data.reviewsCount).toBe(0);
+  });
+
+  test('a feed whose envelope fields are null still parses', () => {
+    const parsed = offerFeedSchema.safeParse({
+      ...offersFeed,
+      data: offersFeed.data.map(item => ({ ...item, items: null })),
+      hasNextPage: null,
+      claimedCount: null,
+    });
+
+    expect(parsed.success).toBe(true);
+    if (!parsed.success) return;
+    expect(parsed.data.data[0].items).toEqual([]);
+    expect(parsed.data.hasNextPage).toBe(false);
+  });
+
+  test('a business profile with null branches and rewards still parses', () => {
+    const parsed = businessProfileSchema.safeParse({
+      ...profile,
+      branches: null,
+      rewards: null,
+      isVisible: null,
+      isClosed: null,
+    });
+
+    expect(parsed.success).toBe(true);
+    if (!parsed.success) return;
+    expect(parsed.data.branches).toEqual([]);
+    expect(parsed.data.rewards).toEqual([]);
+    expect(parsed.data.isVisible).toBe(true);
+  });
+
+  test('a category with null subcategories still parses', () => {
+    const parsed = categorySchema.safeParse({
+      ...categories.items[0],
+      subcategories: null,
+    });
+
+    expect(parsed.success).toBe(true);
+    if (!parsed.success) return;
+    expect(parsed.data.subcategories).toEqual([]);
   });
 });

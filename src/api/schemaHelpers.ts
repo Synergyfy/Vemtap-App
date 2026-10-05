@@ -51,3 +51,21 @@ export const nullableStringArray = (fallback: string[] = []) =>
  */
 export const nullableRelation = <T extends z.ZodTypeAny>(schema: T) =>
   z.union([schema, z.null()]).optional();
+
+/**
+ * An array or count the API may send as null instead of omitting the key.
+ * Like `nullableText`, the parsed value is always the fallback, never null —
+ * `.nullish().default(...)` would accept the null and hand it straight through,
+ * because a zod default only fires on an *absent* key.
+ */
+export const nullableArray = <T extends z.ZodTypeAny>(schema: T) =>
+  z
+    .union([z.array(schema), z.null()])
+    .optional()
+    .transform(value => value ?? ([] as z.infer<typeof schema>[]));
+
+export const nullableNumber = (fallback = 0) =>
+  z
+    .union([z.number(), z.null()])
+    .optional()
+    .transform(value => value ?? fallback);

@@ -1,3 +1,4 @@
+import { ApiError } from '@api/ApiError';
 import { messageResponseSchema } from '@api/authApi';
 import {
   accountStatusSchema,
@@ -153,5 +154,31 @@ describe('isOtpVerifiedError', () => {
 
   test('tolerates a validated error with extra fields', () => {
     expect(isOtpVerifiedError({ ...gate, extra: 'ignored' })).toBe(true);
+  });
+
+  /**
+   * The path every caller actually takes. The raw-envelope tests above pass
+   * against a shape the app never sees, so without these the detector could
+   * look green while never firing in production — which is exactly how it
+   * shipped broken: `useOwnerRegistrationNeedsOtp` was handed an `ApiError`.
+   */
+  test('recognises the gate on an ApiError, as the hook receives it', () => {
+    const thrown = new ApiError(gate.message, { status: 400, code: 'SCHEMA' });
+
+    expect(isOtpVerifiedError(thrown)).toBe(true);
+  });
+
+  test('other ApiErrors are not the gate', () => {
+    expect(isOtpVerifiedError(new ApiError('Invalid OTP', { status: 400 }))).toBe(false);
+    expect(
+      isOtpVerifiedError(new ApiError('password is not strong enough', { status: 400 })),
+    ).toBe(false);
+    expect(isOtpVerifiedError(ApiError.network())).toBe(false);
+  });
+
+  test('recognises the gate inside an envelope whose messages are an array', () => {
+    expect(
+      isOtpVerifiedError({ ...gate, message: ['email is invalid', gate.message] }),
+    ).toBe(true);
   });
 });

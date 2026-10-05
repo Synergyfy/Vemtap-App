@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { requestValidated } from '@api/client';
+import { nullableArray } from '@api/schemaHelpers';
 import type { ApiRequestOptions } from '@app-types/api';
 
 /**
@@ -30,7 +31,7 @@ export const categorySchema = z.object({
   id: z.string(),
   name: z.string(),
   description: z.string().nullish(),
-  subcategories: z.array(subcategorySchema).default([]),
+  subcategories: nullableArray(subcategorySchema),
 });
 export type Category = z.infer<typeof categorySchema>;
 

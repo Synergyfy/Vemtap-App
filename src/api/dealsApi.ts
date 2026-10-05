@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { request, requestValidated } from '@api/client';
-import { nullableFlag } from '@api/schemaHelpers';
+import { nullableArray, nullableFlag, nullableNumber } from '@api/schemaHelpers';
 import type { ApiRequestOptions } from '@app-types/api';
 
 /** Cursor pagination inputs shared by the list endpoints. */
@@ -79,8 +79,8 @@ export const offerSchema = z.object({
   branchName: z.string().nullable().optional(),
   categoryName: z.string().nullable().optional(),
   business: offerBusinessSchema.nullable().optional(),
-  items: z.array(offerItemSchema).default([]),
-  claimedCount: z.number().default(0),
+  items: nullableArray(offerItemSchema),
+  claimedCount: nullableNumber(),
   totalLimit: z.number().nullable().optional(),
   remainingLimit: z.number().nullable().optional(),
   startDate: z.string().nullable().optional(),
@@ -88,7 +88,7 @@ export const offerSchema = z.object({
   isExpired: nullableFlag(false),
   maxClaimsPerCustomer: z.number().nullable().optional(),
   audienceTarget: z.string().nullable().optional(),
-  terms: z.array(z.unknown()).default([]),
+  terms: nullableArray(z.unknown()),
   claimCodePrefix: z.string().nullable().optional(),
 });
 export type Offer = z.infer<typeof offerSchema>;
@@ -96,7 +96,7 @@ export type Offer = z.infer<typeof offerSchema>;
 /** The feed endpoint returns a cursor-paginated envelope. */
 export const offerFeedSchema = z.object({
   data: z.array(offerSchema),
-  total: z.number().default(0),
+  total: nullableNumber(0),
   page: z.number().nullable().optional(),
   limit: z.number().nullable().optional(),
   cursor: z.string().nullable().optional(),
@@ -107,9 +107,9 @@ export const offerFeedSchema = z.object({
 export type OfferFeed = z.infer<typeof offerFeedSchema>;
 
 export const dealEngagementSchema = z.object({
-  likesCount: z.number().default(0),
-  dislikesCount: z.number().default(0),
-  reviewsCount: z.number().default(0),
+  likesCount: nullableNumber(),
+  dislikesCount: nullableNumber(),
+  reviewsCount: nullableNumber(),
   averageRating: z.number().nullable().optional(),
 });
 export type DealEngagement = z.infer<typeof dealEngagementSchema>;
@@ -136,18 +136,18 @@ export const publicBusinessesSchema = z.object({
 });
 
 export const platformStatsSchema = z.object({
-  totalBusinesses: z.number().default(0),
-  totalActiveDeals: z.number().default(0),
-  totalClaims: z.number().default(0),
-  totalBranches: z.number().default(0),
+  totalBusinesses: nullableNumber(0),
+  totalActiveDeals: nullableNumber(0),
+  totalClaims: nullableNumber(0),
+  totalBranches: nullableNumber(0),
 });
 export type PlatformStats = z.infer<typeof platformStatsSchema>;
 
 export const reactionStatusSchema = z.object({
   type: z.string().nullable().optional(),
-  likesCount: z.number().default(0),
-  dislikesCount: z.number().default(0),
-  reviewsCount: z.number().default(0),
+  likesCount: nullableNumber(0),
+  dislikesCount: nullableNumber(0),
+  reviewsCount: nullableNumber(0),
 });
 
 export type ReactionType = 'like' | 'dislike';

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { nullableFlag } from '@api/schemaHelpers';
+import { nullableFlag, nullableNumber } from '@api/schemaHelpers';
 import { requestValidated } from '@api/client';
 import type { ApiRequestOptions } from '@app-types/api';
 
@@ -66,7 +66,7 @@ export type CatalogueItem = z.infer<typeof catalogueItemSchema>;
 /** Cursor envelope, matching the offers feed. */
 export const catalogueItemFeedSchema = z.object({
   data: z.array(catalogueItemSchema),
-  total: z.number().default(0),
+  total: nullableNumber(0),
   page: z.number().nullish(),
   limit: z.number().nullish(),
   cursor: z.string().nullish(),
@@ -79,7 +79,7 @@ export type CatalogueItemFeed = z.infer<typeof catalogueItemFeedSchema>;
 /** Page envelope used by `GET /products`; no cursor fields. */
 export const publishedProductFeedSchema = z.object({
   data: z.array(catalogueItemSchema),
-  total: z.number().default(0),
+  total: nullableNumber(0),
   page: z.number().nullish(),
   limit: z.number().nullish(),
   totalPages: z.number().nullish(),
@@ -128,7 +128,7 @@ export type BusinessCatalogueItem = z.infer<typeof businessCatalogueItemSchema>;
 
 export const businessCatalogueFeedSchema = z.object({
   data: z.array(businessCatalogueItemSchema),
-  total: z.number().default(0),
+  total: nullableNumber(0),
   page: z.number().nullish(),
   limit: z.number().nullish(),
   totalPages: z.number().nullish(),

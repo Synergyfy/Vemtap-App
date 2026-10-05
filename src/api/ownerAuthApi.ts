@@ -2,7 +2,6 @@ import { z } from 'zod';
 import { messageResponseSchema, sessionSchema } from '@api/authApi';
 import type { Session } from '@api/authApi';
 import { createIdempotencyKey, requestValidated } from '@api/client';
-import { apiErrorSchema } from '@app-types/api';
 import type { ApiRequestOptions } from '@app-types/api';
 
 /**
@@ -99,11 +98,31 @@ export type AccountStatus = z.infer<typeof accountStatusSchema>;
 
 const OTP_GATE_MESSAGE = 'OTP must be verified before completing registration';
 
+/**
+ * Reads the server message out of either shape this can arrive as:
+ *
+ *  - an `ApiError`, which is what every caller actually receives. Its `message`
+ *    is a plain `Error` property and there is no `success`/`statusCode`, so
+ *    matching only on the raw envelope would never fire — the gate would be
+ *    treated as a generic failure and the screen would not route back to OTP
+ *    verification.
+ *  - the raw `{success:false, statusCode:400, message}` envelope, if a caller
+ *    ever gets one before the client wraps it.
+ */
+function serverMessage(error: unknown): unknown {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    return (error as { message?: unknown }).message;
+  }
+  return undefined;
+}
+
 export function isOtpVerifiedError(error: unknown): boolean {
-  const parsed = apiErrorSchema.safeParse(error);
-  if (!parsed.success) return false;
-  const { message } = parsed.data;
-  return message === OTP_GATE_MESSAGE;
+  const message = serverMessage(error);
+  if (typeof message === 'string') return message === OTP_GATE_MESSAGE;
+  // The envelope may carry `message` as an array of reasons.
+  if (Array.isArray(message)) return message.includes(OTP_GATE_MESSAGE);
+  return false;
 }
 
 export const ownerAuthApi = {
