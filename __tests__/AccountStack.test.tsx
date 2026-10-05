@@ -11,8 +11,14 @@ import {
   typeScale,
 } from '@theme/typography';
 
+// Selector-capable so screens can read the signed-in user, plus `getState` for
+// the sign-out path that reads the store outside a component.
 jest.mock('@store/authStore', () => ({
-  useAuthStore: { getState: () => ({ markUnauthenticated: jest.fn() }) },
+  useAuthStore: Object.assign(
+    (selector: (state: Record<string, unknown>) => unknown) =>
+      selector({ user: null, status: 'authenticated', markUnauthenticated: jest.fn() }),
+    { getState: () => ({ markUnauthenticated: jest.fn() }) },
+  ),
 }));
 
 const Root = createNativeStackNavigator();

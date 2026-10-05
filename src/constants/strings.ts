@@ -1979,6 +1979,7 @@ export const strings = {
     ] as const,
   },
   customerDashboard: {
+    greetingFor: (firstName: string) => `Hello, ${firstName} 👋`,
     greeting: 'Hello, Zainab 👋',
     location: 'Apo, Abuja',
     cart: 'Cart',
@@ -2974,6 +2975,7 @@ export const strings = {
     protected: 'Security Status: Protected',
     statusBody:
       'Two-step PIN & Biometric login active. Your VEMTAP wallet credentials and deals ledger are secured.',
+    accountLineFor: (name: string, phone: string) => `${name} • ${phone} • Verified`,
     accountLine: 'Zainab Ahmed • +234 803 555 0192 • Verified',
     credentials: 'Login & Credentials',
     pin: 'Security PIN',
@@ -2992,8 +2994,10 @@ export const strings = {
     manageDevices: 'Manage All Devices (2) & Log Out Others',
     verification: 'Verification & Alerts',
     smsAlerts: 'SMS Alerts',
+    smsSubtitleFor: (phone: string) => `Codes for sign-ins to ${phone}`,
     smsSubtitle: 'Codes for sign-ins to +234 803 555 0192',
     emailNotices: 'Email Notices',
+    emailSubtitleFor: (email: string) => `Sent to ${email}`,
     emailSubtitle: 'Sent to zainab.ahmed@example.com',
     audit: 'Security Audit Log',
     auditSubtitle: 'Review recent sign-ins, IP addresses & tokens',

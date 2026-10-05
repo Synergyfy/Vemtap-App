@@ -11,6 +11,7 @@ import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
+import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
 import { colors } from '@theme/colors';
 
 const copy = strings.accountScreens.editProfile;
@@ -30,8 +31,9 @@ export function EditProfileScreen({
   onChangePhoto,
   onChooseDistrict,
 }: EditProfileScreenProps) {
-  const [firstName, setFirstName] = useState('Zainab');
-  const [lastName, setLastName] = useState('Ahmed');
+  const me = useCurrentUserDisplay();
+  const [firstName, setFirstName] = useState(me.firstName);
+  const [lastName, setLastName] = useState(me.lastName);
   const [gender, setGender] = useState<string>(copy.female);
   return (
     <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-background">
@@ -43,7 +45,7 @@ export function EditProfileScreen({
               variant="displayMobile"
               className="text-heading-xl text-secondary"
             >
-              ZA
+              {me.initials}
             </VemtapText>
             <Pressable
               accessibilityRole="button"
@@ -105,8 +107,8 @@ export function EditProfileScreen({
               />
             </View>
           </View>
-          <ProfileField label={copy.email} value="zainab.ahmed@example.com" icon="mail" />
-          <ProfileField label={copy.phone} value="+234 803 555 0192" icon="phone" />
+          <ProfileField label={copy.email} value={me.email} icon="mail" />
+          <ProfileField label={copy.phone} value={me.phone} icon="phone" />
           <Pressable
             accessibilityRole="button"
             onPress={onChooseDistrict}

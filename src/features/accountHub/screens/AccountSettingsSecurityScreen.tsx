@@ -8,6 +8,7 @@ import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
+import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
 import { colors } from '@theme/colors';
 
 const copy = strings.accountSettingsSecurity;
@@ -43,6 +44,7 @@ export function AccountSettingsSecurityScreen({
   onEmailNoticesChange,
   onPersonalizedDealsChange,
 }: AccountSettingsSecurityScreenProps) {
+  const me = useCurrentUserDisplay();
   return (
     <SafeAreaView edges={['top']} className="flex-1 bg-background">
       <RegistrationHeader title={copy.title} onBack={() => onBack?.()} />
@@ -74,7 +76,7 @@ export function AccountSettingsSecurityScreen({
           <View className="flex-row items-center gap-1.5">
             <Icon name="accountCircle" size={16} color={colors.primary} />
             <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-              {copy.accountLine}
+              {copy.accountLineFor(me.fullName, me.phone)}
             </VemtapText>
           </View>
         </View>
@@ -125,14 +127,14 @@ export function AccountSettingsSecurityScreen({
           <SecuritySettingRow
             icon="sms"
             title={copy.smsAlerts}
-            subtitle={copy.smsSubtitle}
+            subtitle={copy.smsSubtitleFor(me.phone)}
             switchInitialValue
             onValueChange={onSmsAlertsChange}
           />
           <SecuritySettingRow
             icon="mail"
             title={copy.emailNotices}
-            subtitle={copy.emailSubtitle}
+            subtitle={copy.emailSubtitleFor(me.email)}
             switchInitialValue
             onValueChange={onEmailNoticesChange}
           />

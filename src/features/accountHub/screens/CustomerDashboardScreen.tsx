@@ -12,6 +12,7 @@ import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
+import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
 import { colors } from '@theme/colors';
 import { navbarBottomShadow } from '@theme/shadows';
 
@@ -56,6 +57,7 @@ export function CustomerDashboardScreen({
 }: CustomerDashboardScreenProps) {
   const metricIcons = ['voucher', 'star', 'wallet'] as const;
   const quickIcons = ['explore', 'badge', 'qrCodeScanner', 'history'] as const;
+  const me = useCurrentUserDisplay();
 
   return (
     <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-background">
@@ -70,7 +72,7 @@ export function CustomerDashboardScreen({
             className="text-heading-sm"
             numberOfLines={1}
           >
-            {copy.greeting}
+            {copy.greetingFor(me.firstName)}
           </VemtapText>
           <Pressable
             accessibilityRole="button"

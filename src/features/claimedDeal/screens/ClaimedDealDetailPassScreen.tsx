@@ -18,6 +18,7 @@ import { Button } from '@components/ui/Button';
 import { Icon, type IconName } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
+import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
 import { colors } from '@theme/colors';
 import { ClaimPassQrCode } from '../components/ClaimPassQrCode';
 
@@ -63,6 +64,7 @@ export function ClaimedDealDetailPassScreen({
   onCancel,
 }: ClaimedDealDetailPassScreenProps) {
   const { width } = useWindowDimensions();
+  const me = useCurrentUserDisplay();
   const [copied, setCopied] = useState(false);
   const qrSize = Math.min(width - 104, 192);
   const copyCode = useCallback(() => {
@@ -209,7 +211,7 @@ export function ClaimedDealDetailPassScreen({
           badge={copy.reference}
           rows={[
             [copy.claimedOn, copy.claimedOnValue],
-            [copy.holder, copy.holderValue],
+            [copy.holder, me.fullName],
             [copy.payment, copy.paymentValue],
             [copy.allocation, copy.personal],
           ]}

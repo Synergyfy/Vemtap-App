@@ -12,15 +12,23 @@ import {
 } from '@features/order/components/OrderComponents';
 import { OrderStatusTimelineRow } from '@features/order/components/OrderHubComponents';
 import { orderImages } from '@features/order/orderData';
+import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
 import { colors } from '@theme/colors';
 
 const itemImages = [orderImages.steak, orderImages.drink, orderImages.merchant];
-const transactionRows: Array<{
+/**
+ * The customer rows carry the signed-in user, so they are built per render from
+ * `useCurrentUserDisplay` rather than frozen at module load.
+ */
+const transactionRows = (identity: {
+  name: string;
+  phone: string;
+}): Array<{
   icon: IconName;
   label: string;
   value: string;
   copyable?: boolean;
-}> = [
+}> => [
   {
     icon: 'badge',
     label: strings.urbanOrderDetail.orderReference,
@@ -35,12 +43,12 @@ const transactionRows: Array<{
   {
     icon: 'person',
     label: strings.urbanOrderDetail.customer,
-    value: strings.urbanOrderDetail.customerName,
+    value: identity.name,
   },
   {
     icon: 'phone',
     label: strings.urbanOrderDetail.contact,
-    value: strings.urbanOrderDetail.phone,
+    value: identity.phone,
   },
 ];
 
@@ -71,6 +79,7 @@ export function UrbanOrderDetailScreen({
 }: UrbanOrderDetailScreenProps) {
   const insets = useSafeAreaInsets();
   const copy = onCopy ?? (() => undefined);
+  const me = useCurrentUserDisplay();
 
   return (
     <View className="flex-1 bg-background">
@@ -328,7 +337,7 @@ export function UrbanOrderDetailScreen({
             {strings.urbanOrderDetail.transaction}
           </VemtapText>
           <View className="mt-2 gap-1">
-            {transactionRows.map(row => (
+            {transactionRows({ name: me.fullName, phone: me.phone }).map(row => (
               <View
                 key={row.label}
                 className="flex-row items-center justify-between gap-3 py-1"

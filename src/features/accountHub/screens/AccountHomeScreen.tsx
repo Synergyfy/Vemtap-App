@@ -7,6 +7,7 @@ import { Button } from '@components/ui/Button';
 import { Icon, type IconName } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
+import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
 import { colors } from '@theme/colors';
 import { navbarBottomShadow } from '@theme/shadows';
 
@@ -136,6 +137,7 @@ export function AccountHomeScreen({
   onOpenBusinessSetup,
   onSignOut,
 }: AccountHomeScreenProps) {
+  const me = useCurrentUserDisplay();
   return (
     <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-background">
       <View
@@ -201,7 +203,7 @@ export function AccountHomeScreen({
           <View className="flex-row items-center gap-3">
             <View className="relative h-14 w-14 shrink-0 items-center justify-center rounded-full bg-surface-container-high">
               <VemtapText variant="labelMd" tone="brand" className="font-sans-bold">
-                {copy.initials}
+                {me.initials}
               </VemtapText>
               <View className="absolute -bottom-0.5 -right-0.5 h-5 w-5 items-center justify-center rounded-full border-2 border-surface bg-success">
                 <Icon name="check" size={12} color={colors.surface} />
@@ -213,13 +215,13 @@ export function AccountHomeScreen({
                 className="font-sans-semibold"
                 numberOfLines={1}
               >
-                {copy.name}
+                {me.fullName}
               </VemtapText>
               <VemtapText variant="caption" numberOfLines={1}>
-                {copy.phone}
+                {me.phone}
               </VemtapText>
               <VemtapText variant="caption" tone="tertiary" numberOfLines={1}>
-                {copy.email}
+                {me.email}
               </VemtapText>
             </View>
             <Pressable

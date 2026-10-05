@@ -10,6 +10,7 @@ import {
 } from '@features/accountHub/components/AccountScreensPrimitives';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
+import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
 
 const copy = strings.accountScreens.moreHub;
 
@@ -40,6 +41,7 @@ export function MoreHubScreen({
   onOpenHelpCentre,
   onSignOut,
 }: MoreHubScreenProps) {
+  const me = useCurrentUserDisplay();
   return (
     <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-background">
       <AccountHeader
@@ -64,7 +66,7 @@ export function MoreHubScreen({
           <View className="flex-row items-center gap-3">
             <View className="h-16 w-16 items-center justify-center rounded-full bg-surface-container-high">
               <VemtapText variant="headingMd" tone="brand">
-                ZA
+                {me.initials}
               </VemtapText>
               <View className="absolute bottom-0 right-0 h-6 w-6 items-center justify-center rounded-full bg-primary-container">
                 <VemtapText variant="micro" className="text-primary-foreground">
@@ -74,7 +76,7 @@ export function MoreHubScreen({
             </View>
             <View className="min-w-0 flex-1">
               <View className="flex-row items-center gap-2">
-                <VemtapText variant="headingSm">{copy.name}</VemtapText>
+                <VemtapText variant="headingSm">{me.fullName}</VemtapText>
                 <View className="rounded-full bg-surface-tint px-2 py-0.5">
                   <VemtapText variant="labelSm" tone="brand">
                     Gold
@@ -85,7 +87,7 @@ export function MoreHubScreen({
                 {copy.memberSince}
               </VemtapText>
               <VemtapText variant="caption" tone="tertiary" numberOfLines={1}>
-                {copy.email}
+                {me.email}
               </VemtapText>
             </View>
             <Pressable
@@ -101,7 +103,7 @@ export function MoreHubScreen({
           </View>
           <View className="flex-row items-center justify-between">
             <VemtapText variant="labelSm" tone="secondary">
-              {copy.phone}
+              {me.phone}
             </VemtapText>
             <View className="shrink-0 rounded-full bg-badge-discount-bg px-2 py-1">
               <VemtapText variant="micro" tone="success" numberOfLines={1}>

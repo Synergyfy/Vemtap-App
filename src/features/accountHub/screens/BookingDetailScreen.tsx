@@ -10,6 +10,7 @@ import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
+import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
 import { colors } from '@theme/colors';
 
 const copy = strings.accountScreens.bookingDetail;
@@ -39,6 +40,7 @@ export function BookingDetailScreen({
   onReschedule,
   onCancel,
 }: BookingDetailScreenProps) {
+  const me = useCurrentUserDisplay();
   return (
     <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-background">
       <AccountHeader
@@ -237,13 +239,13 @@ export function BookingDetailScreen({
           <View className="flex-row items-center gap-2">
             <View className="h-8 w-8 items-center justify-center rounded-full bg-secondary-container">
               <VemtapText variant="caption" tone="secondary">
-                ZA
+                {me.initials}
               </VemtapText>
             </View>
             <View>
-              <VemtapText variant="labelMd">Zainab Ahmed</VemtapText>
+              <VemtapText variant="labelMd">{me.fullName}</VemtapText>
               <VemtapText variant="caption" tone="tertiary">
-                zainab.ahmed@example.com
+                {me.email}
               </VemtapText>
             </View>
           </View>
