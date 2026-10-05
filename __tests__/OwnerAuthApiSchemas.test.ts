@@ -9,6 +9,7 @@ import {
 import otpVerify from './fixtures/owner-otp-verify.json';
 import requestOtp from './fixtures/owner-request-otp.json';
 import checkStatus from './fixtures/owner-check-status.json';
+import checkStatusMissing from './fixtures/owner-check-status-missing.json';
 
 describe('owner OTP step', () => {
   test('request-otp returns a plain message', () => {
@@ -102,8 +103,23 @@ describe('owner registration payload', () => {
 });
 
 describe('account status', () => {
-  test('parses the live response the spec documents as empty', () => {
-    expect(accountStatusSchema.safeParse(checkStatus).success).toBe(true);
+  test('carries the role and email for an account that exists', () => {
+    const parsed = accountStatusSchema.safeParse(checkStatus);
+    expect(parsed.success).toBe(true);
+    if (!parsed.success) return;
+    // These are what let a returning owner be routed to sign-in, not signup.
+    expect(parsed.data.exists).toBe(true);
+    expect(parsed.data.role).toBe('Owner');
+    expect(parsed.data.email).toBeTruthy();
+    expect(parsed.data.hasRealEmail).toBe(true);
+  });
+
+  test('an unknown account returns only exists', () => {
+    const parsed = accountStatusSchema.safeParse(checkStatusMissing);
+    expect(parsed.success).toBe(true);
+    if (!parsed.success) return;
+    expect(parsed.data.exists).toBe(false);
+    expect(parsed.data.role).toBeUndefined();
   });
 
   test('an empty body is not acceptable', () => {

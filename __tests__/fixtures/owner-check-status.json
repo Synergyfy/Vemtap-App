@@ -1,3 +1,7 @@
 {
-  "exists": true
+  "exists": true,
+  "role": "Owner",
+  "isPasswordChanged": true,
+  "hasRealEmail": true,
+  "email": "synergyfyglobal@gmail.com"
 }

@@ -81,12 +81,19 @@ export const ownerRegistrationSchema = z.object({
 export type OwnerRegistration = z.infer<typeof ownerRegistrationSchema>;
 
 /**
- * `check-status` is what an owner polls while waiting for admin approval. The
- * spec documents this as an empty 201; the live API actually returns
- * `{exists:boolean}`, so the spec is wrong here and the fixture is the truth.
+ * `check-status` is what an owner polls while waiting for admin approval.
+ *
+ * Only `exists` comes back when the account is unknown. For an account that does
+ * exist, the API adds `role`, `email`, `isPasswordChanged` and `hasRealEmail` —
+ * which is what lets a returning owner be routed straight to sign-in rather than
+ * back through registration.
  */
 export const accountStatusSchema = z.object({
   exists: z.boolean(),
+  role: z.string().nullish(),
+  email: z.string().nullish(),
+  isPasswordChanged: z.boolean().nullish(),
+  hasRealEmail: z.boolean().nullish(),
 });
 export type AccountStatus = z.infer<typeof accountStatusSchema>;
 
