@@ -17,6 +17,8 @@ import { Icon } from '@components/ui/Icon';
 import { colors } from '@theme/colors';
 import { strings } from '@constants/strings';
 import { concentricCircle } from '@utils/radarLayout';
+import { nearestArea } from '@utils/geo';
+import { requestCurrentLocation } from '@features/location/utils/currentLocation';
 import type { AuthStackParamList } from '@navigation/types';
 
 cssInterop(View, { className: 'style' });
@@ -77,7 +79,14 @@ function FloatCard({
  */
 export function LocationPermissionScreen() {
   const navigation = useNavigation<Nav>();
-  const [locState, setLocState] = useState<'idle' | 'finding' | 'set'>('idle');
+  /**
+   * `denied` and `unavailable` are terminal-but-retryable: the OS may have
+   * refused the prompt, so the button stays live and the manual picker is the
+   * guaranteed way forward.
+   */
+  const [locState, setLocState] = useState<
+    'idle' | 'finding' | 'set' | 'denied' | 'unavailable'
+  >('idle');
   const pulse = useRef(new Animated.Value(0)).current;
   const { width } = useWindowDimensions();
   const radarH = Math.min(320, Math.max(240, width - 64));
@@ -112,14 +121,31 @@ export function LocationPermissionScreen() {
   const hubScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.5] });
   const hubOpacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0] });
 
-  const onUseLocation = useCallback(() => {
+  /** Held so the "Location Set!" beat can be cancelled if the screen unmounts. */
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (timer.current) clearTimeout(timer.current);
+    },
+    [],
+  );
+
+  const onUseLocation = useCallback(async () => {
     setLocState('finding');
-    setTimeout(() => {
-      setLocState('set');
-      setTimeout(() => {
-        navigation.navigate('LocationConfirmation', { area: 'Apo' });
-      }, 600);
-    }, 1200);
+
+    const result = await requestCurrentLocation();
+    if (!result.ok) {
+      setLocState(result.reason);
+      return;
+    }
+
+    // The district is chosen from the real position; the coordinates travel on
+    // the route so the confirmation screen is the one place that persists them.
+    const area = nearestArea(result.coords);
+    setLocState('set');
+    timer.current = setTimeout(() => {
+      navigation.navigate('LocationConfirmation', { area, coords: result.coords });
+    }, 600);
   }, [navigation]);
 
   const onManual = useCallback(() => {
@@ -278,6 +304,16 @@ export function LocationPermissionScreen() {
           <VemtapText tone="secondary" className="mt-3 max-w-[310px] text-center">
             {strings.auth.locationPermissionBody}
           </VemtapText>
+          {locState === 'denied' || locState === 'unavailable' ? (
+            <VemtapText
+              accessibilityRole="alert"
+              className="mt-3 max-w-[310px] text-center text-caption text-text-secondary"
+            >
+              {locState === 'denied'
+                ? strings.auth.locationDenied
+                : strings.auth.locationUnavailable}
+            </VemtapText>
+          ) : null}
         </View>
 
         {/* Actions */}
@@ -285,7 +321,7 @@ export function LocationPermissionScreen() {
           <Button
             label={primaryLabel}
             loading={locState === 'finding'}
-            disabled={locState !== 'idle'}
+            disabled={locState === 'finding' || locState === 'set'}
             className={locState === 'set' ? 'bg-success active:bg-success' : undefined}
             leftIcon={
               locState === 'set' ? (

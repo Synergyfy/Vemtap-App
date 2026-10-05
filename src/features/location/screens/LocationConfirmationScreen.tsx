@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { Animated, Easing, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -11,7 +11,13 @@ import { LocationMapView } from '@components/shared/LocationMapView';
 import { colors } from '@theme/colors';
 import { navbarBottomShadow } from '@theme/shadows';
 import { strings } from '@constants/strings';
-import { areaCoords } from '@constants/locations';
+import {
+  AREA_NAMES,
+  DEFAULT_AREA,
+  areaCoords,
+  type AreaName,
+} from '@constants/locations';
+import { useLocationStore } from '@store/locationStore';
 import { concentricCircle, concentricBox } from '@utils/radarLayout';
 import type { AuthStackParamList } from '@navigation/types';
 
@@ -63,8 +69,25 @@ function MapChip({
 export function LocationConfirmationScreen() {
   const navigation = useNavigation<Nav>();
   const { params } = useRoute<Rt>();
-  const area = params.area ?? 'Apo';
+  const area = params.area ?? DEFAULT_AREA;
   const mapRegion = useMemo(() => areaCoords(area), [area]);
+
+  /**
+   * The signup flow's single write point for targeting. Districts arrive by two
+   * routes — snapped from GPS (`coords` present) or picked by hand (absent) —
+   * and the store clears stale coordinates on a manual pick, so writing here
+   * keeps the label and the position it was measured from together. Until this
+   * ran, everything chosen during signup was silently dropped and Home loaded
+   * the default district.
+   */
+  const setArea = useLocationStore(state => state.setArea);
+  const setCoords = useLocationStore(state => state.setCoords);
+  const confirmTargeting = useCallback(() => {
+    const known = (AREA_NAMES as readonly string[]).includes(area);
+    const areaName = (known ? area : DEFAULT_AREA) as AreaName;
+    if (params.coords) setCoords(params.coords, areaName);
+    else setArea(areaName);
+  }, [area, params.coords, setArea, setCoords]);
   const pulse = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -269,7 +292,10 @@ export function LocationConfirmationScreen() {
             label={strings.auth.confirmContinue}
             className="bg-primary"
             rightIcon={<Icon name="arrowForward" size={20} color="#FFFFFF" />}
-            onPress={() => navigation.navigate('DiscoveringNearbyDeals')}
+            onPress={() => {
+              confirmTargeting();
+              navigation.navigate('DiscoveringNearbyDeals');
+            }}
           />
           <View className="flex-row items-center justify-center gap-1 pt-1">
             <VemtapText className="text-center text-caption text-text-secondary">

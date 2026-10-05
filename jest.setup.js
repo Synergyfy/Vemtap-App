@@ -285,6 +285,41 @@ jest.mock('expo-linear-gradient', () => {
   return { LinearGradient };
 });
 
+jest.mock('expo-location', () => ({
+  requestForegroundPermissionsAsync: jest.fn(async () => ({
+    status: 'granted',
+    granted: true,
+    canAskAgain: true,
+    expires: 'never',
+  })),
+  getForegroundPermissionsAsync: jest.fn(async () => ({
+    status: 'granted',
+    granted: true,
+    canAskAgain: true,
+    expires: 'never',
+  })),
+  getCurrentPositionAsync: jest.fn(async () => ({
+    coords: {
+      latitude: 9.0765,
+      longitude: 7.5186,
+      accuracy: 10,
+      altitude: null,
+      altitudeAccuracy: null,
+      heading: null,
+      speed: null,
+    },
+    timestamp: 0,
+  })),
+  Accuracy: {
+    Lowest: 1,
+    Low: 10,
+    Balanced: 3,
+    High: 6,
+    Highest: 6,
+    BestForNavigation: 1,
+  },
+}));
+
 jest.mock('expo-font', () => ({
   useFonts: () => [true, null],
   isLoaded: () => true,

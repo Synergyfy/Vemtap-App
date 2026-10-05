@@ -1,5 +1,6 @@
 import type { NavigatorScreenParams } from '@react-navigation/native';
 import type { BusinessProfileSummary } from '@features/discover/data/discoverData';
+import type { GeoCoords } from '@constants/locations';
 
 /**
  * Bottom-tab shell for the customer personal hub
@@ -323,7 +324,11 @@ export type AuthStackParamList = {
   ForgotPin: undefined;
   LocationPermission: undefined;
   ManualLocationSearch: undefined;
-  LocationConfirmation: { area?: string };
+  LocationConfirmation: {
+    area?: string;
+    /** GPS position the district was snapped from; absent for a manual pick. */
+    coords?: GeoCoords;
+  };
   DiscoveringNearbyDeals: undefined;
 };
 

@@ -1,5 +1,6 @@
 import type { Offer } from '@api/dealsApi';
 import { areaCoords } from '@constants/locations';
+import { haversineMeters } from '@utils/geo';
 import { formatCurrency } from '@utils/formatters';
 import { strings } from '@constants/strings';
 import type {
@@ -22,23 +23,11 @@ import type {
 const PLACEHOLDER_IMAGE =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
 
-const EARTH_RADIUS_M = 6_371_000;
-
-/** Great-circle distance in metres between two coordinates. */
-export function haversineMeters(
-  from: { latitude: number; longitude: number },
-  to: { latitude: number; longitude: number },
-): number {
-  const toRad = (deg: number) => (deg * Math.PI) / 180;
-  const dLat = toRad(to.latitude - from.latitude);
-  const dLon = toRad(to.longitude - from.longitude);
-  const lat1 = toRad(from.latitude);
-  const lat2 = toRad(to.latitude);
-
-  const a =
-    Math.sin(dLat / 2) ** 2 + Math.sin(dLon / 2) ** 2 * Math.cos(lat1) * Math.cos(lat2);
-  return 2 * EARTH_RADIUS_M * Math.asin(Math.min(1, Math.sqrt(a)));
-}
+/**
+ * Re-exported so existing callers keep one import site; the implementation now
+ * lives in `@utils/geo`, shared with the location flow.
+ */
+export { haversineMeters } from '@utils/geo';
 
 /** Distance from the selected district to the offer's business, or null. */
 export function offerDistanceMeters(offer: Offer, area: string): number | null {

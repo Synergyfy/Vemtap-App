@@ -35,13 +35,17 @@ function LocationSelectScreen({
   route,
 }: NativeStackScreenProps<AppStackParamList, 'LocationSelect'>) {
   const setArea = useLocationStore(state => state.setArea);
+  const setCoords = useLocationStore(state => state.setCoords);
 
   return (
     <ManualLocationSearchScreen
       initialArea={route.params?.currentArea}
       onBack={navigation.goBack}
-      onSelected={next => {
-        setArea(next as AreaName);
+      onSelected={(next, coords) => {
+        // A GPS read travels with the district so the feed can measure from the
+        // real position; a hand-picked district must drop any older reading.
+        if (coords) setCoords(coords, next as AreaName);
+        else setArea(next as AreaName);
         navigation.goBack();
       }}
     />

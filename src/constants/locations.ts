@@ -8,6 +8,9 @@ export type AreaCoord = {
   longitudeDelta: number;
 };
 
+/** A bare position, without a map span. Shared by the store, nav params and geo. */
+export type GeoCoords = { latitude: number; longitude: number };
+
 const SPAN = { latitudeDelta: 0.04, longitudeDelta: 0.04 } as const;
 
 export const AREA_COORDS: Record<AreaName, AreaCoord> = {

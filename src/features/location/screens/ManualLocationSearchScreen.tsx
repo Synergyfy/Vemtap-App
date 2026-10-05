@@ -12,7 +12,9 @@ import { LocationMapView } from '@components/shared/LocationMapView';
 import { colors } from '@theme/colors';
 import { navbarBottomShadow } from '@theme/shadows';
 import { strings } from '@constants/strings';
-import { AREA_OPTIONS, areaCoords } from '@constants/locations';
+import { AREA_OPTIONS, areaCoords, type GeoCoords } from '@constants/locations';
+import { nearestArea } from '@utils/geo';
+import { requestCurrentLocation } from '@features/location/utils/currentLocation';
 import type { AuthStackParamList } from '@navigation/types';
 
 cssInterop(View, { className: 'style' });
@@ -32,8 +34,12 @@ export interface ManualLocationSearchScreenProps {
    * home flow; when omitted the screen falls back to its own navigator and
    * continues into the signup confirmation step. One component, two shells —
    * the area list and validation cannot drift between them (AGENTS rule 17).
+   *
+   * `coords` is present only when the district came from a GPS reading, so the
+   * host can tell a real position from a hand-picked district and store them
+   * accordingly.
    */
-  onSelected?: (area: string) => void;
+  onSelected?: (area: string, coords?: GeoCoords) => void;
   onBack?: () => void;
   /** Suggested district to preselect. */
   initialArea?: string;
@@ -50,6 +56,8 @@ export function ManualLocationSearchScreen({
   const navigation = useNavigation<Nav>();
   const [query, setQuery] = useState(initialArea);
   const [selected, setSelected] = useState(initialArea);
+  /** Set when the GPS attempt fails; the district list stays usable throughout. */
+  const [locationError, setLocationError] = useState(false);
 
   const goBack = useMemo(
     () => onBack ?? (() => navigation.goBack()),
@@ -58,16 +66,26 @@ export function ManualLocationSearchScreen({
   const applyArea = useMemo(
     () =>
       onSelected ??
-      ((area: string) => navigation.navigate('LocationConfirmation', { area })),
+      ((area: string, coords?: GeoCoords) =>
+        navigation.navigate('LocationConfirmation', { area, coords })),
     [navigation, onSelected],
   );
 
   const onClear = useCallback(() => setQuery(''), []);
 
-  const onUseCurrent = useCallback(() => {
-    setSelected('Apo');
-    setQuery('Apo');
-    applyArea('Apo');
+  const onUseCurrent = useCallback(async () => {
+    setLocationError(false);
+
+    const result = await requestCurrentLocation();
+    if (!result.ok) {
+      setLocationError(true);
+      return;
+    }
+
+    const area = nearestArea(result.coords);
+    setSelected(area);
+    setQuery(area);
+    applyArea(area, result.coords);
   }, [applyArea]);
 
   const onContinue = useCallback(() => {
@@ -198,8 +216,16 @@ export function ManualLocationSearchScreen({
             <VemtapText className="text-button-md text-text">
               {strings.auth.manualUseCurrent}
             </VemtapText>
-            <VemtapText numberOfLines={1} className="text-caption text-text-secondary">
-              {strings.auth.manualUseCurrentSub}
+            <VemtapText
+              numberOfLines={1}
+              accessibilityRole={locationError ? 'alert' : undefined}
+              className={`text-caption ${
+                locationError ? 'text-error' : 'text-text-secondary'
+              }`}
+            >
+              {locationError
+                ? strings.auth.manualUseCurrentError
+                : strings.auth.manualUseCurrentSub}
             </VemtapText>
           </View>
           <Icon name="forward" size={20} color={colors.outline ?? '#727786'} />

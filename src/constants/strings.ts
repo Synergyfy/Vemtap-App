@@ -199,6 +199,15 @@ export const strings = {
     locationSet: 'Location Set!',
     locationEnterManually: 'Enter Location Manually',
     locationPrivacy: 'Your location helps us personalize what you discover.',
+    /**
+     * Not in the Stitch spec: the mock screens always "found" a location, so
+     * there is no designed denial state. Kept to two sentences so both screens
+     * can show a failure without inventing new UI.
+     */
+    locationDenied:
+      'Location access is off — turn it on in Settings, or choose your area.',
+    locationUnavailable: "Couldn't get your location — try again or choose your area.",
+    manualUseCurrentError: "Couldn't get your location — pick an area below.",
     locationCafeAroma: 'Cafe Aroma',
     locationCafeBadge: '20% OFF',
     locationSneakers: 'Sneakers & Apparel',
