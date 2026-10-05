@@ -1,0 +1,101 @@
+{
+  "items": [
+    {
+      "id": "12abd667-c93f-4639-ba9b-212051ae1fd2",
+      "createdAt": "2026-03-17T11:33:02.980Z",
+      "updatedAt": "2026-06-29T10:27:19.100Z",
+      "deletedAt": null,
+      "name": "Agriculture ",
+      "description": "Businesses involved in farming, livestock, food production, or agricultural supply.",
+      "subcategories": [
+        {
+          "id": "ccf45732-a6de-4d7e-b453-f436d07b45cc",
+          "createdAt": "2026-03-17T11:33:17.722Z",
+          "updatedAt": "2026-03-17T11:33:17.722Z",
+          "deletedAt": null,
+          "name": "Others",
+          "description": null,
+          "categoryId": "12abd667-c93f-4639-ba9b-212051ae1fd2"
+        },
+        {
+          "id": "30b09cf7-ae24-4a81-b343-2d8371653cfa",
+          "createdAt": "2026-03-17T11:33:14.494Z",
+          "updatedAt": "2026-03-17T11:33:14.494Z",
+          "deletedAt": null,
+          "name": "Fertilizer & Farm Input Supply",
+          "description": null,
+          "categoryId": "12abd667-c93f-4639-ba9b-212051ae1fd2"
+        },
+        {
+          "id": "0d70c7de-05b0-4c3a-bc2f-d2cbfc50f131",
+          "createdAt": "2026-03-17T11:33:13.313Z",
+          "updatedAt": "2026-03-17T11:33:13.313Z",
+          "deletedAt": null,
+          "name": "Farm Produce Trading",
+          "description": null,
+          "categoryId": "12abd667-c93f-4639-ba9b-212051ae1fd2"
+        },
+        {
+          "id": "96d2268e-4ffc-47bd-a0b9-89dfcf354bda",
+          "createdAt": "2026-03-17T11:33:11.580Z",
+          "updatedAt": "2026-03-17T11:33:11.580Z",
+          "deletedAt": null,
+          "name": "Agro Processing",
+          "description": null,
+          "categoryId": "12abd667-c93f-4639-ba9b-212051ae1fd2"
+        },
+        {
+          "id": "c71cdb75-69a3-4503-9e70-f08fe4af4e13",
+          "createdAt": "2026-03-17T11:33:09.587Z",
+          "updatedAt": "2026-03-17T11:33:09.587Z",
+          "deletedAt": null,
+          "name": "Fish Farm",
+          "description": null,
+          "categoryId": "12abd667-c93f-4639-ba9b-212051ae1fd2"
+        },
+        {
+          "id": "6bacf109-cb65-4746-a265-c28b79301984",
+          "createdAt": "2026-03-17T11:33:07.384Z",
+          "updatedAt": "2026-03-17T11:33:07.384Z",
+          "deletedAt": null,
+          "name": "Poultry Farm",
+          "description": null,
+          "categoryId": "12abd667-c93f-4639-ba9b-212051ae1fd2"
+        },
+        {
+          "id": "be4b9635-c8c2-4cff-8c50-78e166c15272",
+          "createdAt": "2026-03-17T11:33:05.913Z",
+          "updatedAt": "2026-03-17T11:33:05.913Z",
+          "deletedAt": null,
+          "name": "Livestock Farming",
+          "description": null,
+          "categoryId": "12abd667-c93f-4639-ba9b-212051ae1fd2"
+        },
+        {
+          "id": "07ce2622-c92f-4828-a354-bd6d1896f318",
+          "createdAt": "2026-03-17T11:33:04.724Z",
+          "updatedAt": "2026-03-17T11:33:04.724Z",
+          "deletedAt": null,
+          "name": "Crop Farming",
+          "description": null,
+          "categoryId": "12abd667-c93f-4639-ba9b-212051ae1fd2"
+        },
+        {
+          "id": "a2d7ca68-b745-4556-972e-2b9abb10552e",
+          "createdAt": "2026-03-17T11:33:16.532Z",
+          "updatedAt": "2026-03-17T11:33:16.532Z",
+          "deletedAt": null,
+          "name": "Agricultural Equipment Supply",
+          "description": null,
+          "categoryId": "12abd667-c93f-4639-ba9b-212051ae1fd2"
+        }
+      ]
+    }
+  ],
+  "meta": {
+    "total": 24,
+    "page": 1,
+    "limit": 50,
+    "totalPages": 1
+  }
+}
