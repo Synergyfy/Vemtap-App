@@ -88,3 +88,41 @@ web-build/
 stitch_vemtap_design_system/
 stitch_vemtap_design_system_1/
 stitch_vemtap_mobile_app_design/
+
+# ---------------------------------------------------------------------------
+# Local-only environment overrides
+#
+# `.env.development`, `.env.staging` and `.env.production` ARE tracked on
+# purpose: they hold non-secret config only (API hosts, timeouts, feature
+# flags) with the secret slots left empty — see `.env.example`.
+#
+# Real secrets (Sentry DSN, Google Maps key) belong in the `.local` variants,
+# which take priority over the tracked files. These must never be committed.
+# ---------------------------------------------------------------------------
+.env.local
+.env.*.local
+
+# Lint/format caches
+.eslintcache
+.prettiercache
+
+# Logs
+*.log
+!npm-debug.log
+
+# Editor / OS noise
+.vscode/
+!.vscode/extensions.json
+*.orig
+*.rej
+*.swp
+
+# Native service credentials — these carry project IDs and API keys.
+android/app/google-services.json
+ios/GoogleService-Info.plist
+
+# Signing material. `!debug.keystore` above stays tracked for the debug build.
+*.p12
+*.mobileprovision
+*.cer
+*.certSigningRequest
