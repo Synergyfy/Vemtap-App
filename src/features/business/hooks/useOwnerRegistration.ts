@@ -77,6 +77,8 @@ export function useAccountStatus(identifier: string | null) {
     queryFn: () => ownerAuthApi.checkStatus(identifier as string),
     enabled: Boolean(identifier),
     // An approval can land at any time, so poll rather than cache a stale 'no'.
+    // The timer is cleared when the screen unmounts; `client.clear()` on the
+    // query cache also stops it in tests that tear clients down.
     refetchInterval: 60_000,
     staleTime: 30_000,
   });
