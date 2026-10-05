@@ -594,6 +594,11 @@ export function BusinessTextArea({
 export interface BusinessSelectFieldProps {
   label?: string;
   value: string;
+  /**
+   * Shown in place of the value when `value` is empty, so a select the user has
+   * not answered yet does not render as a blank field.
+   */
+  placeholder?: string;
   onPress: () => void;
   leadingIcon?: IconName;
   accessibilityLabel?: string;
@@ -603,11 +608,13 @@ export interface BusinessSelectFieldProps {
 export function BusinessSelectField({
   label,
   value,
+  placeholder,
   onPress,
   leadingIcon,
   accessibilityLabel,
   className,
 }: BusinessSelectFieldProps) {
+  const empty = value.trim().length === 0;
   return (
     <View className="gap-1.5">
       {label ? (
@@ -627,8 +634,12 @@ export function BusinessSelectField({
         {leadingIcon ? (
           <Icon name={leadingIcon} size={20} color={colors.textSecondary} />
         ) : null}
-        <VemtapText className="min-w-0 flex-1" numberOfLines={1}>
-          {value}
+        <VemtapText
+          className="min-w-0 flex-1"
+          numberOfLines={1}
+          tone={empty && placeholder ? 'tertiary' : undefined}
+        >
+          {empty && placeholder ? placeholder : value}
         </VemtapText>
         <Icon name="expandMore" size={20} color={colors.textSecondary} />
       </Pressable>

@@ -173,3 +173,70 @@ describe('mapping the profile draft to register/owner', () => {
     expect(unresolved.specialties).toEqual(['Fast Casual']);
   });
 });
+
+describe('mapping when the category came from the live picker', () => {
+  const picked = (over: Partial<BusinessProfileDraft> = {}) =>
+    draft({
+      category: {
+        categoryId: 'cat-beauty',
+        categoryName: 'Beauty & Personal Care',
+        subcategoryId: 'sub-spa',
+        subcategoryName: 'Spas & Saunas',
+        otherSubcategoryName: 'Massage & Body Care',
+      },
+      ...over,
+    });
+
+  it('uses the ids from the picker instead of resolving a name', () => {
+    const { payload } = mapDraftToOwnerRegistration(picked(), CATEGORIES);
+
+    expect(payload.categoryId).toBe('cat-beauty');
+    expect(payload.subcategoryId).toBe('sub-spa');
+  });
+
+  it('sends the second specialty as otherSubcategoryName', () => {
+    const { payload } = mapDraftToOwnerRegistration(picked(), CATEGORIES);
+
+    // The API takes one subcategory id; a second can only travel as free text.
+    expect(payload.otherSubcategoryName).toBe('Massage & Body Care');
+  });
+
+  it('does not resolve names when a selection is present', () => {
+    // 'Restaurant & Dining' would be unresolvable, so the picker selection must
+    // be what counts.
+    const base = draft();
+    const { payload } = mapDraftToOwnerRegistration(
+      {
+        ...base,
+        basic: { ...base.basic, category: 'Restaurant & Dining' },
+        category: {
+          categoryId: 'cat-food',
+          categoryName: 'Food & Hospitality',
+          subcategoryId: 'sub-bistro',
+        },
+      },
+      CATEGORIES,
+    );
+
+    expect(payload.categoryId).toBe('cat-food');
+  });
+
+  it('reports the picked category name, not the drafted one', () => {
+    const base = draft();
+    const { unresolved } = mapDraftToOwnerRegistration(
+      {
+        ...base,
+        category: { categoryId: 'cat-food', categoryName: 'Food & Hospitality' },
+      },
+      CATEGORIES,
+    );
+
+    expect(unresolved.category).toBe('Food & Hospitality');
+  });
+
+  it('works when the selected category is not in the fetched list', () => {
+    const { payload } = mapDraftToOwnerRegistration(picked(), []);
+
+    expect(payload.categoryId).toBe('cat-beauty');
+  });
+});

@@ -2,17 +2,11 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { cssInterop } from 'nativewind';
-import { BottomSheet } from '@components/shared/BottomSheet';
 import { RegistrationHeader } from '@components/auth/RegistrationHeader';
 import { ProgressDots } from '@components/onboarding/ProgressDots';
-import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
-import { colors } from '@theme/colors';
 import { businessProfileCopy as copy } from '@features/business/businessCopy';
-import {
-  primaryCategories,
-  subcategorySpecialties,
-} from '@features/business/businessData';
+import { BusinessCategoryPickerSheet } from '@features/business/components/BusinessCategoryPickerSheet';
 import {
   FieldInput,
   FieldSelect,
@@ -37,7 +31,15 @@ const SPECIALTY_MAX = 2;
 
 export interface BusinessBasicInfoValue {
   name: string;
+  /**
+   * Category name, kept for display and preview. `categoryId` / `subcategoryId`
+   * come from the live taxonomy because `register/owner` needs real UUIDs — the
+   * invented labels this screen used to offer could never produce one.
+   */
   category: string;
+  categoryId?: string;
+  subcategoryId?: string;
+  otherSubcategoryName?: string;
   specialties: string[];
   description: string;
 }
@@ -60,11 +62,16 @@ export function BusinessProfileBasicInfoScreen({
   initialValue,
 }: BusinessProfileBasicInfoScreenProps) {
   const [name, setName] = useState(initialValue?.name ?? 'Urban Grill & Bistro');
-  const [category, setCategory] = useState(
-    initialValue?.category ?? primaryCategories[0],
+  // Starts unselected: the previous default was an invented category that has no
+  // counterpart in the API taxonomy, so it could not have been submitted.
+  const [category, setCategory] = useState(initialValue?.category ?? '');
+  const [categoryId, setCategoryId] = useState(initialValue?.categoryId);
+  const [subcategoryId, setSubcategoryId] = useState(initialValue?.subcategoryId);
+  const [otherSubcategoryName, setOtherSubcategoryName] = useState(
+    initialValue?.otherSubcategoryName,
   );
   const [specialties, setSpecialties] = useState<string[]>(
-    initialValue?.specialties ?? ['Grill & Steakhouse', 'Bistro & Cafe'],
+    initialValue?.specialties ?? [],
   );
   const [description, setDescription] = useState(
     initialValue?.description ??
@@ -74,26 +81,47 @@ export function BusinessProfileBasicInfoScreen({
 
   const handleBack = useCallback(() => onBack?.(), [onBack]);
 
-  const onToggleSpecialty = useCallback((label: string) => {
-    setSpecialties(current => {
-      if (current.includes(label)) {
-        return current.filter(item => item !== label);
-      }
-      if (current.length >= SPECIALTY_MAX) {
-        return current;
-      }
-      return [...current, label];
-    });
-  }, []);
-
-  const onSelectCategory = useCallback((option: string) => {
-    setCategory(option);
-    setCategorySheetOpen(false);
-  }, []);
+  const onPickCategory = useCallback(
+    (selection: {
+      categoryId: string;
+      categoryName: string;
+      subcategoryId?: string;
+      subcategoryName?: string;
+      otherSubcategoryName?: string;
+    }) => {
+      setCategory(selection.categoryName);
+      setCategoryId(selection.categoryId);
+      setSubcategoryId(selection.subcategoryId);
+      setOtherSubcategoryName(selection.otherSubcategoryName);
+      setSpecialties(
+        [selection.subcategoryName, selection.otherSubcategoryName].filter(
+          (choice): choice is string => Boolean(choice),
+        ),
+      );
+      setCategorySheetOpen(false);
+    },
+    [],
+  );
 
   const value = useMemo<BusinessBasicInfoValue>(
-    () => ({ name, category, specialties, description }),
-    [category, description, name, specialties],
+    () => ({
+      name,
+      category,
+      categoryId,
+      subcategoryId,
+      otherSubcategoryName,
+      specialties,
+      description,
+    }),
+    [
+      category,
+      categoryId,
+      description,
+      name,
+      otherSubcategoryName,
+      specialties,
+      subcategoryId,
+    ],
   );
 
   const specialtiesSubtitle =
@@ -161,6 +189,7 @@ export function BusinessProfileBasicInfoScreen({
             <FieldSelect
               label={copy.basicInfo.categoryLabel}
               value={category}
+              placeholder={copy.basicInfo.categoryPlaceholder}
               accessibilityLabel={copy.basicInfo.categoryLabel}
               onPress={() => setCategorySheetOpen(true)}
               tone="lowest"
@@ -180,21 +209,28 @@ export function BusinessProfileBasicInfoScreen({
                   {copy.basicInfo.specialtyHint}
                 </VemtapText>
               </View>
-              <VemtapText variant="caption" className="font-sans-semibold text-primary">
-                {specialties.length} / {SPECIALTY_MAX} selected
+              <TextActionButton
+                label={copy.basicInfo.changeCategory}
+                onPress={() => setCategorySheetOpen(true)}
+              />
+            </View>
+            {specialties.length > 0 ? (
+              <View className="flex-row flex-wrap gap-2 pt-0.5">
+                {specialties.slice(0, SPECIALTY_MAX).map((option: string) => (
+                  <SelectableChip
+                    key={option}
+                    label={option}
+                    selected
+                    showCheck
+                    onPress={() => setCategorySheetOpen(true)}
+                  />
+                ))}
+              </View>
+            ) : (
+              <VemtapText variant="caption" tone="tertiary" className="px-1">
+                {category ? copy.basicInfo.specialtyEmpty : copy.basicInfo.categoryFirst}
               </VemtapText>
-            </View>
-            <View className="flex-row flex-wrap gap-2 pt-0.5">
-              {subcategorySpecialties.map(option => (
-                <SelectableChip
-                  key={option}
-                  label={option}
-                  selected={specialties.includes(option)}
-                  showCheck
-                  onPress={() => onToggleSpecialty(option)}
-                />
-              ))}
-            </View>
+            )}
           </View>
 
           <View className="gap-1.5">
@@ -262,36 +298,17 @@ export function BusinessProfileBasicInfoScreen({
         </View>
       </View>
 
-      <BottomSheet
-        visible={categorySheetOpen}
-        onClose={() => setCategorySheetOpen(false)}
-        title={copy.basicInfo.categoryLabel}
-      >
-        <ScrollView className="pb-2" contentContainerClassName="gap-1 px-6">
-          {primaryCategories.map(option => {
-            const selected = option === category;
-            return (
-              <Pressable
-                key={option}
-                accessibilityRole="radio"
-                accessibilityState={{ selected }}
-                accessibilityLabel={option}
-                onPress={() => onSelectCategory(option)}
-                className="min-h-[52px] flex-row items-center justify-between gap-3 rounded-field px-3 active:bg-surface-container-low"
-              >
-                <VemtapText variant="bodyMd" className="min-w-0 flex-1 text-text">
-                  {option}
-                </VemtapText>
-                {selected ? (
-                  <View className="h-5 w-5 items-center justify-center rounded-full bg-primary">
-                    <Icon name="check" size={14} color={colors.surface} />
-                  </View>
-                ) : null}
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-      </BottomSheet>
+      {/* Mounted only while open so the taxonomy query does not run on a screen
+          that has not asked for it. BottomSheet still animates its own exit,
+          because the sheet unmounts only after the close animation finishes. */}
+      {categorySheetOpen ? (
+        <BusinessCategoryPickerSheet
+          categoryId={categoryId}
+          subcategoryId={subcategoryId}
+          onSelect={onPickCategory}
+          onClose={() => setCategorySheetOpen(false)}
+        />
+      ) : null}
     </SafeAreaView>
   );
 }

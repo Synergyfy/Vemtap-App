@@ -50,6 +50,10 @@ export const businessProfileCopy = {
     nameLabel: 'Business Name',
     namePlaceholder: 'e.g. Oak Street Market',
     categoryLabel: 'Primary Category (Required)',
+    categoryPlaceholder: 'Choose a category',
+    changeCategory: 'Change',
+    categoryFirst: 'Pick a category first to choose a specialty.',
+    specialtyEmpty: 'No specialty selected yet.',
     categoryHint:
       'Helps assign your store to the right category carousel on nearby feeds.',
     specialtyLabel: 'Subcategory Specialty',
@@ -277,4 +281,26 @@ export const businessCatalogCopy = {
   addAnother: '+ Add Another Item or Menu Bundle',
   continue: 'Continue to First Deal Setup',
   skip: "Skip for now, I'll add items later",
+} as const;
+
+/**
+ * Copy for the live category picker. The labels the screens offer come from the
+ * API's taxonomy, so only the surrounding chrome is written here.
+ */
+export const businessCategoryCopy = {
+  title: 'Choose Your Category',
+  categoryLabel: 'Primary Category',
+  subcategoryLabel: 'Subcategory Specialty',
+  limitHint: (limit: number) => `Select up to ${limit}`,
+  pickCategoryFirst: 'Pick a category to see its specialties.',
+  noSubcategories: 'This category has no specialties yet.',
+  confirm: 'Save Category',
+  loading: 'Loading categories…',
+  emptyTitle: 'No categories available',
+  emptyBody: 'Categories could not be loaded. Check your connection and try again.',
+  errorTitle: 'Could not load categories',
+  errorBody: 'Something went wrong fetching the category list.',
+  retry: 'Try again',
+  summary: (category: string, specialties: string) =>
+    specialties ? `${category} • ${specialties}` : category,
 } as const;

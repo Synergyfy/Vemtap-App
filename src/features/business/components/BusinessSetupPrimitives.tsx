@@ -514,6 +514,8 @@ export function FieldInput({
 export interface FieldSelectProps {
   label?: string;
   value: string;
+  /** Rendered when `value` is empty; see BusinessSelectFieldProps. */
+  placeholder?: string;
   onPress: () => void;
   accessibilityLabel: string;
   tone?: 'subtle' | 'lowest';
@@ -525,6 +527,7 @@ export interface FieldSelectProps {
 export function FieldSelect({
   label,
   value,
+  placeholder,
   onPress,
   accessibilityLabel,
   tone = 'subtle',
@@ -535,6 +538,7 @@ export function FieldSelect({
     <BusinessSelectField
       label={label}
       value={value}
+      placeholder={placeholder}
       onPress={onPress}
       accessibilityLabel={accessibilityLabel}
       leadingIcon={leadingIcon}

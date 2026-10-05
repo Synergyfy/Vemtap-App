@@ -38,6 +38,19 @@ export interface BrandingDraft {
   specialtyNames?: string[];
 }
 
+/**
+ * Ids straight from the category picker. Preferred over resolving by name,
+ * because it removes the fictional-taxonomy problem entirely.
+ */
+export interface CategorySelection {
+  categoryId: string;
+  categoryName: string;
+  subcategoryId?: string;
+  subcategoryName?: string;
+  /** Second specialty: the API can only accept this one as free text. */
+  otherSubcategoryName?: string;
+}
+
 /** Values as emitted by BusinessProfileContactChannelsScreen. */
 export interface ContactChannelsDraft {
   email: string;
@@ -61,6 +74,11 @@ export interface BusinessProfileDraft {
   branding: BrandingDraft;
   contact: ContactChannelsDraft;
   location: LocationDraft;
+  /**
+   * Present once the picker has been used. When set, the ids come straight from
+   * the API taxonomy and name resolution is skipped entirely.
+   */
+  category?: CategorySelection;
 }
 
 /** The part of the payload that registration accepts. */
@@ -125,7 +143,16 @@ export function mapDraftToOwnerRegistration(
   draft: BusinessProfileDraft,
   categories: Category[],
 ): MappedOwnerRegistration {
-  const category = findCategory(draft.basic.category, categories);
+  // A picker selection is already API-sourced, so prefer it; otherwise fall back
+  // to resolving the drafted name against the real taxonomy.
+  const category = draft.category
+    ? (categories.find(item => item.id === draft.category?.categoryId) ??
+      ({
+        id: draft.category.categoryId,
+        name: draft.category.categoryName,
+        subcategories: [],
+      } as Category))
+    : findCategory(draft.basic.category, categories);
 
   if (!category) {
     throw new UnresolvableCategoryError(
@@ -134,9 +161,15 @@ export function mapDraftToOwnerRegistration(
     );
   }
 
-  const subcategoryId = category.subcategories.find(
-    sub => normalize(sub.name) === normalize(draft.branding.specialtyNames?.[0] ?? ''),
-  )?.id;
+  const subcategoryId =
+    draft.category?.subcategoryId ??
+    category.subcategories.find(
+      sub => normalize(sub.name) === normalize(draft.branding.specialtyNames?.[0] ?? ''),
+    )?.id;
+
+  // The API takes one subcategory id; a second specialty can only travel as text.
+  const otherSubcategoryName =
+    draft.category?.otherSubcategoryName ?? draft.branding.specialtyNames?.[1];
 
   const engagement: Record<string, string> = { ...draft.contact.socials };
   // Only send socials that actually carry a value, so the API does not store blanks.
@@ -148,7 +181,7 @@ export function mapDraftToOwnerRegistration(
     businessName: draft.basic.name,
     categoryId: category.id,
     subcategoryId,
-    otherSubcategoryName: undefined,
+    otherSubcategoryName,
     businessLogo: draft.branding.logoUrl,
     whatsappNumber: draft.contact.whatsappNumber,
     officialEmail: draft.contact.email,
@@ -171,7 +204,7 @@ export function mapDraftToOwnerRegistration(
     payload,
     deferred: { description: draft.basic.description },
     unresolved: {
-      category: draft.basic.category,
+      category: draft.category?.categoryName ?? draft.basic.category,
       specialties: resolveSpecialties(draft.basic.specialties, category),
     },
   };

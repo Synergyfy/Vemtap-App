@@ -34,14 +34,21 @@ describe('business intro, profile and location screens', () => {
     const view = await render(<BusinessProfileBasicInfoScreen onContinue={onContinue} />);
 
     expect(view.getByText(businessProfileCopy.basicInfo.title)).toBeTruthy();
-    expect(view.getByText('2 / 2 selected')).toBeTruthy();
-    expect(view.getByText('Grill & Steakhouse • Bistro & Cafe')).toBeTruthy();
+    // Nothing is pre-selected: the old defaults were invented categories with no
+    // counterpart in the API taxonomy, so they could never have been submitted.
+    expect(
+      view.getByText(businessProfileCopy.basicInfo.categoryPlaceholder),
+    ).toBeTruthy();
+    expect(view.getByText(businessProfileCopy.basicInfo.categoryFirst)).toBeTruthy();
+    expect(
+      view.getByText(businessProfileCopy.basicInfo.previewEmptySubtitle),
+    ).toBeTruthy();
 
     await act(async () => {
       fireEvent.press(view.getByText('Continue to Branding'));
     });
     expect(onContinue).toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'Urban Grill & Bistro' }),
+      expect.objectContaining({ name: 'Urban Grill & Bistro', categoryId: undefined }),
     );
   });
 
