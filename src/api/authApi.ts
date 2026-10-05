@@ -1,4 +1,11 @@
 import { z } from 'zod';
+import {
+  nullableFlag,
+  nullableRelation,
+  nullableStringArray,
+  nullableText,
+  nullableTimestamp,
+} from '@api/schemaHelpers';
 import { createIdempotencyKey, request, requestValidated } from '@api/client';
 import type { ApiRequestOptions } from '@app-types/api';
 
@@ -31,29 +38,53 @@ export const registerInputSchema = z.object({
 });
 
 /** `User` DTO. Only the fields the app reads are required; the API sends "" for unset ones. */
+/**
+ * The `User` entity.
+ *
+ * Fields the API's `User` DTO marks nullable are coerced rather than defaulted:
+ * the database columns are genuinely null and the API sends an explicit `null`,
+ * which `z.string().default('')` rejects (a default only fills an *absent* key).
+ * Required columns — `email`, `firstName`, `lastName`, `role`, `status`,
+ * `authProvider` — stay strict, so a genuinely malformed user still fails.
+ */
 export const userSchema = z.object({
+  // Required by the API; kept strict so real contract breaks are caught.
   email: z.string(),
   firstName: z.string().default(''),
   lastName: z.string().default(''),
   role: z.string().default('customer'),
-  roleTag: z.string().default(''),
   status: z.string().default(''),
-  uniqueCode: z.string().default(''),
-  referralCode: z.string().default(''),
-  avatar: z.string().default(''),
-  phone: z.string().default(''),
-  jobTitle: z.string().default(''),
-  authProvider: z.string().default(''),
-  googleId: z.string().default(''),
-  businessId: z.string().default(''),
-  branchId: z.string().default(''),
-  lastActive: z.string().default(''),
-  isPasswordChanged: z.boolean().default(false),
-  twoFactorEnabled: z.boolean().default(false),
-  optOut: z.boolean().default(false),
-  permissions: z.array(z.string()).default([]),
-  optInChannels: z.array(z.string()).default([]),
-  pushToken: z.unknown().optional(),
+  authProvider: z.string().default('customer'),
+
+  // Nullable columns.
+  roleTag: nullableText(),
+  uniqueCode: nullableText(),
+  referralCode: nullableText(),
+  avatar: nullableText(),
+  phone: nullableText(),
+  jobTitle: nullableText(),
+  googleId: nullableText(),
+  businessId: nullableText(),
+  branchId: nullableText(),
+  lastActive: nullableTimestamp(),
+  twoFactorSecret: nullableText(),
+
+  // Nullable flags and arrays.
+  isPasswordChanged: nullableFlag(false),
+  twoFactorEnabled: nullableFlag(false),
+  optOut: nullableFlag(false),
+  emailVerified: nullableFlag(false),
+  permissions: nullableStringArray(),
+  optInChannels: nullableStringArray(),
+
+  /**
+   * `business` / `branch` are full entities the API embeds when it wants to,
+   * and omits otherwise. The app does not read them — it uses `businessId` /
+   * `branchId` and fetches the entity from its own endpoint — so they stay loose
+   * rather than being pinned to a schema that would reject a partial relation.
+   */
+  business: nullableRelation(z.record(z.string(), z.unknown())),
+  branch: nullableRelation(z.record(z.string(), z.unknown())),
 });
 
 export const sessionSchema = z.object({

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { requestValidated } from '@api/client';
+import { nullableFlag } from '@api/schemaHelpers';
 import type { ApiRequestOptions } from '@app-types/api';
 
 /**
@@ -26,7 +27,7 @@ export type NamedCategory = z.infer<typeof namedCategorySchema>;
 export const openingHoursDaySchema = z.object({
   from: z.string().nullish(),
   to: z.string().nullish(),
-  isClosed: z.boolean().default(false),
+  isClosed: nullableFlag(false),
 });
 export type OpeningHoursDay = z.infer<typeof openingHoursDaySchema>;
 
@@ -82,10 +83,10 @@ export const businessProfileSchema = z.object({
   uniqueCode: z.string(),
   name: z.string(),
   status: z.string(),
-  isRegistered: z.boolean().default(false),
-  isVerified: z.boolean().default(false),
+  isRegistered: nullableFlag(false),
+  isVerified: nullableFlag(false),
   verifiedAt: z.string().nullish(),
-  isVisible: z.boolean().default(true),
+  isVisible: nullableFlag(true),
 
   category: namedCategorySchema.nullish(),
   categoryId: z.string().nullish(),
@@ -131,7 +132,7 @@ export const publicBusinessSummarySchema = z.object({
   city: z.string().nullish(),
   categoryId: z.string().nullish(),
   categoryName: z.string().nullish(),
-  isVerified: z.boolean().default(false),
+  isVerified: nullableFlag(false),
   /** URL slug here — NOT the uniqueCode. */
   slug: z.string().nullish(),
   /** The 9-character branch code, which is not the business uniqueCode. */

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { nullableFlag } from '@api/schemaHelpers';
 import { requestValidated } from '@api/client';
 import type { ApiRequestOptions } from '@app-types/api';
 
@@ -57,7 +58,7 @@ export const catalogueItemSchema = z.object({
   bookingMethod: z.string().nullable().optional(),
   externalBookingLink: z.string().nullable().optional(),
   allowBackOrder: z.boolean().nullish(),
-  isSuspended: z.boolean().default(false),
+  isSuspended: nullableFlag(false),
   loyaltyPoints: z.number().nullish(),
 });
 export type CatalogueItem = z.infer<typeof catalogueItemSchema>;
@@ -71,7 +72,7 @@ export const catalogueItemFeedSchema = z.object({
   cursor: z.string().nullish(),
   nextCursor: z.string().nullish(),
   prevCursor: z.string().nullish(),
-  hasNextPage: z.boolean().default(false),
+  hasNextPage: nullableFlag(false),
 });
 export type CatalogueItemFeed = z.infer<typeof catalogueItemFeedSchema>;
 
@@ -82,8 +83,8 @@ export const publishedProductFeedSchema = z.object({
   page: z.number().nullish(),
   limit: z.number().nullish(),
   totalPages: z.number().nullish(),
-  hasNextPage: z.boolean().default(false),
-  hasPrevPage: z.boolean().default(false),
+  hasNextPage: nullableFlag(false),
+  hasPrevPage: nullableFlag(false),
 });
 
 /** Categories arrive as a bare array, not wrapped. */
@@ -131,8 +132,8 @@ export const businessCatalogueFeedSchema = z.object({
   page: z.number().nullish(),
   limit: z.number().nullish(),
   totalPages: z.number().nullish(),
-  hasNextPage: z.boolean().default(false),
-  hasPrevPage: z.boolean().default(false),
+  hasNextPage: nullableFlag(false),
+  hasPrevPage: nullableFlag(false),
 });
 export type BusinessCatalogueFeed = z.infer<typeof businessCatalogueFeedSchema>;
 

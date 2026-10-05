@@ -17,6 +17,7 @@
  * hermetic and offline.
  */
 import { authApi, customerAuthApi } from '@api/authApi';
+import { setTokenPair } from '@utils/secureStorage';
 import { ApiError } from '@api/ApiError';
 
 const LIVE = process.env.LIVE_API_TESTS === '1';
@@ -132,6 +133,41 @@ describeLive('customer auth — live contract', () => {
 
       expect(error).toBeInstanceOf(ApiError);
       expect((error as ApiError).status).toBe(400);
+    });
+  });
+
+  describe('POST /auth/login — authenticated session', () => {
+    /**
+     * Runs only when real credentials are supplied, because this is the branch
+     * that previously failed in the app: the API answered 200 with a valid token
+     * and a user whose nullable columns were all explicit nulls, which the
+     * schema rejected. Supplying credentials here is the only way to keep that
+     * path covered by a live test rather than only by the fixture regression.
+     */
+    const identifier = process.env.LIVE_TEST_IDENTIFIER;
+    const password = process.env.LIVE_TEST_PASSWORD;
+    const runIfCreds = identifier && password ? it : it.skip;
+
+    runIfCreds('parses the session the app stores', async () => {
+      const session = await authApi.login({ identifier, password });
+
+      expect(session.access_token).toBeTruthy();
+      expect(session.user.email).toBeTruthy();
+      // Nullable columns must arrive coerced, never as null, because screens
+      // render them directly.
+      expect(session.user.phone).not.toBeNull();
+      expect(session.user.permissions).toEqual(expect.any(Array));
+    });
+
+    runIfCreds('fetches the profile with the session token', async () => {
+      const session = await authApi.login({ identifier, password });
+      // The client reads the bearer token from secure storage, so storing it the
+      // way the app does exercises the same path rather than a shortcut.
+      await setTokenPair({ accessToken: session.access_token });
+
+      const profile = await authApi.fetchProfile();
+
+      expect(profile.email).toBe(session.user.email);
     });
   });
 

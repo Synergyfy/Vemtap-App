@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { request, requestValidated } from '@api/client';
+import { nullableFlag } from '@api/schemaHelpers';
 import type { ApiRequestOptions } from '@app-types/api';
 
 /** Cursor pagination inputs shared by the list endpoints. */
@@ -84,7 +85,7 @@ export const offerSchema = z.object({
   remainingLimit: z.number().nullable().optional(),
   startDate: z.string().nullable().optional(),
   endDate: z.string().nullable().optional(),
-  isExpired: z.boolean().default(false),
+  isExpired: nullableFlag(false),
   maxClaimsPerCustomer: z.number().nullable().optional(),
   audienceTarget: z.string().nullable().optional(),
   terms: z.array(z.unknown()).default([]),
@@ -101,7 +102,7 @@ export const offerFeedSchema = z.object({
   cursor: z.string().nullable().optional(),
   nextCursor: z.string().nullable().optional(),
   prevCursor: z.string().nullable().optional(),
-  hasNextPage: z.boolean().default(false),
+  hasNextPage: nullableFlag(false),
 });
 export type OfferFeed = z.infer<typeof offerFeedSchema>;
 
@@ -123,7 +124,7 @@ export const publicBusinessSchema = z.object({
   city: z.string().nullable().optional(),
   categoryId: z.string().nullable().optional(),
   categoryName: z.string().nullable().optional(),
-  isVerified: z.boolean().default(false),
+  isVerified: nullableFlag(false),
   slug: z.string().nullable().optional(),
   branchCode: z.string().nullable().optional(),
 });
