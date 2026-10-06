@@ -499,6 +499,18 @@ export const strings = {
       enterCode: 'Enter 6-digit authorization code',
       resendCode: 'Resend code',
       verifyContinue: 'Verify & Continue',
+      /**
+       * New copy for the self-claim path. The recipient sentences were inline in
+       * the component; they now live here so both flows share one source.
+       */
+      verifyRecipientBody: () => 'We sent a verification code to',
+      verifySelfTitle: 'Verify your claim',
+      verifySelfHeading: 'Confirm it is you',
+      verifySelfBody: () => 'We sent a claim code to',
+      selfClaimIdentityTitle: 'Your details',
+      selfClaimIdentitySub: 'We email your claim code here',
+      enterCodeRange: 'Enter the 4–6 digit code',
+      claimCodeSentTo: (email: string) => `Code sent to ${email}`,
       backRecipient: 'Back to recipient details',
       recipientConfirmed: 'Recipient Confirmed',
       recipientSummary: 'Confirm Recipient Summary',

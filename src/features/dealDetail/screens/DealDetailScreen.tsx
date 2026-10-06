@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -27,6 +27,7 @@ import { strings } from '@constants/strings';
 import { navbarBottomShadow } from '@theme/shadows';
 import type { AppStackParamList } from '@navigation/types';
 import { useDealDetail } from '@features/dealDetail/hooks/useDealDetail';
+import { useOfferClaim } from '@features/dealDetail/hooks/useOfferClaim';
 import { LoadingState } from '@components/shared/LoadingState';
 import { EmptyState } from '@components/shared/EmptyState';
 import { businesses } from '@features/discover/data/discoverData';
@@ -47,6 +48,8 @@ type ClaimFlowStep =
   | 'recipient'
   | 'verification'
   | 'summary'
+  | 'selfIdentity'
+  | 'selfVerification'
   | 'gift'
   | 'giftConfirm'
   | 'terms'
@@ -105,6 +108,16 @@ export function DealDetailScreen({ route, navigation }: Props) {
   // presenting invented prices as if they were the merchant's.
   const detail = useDealDetail(route.params.dealId);
   const deal = detail.status === 'resolved' ? detail.deal : undefined;
+
+  /**
+   * Only a real offer can be claimed: the claim endpoints are keyed by offer UUID
+   * and the app's fictional deals do not exist server-side.
+   */
+  const isLiveOffer =
+    deal?.businessCode !== undefined &&
+    !deal.id.startsWith('urban-grill') &&
+    !deal.id.startsWith('glow-');
+  const claim = useOfferClaim(route.params.dealId);
 
   /**
    * The fictional Discover businesses are reached by id prefix. A real offer has
@@ -178,11 +191,39 @@ export function DealDetailScreen({ route, navigation }: Props) {
     setClaimStep('confirmation');
   }, [claimed, route.params.dealId, navigation]);
 
+  /**
+   * Marks the offer claimed. For a real offer this only proceeds once the API
+   * has verified the emailed code and issued a claim code — previously it set the
+   * flag unconditionally, so a user could "claim" a promotion that was never
+   * issued.
+   */
   const completeClaim = useCallback(() => {
+    const verified = claim.status.phase === 'claimed';
+    if (isLiveOffer && !verified) {
+      setClaimStep('selfIdentity');
+      return;
+    }
     setClaimed(true);
     setClaimStep(null);
-    navigation.navigate('DealClaimedSuccess', { dealId: route.params.dealId });
-  }, [route.params.dealId, navigation]);
+    navigation.navigate('DealClaimedSuccess', {
+      dealId: route.params.dealId,
+      claimCode:
+        verified && claim.status.phase === 'claimed' ? claim.status.claimCode : undefined,
+    });
+  }, [isLiveOffer, claim.status, route.params.dealId, navigation]);
+
+  // A verified code is the success moment for a real claim; there is nothing
+  // left for the user to confirm afterwards.
+  useEffect(() => {
+    if (claim.status.phase === 'claimed') {
+      setClaimed(true);
+      setClaimStep(null);
+      navigation.navigate('DealClaimedSuccess', {
+        dealId: route.params.dealId,
+        claimCode: claim.status.claimCode,
+      });
+    }
+  }, [claim.status, navigation, route.params.dealId]);
 
   // Loading, gone, or broken: say so instead of inventing an offer to fill the
   // page. These branches come after every hook so hook order never changes.
@@ -530,6 +571,14 @@ export function DealDetailScreen({ route, navigation }: Props) {
         visible={claimStep === 'identity'}
         onClose={() => setClaimStep(null)}
         onForMe={() => {
+          // A real offer goes through the real OTP flow: the API only issues a
+          // claim once an emailed code is verified. Fictional deals have no server
+          // record to claim, so they keep the local walkthrough.
+          if (isLiveOffer) {
+            claim.reset();
+            setClaimStep('selfIdentity');
+            return;
+          }
           setClaimingAs('john@email.com');
           setClaimStep('terms');
         }}
@@ -545,6 +594,40 @@ export function DealDetailScreen({ route, navigation }: Props) {
           setRecipient(data);
           setClaimingAs(data.email);
           setClaimStep('verification');
+        }}
+      />
+      <RecipientDetailsSheet
+        visible={claimStep === 'selfIdentity'}
+        onClose={() => setClaimStep(null)}
+        onBack={() => setClaimStep('identity')}
+        title={strings.deals.claimFlow.selfClaimIdentityTitle}
+        onContinue={async data => {
+          setRecipient(data);
+          setClaimingAs(data.email);
+          await claim.requestCode(data);
+          setClaimStep('selfVerification');
+        }}
+      />
+      <RecipientVerificationSheet
+        visible={claimStep === 'selfVerification'}
+        onClose={() => setClaimStep(null)}
+        onBack={() => setClaimStep('selfIdentity')}
+        email={recipient.email}
+        title={strings.deals.claimFlow.verifySelfTitle}
+        heading={strings.deals.claimFlow.verifySelfHeading}
+        bodyCopy={strings.deals.claimFlow.verifySelfBody}
+        codeHint={strings.deals.claimFlow.enterCodeRange}
+        submitLabel={strings.deals.claimFlow.verifyContinue}
+        // The claim OTP is 4–6 characters, verified live, so the field must not
+        // insist on the recipient flow's fixed six.
+        minimumDigits={4}
+        busy={claim.status.phase === 'verifying'}
+        errorMessage={claim.status.phase === 'error' ? claim.status.message : undefined}
+        // Optional on the sheet: when `onSubmitCode` is supplied it replaces
+        // `onContinue`, so this is intentionally unused.
+        onContinue={() => undefined}
+        onSubmitCode={async codeText => {
+          await claim.submitCode(codeText);
         }}
       />
       <RecipientVerificationSheet

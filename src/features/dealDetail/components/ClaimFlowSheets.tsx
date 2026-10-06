@@ -362,11 +362,18 @@ export function RecipientDetailsSheet({
   onClose,
   onContinue,
   onBack,
+  title,
 }: {
   visible: boolean;
   onClose: () => void;
   onContinue: (data: RecipientData) => void;
   onBack: () => void;
+  /**
+   * Overrides the "claim for someone else" heading. The self-claim flow collects
+   * exactly the same fields the API needs (name, email, phone), so the sheet is
+   * reused with its own wording rather than forked into a near-duplicate.
+   */
+  title?: string;
 }) {
   const [data, setData] = useState<RecipientData>({
     firstName: '',
@@ -380,7 +387,7 @@ export function RecipientDetailsSheet({
     <BottomSheet
       visible={visible}
       onClose={onClose}
-      title={strings.deals.claimFlow.claimSomeoneElse}
+      title={title ?? strings.deals.claimFlow.claimSomeoneElse}
       titleVariant="headingLg"
     >
       <ScrollView
@@ -457,14 +464,50 @@ export function RecipientVerificationSheet({
   onContinue,
   onBack,
   email,
+  title,
+  codeHint,
+  minimumDigits,
+  onSubmitCode,
+  submitLabel,
+  busy,
+  errorMessage,
+  heading,
+  bodyCopy,
 }: {
   visible: boolean;
   onClose: () => void;
   onContinue: () => void;
   onBack: () => void;
   email: string;
+  /** Overrides the "Recipient Verification" heading for other claim paths. */
+  title?: string;
+  /** Overrides the "Enter 6-digit authorization code" hint. */
+  codeHint?: string;
+  /**
+   * How many characters must be entered before continuing.
+   *
+   * Default 6 for the recipient flow. Promotion claims accept **4–6** — verified
+   * live: a 3-character code is rejected on length and a 7-character one too —
+   * so the self-claim path passes 4 and the user can continue on either length.
+   */
+  minimumDigits?: number;
+  /**
+   * Receives the entered code. When given it takes precedence over
+   * `onContinue`, so a screen can verify against the API instead of advancing.
+   */
+  onSubmitCode?: (code: string) => void;
+  submitLabel?: string;
+  busy?: boolean;
+  errorMessage?: string;
+  /** Overrides the "Verify recipient's email" heading. */
+  heading?: string;
+  /** Overrides the explanatory sentence under the heading. */
+  bodyCopy?: (email: string) => string;
 }) {
   const [code, setCode] = useState(['', '', '', '', '', '']);
+  const enteredCount = code.filter(Boolean).length;
+  /** Gaps are not allowed: a code must be a contiguous prefix. */
+  const requiredDigits = Math.max(1, minimumDigits ?? code.length);
   const otpKeys = [
     'digit-one',
     'digit-two',
@@ -483,7 +526,7 @@ export function RecipientVerificationSheet({
     <BottomSheet
       visible={visible}
       onClose={onClose}
-      title={strings.deals.claimFlow.recipientVerification}
+      title={title ?? strings.deals.claimFlow.recipientVerification}
       titleVariant="headingLg"
     >
       <ScrollView
@@ -492,14 +535,13 @@ export function RecipientVerificationSheet({
         showsVerticalScrollIndicator={false}
       >
         <VemtapText variant="headingXl" className="text-heading-xl text-text">
-          {strings.deals.claimFlow.verifyRecipient}
+          {heading ?? strings.deals.claimFlow.verifyRecipient}
         </VemtapText>
         <VemtapText variant="bodyMd" tone="secondary" className="mt-2">
-          We sent a 6-digit verification code to{' '}
+          {(bodyCopy ?? strings.deals.claimFlow.verifyRecipientBody)(email)}{' '}
           <VemtapText className="font-sans-semibold text-text">
             {email || 'recipient@example.com'}
-          </VemtapText>{' '}
-          to confirm their identity for this claim voucher.
+          </VemtapText>
         </VemtapText>
         <Pressable accessibilityRole="button" style={styles.changeEmail}>
           <Icon name="edit" size={14} color={colors.primary} />
@@ -508,7 +550,7 @@ export function RecipientVerificationSheet({
           </VemtapText>
         </Pressable>
         <VemtapText variant="labelSm" tone="secondary" className="mt-5 uppercase">
-          {strings.deals.claimFlow.enterCode}
+          {codeHint ?? strings.deals.claimFlow.enterCode}
         </VemtapText>
         <View style={styles.otpRow}>
           {code.map((digit, index) => (
@@ -539,10 +581,31 @@ export function RecipientVerificationSheet({
             registering the redemption voucher directly under their name.
           </VemtapText>
         </View>
+        {errorMessage ? (
+          <View style={styles.infoCard}>
+            <Icon name="info" size={18} color={colors.error} />
+            <VemtapText
+              accessibilityRole="alert"
+              variant="caption"
+              tone="secondary"
+              className="flex-1"
+            >
+              {errorMessage}
+            </VemtapText>
+          </View>
+        ) : null}
         <Button
-          label={strings.deals.claimFlow.verifyContinue}
+          label={submitLabel ?? strings.deals.claimFlow.verifyContinue}
+          loading={busy}
+          disabled={busy || enteredCount < requiredDigits}
           rightIcon={<Icon name="arrowForward" size={18} color={colors.surface} />}
-          onPress={onContinue}
+          onPress={() => {
+            if (onSubmitCode) {
+              onSubmitCode(code.join(''));
+              return;
+            }
+            onContinue();
+          }}
         />
         <Pressable
           accessibilityRole="button"

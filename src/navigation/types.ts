@@ -354,7 +354,15 @@ export type AppStackParamList = {
   DealDetail: { dealId: string };
   DealTermsConditions: { dealId: string };
   HowToClaim: { dealId: string };
-  DealClaimedSuccess: { dealId: string };
+  DealClaimedSuccess: {
+    dealId: string;
+    /**
+     * The claim code the API issued. Absent for the app's fictional deals, which
+     * have no server-side claim — the success screen then omits the code rather
+     * than showing a placeholder.
+     */
+    claimCode?: string;
+  };
   MyClaimedDeal: { dealId: string };
   MerchantChat: { dealId: string };
   GiftDealSentSuccess: {
