@@ -329,6 +329,24 @@ export const strings = {
     tabAccount: 'Account',
     avatar: 'Account avatar',
   },
+  search: {
+    /**
+     * New copy. The Stitch spec has no search-results state for Home — the mock
+     * screens only ever show the search bar and the sections below it — so this
+     * group is new, following the precedent of `home.empty*` above.
+     *
+     * The deals group heading reuses `deals.caption` rather than repeating the
+     * word; only the business heading had no existing equivalent.
+     */
+    businesses: 'Businesses',
+    emptyTitle: 'No results found',
+    emptyBody: 'Try a different search term, or pick one of the categories above.',
+    /**
+     * Shown while the debounced request is in flight. The spec has no such state
+     * either, so this is the same situation as the empty copy above.
+     */
+    searching: 'Searching…',
+  },
   homeLocation: {
     title: 'Location & Radius',
     subtitle: 'Set your area to discover local Abuja deals',
