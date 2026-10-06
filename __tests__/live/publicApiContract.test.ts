@@ -23,6 +23,7 @@
 import { ownerAuthApi, isOtpVerifiedError } from '@api/ownerAuthApi';
 import { categoriesApi } from '@api/categoriesApi';
 import { dealsApi } from '@api/dealsApi';
+import { publicBusinessApi } from '@api/publicBusinessApi';
 import { areaCoords } from '@constants/locations';
 import { ApiError } from '@api/ApiError';
 
@@ -133,6 +134,89 @@ describeLive('public API — live contract', () => {
 
       expect(empty.data).toEqual([]);
       expect(empty.total).toBe(0);
+    });
+  });
+
+  describe('GET /catalogue/offers/public/details/:id', () => {
+    /**
+     * The feed's own first offer, so this reads whatever the server currently
+     * has rather than a hardcoded id that may be deleted later.
+     */
+    const liveOffer = async () => {
+      const feed = await dealsApi.listPublicOffers({ limit: 1, radius: 50 });
+      const offer = feed.data[0];
+      if (!offer) throw new Error('feed returned no offers to follow');
+      return offer;
+    };
+
+    it('returns a detail payload the deal page can render', async () => {
+      const offer = await liveOffer();
+      const detail = await dealsApi.getPublicOfferDetails(offer.id);
+
+      expect(detail.id).toBe(offer.id);
+      expect(detail.name).toBeTruthy();
+      expect(detail.business?.slug).toBeTruthy();
+      // The detail payload sends prices as strings while the feed sends
+      // numbers — the `money` union has to accept both or this fails.
+      expect(
+        detail.calculatedPrice === null || detail.calculatedPrice !== undefined,
+      ).toBe(true);
+    });
+
+    it('carries the fields the feed omits and the detail page needs', async () => {
+      const offer = await liveOffer();
+      const detail = await dealsApi.getPublicOfferDetails(offer.id);
+
+      // Present as keys (possibly falsy), which is what the schema must tolerate.
+      expect('endDate' in detail).toBe(true);
+      expect('longDescription' in detail).toBe(true);
+      expect('likesCount' in detail).toBe(true);
+      expect('isVerified' in (detail.business ?? {})).toBe(true);
+    });
+
+    it('reports an unknown offer as 404 rather than an empty payload', async () => {
+      const error = await dealsApi
+        .getPublicOfferDetails('00000000-0000-4000-8000-000000000000')
+        .catch((caught: unknown) => caught);
+
+      expect(error).toBeInstanceOf(ApiError);
+      expect((error as ApiError).status).toBe(404);
+    });
+
+    /**
+     * Locks in why callers must resolve fictional deals locally: a seed id is
+     * not an unknown offer, it is a validation error.
+     */
+    it('rejects a non-UUID id with 400, so seed ids must never be sent', async () => {
+      const error = await dealsApi
+        .getPublicOfferDetails('urban-grill-lunch')
+        .catch((caught: unknown) => caught);
+
+      expect(error).toBeInstanceOf(ApiError);
+      expect((error as ApiError).status).toBe(400);
+    });
+  });
+
+  describe('GET /public/businesses/code/:code', () => {
+    it('resolves the merchant behind a live offer', async () => {
+      const feed = await dealsApi.listPublicOffers({ limit: 1, radius: 50 });
+      const code = feed.data[0]?.business?.slug;
+      if (!code) throw new Error('feed offer carried no business code');
+
+      const business = await publicBusinessApi.getByCode(code);
+
+      expect(business.uniqueCode).toBe(code);
+      expect(business.name).toBeTruthy();
+      expect(typeof business.isVerified).toBe('boolean');
+    });
+
+    it('returns 404 for an unknown code', async () => {
+      const error = await publicBusinessApi
+        .getByCode('ZZZZZZZZZ')
+        .catch((caught: unknown) => caught);
+
+      expect(error).toBeInstanceOf(ApiError);
+      expect((error as ApiError).status).toBe(404);
     });
   });
 

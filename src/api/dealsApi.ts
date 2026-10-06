@@ -102,6 +102,88 @@ export const offerSchema = z.object({
 });
 export type Offer = z.infer<typeof offerSchema>;
 
+/**
+ * The business as it appears *inside* an offer. Deliberately separate from
+ * `offerBusinessSchema` (the feed's shape): this one carries `slug` — the
+ * 9-character code the public business endpoint is keyed by — plus
+ * `isVerified`, which the feed omits entirely.
+ */
+export const publicOfferBusinessSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  /** Unique 9-character code; the key for `GET /public/businesses/code/:code`. */
+  slug: z.string().nullable().optional(),
+  categoryId: z.string().nullable().optional(),
+  address: z.string().nullable().optional(),
+  city: z.string().nullable().optional(),
+  state: z.string().nullable().optional(),
+  latitude: z.number().nullable().optional(),
+  longitude: z.number().nullable().optional(),
+  phone: z.string().nullable().optional(),
+  isVerified: nullableFlag(false),
+});
+export type PublicOfferBusiness = z.infer<typeof publicOfferBusinessSchema>;
+
+/**
+ * The single-offer payload behind `GET /catalogue/offers/public/details/:id`.
+ *
+ * Richer than the feed row on purpose: the detail page needs `endDate`,
+ * `longDescription`, the engagement counts and `business.isVerified`, none of
+ * which the feed carries. Verified live, including two shape quirks worth
+ * remembering:
+ *
+ *  - Money arrives as **strings** here (`"200.00"`) while the feed sends
+ *    numbers, so every price field reuses the `money` union.
+ *  - `averageRating` is null until an offer has been reviewed.
+ *
+ * Fields we do not render are simply absent, and zod strips the rest — which
+ * matters here, because this public endpoint also returns `owner`, `balance`
+ * and `posSettings` that a consumer client has no business holding.
+ */
+export const publicOfferDetailSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string().nullable().optional(),
+  longDescription: z.string().nullable().optional(),
+  mainImage: z.string().nullable().optional(),
+  galleryImages: nullableArray(z.string()),
+  status: z.string(),
+  pricingType: z.string().nullable().optional(),
+  offerType: z.string().nullable().optional(),
+
+  // The detail payload names its prices differently from the feed.
+  calculatedPrice: money,
+  dealPrice: money,
+  originalPrice: money,
+  discountValue: money,
+  fixedPrice: money,
+  discountPercent: z.number().nullable().optional(),
+
+  startDate: z.string().nullable().optional(),
+  endDate: z.string().nullable().optional(),
+  isExpired: nullableFlag(false),
+  isFeatured: nullableFlag(false),
+  isTrending: nullableFlag(false),
+
+  items: nullableArray(offerItemSchema),
+  terms: nullableArray(z.unknown()),
+
+  claimedCount: nullableNumber(),
+  maxClaims: nullableNumber(),
+  maxClaimsPerCustomer: nullableNumber(),
+  likesCount: nullableNumber(),
+  dislikesCount: nullableNumber(),
+  reviewsCount: nullableNumber(),
+  averageRating: z.number().nullable().optional(),
+  views: nullableNumber(),
+  visits: nullableNumber(),
+
+  businessId: z.string().nullable().optional(),
+  branchId: z.string().nullable().optional(),
+  business: publicOfferBusinessSchema.nullable().optional(),
+});
+export type PublicOfferDetail = z.infer<typeof publicOfferDetailSchema>;
+
 /** The feed endpoint returns a cursor-paginated envelope. */
 export const offerFeedSchema = z.object({
   data: z.array(offerSchema),
@@ -182,6 +264,24 @@ export const dealsApi = {
         ...options,
       },
       offerFeedSchema,
+    );
+  },
+
+  /**
+   * A single offer by id. Public and unauthenticated.
+   *
+   * Verified live: a real UUID returns 200, an unknown UUID returns 404, and a
+   * non-UUID returns 400. That last case is why callers must resolve the
+   * screen's fictional deals locally and only reach for this on a miss —
+   * asking about `urban-grill-lunch` is a validation error, not a 404.
+   */
+  async getPublicOfferDetails(
+    offerId: string,
+    options: ApiRequestOptions = {},
+  ): Promise<PublicOfferDetail> {
+    return requestValidated<PublicOfferDetail>(
+      { method: 'GET', url: `/catalogue/offers/public/details/${offerId}`, ...options },
+      publicOfferDetailSchema,
     );
   },
 

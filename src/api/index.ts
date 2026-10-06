@@ -4,3 +4,4 @@ export * from './catalogueApi';
 export * from './businessProfileApi';
 export * from './ownerAuthApi';
 export * from './categoriesApi';
+export * from './publicBusinessApi';
