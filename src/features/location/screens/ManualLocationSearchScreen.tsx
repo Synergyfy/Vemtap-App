@@ -8,6 +8,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { VemtapText } from '@components/ui/Text';
 import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
+import { SearchClearButton } from '@components/ui/SearchClearButton';
 import { LocationMapView } from '@components/shared/LocationMapView';
 import { colors } from '@theme/colors';
 import { navbarBottomShadow } from '@theme/shadows';
@@ -158,17 +159,7 @@ export function ManualLocationSearchScreen({
             className="h-full flex-1 text-body-md text-text"
             accessibilityLabel={strings.auth.manualSearchPlaceholder}
           />
-          {query.length > 0 ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={strings.auth.manualClearSearch}
-              hitSlop={8}
-              className="h-7 w-7 items-center justify-center rounded-full bg-surface-container active:scale-95"
-              onPress={onClear}
-            >
-              <Icon name="close" size={16} color={colors.textSecondary} />
-            </Pressable>
-          ) : null}
+          {query.length > 0 ? <SearchClearButton onClear={onClear} /> : null}
         </View>
 
         {/* Live map preview of the selected area (structure from HTML) */}

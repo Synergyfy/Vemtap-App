@@ -220,7 +220,6 @@ export const strings = {
     manualTitle: 'Where are you?',
     manualSubtitle: "Enter a city, area or location to discover what's nearby.",
     manualSearchPlaceholder: 'Search city, area or location',
-    manualClearSearch: 'Clear search input',
     manualMapCaption: 'FCT Zone • Apo Sector Active',
     manualOffersBadge: '142 Offers Nearby',
     manualUseCurrent: 'Use Current Location',
@@ -346,6 +345,13 @@ export const strings = {
      * either, so this is the same situation as the empty copy above.
      */
     searching: 'Searching…',
+    /**
+     * Accessibility label for the clear ("cancel") button shown at the right end
+     * of a search field once it holds a value. It lives here rather than beside
+     * any one screen's placeholder because the button is a shared primitive
+     * (`SearchClearButton`) that the shared search fields render.
+     */
+    clearLabel: 'Clear search input',
   },
   homeLocation: {
     title: 'Location & Radius',

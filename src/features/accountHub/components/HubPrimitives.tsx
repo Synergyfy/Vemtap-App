@@ -3,6 +3,7 @@ import { Image, Pressable, TextInput, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { Button } from '@components/ui/Button';
 import { Icon, type IconName } from '@components/ui/Icon';
+import { SearchClearButton } from '@components/ui/SearchClearButton';
 import { VemtapText } from '@components/ui/Text';
 import { colors } from '@theme/colors';
 import { navbarBottomShadow } from '@theme/shadows';
@@ -93,6 +94,7 @@ export function HubSearchField({
   onFilter?: () => void;
 }) {
   const showFilter = filterLabel !== undefined || onFilter !== undefined;
+  const canClear = value.length > 0;
   return (
     <View className="relative">
       <Icon
@@ -109,9 +111,15 @@ export function HubSearchField({
         placeholderTextColor={colors.textTertiary}
         className={cn(
           'h-12 w-full rounded-field bg-surface-container-lowest pl-11 text-body-md text-text shadow-sm',
-          showFilter ? 'pr-12' : 'pr-4',
+          canClear ? (showFilter ? 'pr-20' : 'pr-12') : showFilter ? 'pr-12' : 'pr-4',
         )}
       />
+      {canClear ? (
+        <SearchClearButton
+          className={cn('absolute top-[10px] z-10', showFilter ? 'right-12' : 'right-3')}
+          onClear={() => onChangeText('')}
+        />
+      ) : null}
       {showFilter ? (
         <Pressable
           accessibilityRole="button"
