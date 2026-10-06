@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { dealsApi, type PublicOfferDetail } from '@api/dealsApi';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { dealsApi, type OfferFeed, type PublicOfferDetail } from '@api/dealsApi';
 import { ApiError } from '@api/ApiError';
 import { discoveryOrigin } from '@utils/geo';
 import { useLocationStore } from '@store/locationStore';
@@ -31,6 +31,8 @@ export type DealDetailState =
 
 export const dealDetailKeys = {
   live: (offerId: string) => ['offers', 'detail', offerId] as const,
+  /** Prefix of the public feed keys, so any cached page can be scanned. */
+  feed: ['offers', 'public'] as const,
 };
 
 export function useDealDetail(dealId: string): DealDetailState & { retry: () => void } {
@@ -38,8 +40,38 @@ export function useDealDetail(dealId: string): DealDetailState & { retry: () => 
   const coords = useLocationStore(state => state.coords);
   const origin = useMemo(() => discoveryOrigin(area, coords), [area, coords]);
 
+  const queryClient = useQueryClient();
+
   const seed = useMemo(() => resolveDeal(dealId), [dealId]);
   const isSeed = seed !== undefined;
+
+  /**
+   * The merchant code to link with.
+   *
+   * `GET /catalogue/offers/public/details/:id` does **not** return the business's
+   * own `uniqueCode` — the only value `/public/businesses/code/:code` accepts.
+   * What it calls `business.slug` is the branch's `uniqueCode` (and the search
+   * endpoint's `slug` is the branch's username), both of which 404:
+   *
+   *   details  business.slug → 8GUF52339  (branch uniqueCode)  → 404
+   *   search   business.slug → synergyfy   (branch username)    → 404
+   *   feed     business.slug → QFN2OX8BJ   (business uniqueCode) → 200
+   *
+   * The feed *does* carry the right code, and it is already cached whenever the
+   * user reached this screen from a deal card, so it is read from the cache
+   * rather than sent to the API. The backend fix is to include
+   * `business.uniqueCode` in the details payload.
+   */
+  const feedBusinessCode = useMemo(() => {
+    const cached = queryClient.getQueriesData<OfferFeed>({
+      queryKey: dealDetailKeys.feed,
+    });
+    for (const [, feed] of cached) {
+      const match = feed?.data?.find(offer => offer.id === dealId);
+      if (match?.business?.slug) return match.business.slug;
+    }
+    return undefined;
+  }, [dealId, queryClient]);
 
   const query = useQuery<PublicOfferDetail>({
     // No request at all for a fictional deal — see the note above.
@@ -79,7 +111,7 @@ export function useDealDetail(dealId: string): DealDetailState & { retry: () => 
   if (query.data) {
     return {
       status: 'resolved',
-      deal: mapOfferDetailToResolved(query.data, origin),
+      deal: mapOfferDetailToResolved(query.data, origin, feedBusinessCode),
       retry,
     };
   }

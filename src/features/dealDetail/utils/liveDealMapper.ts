@@ -37,9 +37,16 @@ function asFeedOffer(detail: PublicOfferDetail): FeedOfferView {
   } as unknown as FeedOfferView;
 }
 
+/**
+ * `businessCode` is passed in rather than read from `detail.business.slug`: the
+ * details payload's `slug` is the *branch's* uniqueCode, which
+ * `/public/businesses/code/:code` rejects with a 404. See `useDealDetail` for
+ * where the correct value comes from.
+ */
 export function mapOfferDetailToResolved(
   detail: PublicOfferDetail,
   origin: GeoCoords,
+  businessCode?: string,
 ): ResolvedDeal {
   const offer = asFeedOffer(detail);
   const prices = priceLabels(offer);
@@ -66,7 +73,9 @@ export function mapOfferDetailToResolved(
     // Real-offer extras. Absent for the fictional seed deals, which is what lets
     // the screen tell the two apart and link to a real merchant.
     endsIn: offerCountdown(detail.endDate) ?? undefined,
-    businessCode: business?.slug ?? undefined,
+    // Absent when the code is unknown, which hides the merchant link rather
+    // than sending the user to a 404.
+    businessCode: businessCode ?? undefined,
     isVerifiedBusiness: business?.isVerified ?? undefined,
   };
 }

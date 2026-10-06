@@ -109,9 +109,14 @@ const clients: QueryClient[] = [];
 function Probe({ dealId }: { dealId: string }) {
   const state = useDealDetail(dealId);
   return (
-    <Text testID="resolved">
-      {state.status === 'resolved' ? state.deal.title : state.status}
-    </Text>
+    <>
+      <Text testID="resolved">
+        {state.status === 'resolved' ? state.deal.title : state.status}
+      </Text>
+      <Text testID="businessCode">
+        {state.status === 'resolved' ? (state.deal.businessCode ?? '') : ''}
+      </Text>
+    </>
   );
 }
 
@@ -178,6 +183,57 @@ describe('useDealDetail', () => {
       expect(view.getByTestId('resolved').props.children).toBe(DETAIL.name),
     );
     expect(mockGetOfferDetails).toHaveBeenCalledWith(LIVE_ID);
+  });
+
+  /**
+   * Regression: the details payload's `business.slug` is the *branch's*
+   * uniqueCode (8GUF52339), and `/public/businesses/code/:code` answers 404 for
+   * it — the business's own uniqueCode is required. The code must come from the
+   * cached feed, never from that field.
+   */
+  test('never uses the details slug, which is the branch code', async () => {
+    const withBranchSlug = {
+      ...DETAIL,
+      business: { ...DETAIL.business!, slug: '8GUF52339' },
+    };
+    mockGetOfferDetails.mockResolvedValue(withBranchSlug);
+
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    clients.push(client);
+    const view = await render(
+      <QueryClientProvider client={client}>
+        <Probe dealId={LIVE_ID} />
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() => expect(view.getByTestId('resolved')).toBeTruthy());
+    // No feed is cached here, so there is no usable code — and crucially not the
+    // branch code from the details payload.
+    expect(view.getByTestId('businessCode').props.children).not.toBe('8GUF52339');
+  });
+
+  test('takes the merchant code from the cached feed', async () => {
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    clients.push(client);
+    // Seed the cache the way arriving from a deal card would.
+    client.setQueryData(['offers', 'public', 'Apo', 20], {
+      data: [{ id: LIVE_ID, business: { slug: 'QFN2OX8BJ' } }],
+      total: 1,
+    });
+
+    const view = await render(
+      <QueryClientProvider client={client}>
+        <Probe dealId={LIVE_ID} />
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() =>
+      expect(view.getByTestId('businessCode').props.children).toBe('QFN2OX8BJ'),
+    );
   });
 
   test('reports an unknown offer as not found instead of another deal', async () => {

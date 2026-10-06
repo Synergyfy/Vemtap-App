@@ -6,3 +6,4 @@ export * from './ownerAuthApi';
 export * from './categoriesApi';
 export * from './publicBusinessApi';
 export * from './claimApi';
+export * from './publicSearchApi';

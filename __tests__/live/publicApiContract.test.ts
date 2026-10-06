@@ -26,6 +26,7 @@ import { dealsApi } from '@api/dealsApi';
 import { publicBusinessApi } from '@api/publicBusinessApi';
 import { claimApi } from '@api/claimApi';
 import { catalogueApi } from '@api/catalogueApi';
+import { publicSearchApi } from '@api/publicSearchApi';
 import { areaCoords } from '@constants/locations';
 import { ApiError } from '@api/ApiError';
 
@@ -305,6 +306,55 @@ describeLive('public API — live contract', () => {
         .verifyClaim({ email: claimEmail, offerId, code: '1234' })
         .catch((caught: unknown) => caught);
       expect((wrongValue as ApiError).message).toMatch(/invalid otp/i);
+    });
+  });
+
+  describe('GET /public/search', () => {
+    /**
+     * This is what Home's search will use, and it already works — so the search
+     * integration needs no backend change. These tests exist to prove that and to
+     * catch a regression in a contract we do not own.
+     */
+    it('finds deals by name', async () => {
+      const result = await publicSearchApi.search({ q: 'tea' });
+
+      expect(result.deals.length).toBeGreaterThan(0);
+      expect(result.deals[0].name.toLowerCase()).toContain('tea');
+    });
+
+    it('finds businesses by name', async () => {
+      const result = await publicSearchApi.search({ q: 'beauty' });
+
+      expect(result.businesses.length).toBeGreaterThan(0);
+      expect(result.businesses[0].name.toLowerCase()).toContain('beauty');
+    });
+
+    it('returns all three groups with real shapes', async () => {
+      const result = await publicSearchApi.search({ q: 'Test store', limit: 5 });
+
+      // Deal and business groups reuse the feed/list schemas, so a search result
+      // renders through the same mappers as a feed row.
+      expect(result.deals[0]?.id).toBeTruthy();
+      expect(result.businesses[0]?.name).toBeTruthy();
+    });
+
+    it('returns empty groups for an unmatched term rather than failing', async () => {
+      const result = await publicSearchApi.search({ q: 'zzzznotathing' });
+
+      expect(result.deals).toEqual([]);
+      expect(result.businesses).toEqual([]);
+    });
+
+    it('returns categories as real named categories, not empty objects', async () => {
+      const result = await publicSearchApi.search({ q: 'Technology', limit: 5 });
+
+      expect(result.categories.length).toBeGreaterThan(0);
+      // An earlier probe suggested these serialised as `{}` — that was an
+      // artifact of indexing an empty list, and the real payload is complete.
+      for (const category of result.categories) {
+        expect(category.id).toBeTruthy();
+        expect(category.name).toBeTruthy();
+      }
     });
   });
 
