@@ -24,8 +24,12 @@ import { ownerAuthApi, isOtpVerifiedError } from '@api/ownerAuthApi';
 import { categoriesApi } from '@api/categoriesApi';
 import { dealsApi } from '@api/dealsApi';
 import { publicBusinessApi } from '@api/publicBusinessApi';
+import { claimApi } from '@api/claimApi';
 import { areaCoords } from '@constants/locations';
 import { ApiError } from '@api/ApiError';
+
+/** Unique per run so repeated runs do not collide on the pending claim OTP. */
+const claimEmail = `claim.contract.${Date.now()}@vemtap-test.dev`;
 
 const LIVE = process.env.LIVE_API_TESTS === '1';
 const describeLive = LIVE ? describe : describe.skip;
@@ -217,6 +221,89 @@ describeLive('public API — live contract', () => {
 
       expect(error).toBeInstanceOf(ApiError);
       expect((error as ApiError).status).toBe(404);
+    });
+  });
+
+  describe('consumer promotion claim', () => {
+    const liveOfferId = async () => {
+      const feed = await dealsApi.listPublicOffers({ limit: 1, radius: 50 });
+      const id = feed.data[0]?.id;
+      if (!id) throw new Error('feed returned no offers to claim');
+      return id;
+    };
+
+    it('accepts a claim request for a real offer', async () => {
+      // The docs say 201; the API answers 200. Asserting the parsed body rather
+      // than the status keeps the test honest about what we depend on.
+      await expect(
+        claimApi.requestClaimOtp({
+          offerId: await liveOfferId(),
+          firstName: 'Contract',
+          lastName: 'Probe',
+          email: claimEmail,
+          phone: '+2348012345678',
+        }),
+      ).resolves.toBeUndefined();
+    });
+
+    it('rejects a claim request missing the claimant phone', async () => {
+      const error = await claimApi
+        .requestClaimOtp({
+          offerId: await liveOfferId(),
+          firstName: 'Contract',
+          lastName: 'Probe',
+          email: claimEmail,
+          phone: '',
+        })
+        .catch((caught: unknown) => caught);
+
+      expect(error).toBeInstanceOf(ApiError);
+      expect((error as ApiError).status).toBe(400);
+    });
+
+    it('rejects a wrong code with the documented message', async () => {
+      const offerId = await liveOfferId();
+      await claimApi.requestClaimOtp({
+        offerId,
+        firstName: 'Contract',
+        lastName: 'Probe',
+        email: claimEmail,
+        phone: '+2348012345678',
+      });
+
+      const error = await claimApi
+        .verifyClaim({ email: claimEmail, offerId, code: '0000' })
+        .catch((caught: unknown) => caught);
+
+      expect(error).toBeInstanceOf(ApiError);
+      expect((error as ApiError).status).toBe(400);
+      expect((error as ApiError).message).toMatch(/invalid otp/i);
+    });
+
+    /**
+     * The OTP is 4–6 characters, not a fixed width. Verified live: a 3-character
+     * code is rejected on length, a 7-character one likewise, and anything in
+     * between passes length validation and then fails as an invalid OTP. The
+     * verification field must therefore not hard-code six cells.
+     */
+    it('accepts 4 to 6 characters and rejects lengths outside it', async () => {
+      const offerId = await liveOfferId();
+
+      const tooShort = await claimApi
+        .verifyClaim({ email: claimEmail, offerId, code: '123' })
+        .catch((caught: unknown) => caught);
+      expect((tooShort as ApiError).message).toMatch(/longer than or equal to 4/i);
+
+      const tooLong = await claimApi
+        .verifyClaim({ email: claimEmail, offerId, code: '1234567' })
+        .catch((caught: unknown) => caught);
+      expect((tooLong as ApiError).message).toMatch(/shorter than or equal to 6/i);
+
+      // In range: fails on the value, not the length.
+      const wrongValue = await claimApi
+        .verifyClaim({ email: claimEmail, offerId, code: '1234' })
+        .catch((caught: unknown) => caught);
+      expect((wrongValue as ApiError).message).toMatch(/invalid otp/i);
     });
   });
 
