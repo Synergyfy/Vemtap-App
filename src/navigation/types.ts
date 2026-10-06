@@ -401,7 +401,19 @@ export type HomeStackParamList = {
 
 export type DiscoverStackParamList = {
   DiscoverHome: undefined;
-  BusinessProfile: { business: BusinessProfileSummary };
+  BusinessProfile:
+    | {
+        /** Fictional Discover business, resolved from the bundled data. */
+        business: BusinessProfileSummary;
+      }
+    | {
+        /**
+         * A real merchant's 9-character code, as carried by a live offer. The
+         * profile is then fetched from `GET /public/businesses/code/:code`
+         * instead of read from the bundled summaries.
+         */
+        code: string;
+      };
   UrbanGrillProfile: undefined;
   UrbanGrillProductsCatalogue: undefined;
   UrbanGrillMenu: undefined;

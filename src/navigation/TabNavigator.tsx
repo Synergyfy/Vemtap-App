@@ -312,8 +312,16 @@ function DiscoverHomeScreen() {
 function BusinessProfileTabScreen() {
   const navigation = useNavigation<DiscoverStackNavigation>();
   const route = useRoute<RouteProp<DiscoverStackParamList, 'BusinessProfile'>>();
+  // Two sources for one screen: the bundled Discover businesses pass a
+  // `business` summary, while a real offer passes the merchant's code and the
+  // profile is fetched from `GET /public/businesses/code/:code`.
   return (
-    <BusinessProfileScreen business={route.params.business} onBack={navigation.goBack} />
+    <BusinessProfileScreen
+      {...('business' in route.params
+        ? { business: route.params.business }
+        : { code: route.params.code })}
+      onBack={navigation.goBack}
+    />
   );
 }
 

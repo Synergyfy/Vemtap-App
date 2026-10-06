@@ -10363,6 +10363,28 @@ export const strings = {
     liveSuffix: '(Live)',
     branches: businessBranchList,
   },
+  /**
+   * New copy for the live merchant profile: the bundled Discover businesses all
+   * carry a rating and an "N active deals" line, and neither has a public
+   * source, so both are omitted rather than filled with a plausible number.
+   */
+  businessProfile: {
+    verified: 'Verified',
+    active: 'Active',
+    imageAlt: (name: string, category: string) =>
+      category ? `${name} — ${category}` : name,
+    /** New copy: the bundled businesses always resolve, so there is no designed failure state. */
+    unavailableBody: 'This business is not available right now. Try again later.',
+  },
+  dealDetail: {
+    /**
+     * New copy: the Stitch detail screens always showed a resolved offer, so
+     * there is no designed "gone" state. Kept to one sentence and paired with
+     * the existing `errors.notFound` / `errors.server` titles.
+     */
+    unavailableBody:
+      'This offer is no longer available. Browse nearby deals to find something else.',
+  },
   errors: {
     network: 'Network error. Check your connection.',
     timeout: 'Request timed out. Please try again.',

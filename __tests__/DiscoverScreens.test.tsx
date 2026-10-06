@@ -1,6 +1,7 @@
 import React from 'react';
 import { fireEvent, render } from '@testing-library/react-native';
 import { NavigationContainer } from '@react-navigation/native';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TabNavigator } from '@navigation/TabNavigator';
 import { UrbanGrillProfileScreen } from '@features/discover/screens/UrbanGrillProfileScreen';
 import { UrbanGrillProductsCatalogueScreen } from '@features/discover/screens/UrbanGrillProductsCatalogueScreen';
@@ -23,16 +24,34 @@ const navigation = {
   navigate: jest.fn(),
 };
 
+/**
+ * The shell, mounted the way the app mounts it.
+ *
+ * The QueryClientProvider is not incidental: the Discover profile screen reads
+ * the public business endpoint through React Query, and `useQuery` requires that
+ * context even when the fetch is disabled (a bundled profile passes no code).
+ */
+async function renderShell() {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  const screen = await render(
+    <QueryClientProvider client={client}>
+      <NavigationContainer>
+        <TabNavigator />
+      </NavigationContainer>
+    </QueryClientProvider>,
+  );
+  client.clear();
+  return screen;
+}
+
 beforeEach(() => {
   jest.clearAllMocks();
 });
 
 test('opens businesses feed inside Discover tab', async () => {
-  const screen = await render(
-    <NavigationContainer>
-      <TabNavigator />
-    </NavigationContainer>,
-  );
+  const screen = await renderShell();
 
   await fireEvent.press(await screen.findByLabelText(/Discover, tab/i));
   expect(await screen.findByText('Businesses Near You')).toBeTruthy();
@@ -48,11 +67,7 @@ test('opens businesses feed inside Discover tab', async () => {
 });
 
 test('keeps Discover active when Urban Grill profile is pushed', async () => {
-  const screen = await render(
-    <NavigationContainer>
-      <TabNavigator />
-    </NavigationContainer>,
-  );
+  const screen = await renderShell();
 
   await fireEvent.press(await screen.findByLabelText(/Discover, tab/i));
   await fireEvent.press(await screen.findByLabelText('View Urban Grill & Bistro'));
@@ -66,11 +81,7 @@ test('keeps Discover active when Urban Grill profile is pushed', async () => {
 });
 
 test('opens Glow profile while Discover remains selected', async () => {
-  const screen = await render(
-    <NavigationContainer>
-      <TabNavigator />
-    </NavigationContainer>,
-  );
+  const screen = await renderShell();
 
   await fireEvent.press(await screen.findByLabelText(/Discover, tab/i));
   await fireEvent.press(await screen.findByLabelText('View Glow & Serenity Spa'));

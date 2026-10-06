@@ -23,9 +23,12 @@ import {
   type RecipientData,
 } from '@features/dealDetail/components';
 import { colors } from '@theme/colors';
+import { strings } from '@constants/strings';
 import { navbarBottomShadow } from '@theme/shadows';
 import type { AppStackParamList } from '@navigation/types';
-import { resolveDeal } from '@features/dealDetail/data/dealResolver';
+import { useDealDetail } from '@features/dealDetail/hooks/useDealDetail';
+import { LoadingState } from '@components/shared/LoadingState';
+import { EmptyState } from '@components/shared/EmptyState';
 import { businesses } from '@features/discover/data/discoverData';
 
 cssInterop(View, { className: 'style' });
@@ -59,7 +62,8 @@ const apoRegion = {
 type DealDetailProps = {
   title: string;
   badge: string;
-  endsIn: string;
+  /** Absent when the offer has no known end date; the row is then omitted. */
+  endsIn?: string;
   distance: string;
   location: string;
   price: string;
@@ -96,33 +100,115 @@ export function DealDetailScreen({ route, navigation }: Props) {
     },
   );
 
-  const deal = resolveDeal(route.params.dealId);
-  const businessId = deal.id.startsWith('urban-grill')
+  // Fictional deals resolve locally; real ones come from the API. Until one
+  // resolves there is no deal to render, and showing a stand-in would be
+  // presenting invented prices as if they were the merchant's.
+  const detail = useDealDetail(route.params.dealId);
+  const deal = detail.status === 'resolved' ? detail.deal : undefined;
+
+  /**
+   * The fictional Discover businesses are reached by id prefix. A real offer has
+   * no such prefix and instead carries the merchant's 9-character code, which
+   * is what the public business endpoint is keyed by — so the merchant link
+   * works for real offers instead of silently doing nothing.
+   */
+  const seedBusinessId = route.params.dealId.startsWith('urban-grill')
     ? 'urban-grill'
-    : deal.id.startsWith('glow-')
+    : route.params.dealId.startsWith('glow-')
       ? 'glow-serenity'
-      : deal.id.includes('sky-lounge')
+      : route.params.dealId.includes('sky-lounge')
         ? 'sky-lounge'
-        : deal.id.startsWith('sole-district')
+        : route.params.dealId.startsWith('sole-district')
           ? 'sole-district'
-          : deal.id.startsWith('cafe-neo')
+          : route.params.dealId.startsWith('cafe-neo')
             ? 'cafe-neo'
             : null;
-  const business = businesses.find(item => item.id === businessId);
-  const details: DealDetailProps = {
-    title: deal.title,
-    badge: deal.badge,
-    endsIn: 'Ends in 3 days',
-    distance: deal.distance,
-    location: deal.location,
-    price: deal.price,
-    priceWas: deal.priceWas,
-    save: deal.save,
-    description: deal.description,
-    address: deal.address,
-    likes: deal.likes,
-    comments: deal.comments,
-  };
+  const seedBusiness = businesses.find(item => item.id === seedBusinessId);
+  const details: DealDetailProps | null = deal
+    ? {
+        title: deal.title,
+        badge: deal.badge,
+        // Real countdown, or nothing. This was a hardcoded "Ends in 3 days".
+        endsIn: deal.endsIn,
+        distance: deal.distance,
+        location: deal.location,
+        price: deal.price,
+        priceWas: deal.priceWas,
+        save: deal.save,
+        description: deal.description,
+        address: deal.address,
+        likes: deal.likes,
+        comments: deal.comments,
+      }
+    : null;
+
+  const handleShare = useCallback(() => {
+    setShareVisible(true);
+  }, []);
+
+  const handleOpenBusiness = useCallback(() => {
+    // A fictional deal links to its bundled Discover profile; a real offer links
+    // to the merchant's public profile, fetched by code.
+    if (deal?.businessCode) {
+      navigation.navigate('Tabs', {
+        screen: 'Discover',
+        params: {
+          screen: 'BusinessProfile',
+          params: { code: deal.businessCode },
+        },
+      });
+      return;
+    }
+    if (seedBusiness) {
+      navigation.navigate('Tabs', {
+        screen: 'Discover',
+        params: {
+          screen: 'BusinessProfile',
+          params: { business: seedBusiness },
+        },
+      });
+    }
+  }, [deal?.businessCode, seedBusiness, navigation]);
+
+  const handleClaim = useCallback(() => {
+    if (claimed) {
+      navigation.navigate('MyClaimedDeal', { dealId: route.params.dealId });
+      return;
+    }
+    setClaimStep('confirmation');
+  }, [claimed, route.params.dealId, navigation]);
+
+  const completeClaim = useCallback(() => {
+    setClaimed(true);
+    setClaimStep(null);
+    navigation.navigate('DealClaimedSuccess', { dealId: route.params.dealId });
+  }, [route.params.dealId, navigation]);
+
+  // Loading, gone, or broken: say so instead of inventing an offer to fill the
+  // page. These branches come after every hook so hook order never changes.
+  if (detail.status !== 'resolved' || !deal || !details) {
+    return (
+      <View className="flex-1 bg-background">
+        <SafeAreaView edges={['top']} className="bg-surface" />
+        {detail.status === 'loading' ? (
+          <LoadingState label={strings.common.loading} />
+        ) : (
+          <EmptyState
+            icon="search"
+            title={
+              detail.status === 'notFound'
+                ? strings.errors.notFound
+                : strings.errors.server
+            }
+            description={strings.dealDetail.unavailableBody}
+            actionLabel={detail.status === 'notFound' ? undefined : strings.common.retry}
+            onAction={detail.status === 'notFound' ? undefined : detail.retry}
+            className="mt-16"
+          />
+        )}
+      </View>
+    );
+  }
 
   const claimData: ClaimDealData = {
     title: details.title,
@@ -133,36 +219,6 @@ export function DealDetailScreen({ route, navigation }: Props) {
     badge: details.badge,
     image: deal.image,
   };
-
-  const handleShare = useCallback(() => {
-    setShareVisible(true);
-  }, []);
-
-  const handleOpenBusiness = useCallback(() => {
-    if (business) {
-      navigation.navigate('Tabs', {
-        screen: 'Discover',
-        params: {
-          screen: 'BusinessProfile',
-          params: { business },
-        },
-      });
-    }
-  }, [business, navigation]);
-
-  const handleClaim = useCallback(() => {
-    if (claimed) {
-      navigation.navigate('MyClaimedDeal', { dealId: deal.id });
-      return;
-    }
-    setClaimStep('confirmation');
-  }, [claimed, deal.id, navigation]);
-
-  const completeClaim = useCallback(() => {
-    setClaimed(true);
-    setClaimStep(null);
-    navigation.navigate('DealClaimedSuccess', { dealId: deal.id });
-  }, [deal.id, navigation]);
 
   return (
     <View className="flex-1 bg-background">
@@ -221,12 +277,14 @@ export function DealDetailScreen({ route, navigation }: Props) {
                   {details.badge}
                 </VemtapText>
               </View>
-              <View style={styles.timerBadge}>
-                <Icon name="schedule" size={14} color={colors.inverseOnSurface} />
-                <VemtapText className="text-caption text-inverse-on-surface">
-                  {details.endsIn}
-                </VemtapText>
-              </View>
+              {details.endsIn ? (
+                <View style={styles.timerBadge}>
+                  <Icon name="schedule" size={14} color={colors.inverseOnSurface} />
+                  <VemtapText className="text-caption text-inverse-on-surface">
+                    {details.endsIn}
+                  </VemtapText>
+                </View>
+              ) : null}
             </View>
             <View style={styles.hotBadge}>
               <Icon name="fire" size={16} color={colors.tertiaryContainer} />
@@ -294,7 +352,9 @@ export function DealDetailScreen({ route, navigation }: Props) {
             contentContainerStyle={styles.attributeContent}
             className="mt-4"
           >
-            <AttributePill icon="schedule" label={details.endsIn} />
+            {details.endsIn ? (
+              <AttributePill icon="schedule" label={details.endsIn} />
+            ) : null}
             <AttributePill icon="storefront" label="Dine-in & Takeout" />
             <AttributePill icon="person" label="1 Claim / Person" />
           </ScrollView>

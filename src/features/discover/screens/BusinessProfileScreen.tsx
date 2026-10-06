@@ -18,6 +18,10 @@ import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { LocationMapView } from '@components/shared/LocationMapView';
+import { LoadingState } from '@components/shared/LoadingState';
+import { EmptyState } from '@components/shared/EmptyState';
+import { usePublicBusinessProfile } from '@features/discover/hooks/usePublicBusinessProfile';
+import type { LiveBusinessProfile } from '@features/discover/utils/liveBusinessMapper';
 import { colors } from '@theme/colors';
 import { strings } from '@constants/strings';
 import type { BusinessProfileSummary } from '@features/discover/data/discoverData';
@@ -32,7 +36,13 @@ cssInterop(Image, { className: 'style' });
 cssInterop(SafeAreaView, { className: 'style' });
 
 export interface BusinessProfileScreenProps {
-  business: BusinessProfileSummary;
+  /**
+   * A bundled Discover business. Mutually exclusive with `code`, which is how a
+   * real offer reaches its merchant: the live offer carries the merchant's
+   * 9-character code and the profile is fetched from the public endpoint.
+   */
+  business?: BusinessProfileSummary;
+  code?: string;
   onBack: () => void;
   onOpenDeal?: (dealId: string) => void;
 }
@@ -45,17 +55,75 @@ const mapRegion = {
 };
 
 export function BusinessProfileScreen({
-  business,
+  business: bundledBusiness,
+  code,
   onBack,
   onOpenDeal = () => undefined,
 }: BusinessProfileScreenProps) {
   const [bookmarked, setBookmarked] = useState(false);
   const [following, setFollowing] = useState(false);
   const [aboutExpanded, setAboutExpanded] = useState(false);
+
+  const live = usePublicBusinessProfile(code);
+  const business = (bundledBusiness ??
+    (live.status === 'resolved' ? live.business : undefined)) as
+    LiveBusinessProfile | undefined;
+
+  // Loading and failure come before the page so a merchant with no data yet
+  // shows an honest state rather than a blank profile.
+  if (!business) {
+    return (
+      <SafeAreaView edges={[]} className="flex-1 bg-surface-canvas">
+        {live.status === 'loading' ? (
+          <LoadingState label={strings.common.loading} />
+        ) : (
+          <EmptyState
+            icon="search"
+            title={
+              live.status === 'notFound' ? strings.errors.notFound : strings.errors.server
+            }
+            description={strings.businessProfile.unavailableBody}
+            actionLabel={live.status === 'notFound' ? undefined : strings.common.retry}
+            onAction={live.status === 'notFound' ? undefined : live.retry}
+            className="mt-16"
+          />
+        )}
+      </SafeAreaView>
+    );
+  }
+
   const directionsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
     business.location,
   )}`;
-  const aboutCopy = `Discover ${business.category.toLowerCase()} at ${business.name}. Enjoy curated offers and convenient service at ${business.location}.`;
+  /**
+   * The merchant's own description when there is one. The generated sentence is
+   * the fallback for the bundled businesses, which have no description field.
+   */
+  const aboutCopy =
+    business.description ??
+    `Discover ${business.category.toLowerCase()} at ${business.name}. Enjoy curated offers and convenient service at ${business.location}.`;
+
+  /**
+   * A real business has no public rating source and no per-business offer count,
+   * so those rows are omitted rather than rendered empty or filled with a
+   * plausible number. The bundled Discover businesses keep both.
+   */
+  const hasRating = business.rating !== '';
+  const hasActiveDeals = business.activeDealLabel !== '';
+
+  /** A real merchant's own contact details; the bundled ones are hardcoded. */
+  const livePhone = business.phone ?? business.whatsappNumber;
+
+  /** Centre the map on the merchant when it has real coordinates. */
+  const region =
+    business.latitude !== undefined && business.longitude !== undefined
+      ? {
+          latitude: business.latitude,
+          longitude: business.longitude,
+          latitudeDelta: 0.012,
+          longitudeDelta: 0.012,
+        }
+      : mapRegion;
   return (
     <SafeAreaView edges={[]} className="flex-1 bg-surface-canvas">
       <ProfilePageHeader
@@ -161,15 +229,17 @@ export function BusinessProfileScreen({
               {business.category}
             </VemtapText>
             <View className="flex-row flex-wrap items-center gap-2">
-              <View className="flex-row items-center gap-1 rounded-lg bg-surface-muted px-2.5 py-1">
-                <Icon name="star" size={16} color={colors.tertiary} />
-                <VemtapText variant="labelMd" className="font-sans-semibold text-text">
-                  {business.rating}
-                </VemtapText>
-                <VemtapText variant="caption" tone="secondary">
-                  {strings.discoverFeed.reviewCount(business.reviews)}
-                </VemtapText>
-              </View>
+              {hasRating ? (
+                <View className="flex-row items-center gap-1 rounded-lg bg-surface-muted px-2.5 py-1">
+                  <Icon name="star" size={16} color={colors.tertiary} />
+                  <VemtapText variant="labelMd" className="font-sans-semibold text-text">
+                    {business.rating}
+                  </VemtapText>
+                  <VemtapText variant="caption" tone="secondary">
+                    {strings.discoverFeed.reviewCount(business.reviews)}
+                  </VemtapText>
+                </View>
+              ) : null}
               <View className="flex-row items-center gap-1 rounded-lg bg-badge-discount-bg px-2.5 py-1">
                 <View className="h-1.5 w-1.5 rounded-full bg-badge-discount-text" />
                 <VemtapText variant="labelSm" className="text-badge-discount-text">
@@ -187,12 +257,14 @@ export function BusinessProfileScreen({
         </View>
 
         <View className="mt-4 flex-row gap-3 px-6">
-          <Button
-            label={business.activeDealLabel}
-            className="min-w-0 flex-[1.4] shadow-md"
-            leftIcon={<Icon name="localOffer" size={20} color={colors.surface} />}
-            onPress={() => onOpenDeal(business.id)}
-          />
+          {hasActiveDeals ? (
+            <Button
+              label={business.activeDealLabel}
+              className="min-w-0 flex-[1.4] shadow-md"
+              leftIcon={<Icon name="localOffer" size={20} color={colors.surface} />}
+              onPress={() => onOpenDeal(business.id)}
+            />
+          ) : null}
           <Button
             label={strings.urbanProfile.directions}
             variant="secondary"
@@ -250,23 +322,29 @@ export function BusinessProfileScreen({
               </VemtapText>
             </Pressable>
           </View>
-          <View className="flex-row items-center justify-between rounded-2xl border border-border bg-surface-canvas p-3.5 shadow-md">
-            <View className="min-w-0 flex-1">
-              <VemtapText variant="labelMd" className="font-sans-semibold text-text">
-                {business.activeDealLabel}
-              </VemtapText>
-              <VemtapText variant="caption" tone="secondary">
-                {strings.discoverFeed.realTimePerks}
-              </VemtapText>
+          {hasActiveDeals ? (
+            <View className="flex-row items-center justify-between rounded-2xl border border-border bg-surface-canvas p-3.5 shadow-md">
+              <View className="min-w-0 flex-1">
+                <VemtapText variant="labelMd" className="font-sans-semibold text-text">
+                  {business.activeDealLabel}
+                </VemtapText>
+                <VemtapText variant="caption" tone="secondary">
+                  {strings.discoverFeed.realTimePerks}
+                </VemtapText>
+              </View>
+              <Icon name="offer" size={20} color={colors.primary} />
             </View>
-            <Icon name="offer" size={20} color={colors.primary} />
-          </View>
+          ) : null}
         </View>
 
         <View className="mt-7 px-6">
           <ContactActionGrid
-            phone="+2348000000000"
-            whatsappUrl="https://wa.me"
+            phone={livePhone ?? '+2348000000000'}
+            whatsappUrl={
+              livePhone
+                ? `https://wa.me/${livePhone.replace(/[^\d]/g, '')}`
+                : 'https://wa.me'
+            }
             onInApp={() => undefined}
             onWebsite={() => undefined}
           />
@@ -289,7 +367,7 @@ export function BusinessProfileScreen({
               </View>
             </View>
             <LocationMapView
-              region={mapRegion}
+              region={region}
               style={styles.map}
               scrollEnabled={false}
               zoomEnabled={false}
@@ -305,41 +383,46 @@ export function BusinessProfileScreen({
           </View>
         </View>
 
-        <View className="mt-6 gap-3 px-6">
-          <View className="flex-row items-center justify-between gap-2">
-            <View className="flex-row items-center gap-2">
-              <VemtapText variant="headingSm" className="text-text">
-                {strings.urbanProfile.reviewsTitle}
-              </VemtapText>
-              <VemtapText variant="caption" tone="tertiary">
-                ★ {business.rating} {strings.discoverFeed.reviewCount(business.reviews)}
-              </VemtapText>
-            </View>
-            <Pressable accessibilityRole="button">
-              <VemtapText variant="labelMd" tone="brand" className="font-sans-semibold">
-                {strings.urbanProfile.seeAllReviews(business.reviews)}
-              </VemtapText>
-            </Pressable>
-          </View>
-          <View className="flex-row items-center justify-between rounded-2xl border border-border bg-surface-canvas p-4 shadow-md">
-            <View className="flex-row items-center gap-3">
-              <VemtapText className="font-sans-bold text-heading-md text-text">
-                {business.rating}
-              </VemtapText>
-              <View>
-                <View className="flex-row">
-                  {[1, 2, 3, 4, 5].map(star => (
-                    <Icon key={star} name="star" size={18} color={colors.tertiary} />
-                  ))}
-                </View>
-                <VemtapText variant="caption" tone="secondary">
-                  {strings.urbanProfile.verifiedOrders(business.reviews)}
+        {/* No public business-rating endpoint, so a real merchant has no rating to
+            show. Omitting the whole section is honest; rendering "★ " with no
+            number would not be. */}
+        {hasRating ? (
+          <View className="mt-6 gap-3 px-6">
+            <View className="flex-row items-center justify-between gap-2">
+              <View className="flex-row items-center gap-2">
+                <VemtapText variant="headingSm" className="text-text">
+                  {strings.urbanProfile.reviewsTitle}
+                </VemtapText>
+                <VemtapText variant="caption" tone="tertiary">
+                  ★ {business.rating} {strings.discoverFeed.reviewCount(business.reviews)}
                 </VemtapText>
               </View>
+              <Pressable accessibilityRole="button">
+                <VemtapText variant="labelMd" tone="brand" className="font-sans-semibold">
+                  {strings.urbanProfile.seeAllReviews(business.reviews)}
+                </VemtapText>
+              </Pressable>
             </View>
-            <Icon name="verified" size={28} color={colors.outline} />
+            <View className="flex-row items-center justify-between rounded-2xl border border-border bg-surface-canvas p-4 shadow-md">
+              <View className="flex-row items-center gap-3">
+                <VemtapText className="font-sans-bold text-heading-md text-text">
+                  {business.rating}
+                </VemtapText>
+                <View>
+                  <View className="flex-row">
+                    {[1, 2, 3, 4, 5].map(star => (
+                      <Icon key={star} name="star" size={18} color={colors.tertiary} />
+                    ))}
+                  </View>
+                  <VemtapText variant="caption" tone="secondary">
+                    {strings.urbanProfile.verifiedOrders(business.reviews)}
+                  </VemtapText>
+                </View>
+              </View>
+              <Icon name="verified" size={28} color={colors.outline} />
+            </View>
           </View>
-        </View>
+        ) : null}
       </ScrollView>
       <DetailActionDockBar
         eyebrow={strings.urbanProfile.specialOffer}

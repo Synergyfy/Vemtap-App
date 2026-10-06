@@ -21,6 +21,21 @@ export type ResolvedDeal = {
   address: string;
   likes: number;
   comments: number;
+
+  /**
+   * Countdown to the offer's real end date. Undefined means "unknown" and the
+   * page omits the row — the screen used to render a hardcoded "Ends in 3 days"
+   * for every offer, which is a claim the API never made.
+   */
+  endsIn?: string;
+  /**
+   * The merchant's 9-character code, which is how a real offer links to a real
+   * business profile (`GET /public/businesses/code/:code`). Absent for the
+   * fictional seed deals.
+   */
+  businessCode?: string;
+  /** Whether the API reports the merchant verified. Undefined = not reported. */
+  isVerifiedBusiness?: boolean;
 };
 
 const fallbackAddress = 'Plot 422, Cadastral Zone, Apo';
@@ -177,6 +192,15 @@ const allDeals = [
   featuredDiscoveryDeal,
 ];
 
-export function resolveDeal(dealId: string): ResolvedDeal {
-  return allDeals.find(deal => deal.id === dealId) ?? gridDeals[0];
+/**
+ * The fictional deals bundled with the app (Discover's businesses, the seed
+ * feeds), resolved by id.
+ *
+ * Returns `undefined` for an unknown id rather than a fallback: this used to be
+ * `?? gridDeals[0]`, so a real offer id — which never appears in this list —
+ * silently opened a *different* deal instead of admitting it was unknown.
+ * `useDealDetail` treats a miss as "ask the API".
+ */
+export function resolveDeal(dealId: string): ResolvedDeal | undefined {
+  return allDeals.find(deal => deal.id === dealId);
 }
