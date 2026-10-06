@@ -296,6 +296,17 @@ export const strings = {
      */
     noBusinessesTitle: 'No businesses listed yet',
     noBusinessesBody: 'Businesses appear here as they join VEMTAP near you.',
+    /**
+     * New copy. Every Home section now renders a state like this instead of a
+     * bare header over nothing, and none of it exists in the Stitch spec because
+     * the mock screens always had content in every section.
+     */
+    emptyFeaturedTitle: 'No featured deals yet',
+    emptyFeaturedBody: 'Promoted offers near you will appear here.',
+    emptyTrendingTitle: 'Nothing trending yet',
+    emptyTrendingBody: 'The most-claimed offers near you will show up here.',
+    emptyProductsTitle: 'No products listed yet',
+    emptyProductsBody: 'Products from businesses near you will appear here.',
     popularNearYou: 'Popular Near You',
     seeAll: 'See All',
     listView: 'List view',

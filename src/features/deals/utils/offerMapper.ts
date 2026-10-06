@@ -51,7 +51,11 @@ export function formatDistanceLabel(meters: number | null): string {
   return strings.deals.distanceAway(label);
 }
 
-function toAmount(value: string | number | null | undefined): number | null {
+/**
+ * Money arrives as a number, a numeric string, or neither. Exported so every
+ * mapper parses prices one way instead of each re-implementing `parseFloat`.
+ */
+export function toAmount(value: string | number | null | undefined): number | null {
   if (value === null || value === undefined) return null;
   const parsed = typeof value === 'number' ? value : Number.parseFloat(value);
   return Number.isFinite(parsed) ? parsed : null;

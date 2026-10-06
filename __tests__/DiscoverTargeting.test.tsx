@@ -11,6 +11,9 @@ import { AppStack } from '@navigation/AppStack';
 jest.mock('@features/home/hooks/useNearbyBusinesses', () =>
   jest.requireActual('./helpers/mockHomeBusinesses').mockHomeBusinessesModule(),
 );
+jest.mock('@features/home/hooks/useNearbyProducts', () =>
+  jest.requireActual('./helpers/mockHomeProducts').mockHomeProductsModule(),
+);
 
 // Home reads the live offers feed through React Query, so any test that mounts
 // the real shell needs the feed double (and its neutral engagement hooks).

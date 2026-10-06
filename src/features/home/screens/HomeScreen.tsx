@@ -16,9 +16,11 @@ import { ViewToggle, type DealsViewMode } from '@components/home/ViewToggle';
 import { DealCommentsSheet } from '@features/dealDetail/components/DealCommentsSheet';
 import { DealShareSheet } from '@features/dealDetail/components/DealShareSheet';
 import { strings } from '@constants/strings';
+import type { IconName } from '@components/ui/Icon';
 import { useConsumerTargeting } from '@features/home/hooks/useConsumerTargeting';
 import { useHomeDeals } from '@features/home/hooks/useHomeDeals';
 import { useNearbyBusinesses } from '@features/home/hooks/useNearbyBusinesses';
+import { useNearbyProducts } from '@features/home/hooks/useNearbyProducts';
 import { useDealEngagement } from '@features/deals/hooks/usePublicOffers';
 import {
   useDealReaction,
@@ -29,7 +31,6 @@ import type {
   NearbyDeal,
   TrendingDeal,
 } from '@features/home/data/homeFeed';
-import { popularProducts } from '@features/home/data/homeFeed';
 import { LoadingState } from '@components/shared/LoadingState';
 import { EmptyState } from '@components/shared/EmptyState';
 
@@ -138,6 +139,25 @@ function LiveNearbyListCard({
   );
 }
 
+/**
+ * One treatment for "this section has nothing yet", shared by every Home
+ * section. Each of them used to render a bare header over no content when its
+ * data was missing, which read as a broken screen rather than an empty one.
+ */
+function SectionEmpty({
+  icon,
+  title,
+  description,
+}: {
+  icon: IconName;
+  title: string;
+  description: string;
+}) {
+  return (
+    <EmptyState variant="contained" icon={icon} title={title} description={description} />
+  );
+}
+
 function LiveNearbyGridCard({
   deal,
   onOpenDetail,
@@ -213,6 +233,7 @@ export function HomeScreen({
   // the bundled Discover businesses under a "Businesses Around You" heading,
   // which read as live data but was the same fiction as the old deal rows.
   const { data: nearbyBusinesses } = useNearbyBusinesses();
+  const { data: nearbyProducts } = useNearbyProducts();
 
   const openDeal = useCallback((dealId: string) => onOpenDeal?.(dealId), [onOpenDeal]);
 
@@ -277,6 +298,12 @@ export function HomeScreen({
               onShare={openShare}
               onOpenDetail={openDeal}
             />
+          ) : !isLoading ? (
+            <SectionEmpty
+              icon="localOffer"
+              title={strings.home.emptyFeaturedTitle}
+              description={strings.home.emptyFeaturedBody}
+            />
           ) : null}
         </View>
 
@@ -294,7 +321,13 @@ export function HomeScreen({
             />
           </SectionHeader>
 
-          {viewMode === 'list' ? (
+          {nearbyDeals.length === 0 ? (
+            <SectionEmpty
+              icon="nearMe"
+              title={strings.featuredDeals.emptyTitle}
+              description={strings.featuredDeals.emptyBody}
+            />
+          ) : viewMode === 'list' ? (
             <View className="flex-col gap-3.5">
               {nearbyDeals.map(deal => (
                 <LiveNearbyListCard
@@ -324,21 +357,29 @@ export function HomeScreen({
             seeAllLabel={strings.home.seeAll}
             onSeeAll={onOpenDealsTab}
           />
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            className="-mx-6"
-            contentContainerClassName="px-6 gap-3.5 pb-2"
-          >
-            {trending.map(deal => (
-              <LiveTrendingCard
-                key={deal.id}
-                deal={deal}
-                onOpenComments={openComments}
-                onOpenDetail={openDeal}
-              />
-            ))}
-          </ScrollView>
+          {trending.length === 0 ? (
+            <SectionEmpty
+              icon="fire"
+              title={strings.home.emptyTrendingTitle}
+              description={strings.home.emptyTrendingBody}
+            />
+          ) : (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              className="-mx-6"
+              contentContainerClassName="px-6 gap-3.5 pb-2"
+            >
+              {trending.map(deal => (
+                <LiveTrendingCard
+                  key={deal.id}
+                  deal={deal}
+                  onOpenComments={openComments}
+                  onOpenDetail={openDeal}
+                />
+              ))}
+            </ScrollView>
+          )}
         </View>
 
         <View className="flex-col gap-3.5">
@@ -354,8 +395,7 @@ export function HomeScreen({
               ))}
             </View>
           ) : (
-            <EmptyState
-              variant="contained"
+            <SectionEmpty
               icon="storefront"
               title={strings.home.noBusinessesTitle}
               description={strings.home.noBusinessesBody}
@@ -369,11 +409,19 @@ export function HomeScreen({
             seeAllLabel={strings.home.seeAll}
             onSeeAll={onOpenDiscoverTab}
           />
-          <TwoColumnGrid
-            items={popularProducts}
-            keyExtractor={product => product.id}
-            renderItem={product => <PopularProductCard product={product} />}
-          />
+          {nearbyProducts?.length ? (
+            <TwoColumnGrid
+              items={nearbyProducts}
+              keyExtractor={product => product.id}
+              renderItem={product => <PopularProductCard product={product} />}
+            />
+          ) : (
+            <SectionEmpty
+              icon="shoppingBag"
+              title={strings.home.emptyProductsTitle}
+              description={strings.home.emptyProductsBody}
+            />
+          )}
         </View>
 
         {isError ? (
@@ -383,19 +431,6 @@ export function HomeScreen({
             title={strings.common.error}
             actionLabel={strings.common.retry}
             onAction={refetch}
-          />
-        ) : null}
-
-        {!isLoading && !isError && !featured && nearbyDeals.length === 0 ? (
-          // "Nothing nearby" is a normal outcome once the feed filters by
-          // distance, not a failure — so it points at the control that fixes it.
-          <EmptyState
-            variant="contained"
-            icon="nearMe"
-            title={strings.featuredDeals.emptyTitle}
-            description={strings.featuredDeals.emptyBody}
-            actionLabel={strings.featuredDeals.emptyCta}
-            onAction={onOpenLocationSelect ?? (() => onSearchArea?.())}
           />
         ) : null}
 

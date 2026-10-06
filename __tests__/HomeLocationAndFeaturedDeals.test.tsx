@@ -16,6 +16,9 @@ import { useLocationStore } from '@store/locationStore';
 jest.mock('@features/home/hooks/useNearbyBusinesses', () =>
   jest.requireActual('./helpers/mockHomeBusinesses').mockHomeBusinessesModule(),
 );
+jest.mock('@features/home/hooks/useNearbyProducts', () =>
+  jest.requireActual('./helpers/mockHomeProducts').mockHomeProductsModule(),
+);
 
 jest.mock('@features/deals/hooks/usePublicOffers', () =>
   jest.requireActual('./helpers/mockOffersFeed').mockOffersFeedModule(),

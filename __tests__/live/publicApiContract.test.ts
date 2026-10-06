@@ -25,6 +25,7 @@ import { categoriesApi } from '@api/categoriesApi';
 import { dealsApi } from '@api/dealsApi';
 import { publicBusinessApi } from '@api/publicBusinessApi';
 import { claimApi } from '@api/claimApi';
+import { catalogueApi } from '@api/catalogueApi';
 import { areaCoords } from '@constants/locations';
 import { ApiError } from '@api/ApiError';
 
@@ -304,6 +305,30 @@ describeLive('public API — live contract', () => {
         .verifyClaim({ email: claimEmail, offerId, code: '1234' })
         .catch((caught: unknown) => caught);
       expect((wrongValue as ApiError).message).toMatch(/invalid otp/i);
+    });
+  });
+
+  describe('GET /products', () => {
+    /**
+     * The public catalogue currently returns **no products at all**, so Home's
+     * products section renders an empty state. This test exists so that state is
+     * backed by evidence: if the endpoint ever starts returning rows, it fails
+     * here first and the section gets real data rather than staying empty
+     * forever.
+     */
+    it('is reachable and currently returns an empty catalogue', async () => {
+      const feed = await catalogueApi.listPublishedProducts({ limit: 10 });
+
+      expect(feed.data).toEqual([]);
+      expect(feed.total).toBe(0);
+    });
+
+    it('returns the same empty page envelope on every page', async () => {
+      const page = await catalogueApi.listPublishedProducts({ page: 2, limit: 10 });
+
+      expect(page.data).toEqual([]);
+      expect(page.hasNextPage).toBe(false);
+      expect(page.hasPrevPage).toBe(false);
     });
   });
 
