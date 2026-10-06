@@ -8,6 +8,10 @@ import { CategoryChips } from '@components/home/CategoryChips';
 import { DiscoverScreen } from '@features/discover/screens/DiscoverScreen';
 import { AppStack } from '@navigation/AppStack';
 
+jest.mock('@features/home/hooks/useNearbyBusinesses', () =>
+  jest.requireActual('./helpers/mockHomeBusinesses').mockHomeBusinessesModule(),
+);
+
 // Home reads the live offers feed through React Query, so any test that mounts
 // the real shell needs the feed double (and its neutral engagement hooks).
 jest.mock('@features/deals/hooks/usePublicOffers', () =>

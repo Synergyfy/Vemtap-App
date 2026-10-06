@@ -4,6 +4,10 @@ import { strings } from '@constants/strings';
 import { AppStack } from '@navigation/AppStack';
 import { NavigationContainer } from '@react-navigation/native';
 
+jest.mock('@features/home/hooks/useNearbyBusinesses', () =>
+  jest.requireActual('./helpers/mockHomeBusinesses').mockHomeBusinessesModule(),
+);
+
 jest.mock('@features/deals/hooks/usePublicOffers', () =>
   jest.requireActual('./helpers/mockOffersFeed').mockOffersFeedModule(),
 );

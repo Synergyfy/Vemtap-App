@@ -18,6 +18,7 @@ import { DealShareSheet } from '@features/dealDetail/components/DealShareSheet';
 import { strings } from '@constants/strings';
 import { useConsumerTargeting } from '@features/home/hooks/useConsumerTargeting';
 import { useHomeDeals } from '@features/home/hooks/useHomeDeals';
+import { useNearbyBusinesses } from '@features/home/hooks/useNearbyBusinesses';
 import { useDealEngagement } from '@features/deals/hooks/usePublicOffers';
 import {
   useDealReaction,
@@ -28,7 +29,7 @@ import type {
   NearbyDeal,
   TrendingDeal,
 } from '@features/home/data/homeFeed';
-import { nearbyBusinesses, popularProducts } from '@features/home/data/homeFeed';
+import { popularProducts } from '@features/home/data/homeFeed';
 import { LoadingState } from '@components/shared/LoadingState';
 import { EmptyState } from '@components/shared/EmptyState';
 
@@ -208,6 +209,11 @@ export function HomeScreen({
     refetch,
   } = useHomeDeals();
 
+  // Real businesses from the public discovery list. This section used to render
+  // the bundled Discover businesses under a "Businesses Around You" heading,
+  // which read as live data but was the same fiction as the old deal rows.
+  const { data: nearbyBusinesses } = useNearbyBusinesses();
+
   const openDeal = useCallback((dealId: string) => onOpenDeal?.(dealId), [onOpenDeal]);
 
   const openComments = useCallback((dealId: string) => setCommentsDealId(dealId), []);
@@ -341,11 +347,20 @@ export function HomeScreen({
             seeAllLabel={strings.home.seeAll}
             onSeeAll={onOpenDiscoverTab}
           />
-          <View className="flex-col gap-3">
-            {nearbyBusinesses.map(business => (
-              <BusinessRow key={business.id} business={business} />
-            ))}
-          </View>
+          {nearbyBusinesses?.length ? (
+            <View className="flex-col gap-3">
+              {nearbyBusinesses.map(business => (
+                <BusinessRow key={business.id} business={business} />
+              ))}
+            </View>
+          ) : (
+            <EmptyState
+              variant="contained"
+              icon="storefront"
+              title={strings.home.noBusinessesTitle}
+              description={strings.home.noBusinessesBody}
+            />
+          )}
         </View>
 
         <View className="flex-col gap-3.5">

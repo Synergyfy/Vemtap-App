@@ -5,6 +5,10 @@ import { TabNavigator } from '@navigation/TabNavigator';
 import { BusinessTabNavigator } from '@navigation/BusinessTabNavigator';
 import { PersonalHubNavigator } from '@navigation/PersonalHubNavigator';
 
+jest.mock('@features/home/hooks/useNearbyBusinesses', () =>
+  jest.requireActual('./helpers/mockHomeBusinesses').mockHomeBusinessesModule(),
+);
+
 jest.mock('@features/deals/hooks/usePublicOffers', () =>
   jest.requireActual('./helpers/mockOffersFeed').mockOffersFeedModule(),
 );

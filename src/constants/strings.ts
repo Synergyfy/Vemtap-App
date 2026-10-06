@@ -290,6 +290,12 @@ export const strings = {
     dealsNearYou: 'Deals Near You',
     trending: 'Trending Deals',
     businessesAround: 'Businesses Around You',
+    /**
+     * New copy: the businesses section is live now, so an empty result means the
+     * test data has none nearby rather than that the section is broken.
+     */
+    noBusinessesTitle: 'No businesses listed yet',
+    noBusinessesBody: 'Businesses appear here as they join VEMTAP near you.',
     popularNearYou: 'Popular Near You',
     seeAll: 'See All',
     listView: 'List view',

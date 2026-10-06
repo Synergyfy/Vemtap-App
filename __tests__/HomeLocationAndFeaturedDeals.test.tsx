@@ -13,6 +13,10 @@ import { DealsDiscoveryScreen } from '@features/deals/screens/DealsDiscoveryScre
 import { AREA_OPTIONS, AREA_PILL_LABELS, DEFAULT_AREA } from '@constants/locations';
 import { useLocationStore } from '@store/locationStore';
 
+jest.mock('@features/home/hooks/useNearbyBusinesses', () =>
+  jest.requireActual('./helpers/mockHomeBusinesses').mockHomeBusinessesModule(),
+);
+
 jest.mock('@features/deals/hooks/usePublicOffers', () =>
   jest.requireActual('./helpers/mockOffersFeed').mockOffersFeedModule(),
 );

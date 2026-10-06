@@ -9,6 +9,9 @@ jest.mock('@features/deals/hooks/usePublicOffers', () =>
 jest.mock('@features/deals/hooks/useDealEngagementActions', () =>
   jest.requireActual('./helpers/mockOffersFeed').mockDealEngagementActionsModule(),
 );
+jest.mock('@features/home/hooks/useNearbyBusinesses', () =>
+  jest.requireActual('./helpers/mockHomeBusinesses').mockHomeBusinessesModule(),
+);
 
 /** Lets one test drive a specific feed result. */
 const feedDouble = jest.requireMock('@features/deals/hooks/usePublicOffers');

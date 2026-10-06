@@ -10,6 +10,9 @@ jest.mock('@features/deals/hooks/usePublicOffers', () =>
 jest.mock('@features/deals/hooks/useDealEngagementActions', () =>
   jest.requireActual('./helpers/mockOffersFeed').mockDealEngagementActionsModule(),
 );
+jest.mock('@features/home/hooks/useNearbyBusinesses', () =>
+  jest.requireActual('./helpers/mockHomeBusinesses').mockHomeBusinessesModule(),
+);
 
 jest.mock('@hooks/useNetworkStatus', () => ({
   useIsOnline: () => true,
