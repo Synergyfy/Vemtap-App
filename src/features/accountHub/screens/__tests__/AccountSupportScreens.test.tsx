@@ -6,19 +6,11 @@ import { AccountSettingsSecurityScreen } from '@features/accountHub/screens/Acco
 import { SavingsHistoryScreen } from '@features/accountHub/screens/SavingsHistoryScreen';
 import { strings } from '@constants/strings';
 
-jest.mock('@features/accountHub/hooks/useSavedDeals', () => ({
-  useDealSaveStatus: (offerId: string | null) => {
-    if (!offerId) return { data: undefined, isLoading: false, isError: false };
-    return {
-      data: {
-        saved: ['urban-grill-lunch', 'sole-district-streetwear'].includes(offerId),
-      },
-      isLoading: false,
-      isError: false,
-    };
-  },
-  useToggleDealSave: () => ({ mutate: jest.fn() }),
-}));
+jest.mock('@features/accountHub/hooks/useSavedHub', () =>
+  jest
+    .requireActual('../../../../../__tests__/helpers/mockCustomerHub')
+    .mockSavedHubModule(),
+);
 
 describe('standalone account support screens', () => {
   it('renders the saved hub', async () => {

@@ -24,8 +24,10 @@ const DETAIL = {
   business: {
     id: 'c94b445a-78f6-4d0d-a86c-f22c74afa109',
     name: 'Test store',
+    /** The branch code — a trap; the profile link must not use this. */
+    slug: '8GUF52339',
     /** The key for GET /public/businesses/code/:code. */
-    slug: 'QFN2OX8BJ',
+    uniqueCode: 'QFN2OX8BJ',
     latitude: 9.0567,
     longitude: 7.4969,
     isVerified: false,
@@ -65,10 +67,12 @@ describe('publicOfferDetailSchema', () => {
     expect(parsed.data.averageRating).toBeNull();
   });
 
-  test('keeps the business code that links to the merchant profile', () => {
+  test('keeps the business uniqueCode that links to the merchant profile', () => {
     const parsed = publicOfferDetailSchema.parse(DETAIL) as PublicOfferDetail;
 
-    expect(parsed.business?.slug).toBe('QFN2OX8BJ');
+    // `slug` is the branch code; only `uniqueCode` resolves the profile.
+    expect(parsed.business?.uniqueCode).toBe('QFN2OX8BJ');
+    expect(parsed.business?.slug).toBe('8GUF52339');
   });
 
   test('requires an id, a name and a status', () => {

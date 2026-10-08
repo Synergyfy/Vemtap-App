@@ -20,6 +20,14 @@ jest.mock('@features/order/hooks/useCustomerOrders', () => ({
   useCustomerOrders: () => mockOrders(),
 }));
 
+jest.mock('@features/accountHub/hooks/useSavedHub', () =>
+  jest.requireActual('./helpers/mockCustomerHub').mockSavedHubModule(),
+);
+
+jest.mock('@features/myDeals/hooks/useMyClaims', () =>
+  jest.requireActual('./helpers/mockCustomerHub').mockMyClaimsModule(),
+);
+
 jest.mock('@store/authStore', () => ({
   useAuthStore: Object.assign(
     (selector: (state: Record<string, unknown>) => unknown) =>
@@ -28,12 +36,28 @@ jest.mock('@store/authStore', () => ({
   ),
 }));
 
+const { useSavedTotals } = jest.requireMock('@features/accountHub/hooks/useSavedHub');
+const { useActiveClaimsCount } = jest.requireMock('@features/myDeals/hooks/useMyClaims');
+
 function order(status: string) {
   return { id: `order-${status}`, status, totalAmount: 1000, items: [] };
 }
 
 beforeEach(() => {
   mockOrders.mockReturnValue({ isSuccess: true, isError: false, data: [] });
+  (useSavedTotals as jest.Mock).mockReturnValue({
+    deals: undefined,
+    businesses: undefined,
+    services: undefined,
+    all: undefined,
+    isSuccess: false,
+    isLoading: false,
+  });
+  (useActiveClaimsCount as jest.Mock).mockReturnValue({
+    data: undefined,
+    isSuccess: false,
+    isError: false,
+  });
 });
 
 test('Total Saved shows the customer’s live net savings', async () => {
@@ -56,24 +80,37 @@ test('Total Saved shows the unavailable marker until the totals settle', async (
 
   const screen = await render(<AccountHomeScreen />);
 
-  // Tile + Savings History badge, both unresolved.
+  // Total Saved tile, Savings History badge and the Active Deals tile all
+  // share the unresolved marker while their queries are unsettled.
   expect(screen.getAllByText(strings.customerDashboard.metricUnavailable)).toHaveLength(
-    2,
+    3,
   );
   expect(screen.queryByText('₦18,500')).toBeNull();
 });
 
-test('Active Deals reports the real (currently unknown) count, not the placeholder', async () => {
+test('Active Deals reports the live claim count from GET /me/claims', async () => {
+  mockAnalytics.mockReturnValue({ isSuccess: true, isError: false, data: undefined });
+  (useActiveClaimsCount as jest.Mock).mockReturnValue({
+    data: 3,
+    isSuccess: true,
+    isError: false,
+  });
+
+  const screen = await render(<AccountHomeScreen />);
+
+  // Tile and My Deals badge share the one count — never the designed "3 Live".
+  expect(screen.getAllByText('3 Live')).toHaveLength(1);
+  expect(screen.getByText('3 Active')).toBeTruthy();
+});
+
+test('Active Deals shows the unavailable marker until the claims settle', async () => {
   mockAnalytics.mockReturnValue({ isSuccess: true, isError: false, data: undefined });
 
   const screen = await render(<AccountHomeScreen />);
 
-  // No customer claims endpoint exists yet, so both the tile and the My Deals
-  // badge report zero — never the designed "3 Live" / "3 Active".
-  expect(screen.getByText('0 Live')).toBeTruthy();
-  expect(screen.getByText('0 Active')).toBeTruthy();
-  expect(screen.queryByText('3 Live')).toBeNull();
-  expect(screen.queryByText('3 Active')).toBeNull();
+  expect(screen.getByText(strings.customerDashboard.metricUnavailable)).toBeTruthy();
+  // The badge is omitted rather than printing an invented zero.
+  expect(screen.queryByText('0 Active')).toBeNull();
 });
 
 test('Orders badge counts the live open orders', async () => {
@@ -90,12 +127,26 @@ test('Orders badge counts the live open orders', async () => {
   expect(screen.queryByText('1 Pending')).toBeNull();
 });
 
-test('Saved Items carries no invented badge', async () => {
+test('Saved Items carries the live unified-feed count', async () => {
+  mockAnalytics.mockReturnValue({ isSuccess: true, isError: false, data: undefined });
+  (useSavedTotals as jest.Mock).mockReturnValue({
+    deals: 7,
+    businesses: 3,
+    services: 2,
+    all: 12,
+    isSuccess: true,
+    isLoading: false,
+  });
+
+  const screen = await render(<AccountHomeScreen />);
+
+  expect(screen.getByText('12 Saved')).toBeTruthy();
+});
+
+test('Saved Items carries no badge until the saved feed settles', async () => {
   mockAnalytics.mockReturnValue({ isSuccess: true, isError: false, data: undefined });
 
   const screen = await render(<AccountHomeScreen />);
 
-  // `useSavedDealsList` is a stub — the endpoint does not exist — so the row
-  // must not print a count.
-  expect(screen.queryByText('12 items')).toBeNull();
+  expect(screen.queryByText('12 Saved')).toBeNull();
 });

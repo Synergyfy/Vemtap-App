@@ -697,6 +697,8 @@ export function DealDetailScreen({ route, navigation }: Props) {
         dealTitle={details.title}
         merchant={deal.merchant.split(' • ')[0]}
         commentCount={details.comments}
+        // Fictional seed offers have no server row — the sheet keeps demo copy.
+        offerId={isLiveOffer ? route.params.dealId : undefined}
       />
       <DealShareSheet
         visible={shareVisible}

@@ -34,7 +34,7 @@ export type PersonalHubParamList = {
   PersonalSettings: undefined;
   PersonalEditProfile: undefined;
   PersonalHelpCentre: undefined;
-  PersonalClaimedDealPass: { dealId?: string } | undefined;
+  PersonalClaimedDealPass: { claimId?: string; dealId?: string } | undefined;
   PersonalOrderDetail: { orderId?: string } | undefined;
   PersonalBookingDetail: { bookingNumber?: string } | undefined;
   PersonalConversation: { threadId?: string } | undefined;
@@ -444,7 +444,7 @@ export type AccountStackParamList = {
   SavingsHistory: undefined;
   AccountSettings: undefined;
   EditProfile: undefined;
-  ClaimedDealPass: { dealId?: string } | undefined;
+  ClaimedDealPass: { claimId?: string; dealId?: string } | undefined;
   OrderDetail: { orderId?: string } | undefined;
   BookingDetail: { bookingNumber?: string } | undefined;
   Conversation: { threadId?: string } | undefined;

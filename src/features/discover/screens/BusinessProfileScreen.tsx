@@ -21,6 +21,10 @@ import { LocationMapView } from '@components/shared/LocationMapView';
 import { LoadingState } from '@components/shared/LoadingState';
 import { EmptyState } from '@components/shared/EmptyState';
 import { usePublicBusinessProfile } from '@features/discover/hooks/usePublicBusinessProfile';
+import {
+  useBusinessSaveStatus,
+  useToggleBusinessSave,
+} from '@features/accountHub/hooks/useSavedHub';
 import type { LiveBusinessProfile } from '@features/discover/utils/liveBusinessMapper';
 import { colors } from '@theme/colors';
 import { strings } from '@constants/strings';
@@ -62,7 +66,7 @@ export function BusinessProfileScreen({
   onOpenDeal = () => undefined,
   onOpenInApp = () => undefined,
 }: BusinessProfileScreenProps) {
-  const [bookmarked, setBookmarked] = useState(false);
+  const [bundledBookmarked, setBundledBookmarked] = useState(false);
   const [following, setFollowing] = useState(false);
   const [aboutExpanded, setAboutExpanded] = useState(false);
 
@@ -70,6 +74,21 @@ export function BusinessProfileScreen({
   const business = (bundledBusiness ??
     (live.status === 'resolved' ? live.business : undefined)) as
     LiveBusinessProfile | undefined;
+
+  /**
+   * A real merchant saves to the account (`POST /businesses/:id/save`); the
+   * bundled Discover businesses have no server id and keep the local toggle.
+   */
+  const liveBusinessId = live.status === 'resolved' ? live.business.id : null;
+  const liveSaveStatus = useBusinessSaveStatus(liveBusinessId);
+  const toggleBusinessSave = useToggleBusinessSave();
+  const bookmarked = liveBusinessId
+    ? (liveSaveStatus.data?.isSaved ?? false)
+    : bundledBookmarked;
+  const toggleBookmark = () => {
+    if (liveBusinessId) toggleBusinessSave.mutate(liveBusinessId);
+    else setBundledBookmarked(value => !value);
+  };
 
   // Loading and failure come before the page so a merchant with no data yet
   // shows an honest state rather than a blank profile.
@@ -135,7 +154,8 @@ export function BusinessProfileScreen({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={strings.discoverFeed.bookmarkBusiness(business.name)}
-            onPress={() => setBookmarked(value => !value)}
+            accessibilityState={{ selected: bookmarked }}
+            onPress={toggleBookmark}
             className="h-10 w-10 items-center justify-center rounded-full bg-surface-canvas shadow-sm"
           >
             <Icon
@@ -162,7 +182,8 @@ export function BusinessProfileScreen({
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={strings.discoverFeed.bookmarkBusiness(business.name)}
-              onPress={() => setBookmarked(value => !value)}
+              accessibilityState={{ selected: bookmarked }}
+              onPress={toggleBookmark}
               className="h-10 w-10 items-center justify-center rounded-full bg-surface-canvas shadow-sm"
             >
               <Icon

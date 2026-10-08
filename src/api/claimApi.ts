@@ -57,6 +57,65 @@ export const claimVerifiedResponseSchema = z.object({
 });
 export type ClaimVerified = z.infer<typeof claimVerifiedResponseSchema>;
 
+/**
+ * The customer's claimed passes (`GET /me/claims`).
+ *
+ * CUSTOMER-only: an owner token gets `403` and anonymous `401`. `status` is the
+ * **effective** status the server computed — `ACTIVE` means claimed and not
+ * past `expiresAt`; `EXPIRED` covers persisted expired rows *and* claimed rows
+ * past expiry — so the UI badges the row from this field, never from comparing
+ * `expiresAt` locally. `redeemedAt` is null until a merchant redeems the pass.
+ *
+ * The optional `offer.discountValue`/`pricingType` are not rendered by the
+ * cards, but are kept because the same payload feeds the pass screen.
+ */
+export const myClaimStatusSchema = z.enum(['ACTIVE', 'REDEEMED', 'EXPIRED']);
+export type MyClaimStatus = z.infer<typeof myClaimStatusSchema>;
+
+export const myClaimOfferSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  mainImage: z.string().nullable().optional(),
+  calculatedPrice: z.number(),
+  originalPrice: z.number(),
+  discountPercent: z.number(),
+  pricingType: z.string().nullable().optional(),
+  discountValue: z.number().nullable().optional(),
+  businessId: z.string(),
+  businessName: z.string(),
+  businessLogo: z.string().nullable().optional(),
+  branchId: z.string().nullable().optional(),
+  branchName: z.string().nullable().optional(),
+  branchAddress: z.string().nullable().optional(),
+  endDate: z.string().nullable().optional(),
+});
+export type MyClaimOffer = z.infer<typeof myClaimOfferSchema>;
+
+export const myClaimSchema = z.object({
+  id: z.string(),
+  claimCode: z.string(),
+  status: myClaimStatusSchema,
+  expiresAt: z.string(),
+  claimedAt: z.string(),
+  redeemedAt: z.string().nullable().optional(),
+  offer: myClaimOfferSchema,
+});
+export type MyClaim = z.infer<typeof myClaimSchema>;
+
+export const myClaimsPageSchema = z.object({
+  data: z.array(myClaimSchema),
+  total: z.number(),
+  page: z.number().nullable().optional(),
+  limit: z.number().nullable().optional(),
+});
+export type MyClaimsPage = z.infer<typeof myClaimsPageSchema>;
+
+type MyClaimsQuery = {
+  page?: number;
+  limit?: number;
+  status?: MyClaimStatus;
+};
+
 export const claimApi = {
   /** Step 1. Emails the code; returns void because only a message comes back. */
   async requestClaimOtp(
@@ -89,6 +148,25 @@ export const claimApi = {
         ...options,
       },
       claimVerifiedResponseSchema,
+    );
+  },
+
+  /**
+   * The authenticated customer's claimed passes, newest first. `data: []` +
+   * `total: 0` is a valid empty state.
+   */
+  async listMyClaims(
+    query: MyClaimsQuery = {},
+    options: ApiRequestOptions = {},
+  ): Promise<MyClaimsPage> {
+    return requestValidated<MyClaimsPage>(
+      {
+        method: 'GET',
+        url: '/me/claims',
+        params: { page: query.page, limit: query.limit, status: query.status },
+        ...options,
+      },
+      myClaimsPageSchema,
     );
   },
 };

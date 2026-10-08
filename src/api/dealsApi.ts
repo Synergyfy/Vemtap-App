@@ -44,6 +44,8 @@ export const offerBusinessSchema = z.object({
   id: z.string(),
   name: z.string(),
   slug: z.string().nullable().optional(),
+  /** Business 9-character code; equals `slug` on the feed. */
+  uniqueCode: z.string().nullable().optional(),
   categoryId: z.string().nullable().optional(),
   categoryName: z.string().nullable().optional(),
   address: z.string().nullable().optional(),
@@ -104,15 +106,21 @@ export type Offer = z.infer<typeof offerSchema>;
 
 /**
  * The business as it appears *inside* an offer. Deliberately separate from
- * `offerBusinessSchema` (the feed's shape): this one carries `slug` — the
- * 9-character code the public business endpoint is keyed by — plus
- * `isVerified`, which the feed omits entirely.
+ * `offerBusinessSchema` (the feed's shape): this one carries `isVerified`,
+ * which the feed omits entirely.
+ *
+ * Field naming is a trap on this payload: `slug` is the **branch** code
+ * (branch deep links), while `uniqueCode` is the **business** code — the key
+ * `GET /public/businesses/code/:code` accepts. Use `uniqueCode` for the
+ * merchant profile link; the branch slug 404s there.
  */
 export const publicOfferBusinessSchema = z.object({
   id: z.string(),
   name: z.string(),
-  /** Unique 9-character code; the key for `GET /public/businesses/code/:code`. */
+  /** The branch code, NOT the business code — never link a profile with this. */
   slug: z.string().nullable().optional(),
+  /** Business 9-character code; the key for `GET /public/businesses/code/:code`. */
+  uniqueCode: z.string().nullable().optional(),
   categoryId: z.string().nullable().optional(),
   address: z.string().nullable().optional(),
   city: z.string().nullable().optional(),
@@ -241,6 +249,62 @@ export const reactionStatusSchema = z.object({
   reviewsCount: nullableNumber(0),
 });
 
+/**
+ * Deal reviews.
+ *
+ * Shapes come from the live backend service (`deal-engagement.service.ts`):
+ *
+ *  - The list is `{ reviews, total, page }` — note it does **not** echo
+ *    `limit`, and list rows carry no `isAuthor` (only the detail route does,
+ *    and only when the request was authenticated as the author).
+ *  - `POST` answers `201` with the created row; a second review by the same
+ *    account is rejected with `409`.
+ *  - `PATCH`/`DELETE` are author-only (`403`), `404` for unknown reviews, and
+ *    `400` for unknown fields (the global pipe rejects them).
+ *  - Editing re-enters moderation when the business requires approval, so the
+ *    returned `status` may be `pending`; the page should say so rather than
+ *    assume the edit is live.
+ */
+export const dealReviewSchema = z.object({
+  id: z.string(),
+  reviewerName: z.string(),
+  comment: z.string(),
+  rating: z.number().nullable().optional(),
+  likesCount: nullableNumber(0),
+  status: z.string().nullable().optional(),
+  isLiked: nullableFlag(false),
+  createdAt: z.string(),
+});
+export type DealReview = z.infer<typeof dealReviewSchema>;
+
+export const dealReviewsPageSchema = z.object({
+  reviews: z.array(dealReviewSchema),
+  total: z.number(),
+  page: z.number().nullable().optional(),
+});
+export type DealReviewsPage = z.infer<typeof dealReviewsPageSchema>;
+
+export const dealReviewDetailSchema = dealReviewSchema.extend({
+  offerId: z.string(),
+  isAuthor: nullableFlag(false),
+  updatedAt: z.string(),
+});
+export type DealReviewDetail = z.infer<typeof dealReviewDetailSchema>;
+
+export const createDealReviewSchema = z.object({
+  comment: z.string().min(1).max(1000),
+  rating: z.number().int().min(1).max(5).optional(),
+  /** Required only for anonymous reviewers; authenticated names come from the token. */
+  name: z.string().optional(),
+});
+export type CreateDealReviewInput = z.infer<typeof createDealReviewSchema>;
+
+export const updateDealReviewSchema = z.object({
+  comment: z.string().min(1).max(1000).optional(),
+  rating: z.number().int().min(1).max(5).optional(),
+});
+export type UpdateDealReviewInput = z.infer<typeof updateDealReviewSchema>;
+
 export type ReactionType = 'like' | 'dislike';
 
 export const dealsApi = {
@@ -325,23 +389,113 @@ export const dealsApi = {
     });
   },
 
-  /** Authenticated; no response body is documented for this toggle. */
-  async toggleSave(offerId: string, options: ApiRequestOptions = {}): Promise<unknown> {
-    return request<unknown>({
-      method: 'POST',
-      url: `/deals/${offerId}/save`,
-      ...options,
-    });
-  },
-
-  /** Authenticated; returns save status for a deal. */
-  async getSaveStatus(
+  /**
+   * Authenticated; toggles the saved state and returns the **resulting**
+   * state. The server (not the client) decides the direction, so read the
+   * response — do not assume a flip (`savedApi.toggleBusinessSave` follows the
+   * same contract).
+   */
+  async toggleSave(
     offerId: string,
     options: ApiRequestOptions = {},
   ): Promise<{ saved: boolean }> {
     return requestValidated<{ saved: boolean }>(
-      { method: 'GET', url: `/deals/${offerId}/save-status`, ...options },
+      {
+        method: 'POST',
+        url: `/deals/${offerId}/save`,
+        ...options,
+      },
       z.object({ saved: z.boolean() }),
     );
+  },
+
+  /** Authenticated; returns save status for a deal. Note `isSaved`, not `saved`. */
+  async getSaveStatus(
+    offerId: string,
+    options: ApiRequestOptions = {},
+  ): Promise<{ isSaved: boolean }> {
+    return requestValidated<{ isSaved: boolean }>(
+      { method: 'GET', url: `/deals/${offerId}/save-status`, ...options },
+      z.object({ isSaved: z.boolean() }),
+    );
+  },
+
+  /**
+   * Paginated approved reviews, newest first. Public; sending the token adds
+   * `isLiked` to each row and (on the detail route) `isAuthor`.
+   */
+  async listReviews(
+    offerId: string,
+    query: { page?: number; limit?: number } = {},
+    options: ApiRequestOptions = {},
+  ): Promise<DealReviewsPage> {
+    return requestValidated<DealReviewsPage>(
+      {
+        method: 'GET',
+        url: `/deals/${offerId}/reviews`,
+        params: { page: query.page, limit: query.limit },
+        ...options,
+      },
+      dealReviewsPageSchema,
+    );
+  },
+
+  /** Submit a review. Public; an authenticated token links the author. */
+  async createReview(
+    offerId: string,
+    input: CreateDealReviewInput,
+    options: ApiRequestOptions = {},
+  ): Promise<DealReview> {
+    return requestValidated<DealReview>(
+      { method: 'POST', url: `/deals/${offerId}/reviews`, data: input, ...options },
+      dealReviewSchema,
+    );
+  },
+
+  /**
+   * One review. Public for approved reviews; a pending/rejected review is only
+   * visible to its author, so callers must send the token for `isAuthor` to be
+   * true (everyone else gets `404`, never a leak of the moderation state).
+   */
+  async getReview(
+    offerId: string,
+    reviewId: string,
+    options: ApiRequestOptions = {},
+  ): Promise<DealReviewDetail> {
+    return requestValidated<DealReviewDetail>(
+      { method: 'GET', url: `/deals/${offerId}/reviews/${reviewId}`, ...options },
+      dealReviewDetailSchema,
+    );
+  },
+
+  /** Author-only edit; sends `PATCH` with at least one changed field. */
+  async updateReview(
+    offerId: string,
+    reviewId: string,
+    input: UpdateDealReviewInput,
+    options: ApiRequestOptions = {},
+  ): Promise<DealReviewDetail> {
+    return requestValidated<DealReviewDetail>(
+      {
+        method: 'PATCH',
+        url: `/deals/${offerId}/reviews/${reviewId}`,
+        data: input,
+        ...options,
+      },
+      dealReviewDetailSchema,
+    );
+  },
+
+  /** Author-only soft delete; answers `204` with no body. */
+  async deleteReview(
+    offerId: string,
+    reviewId: string,
+    options: ApiRequestOptions = {},
+  ): Promise<void> {
+    await request<unknown>({
+      method: 'DELETE',
+      url: `/deals/${offerId}/reviews/${reviewId}`,
+      ...options,
+    });
   },
 };

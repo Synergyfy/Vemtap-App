@@ -66,10 +66,22 @@ export function offerImage(offer: Offer): string {
   return withImage?.mainImage ?? PLACEHOLDER_IMAGE;
 }
 
-/** Remaining time until `endDate`, e.g. "Ends in 4h". Null when unknown/over. */
-export function offerCountdown(
+/**
+ * Wording for a countdown, injected so different domains phrase the same
+ * remaining time correctly ("Ends in…" for an offer, "Expires in…" for a claim)
+ * without forking the time arithmetic.
+ */
+export type CountdownLabels = {
+  days: (days: number, hours: number) => string;
+  hours: (hours: number) => string;
+  minutes: (minutes: number) => string;
+};
+
+/** Remaining time until `endDate` using the caller's wording; null when over/unknown. */
+export function countdownLabel(
   endDate: string | null | undefined,
-  now = Date.now(),
+  now: number,
+  labels: CountdownLabels,
 ): string | null {
   if (!endDate) return null;
   const end = Date.parse(endDate);
@@ -83,9 +95,23 @@ export function offerCountdown(
   const hours = totalHours % 24;
   const minutes = Math.floor(remaining / 60_000) % 60;
 
-  if (days > 0) return strings.deals.endsInDays(days, hours);
-  if (totalHours > 0) return strings.deals.endsInHours(totalHours);
-  return strings.deals.endsInMinutes(minutes);
+  if (days > 0) return labels.days(days, hours);
+  if (totalHours > 0) return labels.hours(totalHours);
+  return labels.minutes(minutes);
+}
+
+const DEAL_COUNTDOWN_LABELS: CountdownLabels = {
+  days: (days, hours) => strings.deals.endsInDays(days, hours),
+  hours: hours => strings.deals.endsInHours(hours),
+  minutes: minutes => strings.deals.endsInMinutes(minutes),
+};
+
+/** Remaining time until `endDate`, e.g. "Ends in 4h". Null when unknown/over. */
+export function offerCountdown(
+  endDate: string | null | undefined,
+  now = Date.now(),
+): string | null {
+  return countdownLabel(endDate, now, DEAL_COUNTDOWN_LABELS);
 }
 
 /** Exported for the Home cards, which render the same badge in their own layout. */

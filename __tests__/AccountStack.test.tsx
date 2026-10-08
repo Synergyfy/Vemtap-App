@@ -24,19 +24,12 @@ jest.mock('@features/deals/hooks/useDealEngagementActions', () =>
 jest.mock('@features/discover/hooks/useDiscoverBusinesses', () =>
   jest.requireActual('./helpers/mockDiscoverBusinesses').mockDiscoverBusinessesModule(),
 );
-jest.mock('@features/accountHub/hooks/useSavedDeals', () => ({
-  useDealSaveStatus: (offerId: string | null) => {
-    if (!offerId) return { data: undefined, isLoading: false, isError: false };
-    return {
-      data: {
-        saved: ['urban-grill-lunch', 'sole-district-streetwear'].includes(offerId),
-      },
-      isLoading: false,
-      isError: false,
-    };
-  },
-  useToggleDealSave: () => ({ mutate: jest.fn() }),
-}));
+jest.mock('@features/accountHub/hooks/useSavedHub', () =>
+  jest.requireActual('./helpers/mockCustomerHub').mockSavedHubModule(),
+);
+jest.mock('@features/myDeals/hooks/useMyClaims', () =>
+  jest.requireActual('./helpers/mockCustomerHub').mockMyClaimsModule(),
+);
 
 // Selector-capable so screens can read the signed-in user, plus `getState` for
 // the sign-out path that reads the store outside a component.

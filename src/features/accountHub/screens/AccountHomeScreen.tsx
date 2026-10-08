@@ -8,6 +8,8 @@ import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
 import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
 import { useLoyaltyAnalytics } from '@features/accountHub/hooks/useLoyalty';
+import { useSavedTotals } from '@features/accountHub/hooks/useSavedHub';
+import { useActiveClaimsCount } from '@features/myDeals/hooks/useMyClaims';
 import { useCustomerOrders } from '@features/order/hooks/useCustomerOrders';
 import { isActiveStatus } from '@features/order/orderStatus';
 import { formatCompactNaira } from '@utils/formatters';
@@ -144,6 +146,8 @@ export function AccountHomeScreen({
 }: AccountHomeScreenProps) {
   const me = useCurrentUserDisplay();
   const analytics = useLoyaltyAnalytics();
+  const savedTotals = useSavedTotals();
+  const activeClaims = useActiveClaimsCount();
 
   // Same source as the dashboard's "Saved Total": the customer's net savings
   // across all businesses. `—` until the query settles, so the tile can never
@@ -151,21 +155,28 @@ export function AccountHomeScreen({
   const totalSaved = analytics.isSuccess
     ? formatCompactNaira(analytics.data?.totals?.netSavings ?? 0)
     : strings.customerDashboard.metricUnavailable;
-  // There is still no customer-facing claims endpoint (`GET /me/claims` is an
-  // open backend ask), so the count is unknown; `0` matches the dashboard's
-  // Active Deals metric until the endpoint lands.
-  const activeDeals = copy.activeDealsValueFor(0);
+  // The effective active-pass count from `GET /me/claims`; unavailable for
+  // non-customer sessions, so the tile shows `—` rather than an invented zero.
+  const activeDeals = activeClaims.isSuccess
+    ? copy.activeDealsValueFor(activeClaims.data ?? 0)
+    : strings.customerDashboard.metricUnavailable;
+  const myDealsBadge = activeClaims.isSuccess
+    ? copy.myDealsBadgeFor(activeClaims.data ?? 0)
+    : undefined;
 
   // Orders are real, so the "Pending" badge is a live count of the ones still
-  // open. Saved items stay badgeless: `useSavedDealsList` is an explicit stub
-  // because the backend has no `GET /me/saved/deals` yet, and a badge would
-  // have to invent a number.
+  // open.
   const orders = useCustomerOrders();
   const pendingOrders = (orders.data ?? []).filter(order =>
     isActiveStatus(order.status),
   ).length;
   const pendingBadge = orders.isSuccess
     ? copy.ordersBookingsBadgeFor(pendingOrders)
+    : undefined;
+  // The unified saved feed totals across deals, businesses and services; the
+  // badge stays hidden until it settles so it can never print an invented zero.
+  const savedBadge = savedTotals.isSuccess
+    ? copy.savedItemsBadgeFor(savedTotals.all ?? 0)
     : undefined;
   return (
     <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-background">
@@ -317,7 +328,7 @@ export function AccountHomeScreen({
             <AccountRow
               icon="localOffer"
               title={copy.myDeals}
-              badge={copy.myDealsBadgeFor(0)}
+              badge={myDealsBadge}
               badgeTone="success"
               onPress={onOpenDeals}
             />
@@ -334,7 +345,12 @@ export function AccountHomeScreen({
               badge={totalSaved}
               onPress={onOpenSavings}
             />
-            <AccountRow icon="bookmark" title={copy.savedItems} onPress={onOpenSaved} />
+            <AccountRow
+              icon="bookmark"
+              title={copy.savedItems}
+              badge={savedBadge}
+              onPress={onOpenSaved}
+            />
           </View>
         </View>
 

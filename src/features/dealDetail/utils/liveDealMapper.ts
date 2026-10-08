@@ -38,15 +38,14 @@ function asFeedOffer(detail: PublicOfferDetail): FeedOfferView {
 }
 
 /**
- * `businessCode` is passed in rather than read from `detail.business.slug`: the
- * details payload's `slug` is the *branch's* uniqueCode, which
- * `/public/businesses/code/:code` rejects with a 404. See `useDealDetail` for
- * where the correct value comes from.
+ * The detail payload now carries the business's own `uniqueCode` — the value
+ * `/public/businesses/code/:code` accepts — so the merchant link reads it
+ * straight from the payload. Do not use `business.slug`: on this endpoint that
+ * is the *branch* code, and the profile lookup 404s for it.
  */
 export function mapOfferDetailToResolved(
   detail: PublicOfferDetail,
   origin: GeoCoords,
-  businessCode?: string,
 ): ResolvedDeal {
   const offer = asFeedOffer(detail);
   const prices = priceLabels(offer);
@@ -75,7 +74,7 @@ export function mapOfferDetailToResolved(
     endsIn: offerCountdown(detail.endDate) ?? undefined,
     // Absent when the code is unknown, which hides the merchant link rather
     // than sending the user to a 404.
-    businessCode: businessCode ?? undefined,
+    businessCode: business?.uniqueCode ?? undefined,
     isVerifiedBusiness: business?.isVerified ?? undefined,
   };
 }

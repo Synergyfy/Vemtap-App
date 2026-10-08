@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { CustomerDashboardScreen } from '@features/accountHub/screens/CustomerDashboardScreen';
 import { strings } from '@constants/strings';
 import type { DealListItem } from '@features/deals/data/dealsFeed';
+import { claimFixture } from './helpers/mockCustomerHub';
 
 const mockBalance = jest.fn();
 const mockAnalytics = jest.fn();
@@ -11,6 +12,8 @@ const mockLogs = jest.fn();
 const mockRewards = jest.fn();
 const mockFeed = jest.fn();
 const mockUnread = jest.fn();
+const mockClaimsList = jest.fn();
+const mockActiveClaimsCount = jest.fn();
 
 jest.mock('@features/accountHub/hooks/useLoyalty', () => ({
   ...jest.requireActual('@features/accountHub/hooks/useLoyalty'),
@@ -18,6 +21,11 @@ jest.mock('@features/accountHub/hooks/useLoyalty', () => ({
   useLoyaltyAnalytics: () => mockAnalytics(),
   useLoyaltyLogs: () => mockLogs(),
   useRewards: () => mockRewards(),
+}));
+
+jest.mock('@features/myDeals/hooks/useMyClaims', () => ({
+  useMyClaims: () => mockClaimsList(),
+  useActiveClaimsCount: () => mockActiveClaimsCount(),
 }));
 
 jest.mock('@features/business/hooks/useBusinessDashboardData', () => ({
@@ -65,6 +73,18 @@ function feedItem(id: string, title: string): DealListItem {
 beforeEach(() => {
   jest.clearAllMocks();
   mockUnread.mockReturnValue({ data: undefined });
+  mockClaimsList.mockReturnValue({
+    isLoading: false,
+    isError: false,
+    isSuccess: false,
+    data: undefined,
+    refetch: jest.fn(),
+  });
+  mockActiveClaimsCount.mockReturnValue({
+    isSuccess: false,
+    isError: false,
+    data: undefined,
+  });
 });
 
 test('while loading, known metrics show placeholders and each region shows a loading state', async () => {
@@ -83,13 +103,21 @@ test('while loading, known metrics show placeholders and each region shows a loa
     refetch: jest.fn(),
     feed: { list: [] },
   });
+  mockClaimsList.mockReturnValue({
+    isLoading: true,
+    isError: false,
+    isSuccess: false,
+    data: undefined,
+    refetch: jest.fn(),
+  });
 
   const screen = await renderDashboard();
 
-  expect(screen.getByText('0')).toBeTruthy();
-  // two metric placeholders + four placeholders inside the rewards card
-  expect(screen.getAllByText('—')).toHaveLength(6);
-  expect(screen.getAllByText(strings.common.loading)).toHaveLength(3);
+  // Unknown counts render the unavailable marker, never an invented zero.
+  expect(screen.queryByText('0')).toBeNull();
+  // three metric placeholders + four placeholders inside the rewards card
+  expect(screen.getAllByText('—')).toHaveLength(7);
+  expect(screen.getAllByText(strings.common.loading)).toHaveLength(4);
   expect(screen.queryByText(copy.activityEmpty.title)).toBeNull();
   expect(screen.queryByLabelText('Cart')).toBeNull();
   expect(screen.queryByText('3')).toBeNull();
@@ -112,12 +140,24 @@ test('query failures surface retryable error states, never a fake zero', async (
     refetch: jest.fn(),
     feed: { list: [] },
   });
+  mockClaimsList.mockReturnValue({
+    isLoading: false,
+    isError: true,
+    isSuccess: false,
+    data: undefined,
+    refetch: jest.fn(),
+  });
+  mockActiveClaimsCount.mockReturnValue({
+    isSuccess: false,
+    isError: true,
+    data: undefined,
+  });
 
   const screen = await renderDashboard();
 
   expect(screen.getAllByText(strings.common.error)).toHaveLength(2);
-  expect(screen.getAllByText(strings.common.retry)).toHaveLength(2);
-  expect(screen.getAllByText('—')).toHaveLength(6);
+  expect(screen.getAllByText(strings.common.retry)).toHaveLength(3);
+  expect(screen.getAllByText('—')).toHaveLength(7);
   expect(screen.getByText(copy.rewardsUnavailable)).toBeTruthy();
   expect(screen.queryByText(copy.activityEmpty.title)).toBeNull();
   expect(screen.queryByText('0 pts')).toBeNull();
@@ -143,6 +183,18 @@ test('an empty account renders zero values and empty states, not placeholders', 
     isError: false,
     refetch: jest.fn(),
     feed: { list: [] },
+  });
+  mockClaimsList.mockReturnValue({
+    isLoading: false,
+    isError: false,
+    isSuccess: true,
+    data: { data: [], total: 0, page: 1, limit: 50 },
+    refetch: jest.fn(),
+  });
+  mockActiveClaimsCount.mockReturnValue({
+    isSuccess: true,
+    isError: false,
+    data: 0,
   });
 
   const screen = await renderDashboard();
@@ -226,6 +278,18 @@ test('a funded account renders real points, tier, ledger rows and two recommenda
     },
   });
   mockUnread.mockReturnValue({ data: 3 });
+  mockClaimsList.mockReturnValue({
+    isLoading: false,
+    isError: false,
+    isSuccess: true,
+    data: { data: [claimFixture], total: 1, page: 1, limit: 50 },
+    refetch: jest.fn(),
+  });
+  mockActiveClaimsCount.mockReturnValue({
+    isSuccess: true,
+    isError: false,
+    data: 1,
+  });
 
   const screen = await renderDashboard();
 

@@ -6,25 +6,11 @@ import { SavedHubScreen } from '@features/accountHub/screens/SavedHubScreen';
 import { HubSearchField } from '@features/accountHub/components/HubPrimitives';
 import { HomeSearchBar } from '@components/home/HomeSearchBar';
 import { strings } from '@constants/strings';
+import { savedHubFixtures } from './helpers/mockCustomerHub';
 
-const _mockSaveStatus = jest.fn((offerId: string) => ({
-  saved: offerId === 'urban-grill-lunch' || offerId === 'sole-district-streetwear',
-}));
-const _mockToggleSave = jest.fn();
-
-jest.mock('@features/accountHub/hooks/useSavedDeals', () => ({
-  useDealSaveStatus: (offerId: string | null) => {
-    if (!offerId) return { data: undefined, isLoading: false, isError: false };
-    return {
-      data: {
-        saved: ['urban-grill-lunch', 'sole-district-streetwear'].includes(offerId),
-      },
-      isLoading: false,
-      isError: false,
-    };
-  },
-  useToggleDealSave: () => ({ mutate: jest.fn() }),
-}));
+jest.mock('@features/accountHub/hooks/useSavedHub', () =>
+  jest.requireActual('./helpers/mockCustomerHub').mockSavedHubModule(),
+);
 
 jest.mock('@features/discover/hooks/useDiscoverBusinesses', () =>
   jest.requireActual('./helpers/mockDiscoverBusinesses').mockDiscoverBusinessesModule(),
@@ -175,6 +161,23 @@ describe('Discover screen', () => {
 });
 
 describe('Saved hub screen', () => {
+  const { useSavedFeed } = jest.requireMock('@features/accountHub/hooks/useSavedHub');
+
+  beforeEach(() => {
+    (useSavedFeed as jest.Mock).mockReturnValue({
+      data: {
+        data: [savedHubFixtures.deal, savedHubFixtures.business],
+        total: 2,
+        page: 1,
+        limit: 50,
+      },
+      isLoading: false,
+      isSuccess: true,
+      isError: false,
+      refetch: jest.fn(),
+    });
+  });
+
   it('clears the query and brings the full saved list back', async () => {
     const screen = await renderWithClient(<SavedHubScreen />);
     const placeholder = strings.savedHub.searchPlaceholder;
@@ -182,13 +185,13 @@ describe('Saved hub screen', () => {
     await act(async () => {
       await fireEvent.changeText(screen.getByLabelText(placeholder), 'glow');
     });
-    expect(screen.queryByText('Sole District Boutique')).toBeNull();
+    expect(screen.queryByText('Sole District Boutique Weekend Drop')).toBeNull();
     expect(screen.getByLabelText(clearLabel)).toBeTruthy();
 
     await fireEvent.press(screen.getByLabelText(clearLabel));
     await waitFor(() => expect(screen.queryByLabelText(clearLabel)).toBeNull());
     expect(screen.getByLabelText(placeholder).props.value).toBe('');
-    expect(screen.getByText('Sole District Boutique')).toBeTruthy();
+    expect(screen.getByText('Sole District Boutique Weekend Drop')).toBeTruthy();
     expect(screen.getByText('Glow & Serenity Spa & Salon')).toBeTruthy();
   });
 });

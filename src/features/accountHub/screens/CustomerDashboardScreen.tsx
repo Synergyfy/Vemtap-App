@@ -15,10 +15,12 @@ import {
   QuickAction,
   SectionLink,
 } from '@features/accountHub/components/HubPrimitives';
+import { ClaimedDealCard } from '@features/accountHub/components/ClaimedDealCard';
 import { Button } from '@components/ui/Button';
 import { Icon, type IconName } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { EmptyState } from '@components/shared/EmptyState';
+import { ErrorState } from '@components/shared/ErrorState';
 import { LoadingState } from '@components/shared/LoadingState';
 import { strings } from '@constants/strings';
 import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
@@ -29,6 +31,7 @@ import {
   useLoyaltyLogs,
   useRewards,
 } from '@features/accountHub/hooks/useLoyalty';
+import { useActiveClaimsCount, useMyClaims } from '@features/myDeals/hooks/useMyClaims';
 import { usePublicOffersFeed } from '@features/deals/hooks/usePublicOffers';
 import { useUnreadNotificationsCount } from '@features/business/hooks/useBusinessDashboardData';
 import { resolveTier } from '@features/accountHub/data/rewardTiers';
@@ -97,6 +100,8 @@ export interface CustomerDashboardScreenProps {
   onShop?: () => void;
   onOpenAccount?: () => void;
   onOpenDeal?: (dealId: string) => void;
+  /** Opens the claimed-pass detail for a claim row from `GET /me/claims`. */
+  onOpenClaim?: (claimId: string) => void;
   onOpenOffer?: (offerId: string) => void;
   onOpenRewards?: () => void;
   onOpenActivity?: () => void;
@@ -109,6 +114,7 @@ export function CustomerDashboardScreen({
   onShop,
   onOpenAccount,
   onOpenDeal,
+  onOpenClaim,
   onOpenOffer,
   onOpenRewards,
   onOpenActivity,
@@ -129,8 +135,13 @@ export function CustomerDashboardScreen({
 
   const rewards = useRewards({ businessId: homeBusinessId });
 
+  const activeClaimsCount = useActiveClaimsCount();
+  const activeClaims = useMyClaims('ACTIVE');
+  const activeClaimsList = (activeClaims.data?.data ?? []).slice(0, 2);
   const points = balance.isSuccess ? (balance.data ?? 0) : null;
-  const activeDealsMetric = '0';
+  const activeDealsMetric = activeClaimsCount.isSuccess
+    ? String(activeClaimsCount.data ?? 0)
+    : copy.metricUnavailable;
   const pointsMetric = points === null ? copy.metricUnavailable : formatPoints(points);
   const savedMetric = analytics.isSuccess
     ? formatCompactNaira(analytics.data?.totals?.netSavings ?? 0)
@@ -315,12 +326,28 @@ export function CustomerDashboardScreen({
               onPress={() => onOpenDeal?.('my-deals')}
             />
           </View>
-          <EmptyState
-            variant="contained"
-            icon="voucher"
-            title={copy.activeEmpty.title}
-            description={copy.activeEmpty.body}
-          />
+          {activeClaims.isLoading ? (
+            <LoadingState label={strings.common.loading} />
+          ) : activeClaims.isError ? (
+            <ErrorState onRetry={() => activeClaims.refetch()} />
+          ) : activeClaimsList.length > 0 ? (
+            <View className="gap-3">
+              {activeClaimsList.map(claim => (
+                <ClaimedDealCard
+                  key={claim.id}
+                  claim={claim}
+                  onOpen={() => onOpenClaim?.(claim.id)}
+                />
+              ))}
+            </View>
+          ) : (
+            <EmptyState
+              variant="contained"
+              icon="voucher"
+              title={copy.activeEmpty.title}
+              description={copy.activeEmpty.body}
+            />
+          )}
         </View>
         <RewardsCard points={points} availability={availability} onOpen={onOpenRewards} />
         <ActivityLedger logs={logs} onOpen={onOpenActivity} />

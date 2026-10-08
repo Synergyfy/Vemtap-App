@@ -12,3 +12,4 @@ export * from './businessDashboardApi';
 export * from './notificationsApi';
 export * from './ordersApi';
 export * from './messagingApi';
+export * from './savedApi';

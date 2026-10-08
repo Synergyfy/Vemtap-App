@@ -598,7 +598,7 @@ function MyDealsRoute() {
   return (
     <MyDealsHubScreen
       onAccount={() => navigation.navigate('More')}
-      onOpenDeal={dealId => navigation.navigate('ClaimedDealPass', { dealId })}
+      onOpenClaim={claimId => navigation.navigate('ClaimedDealPass', { claimId })}
     />
   );
 }

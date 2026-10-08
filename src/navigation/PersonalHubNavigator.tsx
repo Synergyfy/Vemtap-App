@@ -1,7 +1,13 @@
 import React, { useEffect } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
+import {
+  useNavigation,
+  useRoute,
+  type CompositeNavigationProp,
+  type RouteProp,
+} from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { CustomerDashboardScreen } from '@features/accountHub/screens/CustomerDashboardScreen';
 import { MoreHubScreen } from '@features/accountHub/screens/MoreHubScreen';
 import { MyActivityScreen } from '@features/accountHub/screens/MyActivityScreen';
@@ -14,17 +20,43 @@ import { EditProfileScreen } from '@features/accountHub/screens/EditProfileScree
 import { HelpCentreScreen } from '@features/accountHub/screens/HelpCentreScreen';
 import { ClaimedDealDetailPassScreen } from '@features/claimedDeal/screens/ClaimedDealDetailPassScreen';
 import { MyDealsHubScreen } from '@features/myDeals/screens/MyDealsHubScreen';
+import { useClaimPass } from '@features/myDeals/hooks/useMyClaims';
 import { MessagesScreen } from '@features/merchantChat/screens/MessagesScreen';
 import { UrbanConversationScreen } from '@features/merchantChat/screens/UrbanConversationScreen';
 import { OrdersBookingsHubScreen } from '@features/order/screens/OrdersBookingsHubScreen';
 import { UrbanOrderDetailScreen } from '@features/order/screens/UrbanOrderDetailScreen';
 import { BookingDetailScreen } from '@features/accountHub/screens/BookingDetailScreen';
 import { TypeDensityProvider } from '@theme/TypeDensityProvider';
-import type { PersonalHubParamList } from './types';
+import type {
+  AccountStackParamList,
+  AppStackParamList,
+  MainTabParamList,
+  PersonalHubParamList,
+} from './types';
 
 const Stack = createNativeStackNavigator<PersonalHubParamList>();
 
-type HubNavigation = NativeStackNavigationProp<PersonalHubParamList>;
+/**
+ * The personal stack is nested three levels deep (Account tab → AccountStack →
+ * PersonalHub), so destinations owned by ancestor navigators are reached by
+ * bubbling. The composite keeps those cross-shell routes type-safe:
+ *
+ *  - `DealDetail` / `ServiceDetail` are owned by `AppStack` (root of the
+ *    consumer shell).
+ *  - `BusinessProfile` lives inside the Discover tab, a *sibling* of Account;
+ *    a bare `navigate('BusinessProfile')` would be a silent no-op, so it is
+ *    addressed through the tab (`navigate('Discover', { screen: … })`).
+ */
+type HubNavigation = CompositeNavigationProp<
+  NativeStackNavigationProp<PersonalHubParamList>,
+  CompositeNavigationProp<
+    NativeStackNavigationProp<AccountStackParamList>,
+    CompositeNavigationProp<
+      BottomTabNavigationProp<MainTabParamList>,
+      NativeStackNavigationProp<AppStackParamList>
+    >
+  >
+>;
 
 /** The overview accepts a deep link so deal/booking details land in this stack. */
 function PersonalHomeRoute() {
@@ -58,6 +90,7 @@ function PersonalHomeRoute() {
           navigation.navigate('PersonalClaimedDealPass', { dealId });
         }
       }}
+      onOpenClaim={claimId => navigation.navigate('PersonalClaimedDealPass', { claimId })}
     />
   );
 }
@@ -68,7 +101,7 @@ function PersonalMyDealsRoute() {
     <MyDealsHubScreen
       onBack={navigation.goBack}
       onAccount={() => navigation.navigate('PersonalMore')}
-      onOpenDeal={dealId => navigation.navigate('PersonalClaimedDealPass', { dealId })}
+      onOpenClaim={claimId => navigation.navigate('PersonalClaimedDealPass', { claimId })}
     />
   );
 }
@@ -167,7 +200,15 @@ function PersonalSavedRoute() {
     <SavedHubScreen
       onBack={navigation.goBack}
       onNotifications={() => navigation.navigate('PersonalNotifications')}
-      onOpenDeal={dealId => navigation.navigate('PersonalClaimedDealPass', { dealId })}
+      onOpenDeal={offerId => navigation.navigate('DealDetail', { dealId: offerId })}
+      onOpenBusiness={code =>
+        // A sibling tab cannot be reached by bubbling; address the tab first.
+        navigation.navigate('Discover', {
+          screen: 'BusinessProfile',
+          params: { code },
+        })
+      }
+      onOpenService={serviceId => navigation.navigate('ServiceDetail', { serviceId })}
     />
   );
 }
@@ -194,7 +235,12 @@ function PersonalHelpCentreRoute() {
 
 function PersonalClaimedDealPassRoute() {
   const navigation = useNavigation<HubNavigation>();
-  return <ClaimedDealDetailPassScreen onBack={navigation.goBack} />;
+  const route = useRoute<RouteProp<PersonalHubParamList, 'PersonalClaimedDealPass'>>();
+  const pass = useClaimPass({
+    claimId: route.params?.claimId,
+    offerId: route.params?.dealId,
+  });
+  return <ClaimedDealDetailPassScreen claim={pass.claim} onBack={navigation.goBack} />;
 }
 
 /**
