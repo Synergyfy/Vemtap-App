@@ -11,6 +11,10 @@ import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
 import { colors } from '@theme/colors';
 import { savedImages } from '@features/accountHub/data/accountHubImages';
+import {
+  useDealSaveStatus,
+  useToggleDealSave,
+} from '@features/accountHub/hooks/useSavedDeals';
 
 cssInterop(Image, { className: 'style' });
 cssInterop(Pressable, { className: 'style' });
@@ -387,6 +391,12 @@ export interface SavedHubScreenProps {
   onOpenService?: (serviceId: string) => void;
 }
 
+const SAVED_ID_TO_OFFER_ID: Record<string, string> = {
+  'urban-grill': 'urban-grill-lunch',
+  'sole-district': 'sole-district-streetwear',
+  // 'glow-serenity' and 'cold-brew' have no backend save endpoints yet
+};
+
 export function SavedHubScreen({
   onBack,
   onNotifications,
@@ -397,6 +407,14 @@ export function SavedHubScreen({
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<SavedCategory>('all');
   const [bookmarks, setBookmarks] = useState<Record<string, boolean>>({});
+
+  // Real API hooks for deal save status (only works for deals with real offer IDs)
+  const urbanGrillOfferId = SAVED_ID_TO_OFFER_ID['urban-grill'];
+  const soleDistrictOfferId = SAVED_ID_TO_OFFER_ID['sole-district'];
+
+  const urbanGrillSaveStatus = useDealSaveStatus(urbanGrillOfferId);
+  const soleDistrictSaveStatus = useDealSaveStatus(soleDistrictOfferId);
+  const toggleDealSave = useToggleDealSave();
 
   const normalizedQuery = query.trim().toLowerCase();
   const visible = useMemo(
@@ -413,9 +431,33 @@ export function SavedHubScreen({
     setQuery('');
     setFilter('all');
   }, []);
-  const toggleSave = useCallback((id: string) => {
-    setBookmarks(current => ({ ...current, [id]: !current[id] }));
-  }, []);
+
+  const toggleSave = useCallback(
+    (id: string) => {
+      const offerId = SAVED_ID_TO_OFFER_ID[id];
+      if (offerId) {
+        // Real API call for deals
+        toggleDealSave.mutate(offerId);
+      } else {
+        // Local state fallback for businesses/services (no backend yet)
+        setBookmarks(current => ({ ...current, [id]: !current[id] }));
+      }
+    },
+    [toggleDealSave],
+  );
+
+  // Get saved state: use API for deals with real offer IDs, local state for others
+  const getSavedState = useCallback(
+    (id: string) => {
+      const offerId = SAVED_ID_TO_OFFER_ID[id];
+      if (offerId === 'urban-grill-lunch')
+        return urbanGrillSaveStatus.data?.saved ?? false;
+      if (offerId === 'sole-district-streetwear')
+        return soleDistrictSaveStatus.data?.saved ?? false;
+      return bookmarks[id] !== false;
+    },
+    [urbanGrillSaveStatus.data, soleDistrictSaveStatus.data, bookmarks],
+  );
 
   return (
     <SafeAreaView edges={['top']} className="flex-1 bg-surface">
@@ -479,7 +521,7 @@ export function SavedHubScreen({
 
         {visible.length > 0 ? (
           visible.map(item => {
-            const saved = bookmarks[item.id] !== false;
+            const saved = getSavedState(item.id);
             if (item.id === 'urban-grill') {
               return (
                 <SavedDealCard

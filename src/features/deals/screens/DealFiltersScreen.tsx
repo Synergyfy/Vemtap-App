@@ -11,11 +11,15 @@ import { AvailabilityRow } from '@components/filters/AvailabilityRow';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { Button } from '@components/ui/Button';
+import { LoadingState } from '@components/shared/LoadingState';
 import { colors } from '@theme/colors';
 import { navbarBottomShadow } from '@theme/shadows';
 import { strings } from '@constants/strings';
 import type { AppStackParamList } from '@navigation/types';
-import { dealsFilterCategories } from '@features/deals/data/dealsFeed';
+import { DEFAULT_RADIUS_KM, useLocationStore } from '@store/locationStore';
+import { useDealsFilterStore } from '@store/dealsFilterStore';
+import { useFilterCategories } from '@features/deals/hooks/useFilterCategories';
+import { usePublicOffersFeed } from '@features/deals/hooks/usePublicOffers';
 import { cn } from '@utils/cn';
 
 cssInterop(View, { className: 'style' });
@@ -35,20 +39,39 @@ const DISTANCE_CHIPS: {
   km: number;
   check?: boolean;
 }[] = [
-  { key: 'near', label: strings.filters.nearMe, km: 5, check: true },
+  { key: 'near', label: strings.filters.nearMe, km: DEFAULT_RADIUS_KM, check: true },
   { key: '1', label: strings.filters.oneKm, km: 1 },
   { key: '5', label: strings.filters.fiveKm, km: 5 },
   { key: '10', label: strings.filters.tenKm, km: 10 },
   { key: 'custom', label: strings.filters.custom, km: 8 },
 ];
 
+/** Chip key → the range it stands for. `custom` reads the two text inputs. */
+const PRICE_RANGES: Record<string, { min: number | null; max: number | null }> = {
+  any: { min: null, max: null },
+  u5: { min: null, max: 5_000 },
+  '5-20': { min: 5_000, max: 20_000 },
+  '20-50': { min: 20_000, max: 50_000 },
+  '50+': { min: 50_000, max: null },
+  custom: { min: null, max: null },
+};
+
+/** Chip key → the minimum discount it stands for. */
+const DISCOUNT_MIN: Record<string, number | null> = {
+  any: null,
+  '10': 10,
+  '20': 20,
+  '30': 30,
+  '50': 50,
+};
+
+/** The design's own price labels, paired with the range each one applies. */
 const PRICE_CHIPS: { key: string; label: string }[] = [
   { key: 'any', label: strings.filters.anyPrice },
   { key: 'u5', label: strings.filters.under5k },
   { key: '5-20', label: strings.filters.range5to20 },
   { key: '20-50', label: strings.filters.range20to50 },
   { key: '50+', label: strings.filters.over50k },
-  { key: 'custom', label: strings.filters.custom },
 ];
 
 const DISCOUNT_CHIPS: {
@@ -97,60 +120,140 @@ const AREA_LABELS = [
   strings.filters.areaGwarinpa,
 ];
 
-/** Full screen from vemtap_deal_filters/code.html (sticky footer + close = page, not sheet). */
+/** "5000" → "5,000", for the two price inputs. */
+function formatNaira(value: number): string {
+  return value.toLocaleString('en-US');
+}
+
+/** "₦5,000" → 5000; null when the field holds no digits. */
+function parseNaira(text: string): number | null {
+  const digits = text.replace(/[^\d]/g, '');
+  if (digits.length === 0) return null;
+  const parsed = Number(digits);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+interface Draft {
+  distanceKm: number;
+  distanceKey: string;
+  priceKey: string;
+  minPriceText: string;
+  maxPriceText: string;
+  discountKey: string;
+  categories: string[];
+  availability: string[];
+}
+
+/**
+ * Full screen from vemtap_deal_filters/code.html (sticky footer + close = page, not sheet).
+ *
+ * The page used to keep every selection in local state and its Apply button only
+ * closed the screen, so nothing the user chose reached the feed — the "34" in
+ * its summary was a constant. Selections now live in `dealsFilterStore`, which
+ * `usePublicOffersFeed` reads, so Apply changes what Home and Deals show and the
+ * counts are the feed's own answer.
+ *
+ * Radius is the one exception: it is written to `locationStore`, because the
+ * navbar pill and the feed already read it from there.
+ */
 export function DealFiltersScreen() {
   const navigation = useNavigation<Nav>();
+  const filters = useDealsFilterStore();
+  const radiusKm = useLocationStore(state => state.radiusKm);
+  const { options: categoryOptions, isLoading: categoriesLoading } =
+    useFilterCategories();
+  // The same query Home runs, so the count is cached rather than re-requested.
+  const { offers } = usePublicOffersFeed();
 
-  const [distanceKm, setDistanceKm] = useState(8);
-  const [distanceKey, setDistanceKey] = useState<string>('near');
-  const [priceKey, setPriceKey] = useState<string>('5-20');
-  const [discountKey, setDiscountKey] = useState<string>('20');
-  const [minPrice, setMinPrice] = useState('5,000');
-  const [maxPrice, setMaxPrice] = useState('20,000');
-  const [categories, setCategories] = useState<string[]>([
-    strings.filters.foodDrinks,
-    strings.filters.beautySpa,
-  ]);
-  const [availability, setAvailability] = useState<string[]>(['now']);
-
-  const activeCount = useMemo(() => {
-    let n = categories.length;
-    if (priceKey !== 'any') n += 1;
-    if (discountKey !== 'any') n += 1;
-    n += availability.length;
-    if (distanceKey !== 'near') n += 1;
-    return n;
-  }, [availability, categories, discountKey, distanceKey, priceKey]);
+  const [draft, setDraft] = useState<Draft>(() => ({
+    distanceKm: radiusKm,
+    distanceKey: 'near',
+    priceKey: filters.minPrice === null && filters.maxPrice === null ? 'any' : 'custom',
+    minPriceText: filters.minPrice === null ? '' : formatNaira(filters.minPrice),
+    maxPriceText: filters.maxPrice === null ? '' : formatNaira(filters.maxPrice),
+    discountKey:
+      filters.minDiscountPercent === null ? 'any' : String(filters.minDiscountPercent),
+    categories: filters.categoryNames,
+    availability: filters.availability,
+  }));
 
   const close = useCallback(() => navigation.goBack(), [navigation]);
 
   const onDistanceChip = useCallback((key: string, km: number) => {
-    setDistanceKey(key);
-    setDistanceKm(km);
+    setDraft(prev => ({ ...prev, distanceKey: key, distanceKm: km }));
   }, []);
 
-  const toggleCategory = useCallback((label: string) => {
-    setCategories(prev =>
-      prev.includes(label) ? prev.filter(c => c !== label) : [...prev, label],
-    );
+  const onPriceChip = useCallback((key: string) => {
+    const range = PRICE_RANGES[key];
+    setDraft(prev => ({
+      ...prev,
+      priceKey: key,
+      minPriceText: range.min === null ? prev.minPriceText : formatNaira(range.min),
+      maxPriceText: range.max === null ? prev.maxPriceText : formatNaira(range.max),
+    }));
+  }, []);
+
+  const onPriceText = useCallback(
+    (field: 'minPriceText' | 'maxPriceText') => (text: string) => {
+      setDraft(prev => ({ ...prev, priceKey: 'custom', [field]: text }));
+    },
+    [],
+  );
+
+  const toggleCategory = useCallback((name: string) => {
+    setDraft(prev => ({
+      ...prev,
+      categories: prev.categories.includes(name)
+        ? prev.categories.filter(category => category !== name)
+        : [...prev.categories, name],
+    }));
   }, []);
 
   const toggleAvailability = useCallback((key: string) => {
-    setAvailability(prev =>
-      prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key],
-    );
+    setDraft(prev => ({
+      ...prev,
+      availability: prev.availability.includes(key)
+        ? prev.availability.filter(item => item !== key)
+        : [...prev.availability, key],
+    }));
   }, []);
 
+  const activeCount = useMemo(() => {
+    let n = draft.categories.length;
+    if (draft.priceKey !== 'any') n += 1;
+    if (draft.discountKey !== 'any') n += 1;
+    n += draft.availability.length;
+    if (draft.distanceKey !== 'near') n += 1;
+    return n;
+  }, [draft]);
+
+  const apply = useCallback(() => {
+    const range = PRICE_RANGES[draft.priceKey];
+    filters.setCategories(draft.categories);
+    filters.setPriceRange(
+      draft.priceKey === 'custom' ? parseNaira(draft.minPriceText) : range.min,
+      draft.priceKey === 'custom' ? parseNaira(draft.maxPriceText) : range.max,
+    );
+    filters.setMinDiscount(DISCOUNT_MIN[draft.discountKey] ?? null);
+    filters.setAvailability(draft.availability);
+    useLocationStore.getState().setRadiusKm(draft.distanceKm);
+    navigation.goBack();
+  }, [draft, filters, navigation]);
+
   const reset = useCallback(() => {
-    setDistanceKey('near');
-    setDistanceKm(8);
-    setPriceKey('5-20');
-    setDiscountKey('20');
-    setMinPrice('5,000');
-    setMaxPrice('20,000');
-    setCategories([strings.filters.foodDrinks, strings.filters.beautySpa]);
-    setAvailability(['now']);
-  }, []);
+    filters.reset();
+    useLocationStore.getState().setRadiusKm(DEFAULT_RADIUS_KM);
+    setDraft({
+      distanceKm: DEFAULT_RADIUS_KM,
+      distanceKey: 'near',
+      priceKey: 'any',
+      minPriceText: '',
+      maxPriceText: '',
+      discountKey: 'any',
+      categories: [],
+      availability: [],
+    });
+  }, [filters]);
 
   return (
     <SafeAreaView className="flex-1 bg-surface" edges={['top', 'bottom']}>
@@ -208,7 +311,7 @@ export function DealFiltersScreen() {
                 {strings.filters.activeSummary(activeCount)}
               </VemtapText>
               <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-                {strings.filters.matchingPromos(34)}
+                {strings.filters.matchingPromos(offers.length)}
               </VemtapText>
             </View>
           </View>
@@ -222,7 +325,7 @@ export function DealFiltersScreen() {
         <FilterSection
           title={strings.filters.distance}
           subtitle={strings.filters.distanceSubtitle}
-          value={strings.filters.withinKm(distanceKm)}
+          value={strings.filters.withinKm(draft.distanceKm)}
         >
           <ScrollView
             horizontal
@@ -234,7 +337,7 @@ export function DealFiltersScreen() {
               <FilterChip
                 key={chip.key}
                 label={chip.label}
-                selected={distanceKey === chip.key}
+                selected={draft.distanceKey === chip.key}
                 showCheck={chip.check === true}
                 onPress={() => onDistanceChip(chip.key, chip.km)}
               />
@@ -249,7 +352,7 @@ export function DealFiltersScreen() {
               <View className="flex-row items-center gap-1 rounded-full bg-primary-container px-2 py-0.5 shadow-sm">
                 <Icon name="nearMe" size={14} color="#FFFFFF" />
                 <VemtapText className="font-sans-semibold text-label-sm text-primary-foreground">
-                  {strings.filters.withinKm(distanceKm)}
+                  {strings.filters.withinKm(draft.distanceKm)}
                 </VemtapText>
               </View>
               <VemtapText variant="caption" tone="secondary">
@@ -257,15 +360,14 @@ export function DealFiltersScreen() {
               </VemtapText>
             </View>
             <RangeSlider
-              value={distanceKm}
+              value={draft.distanceKm}
               min={1}
               max={25}
               ticks={AREA_LABELS}
               formatTick={() => ''}
               accessibilityLabel={strings.filters.distance}
               onChange={km => {
-                setDistanceKm(km);
-                setDistanceKey('custom');
+                setDraft(prev => ({ ...prev, distanceKm: km, distanceKey: 'custom' }));
               }}
             />
             <View className="flex-row items-center justify-between">
@@ -284,29 +386,34 @@ export function DealFiltersScreen() {
         <FilterSection
           title={strings.filters.category}
           subtitle={strings.filters.categorySubtitle}
-          meta={strings.filters.selectedCount(categories.length)}
+          meta={strings.filters.selectedCount(draft.categories.length)}
         >
-          <View className="flex-row flex-wrap gap-2">
-            {dealsFilterCategories.map(cat => (
-              <FilterChip
-                key={cat.label}
-                label={cat.label}
-                size="md"
-                selected={categories.includes(cat.label)}
-                showCheck
-                leadingIcon={
-                  <Icon
-                    name={cat.icon}
-                    size={16}
-                    color={
-                      categories.includes(cat.label) ? '#FFFFFF' : colors.textTertiary
+          {categoriesLoading ? (
+            <LoadingState label={strings.common.loading} />
+          ) : (
+            <View className="flex-row flex-wrap gap-2">
+              {categoryOptions.map(option => {
+                const selected = draft.categories.includes(option.name);
+                return (
+                  <FilterChip
+                    key={option.name}
+                    label={option.name}
+                    size="md"
+                    selected={selected}
+                    showCheck
+                    leadingIcon={
+                      <Icon
+                        name={option.icon}
+                        size={16}
+                        color={selected ? '#FFFFFF' : colors.textTertiary}
+                      />
                     }
+                    onPress={() => toggleCategory(option.name)}
                   />
-                }
-                onPress={() => toggleCategory(cat.label)}
-              />
-            ))}
-          </View>
+                );
+              })}
+            </View>
+          )}
         </FilterSection>
 
         <FilterSection
@@ -323,8 +430,8 @@ export function DealFiltersScreen() {
               <FilterChip
                 key={chip.key}
                 label={chip.label}
-                selected={priceKey === chip.key}
-                onPress={() => setPriceKey(chip.key)}
+                selected={draft.priceKey === chip.key}
+                onPress={() => onPriceChip(chip.key)}
               />
             ))}
           </ScrollView>
@@ -339,9 +446,11 @@ export function DealFiltersScreen() {
                 </VemtapText>
                 <TextInput
                   accessibilityLabel={strings.filters.minimum}
-                  value={minPrice}
-                  onChangeText={setMinPrice}
+                  value={draft.minPriceText}
+                  onChangeText={onPriceText('minPriceText')}
                   keyboardType="numbers-and-punctuation"
+                  placeholder="0"
+                  placeholderTextColor={colors.textTertiary}
                   className="text-text-primary min-w-0 flex-1 bg-transparent p-0 font-sans-semibold text-label-md"
                 />
               </View>
@@ -356,9 +465,11 @@ export function DealFiltersScreen() {
                 </VemtapText>
                 <TextInput
                   accessibilityLabel={strings.filters.maximum}
-                  value={maxPrice}
-                  onChangeText={setMaxPrice}
+                  value={draft.maxPriceText}
+                  onChangeText={onPriceText('maxPriceText')}
                   keyboardType="numbers-and-punctuation"
+                  placeholder="0"
+                  placeholderTextColor={colors.textTertiary}
                   className="text-text-primary min-w-0 flex-1 bg-transparent p-0 font-sans-semibold text-label-md"
                 />
               </View>
@@ -380,10 +491,12 @@ export function DealFiltersScreen() {
               <FilterChip
                 key={chip.key}
                 label={chip.label}
-                selected={discountKey === chip.key}
+                selected={draft.discountKey === chip.key}
                 showCheck={chip.check === true}
-                tone={chip.hot === true && discountKey !== chip.key ? 'hot' : 'default'}
-                onPress={() => setDiscountKey(chip.key)}
+                tone={
+                  chip.hot === true && draft.discountKey !== chip.key ? 'hot' : 'default'
+                }
+                onPress={() => setDraft(prev => ({ ...prev, discountKey: chip.key }))}
               />
             ))}
           </ScrollView>
@@ -400,7 +513,7 @@ export function DealFiltersScreen() {
                 icon={row.icon}
                 title={row.title}
                 subtitle={row.subtitle}
-                selected={availability.includes(row.key)}
+                selected={draft.availability.includes(row.key)}
                 onToggle={() => toggleAvailability(row.key)}
               />
             ))}
@@ -424,10 +537,10 @@ export function DealFiltersScreen() {
 
       <View className="absolute inset-x-0 bottom-0 flex-col items-center gap-1 bg-surface-canvas/95 px-6 pb-6 pt-4">
         <Button
-          label={strings.filters.showDeals(34)}
+          label={strings.filters.showDeals(offers.length)}
           rightIcon={<Icon name="arrowForward" size={20} color="#FFFFFF" />}
           className={cn('h-[54px] rounded-xl shadow-md')}
-          onPress={close}
+          onPress={apply}
         />
         <View className="flex-row items-center gap-1 pt-1">
           <Icon name="locationOn" size={14} color={colors.textTertiary} />

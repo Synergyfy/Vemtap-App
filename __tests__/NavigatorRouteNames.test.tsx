@@ -18,6 +18,22 @@ jest.mock('@features/deals/hooks/usePublicOffers', () =>
 jest.mock('@features/deals/hooks/useDealEngagementActions', () =>
   jest.requireActual('./helpers/mockOffersFeed').mockDealEngagementActionsModule(),
 );
+jest.mock('@features/discover/hooks/useDiscoverBusinesses', () =>
+  jest.requireActual('./helpers/mockDiscoverBusinesses').mockDiscoverBusinessesModule(),
+);
+jest.mock('@features/accountHub/hooks/useSavedDeals', () => ({
+  useDealSaveStatus: (offerId: string | null) => {
+    if (!offerId) return { data: undefined, isLoading: false, isError: false };
+    return {
+      data: {
+        saved: ['urban-grill-lunch', 'sole-district-streetwear'].includes(offerId),
+      },
+      isLoading: false,
+      isError: false,
+    };
+  },
+  useToggleDealSave: () => ({ mutate: jest.fn() }),
+}));
 
 jest.mock('@store/authStore', () => ({
   useAuthStore: Object.assign(

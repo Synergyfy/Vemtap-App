@@ -1,5 +1,12 @@
 import React from 'react';
-import { Image, Pressable, ScrollView, View } from 'react-native';
+import {
+  Image,
+  Pressable,
+  ScrollView,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 import { cssInterop } from 'nativewind';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -9,10 +16,24 @@ import {
   SectionLink,
 } from '@features/accountHub/components/HubPrimitives';
 import { Button } from '@components/ui/Button';
-import { Icon } from '@components/ui/Icon';
+import { Icon, type IconName } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
+import { EmptyState } from '@components/shared/EmptyState';
+import { LoadingState } from '@components/shared/LoadingState';
 import { strings } from '@constants/strings';
 import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
+import { useLocationStore } from '@store/locationStore';
+import {
+  useLoyaltyAnalytics,
+  useLoyaltyBalance,
+  useLoyaltyLogs,
+  useRewards,
+} from '@features/accountHub/hooks/useLoyalty';
+import { usePublicOffersFeed } from '@features/deals/hooks/usePublicOffers';
+import { useUnreadNotificationsCount } from '@features/business/hooks/useBusinessDashboardData';
+import { resolveTier } from '@features/accountHub/data/rewardTiers';
+import type { LoyaltyLog, Reward } from '@api/loyaltyApi';
+import { formatCompactNaira, formatPoints, formatWhen } from '@utils/formatters';
 import { colors } from '@theme/colors';
 import { navbarBottomShadow } from '@theme/shadows';
 
@@ -27,37 +48,91 @@ cssInterop(SafeAreaView, { className: 'style' });
 const copy = strings.customerDashboard;
 const images = {
   hero: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCgCwLd5w58QXLgV11MHD52EEti1eL21CVWe5XjaydFi7gB0n_HlN0ZRXV3yob4ZVn5VXviRWWZGYsv1AaFBYmLz5MGyZoBIQR2PaZJDI_Hy-6Q8Q2qX_UNm3TBcOS5Clrs17aHV0AbIlu45JooU-HWsPtb3bHzQbC2hp0eLB-F0K_mX7KOrm8At7tLg-OaWWH65X7PtLDGbNibqkIdLveIrO70jZrzaDghvLUUoFza5ZW1bMN8Ce0DQw',
-  burger:
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuCKUS0WwZYhFtl0KRQ8cL8Hr770L0Ls4JAHNUXCVRDplZ9ou9wSYBgO_j_kIOloOjjEEcnB1-3pwPxRYDmFguixph8sTmC3ix2crAreunKt8kxZmmJ2-MTt99BHKZGGUOTaQPFtYaNOrjKiOOvDDFh9FiBELRLLUsp7Is1PkB94raBEKxQrtZLHBHYhA2sd18QY2vVcn5opY7jym0RXQtI_pUdHhMvtm_R32Bo0CjoRtfAlGA7qfZPp5w',
-  spa: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAUht6A5A8VJ2HVlciOxmOfSNjrxImixN6H4ySSvfeIstmp4yModG1rl0m4ECsbrxVAV8pTA38yVQ8e2us9V0WqpxW9ApXdSL7mq3OZRdaY6o0S4LIcXDDtbHQMWJEL2Sy5nylvEMstB6f0RmvU5bDO1WyOQeSqrvRpAV3nvIpFumqvEsCGt1kwrVPQ5vpREyevCJrPxEitPQF-pjFYRAGrKYxjwVhamRnG5lIlaXpHwoUcODTXMFjgJQ',
-  bakery:
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuBQA9EUANK-qSWLc0YDbdaY7FBQTZMqGaJgfFAg6jdO2ZYEMjGP3nW-9BS4AE72LDZu_HKJ1fK300URqAnhtBqtb3rbJpKTy5gRvie_6Agz1LUsNvBrHp5XSpKFsM6k9UpmFRhScPALBdM44BCq7FpqkVzk_xeJg_VopE1LSJN6_oZOUXdkApMCUNwKd3N0EzBzGE5AbSkQt5ccJkn7Pxpz3FgY48x137irv2I-7lq7RLAetVnPqZCIXw',
-  lounge:
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuAeAtQWLIyjDZGAe_fGVP6-PK-Lk91gGmK43js0O1SG0JI8juksx-Y5XG-gKRg-1EgZYzOc3jX33vXfe-mpI7w313488dgKy5JIV8SMnK7-0Ei5EH5KRDURZq289Tt4LG6hhlrwFy8dhbVG9Ber29ljbzVK0Ov5hUoyRSnPB_WMxFJ-yqeKTY_VwxLq02F9hmq2X8WqN3nBgucmRXuu4h8ytG-Jrb1Ncfl-FAvp74kGc9Pmoc6FG8ywBA',
 };
+
+type RewardsAvailability =
+  | { state: 'loading' }
+  | { state: 'ready'; count: number }
+  | { state: 'zero' }
+  | { state: 'unavailable' };
+
+type LoyaltyLogsQuery = ReturnType<typeof useLoyaltyLogs>;
+
+const activityIcons: Record<LoyaltyLog['type'], IconName> = {
+  earned: 'localActivity',
+  spent: 'qrCode',
+  expired: 'historyOff',
+  manual: 'rateReview',
+};
+
+function availabilityFor(
+  rewards: { isError: boolean; isPending: boolean; data?: Reward[] },
+  homeBusinessId: string | null,
+  points: number | null,
+  balanceError: boolean,
+): RewardsAvailability {
+  if (rewards.isError || balanceError) {
+    return { state: 'unavailable' };
+  }
+  if (points === null) {
+    return { state: 'loading' };
+  }
+  if (!homeBusinessId) {
+    return { state: 'zero' };
+  }
+  if (rewards.isPending) {
+    return { state: 'loading' };
+  }
+  const affordable = (rewards.data ?? []).filter(
+    reward => reward.pointsRequired <= points,
+  ).length;
+  return affordable > 0 ? { state: 'ready', count: affordable } : { state: 'zero' };
+}
 
 export interface CustomerDashboardScreenProps {
   onLocation?: () => void;
-  onCart?: () => void;
   onNotifications?: () => void;
   onOpenAccount?: () => void;
   onOpenDeal?: (dealId: string) => void;
+  onOpenOffer?: (offerId: string) => void;
   onOpenRewards?: () => void;
   onOpenActivity?: () => void;
 }
 
 export function CustomerDashboardScreen({
   onLocation,
-  onCart,
   onNotifications,
   onOpenAccount,
   onOpenDeal,
+  onOpenOffer,
   onOpenRewards,
   onOpenActivity,
 }: CustomerDashboardScreenProps) {
   const metricIcons = ['voucher', 'star', 'wallet'] as const;
   const quickIcons = ['explore', 'badge', 'qrCodeScanner', 'history'] as const;
   const me = useCurrentUserDisplay();
+  const area = useLocationStore(state => state.area);
+
+  const balance = useLoyaltyBalance(null);
+  const analytics = useLoyaltyAnalytics();
+  const logs = useLoyaltyLogs(null, 1, 3);
+  const feed = usePublicOffersFeed();
+  const unread = useUnreadNotificationsCount();
+  const unreadCount = unread.data ?? 0;
+
+  const homeBusinessId = logs.data?.data.find(log => log.businessId)?.businessId ?? null;
+
+  const rewards = useRewards({ businessId: homeBusinessId });
+
+  const points = balance.isSuccess ? (balance.data ?? 0) : null;
+  const activeDealsMetric = '0';
+  const pointsMetric = points === null ? copy.metricUnavailable : formatPoints(points);
+  const savedMetric = analytics.isSuccess
+    ? formatCompactNaira(analytics.data?.trends?.netSavings ?? 0)
+    : copy.metricUnavailable;
+  const metricValues = [activeDealsMetric, pointsMetric, savedMetric];
+  const availability = availabilityFor(rewards, homeBusinessId, points, balance.isError);
+  const recommendations = feed.feed.list.slice(0, 2);
 
   return (
     <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-background">
@@ -81,19 +156,17 @@ export function CustomerDashboardScreen({
           >
             <Icon name="locationOn" size={17} color={colors.primary} />
             <VemtapText variant="labelMd" tone="secondary">
-              {copy.location}
+              {copy.locationFor(area)}
             </VemtapText>
             <Icon name="expandMore" size={15} color={colors.textTertiary} />
           </Pressable>
         </View>
         <View className="shrink-0 flex-row items-center gap-2">
-          <HubIconButton icon="bag" label={copy.cart} badge="2" onPress={onCart} />
           <HubIconButton
             icon="notifications"
             label={copy.notifications}
-            badge="3"
+            badge={unreadCount > 0 ? String(unreadCount) : undefined}
             onPress={onNotifications}
-            error
           />
           <Pressable
             accessibilityRole="button"
@@ -174,11 +247,11 @@ export function CustomerDashboardScreen({
             </VemtapText>
           </View>
           <View className="flex-row gap-2">
-            {copy.metrics.map((metric, index) => (
+            {copy.metrics.map((label, index) => (
               <MetricTile
-                key={metric[1]}
-                value={metric[0]}
-                label={metric[1]}
+                key={label}
+                value={metricValues[index]}
+                label={label}
                 icon={metricIcons[index]}
                 tone={index === 0 ? 'primary' : index === 1 ? 'tertiary' : 'success'}
               />
@@ -213,48 +286,27 @@ export function CustomerDashboardScreen({
         </View>
         <View className="gap-3 px-4">
           <View className="flex-row items-center justify-between">
-            <View className="min-w-0 flex-1 flex-row items-center gap-2">
-              <VemtapText
-                variant="labelMd"
-                className="font-sans-semibold"
-                numberOfLines={1}
-              >
-                {copy.activeDeals}
-              </VemtapText>
-              <View className="h-5 w-5 items-center justify-center rounded-full bg-primary">
-                <VemtapText variant="micro" className="text-surface">
-                  {copy.activeTwo}
-                </VemtapText>
-              </View>
-            </View>
+            <VemtapText
+              variant="labelMd"
+              className="font-sans-semibold"
+              numberOfLines={1}
+            >
+              {copy.activeDeals}
+            </VemtapText>
             <SectionLink
               label={copy.viewAllDeals}
               onPress={() => onOpenDeal?.('my-deals')}
             />
           </View>
-          <ActiveDeal
-            image={images.burger}
-            business="Urban Grill & Bistro"
-            deal="20% Off Prime Lunch Combo"
-            meta="Expires in 2 days"
-            status={copy.ready}
-            code="VT-48F261"
-            action={copy.showQr}
-            onPress={() => onOpenDeal?.('urban-grill-lunch')}
-          />
-          <ActiveDeal
-            image={images.spa}
-            business="Glow & Serenity Spa"
-            deal="Deep Hydration Facial & Manicure"
-            meta="Thu, Oct 17 • 1:15 PM"
-            status={copy.confirmed}
-            slot={copy.slotReserved}
-            action={copy.viewPass}
-            onPress={() => onOpenDeal?.('glow-booking')}
+          <EmptyState
+            variant="contained"
+            icon="voucher"
+            title={copy.activeEmpty.title}
+            description={copy.activeEmpty.body}
           />
         </View>
-        <RewardsCard onOpen={onOpenRewards} />
-        <ActivityLedger />
+        <RewardsCard points={points} availability={availability} onOpen={onOpenRewards} />
+        <ActivityLedger logs={logs} onOpen={onOpenActivity} />
         <View className="gap-3 px-4">
           <View className="flex-row items-center justify-between">
             <VemtapText variant="bodyMd" className="font-sans-semibold">
@@ -263,32 +315,44 @@ export function CustomerDashboardScreen({
             <Icon name="autoAwesome" size={20} color={colors.primary} />
           </View>
           <VemtapText variant="caption" tone="secondary">
-            {copy.mayLikeBody}
+            {copy.mayLikeBodyFor(area)}
           </VemtapText>
-          <View className="flex-row gap-2">
-            <Recommendation
-              image={images.bakery}
-              discount="15% OFF"
-              distance="0.5 km away"
-              business="Artisan Bakery & Cafe"
-              title="Sourdough & Pastries Combo"
-              price="₦4,500"
-              old="₦5,300"
-              onPress={() => onOpenDeal?.('bakery-pastries')}
+          {feed.isLoading ? (
+            <LoadingState label={strings.common.loading} />
+          ) : feed.isError ? (
+            <EmptyState
+              variant="contained"
+              icon="cloudOff"
+              title={strings.common.error}
+              actionLabel={strings.common.retry}
+              onAction={feed.refetch}
             />
-            <Recommendation
-              image={images.lounge}
-              discount="BOGO FREE"
-              distance="1.2 km away"
-              business="The Sky Lounge"
-              title="Cocktails & Small Plates"
-              price="₦8,000"
-              old="₦16,000"
-              onPress={() => onOpenDeal?.('sky-cocktails')}
+          ) : recommendations.length === 0 ? (
+            <EmptyState
+              variant="contained"
+              icon="autoAwesome"
+              title={copy.recommendationsEmpty.title}
+              description={copy.recommendationsEmpty.body}
             />
-          </View>
+          ) : (
+            <View className="flex-row gap-2">
+              {recommendations.map(item => (
+                <Recommendation
+                  key={item.id}
+                  image={item.image.uri}
+                  discount={item.leftBadge.label}
+                  distance={item.location}
+                  business={item.merchant}
+                  title={item.title}
+                  price={item.price}
+                  old={item.priceWas}
+                  onPress={() => onOpenOffer?.(item.id)}
+                />
+              ))}
+            </View>
+          )}
           <Button
-            label={copy.exploreApo}
+            label={copy.exploreAreaFor(area)}
             labelVariant="labelMd"
             variant="secondary"
             rightIcon={<Icon name="arrowForward" size={18} color={colors.primary} />}
@@ -316,13 +380,11 @@ function HubIconButton({
   label,
   badge,
   onPress,
-  error = false,
 }: {
-  icon: 'bag' | 'notifications';
+  icon: IconName;
   label: string;
-  badge: string;
+  badge?: string;
   onPress?: () => void;
-  error?: boolean;
 }) {
   return (
     <Pressable
@@ -332,99 +394,51 @@ function HubIconButton({
       className="relative h-10 w-10 items-center justify-center rounded-full bg-surface-subtle shadow-sm"
     >
       <Icon name={icon} size={20} color={colors.surfaceDark} />
-      <View
-        className={`absolute right-0 top-0 h-4 min-w-4 items-center justify-center rounded-full px-1 ${error ? 'bg-error' : 'bg-primary'}`}
-      >
-        <VemtapText variant="micro" className="text-surface">
-          {badge}
-        </VemtapText>
-      </View>
+      {badge ? (
+        <View className="absolute right-0 top-0 h-4 min-w-4 items-center justify-center rounded-full bg-error px-1">
+          <VemtapText variant="micro" className="text-surface">
+            {badge}
+          </VemtapText>
+        </View>
+      ) : null}
     </Pressable>
   );
 }
 
-function ActiveDeal({
-  image,
-  business,
-  deal,
-  meta,
-  status,
-  code,
-  slot,
-  action,
-  onPress,
+function RewardsCard({
+  points,
+  availability,
+  onOpen,
 }: {
-  image: string;
-  business: string;
-  deal: string;
-  meta: string;
-  status: string;
-  code?: string;
-  slot?: string;
-  action: string;
-  onPress?: () => void;
+  points: number | null;
+  availability: RewardsAvailability;
+  onOpen?: () => void;
 }) {
-  return (
-    <View className="gap-3 rounded-card bg-surface p-4 shadow-sm">
-      <View className="flex-row gap-3">
-        <View className="relative h-14 w-14 shrink-0 overflow-hidden rounded-field">
-          <Image source={{ uri: image }} className="h-full w-full" resizeMode="cover" />
-        </View>
-        <View className="min-w-0 flex-1">
-          <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-            {business}
-          </VemtapText>
-          <VemtapText variant="labelMd" className="font-sans-semibold" numberOfLines={1}>
-            {deal}
-          </VemtapText>
-          <VemtapText variant="caption" tone="tertiary">
-            {meta}
-          </VemtapText>
-        </View>
-        <View className="shrink-0 self-start rounded-full bg-badge-discount-bg px-2 py-0.5">
-          <VemtapText variant="micro" className="text-badge-discount-text">
-            {status}
-          </VemtapText>
-        </View>
-      </View>
-      <View className="flex-row items-center justify-between gap-2 rounded-lg bg-surface-subtle p-2">
-        {code ? (
-          <View>
-            <VemtapText variant="micro" tone="tertiary">
-              PASS CODE
-            </VemtapText>
-            <VemtapText variant="labelMd" className="font-sans-bold">
-              {code}
-            </VemtapText>
-          </View>
-        ) : (
-          <View className="flex-row items-center gap-1">
-            <Icon name="checkCircle" size={17} color={colors.badgeDiscountText} />
-            <VemtapText variant="caption" tone="secondary">
-              {slot}
-            </VemtapText>
-          </View>
-        )}
-        <Button
-          label={action}
-          labelVariant="labelSm"
-          size="sm"
-          fullWidth={false}
-          leftIcon={
-            code ? (
-              <Icon name="qrCode" size={17} color={colors.surface} />
-            ) : (
-              <Icon name="forward" size={16} color={colors.primary} />
-            )
-          }
-          onPress={onPress}
-        />
-      </View>
-    </View>
-  );
-}
+  const status = resolveTier(points ?? 0);
+  const barStyle: StyleProp<ViewStyle> = {
+    width: `${Math.round(status.progress * 100)}%`,
+  };
+  const progressLabel =
+    points === null
+      ? copy.metricUnavailable
+      : status.next
+        ? copy.progressTo(status.next.name)
+        : copy.progressComplete;
+  const progressValue =
+    points === null
+      ? copy.metricUnavailable
+      : status.next
+        ? copy.progressValue(formatPoints(points), formatPoints(status.next.points))
+        : copy.balanceFor(formatPoints(points));
+  const availabilityLine =
+    availability.state === 'loading'
+      ? strings.common.loading
+      : availability.state === 'unavailable'
+        ? copy.rewardsUnavailable
+        : availability.state === 'ready'
+          ? copy.rewardsAvailableFor(availability.count)
+          : copy.rewardsZero;
 
-function RewardsCard({ onOpen }: { onOpen?: () => void }) {
   return (
     <View className="mx-4 gap-3 rounded-card bg-surface p-4 shadow-sm">
       <View className="flex-row justify-between gap-2">
@@ -444,7 +458,9 @@ function RewardsCard({ onOpen }: { onOpen?: () => void }) {
             {copy.tierStatus}
           </VemtapText>
           <VemtapText variant="labelMd" className="font-sans-semibold" numberOfLines={1}>
-            {copy.gold}
+            {points === null
+              ? copy.metricUnavailable
+              : copy.tierFor(status.tier.name, status.tier.rank)}
           </VemtapText>
         </View>
         <View className="shrink-0 items-end">
@@ -456,7 +472,9 @@ function RewardsCard({ onOpen }: { onOpen?: () => void }) {
             className="font-sans-semibold text-tertiary"
             numberOfLines={1}
           >
-            {copy.progressValue}
+            {points === null
+              ? copy.metricUnavailable
+              : copy.balanceFor(formatPoints(points))}
           </VemtapText>
         </View>
       </View>
@@ -468,27 +486,31 @@ function RewardsCard({ onOpen }: { onOpen?: () => void }) {
             className="min-w-0 flex-1"
             numberOfLines={1}
           >
-            {copy.progress}
+            {progressLabel}
           </VemtapText>
           <VemtapText
             variant="caption"
             className="shrink-0 font-sans-semibold"
             numberOfLines={1}
           >
-            {copy.progressValue}
+            {progressValue}
           </VemtapText>
         </View>
         <View className="h-2 overflow-hidden rounded-full bg-surface-container">
-          <View className="h-full w-[81%] rounded-full bg-primary" />
+          <View style={barStyle} className="h-full rounded-full bg-primary" />
         </View>
       </View>
       <View className="flex-row items-center justify-between gap-2">
         <VemtapText
           variant="caption"
-          className="min-w-0 flex-1 text-badge-discount-text"
+          className={`min-w-0 flex-1 ${
+            availability.state === 'unavailable'
+              ? 'text-text-tertiary'
+              : 'text-badge-discount-text'
+          }`}
           numberOfLines={1}
         >
-          {copy.rewardsAvailable}
+          {availabilityLine}
         </VemtapText>
         <Pressable accessibilityRole="button" onPress={onOpen} className="shrink-0">
           <VemtapText variant="labelSm" tone="brand">
@@ -500,49 +522,85 @@ function RewardsCard({ onOpen }: { onOpen?: () => void }) {
   );
 }
 
-function ActivityLedger() {
-  const icons = ['localActivity', 'qrCode', 'message'] as const;
+function ActivityLedger({
+  logs,
+  onOpen,
+}: {
+  logs: LoyaltyLogsQuery;
+  onOpen?: () => void;
+}) {
+  const rows = logs.data?.data ?? [];
   return (
     <View className="gap-3 px-4">
       <View className="flex-row justify-between">
         <VemtapText variant="bodyMd" className="font-sans-semibold">
           {copy.recent}
         </VemtapText>
-        <SectionLink label={copy.viewActivity} />
+        <SectionLink label={copy.viewActivity} onPress={onOpen} />
       </View>
-      <View className="overflow-hidden rounded-card bg-surface shadow-sm">
-        {copy.activityRows.map((row, index) => (
-          <View
-            key={row[0]}
-            className="flex-row items-start justify-between gap-3 border-b border-border p-3 last:border-b-0"
-          >
-            <View className="min-w-0 flex-1 flex-row items-center gap-3">
-              <View className="h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-tint-blue">
-                <Icon name={icons[index]} size={20} color={colors.primary} />
-              </View>
-              <View className="min-w-0">
+      {logs.isLoading ? (
+        <LoadingState label={strings.common.loading} />
+      ) : logs.isError ? (
+        <EmptyState
+          variant="contained"
+          icon="cloudOff"
+          title={strings.common.error}
+          actionLabel={strings.common.retry}
+          onAction={logs.refetch}
+        />
+      ) : rows.length === 0 ? (
+        <EmptyState
+          variant="contained"
+          icon="localActivity"
+          title={copy.activityEmpty.title}
+          description={copy.activityEmpty.body}
+        />
+      ) : (
+        <View className="overflow-hidden rounded-card bg-surface shadow-sm">
+          {rows.map(row => {
+            const debit = row.type === 'spent' || row.type === 'expired';
+            const when = formatWhen(row.createdAt);
+            const subtitle = row.reason ? `${row.reason} • ${when}` : when;
+            return (
+              <View
+                key={row.id}
+                className="flex-row items-start justify-between gap-3 border-b border-border p-3 last:border-b-0"
+              >
+                <View className="min-w-0 flex-1 flex-row items-center gap-3">
+                  <View className="h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-tint-blue">
+                    <Icon
+                      name={activityIcons[row.type]}
+                      size={20}
+                      color={colors.primary}
+                    />
+                  </View>
+                  <View className="min-w-0">
+                    <VemtapText
+                      variant="labelMd"
+                      className="font-sans-semibold"
+                      numberOfLines={1}
+                    >
+                      {copy.activityTitles[row.type]}
+                    </VemtapText>
+                    <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
+                      {subtitle}
+                    </VemtapText>
+                  </View>
+                </View>
                 <VemtapText
-                  variant="labelMd"
-                  className="font-sans-semibold"
+                  variant="labelSm"
+                  className={`w-28 shrink-0 self-start pt-0.5 text-right ${
+                    debit ? 'text-text-tertiary' : 'text-badge-discount-text'
+                  }`}
                   numberOfLines={1}
                 >
-                  {row[0]}
-                </VemtapText>
-                <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-                  {row[1]}
+                  {copy.activityDelta(formatPoints(row.points), debit)}
                 </VemtapText>
               </View>
-            </View>
-            <VemtapText
-              variant="labelSm"
-              className="w-28 shrink-0 self-start pt-0.5 text-right text-badge-discount-text"
-              numberOfLines={1}
-            >
-              {row[2]}
-            </VemtapText>
-          </View>
-        ))}
-      </View>
+            );
+          })}
+        </View>
+      )}
     </View>
   );
 }
@@ -563,7 +621,7 @@ function Recommendation({
   business: string;
   title: string;
   price: string;
-  old: string;
+  old?: string;
   onPress?: () => void;
 }) {
   return (
@@ -594,9 +652,11 @@ function Recommendation({
           <VemtapText variant="labelMd" className="font-sans-semibold">
             {price}
           </VemtapText>
-          <VemtapText variant="micro" tone="tertiary" className="line-through">
-            {old}
-          </VemtapText>
+          {old ? (
+            <VemtapText variant="micro" tone="tertiary" className="line-through">
+              {old}
+            </VemtapText>
+          ) : null}
           <Icon name="plus" size={16} color={colors.primary} />
         </View>
       </View>

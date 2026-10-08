@@ -21,7 +21,8 @@ import { strings } from '@constants/strings';
  */
 
 /** Neutral mark for a merchant that has not uploaded a logo. */
-const FALLBACK_LOGO = require('@assets/images/vemtap-square-logo.png');
+const FALLBACK_LOGO_URI =
+  'https://lh3.googleusercontent.com/aida-public/AB6AXuCg_httfgNB7CfMJOzfjKekJGnxgvueamRqqNg-Qyw7QV2HTVvlh6rZ845BYSp5dsQClaPlSKNd4B0_3aYGUcjlu-OUBeq56PilIeD6B9e1a0GFgvTtnkB0d8i16nw-kagt5rZUqAHNUNQUsH0WcGsyf8zaqNe1yx2Go9tQcdI6QPEzXRp2aZLqYGswotDnV391PXTZI3oVx9jzWC_ZogeqCUxsw3wWsr-xRkh4q33Ljntdo0P9MsadSA';
 
 export type LiveBusinessProfile = BusinessProfileSummary & {
   /** Real coordinates, used to centre the profile map. */
@@ -50,7 +51,7 @@ export function mapPublicBusinessToProfile(
     // Not one of the bundled Discover filters; only used by DiscoverScreen's own
     // filtering, which a live profile never participates in.
     categoryFilter: 'Food & Dining',
-    imageUri: business.logoUrl ?? FALLBACK_LOGO,
+    imageUri: business.logoUrl ?? FALLBACK_LOGO_URI,
     imageAlt: strings.businessProfile.imageAlt(business.name, category),
     // No public rating source — the profile hides the row rather than inventing
     // a score.
@@ -74,6 +75,7 @@ export function mapPublicBusinessToProfile(
     whatsappNumber: business.whatsappNumber ?? undefined,
     openingHours: business.openingHours ?? undefined,
     isVerified: business.isVerified,
+    branchCode: business.uniqueCode ?? '',
   };
 }
 

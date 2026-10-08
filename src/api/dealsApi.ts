@@ -333,4 +333,15 @@ export const dealsApi = {
       ...options,
     });
   },
+
+  /** Authenticated; returns save status for a deal. */
+  async getSaveStatus(
+    offerId: string,
+    options: ApiRequestOptions = {},
+  ): Promise<{ saved: boolean }> {
+    return requestValidated<{ saved: boolean }>(
+      { method: 'GET', url: `/deals/${offerId}/save-status`, ...options },
+      z.object({ saved: z.boolean() }),
+    );
+  },
 };

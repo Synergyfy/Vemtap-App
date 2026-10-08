@@ -18,6 +18,10 @@ import {
   notificationToneTile,
   type NotificationCategoryId,
 } from '@features/business/data/businessTrustSettingsData';
+import {
+  useMarkNotificationRead,
+  useMarkAllNotificationsRead,
+} from '@features/accountHub/hooks/useNotifications';
 
 const copy = strings.businessNotificationsCenter;
 
@@ -43,6 +47,9 @@ export function BusinessNotificationsCenterScreen({
   onOpenNotification,
   onConfigureDispatch,
 }: BusinessNotificationsCenterScreenProps) {
+  const markReadMutation = useMarkNotificationRead();
+  const markAllReadMutation = useMarkAllNotificationsRead();
+
   const [category, setCategory] = useState<NotificationCategoryId>('all');
   const [readIds, setReadIds] = useState<string[]>([]);
 
@@ -80,6 +87,7 @@ export function BusinessNotificationsCenterScreen({
           accessibilityRole="button"
           accessibilityLabel={copy.markAllRead}
           onPress={() => {
+            markAllReadMutation.mutate();
             setReadIds(businessNotifications.map(item => item.id));
             onMarkAllRead?.();
           }}
@@ -121,6 +129,7 @@ export function BusinessNotificationsCenterScreen({
               accessibilityRole="button"
               accessibilityLabel={item.title}
               onPress={() => {
+                markReadMutation.mutate(item.id);
                 setReadIds(ids => (ids.includes(item.id) ? ids : [...ids, item.id]));
                 onOpenNotification?.(item.id);
               }}

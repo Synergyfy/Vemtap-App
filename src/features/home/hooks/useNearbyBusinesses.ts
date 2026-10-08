@@ -17,7 +17,8 @@ import { strings } from '@constants/strings';
  */
 
 /** Neutral mark for a business that has not uploaded a logo. */
-const FALLBACK_LOGO = require('@assets/images/vemtap-square-logo.png');
+const FALLBACK_LOGO_URI =
+  'https://lh3.googleusercontent.com/aida-public/AB6AXuCg_httfgNB7CfMJOzfjKekJGnxgvueamRqqNg-Qyw7QV2HTVvlh6rZ845BYSp5dsQClaPlSKNd4B0_3aYGUcjlu-OUBeq56PilIeD6B9e1a0GFgvTtnkB0d8i16nw-kagt5rZUqAHNUNQUsH0WcGsyf8zaqNe1yx2Go9tQcdI6QPEzXRp2aZLqYGswotDnV391PXTZI3oVx9jzWC_ZogeqCUxsw3wWsr-xRkh4q33Ljntdo0P9MsadSA';
 
 export const homeBusinessKeys = {
   nearby: () => ['businesses', 'public'] as const,
@@ -39,7 +40,7 @@ export function useNearbyBusinesses(limit = 8) {
 export function toNearbyBusiness(business: PublicBusiness): NearbyBusiness {
   return {
     id: business.id,
-    image: business.logoUrl ? { uri: business.logoUrl } : FALLBACK_LOGO,
+    image: business.logoUrl ? { uri: business.logoUrl } : { uri: FALLBACK_LOGO_URI },
     name: business.name,
     category: business.categoryName ?? '',
     // Not reported by the endpoint; the card omits the row.

@@ -48,6 +48,7 @@ import { CenteredTabButton } from '@navigation/CenteredTabButton';
 import type {
   AccountStackParamList,
   AppStackParamList,
+  BusinessProfileSummary,
   DiscoverStackParamList,
   HomeStackParamList,
   MainTabParamList,
@@ -273,11 +274,11 @@ type DiscoverStackNavigation = CompositeNavigationProp<
 function DiscoverHomeScreen() {
   const navigation = useNavigation<DiscoverStackNavigation>();
   const onOpenBusiness = useMemo(
-    () => (businessId: string) => {
-      const business = businesses.find(item => item.id === businessId);
-      if (business) {
-        navigation.push('BusinessProfile', { business });
-      }
+    () => (businessId: string, fallbackBusiness?: BusinessProfileSummary) => {
+      navigation.push('BusinessProfile', {
+        code: businessId,
+        business: fallbackBusiness,
+      });
     },
     [navigation],
   );
@@ -587,6 +588,7 @@ function AccountDashboardRoute() {
       }
       onOpenAccount={() => navigation.navigate('PersonalHub', { screen: 'PersonalMore' })}
       onOpenDeal={openDeal}
+      onOpenOffer={dealId => navigation.navigate('DealDetail', { dealId })}
       onOpenRewards={() =>
         navigation.navigate('PersonalHub', { screen: 'PersonalRewards' })
       }

@@ -114,7 +114,7 @@ export function PersonalHubTabBar({ state, navigation, badges }: PersonalHubTabB
                   size={24}
                   color={focused ? colors.primary : colors.textSecondary}
                 />
-                {badge ? (
+                {badge && badge.count > 0 ? (
                   <View className="absolute -right-2 -top-1 h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1">
                     <VemtapText
                       variant="micro"

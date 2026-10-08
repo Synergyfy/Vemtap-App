@@ -93,10 +93,16 @@ function FeaturedDealCard({
   onOpenComments: (id: string) => void;
   onOpenDetail: (id: string) => void;
 }) {
+  const { data } = useDealEngagement(deal.id);
   const reaction = useDealReaction(deal.id);
+  const enriched = useMemo(
+    () =>
+      data ? { ...deal, likes: data.likesCount, comments: data.reviewsCount } : deal,
+    [data, deal],
+  );
   return (
     <FeaturedDealOfDayCard
-      deal={deal}
+      deal={enriched}
       liked={reaction.liked}
       onToggleLike={reaction.toggle}
       onOpenComments={onOpenComments}

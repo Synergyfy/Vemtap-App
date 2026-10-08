@@ -51,6 +51,8 @@ import {
   YourVemtapBusinessQrIsReadyScreen,
 } from '@features/business';
 import { TypeDensityProvider } from '@theme/TypeDensityProvider';
+import { useBusinessOnboardingStore } from '@store/businessOnboardingStore';
+import { mapLocationDraft } from '@features/business/utils/locationDraftMapper';
 import type { BusinessSetupStackParamList, RootStackParamList } from '@navigation/types';
 
 const Stack = createNativeStackNavigator<BusinessSetupStackParamList>();
@@ -109,54 +111,84 @@ function BusinessIntroductionRoute() {
 
 function BusinessProfileBasicInfoRoute() {
   const navigation = useFlowNavigation();
+  const basic = useBusinessOnboardingStore(state => state.profile.basic);
+  const setBasicInfo = useBusinessOnboardingStore(state => state.setBasicInfo);
   return (
     <BusinessProfileBasicInfoScreen
       onBack={navigation.goBack}
-      onContinue={() => navigation.navigate('BusinessProfileBranding')}
-      onSaveDraft={() => undefined}
+      // Persist before navigating: the wizard's next push unmounts this screen,
+      // so an unwritten value would be lost.
+      onContinue={value => {
+        setBasicInfo(value);
+        navigation.navigate('BusinessProfileBranding');
+      }}
+      onSaveDraft={setBasicInfo}
+      initialValue={basic}
     />
   );
 }
 
 function BusinessProfileBrandingRoute() {
   const navigation = useFlowNavigation();
+  const setBranding = useBusinessOnboardingStore(state => state.setBranding);
   return (
     <BusinessProfileBrandingScreen
       onBack={navigation.goBack}
-      onContinue={() => navigation.navigate('BusinessProfileContactChannels')}
-      onSaveDraft={() => undefined}
+      onContinue={value => {
+        setBranding(value);
+        navigation.navigate('BusinessProfileContactChannels');
+      }}
+      onSaveDraft={setBranding}
     />
   );
 }
 
 function BusinessProfileContactChannelsRoute() {
   const navigation = useFlowNavigation();
+  const contact = useBusinessOnboardingStore(state => state.profile.contact);
+  const setContactChannels = useBusinessOnboardingStore(
+    state => state.setContactChannels,
+  );
   return (
     <BusinessProfileContactChannelsScreen
       onBack={navigation.goBack}
-      onComplete={() => navigation.navigate('BusinessLocation')}
-      onSaveDraft={() => undefined}
+      onComplete={value => {
+        setContactChannels(value);
+        navigation.navigate('BusinessLocation');
+      }}
+      onSaveDraft={setContactChannels}
+      initialValue={contact}
     />
   );
 }
 
 function BusinessLocationRoute() {
   const navigation = useFlowNavigation();
+  const location = useBusinessOnboardingStore(state => state.profile.location);
+  const setLocation = useBusinessOnboardingStore(state => state.setLocation);
   return (
     <WhereIsYourBusinessLocatedScreen
       onBack={navigation.goBack}
-      onContinue={() => navigation.navigate('BusinessLocations')}
-      onSaveDraft={() => undefined}
+      onContinue={draft => {
+        setLocation(mapLocationDraft(draft));
+        navigation.navigate('BusinessLocations');
+      }}
+      onSaveDraft={draft => setLocation(mapLocationDraft(draft))}
+      initialValue={{ search: location.address }}
     />
   );
 }
 
 function BusinessLocationsRoute() {
   const navigation = useFlowNavigation();
+  const setBranches = useBusinessOnboardingStore(state => state.setBranches);
   return (
     <BusinessLocationsMultiBranchScreen
       onBack={navigation.goBack}
-      onContinue={() => navigation.navigate('AddProductsOrServices')}
+      onContinue={value => {
+        setBranches(value);
+        navigation.navigate('AddProductsOrServices');
+      }}
       onAddBranch={() => navigation.navigate('AddBranchLocation')}
       onEditBranch={() => undefined}
       onManageHours={() => undefined}

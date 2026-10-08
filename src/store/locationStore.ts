@@ -4,6 +4,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DEFAULT_AREA, type AreaName, type GeoCoords } from '@constants/locations';
 
 /**
+ * The radius a fresh install starts on. Exported so the filter page's Reset
+ * returns to the same default the store does, rather than restating the number
+ * in a second place.
+ */
+export const DEFAULT_RADIUS_KM = 5;
+
+/**
  * Consumer location store — the single source for the active discovery district
  * and radius.
  *
@@ -44,7 +51,7 @@ export const useLocationStore = create<LocationState>()(
       set => ({
         area: DEFAULT_AREA,
         coords: null,
-        radiusKm: 5,
+        radiusKm: DEFAULT_RADIUS_KM,
         setArea: area =>
           set(state => ({
             area,

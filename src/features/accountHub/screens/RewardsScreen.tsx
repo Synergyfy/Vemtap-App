@@ -12,6 +12,7 @@ import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
 import { colors } from '@theme/colors';
 import { rewardImages } from '@features/accountHub/data/accountHubImages';
+import { useLoyaltyBalance } from '@features/accountHub/hooks/useLoyalty';
 
 const copy = strings.accountScreens.rewards;
 
@@ -23,6 +24,8 @@ export interface RewardsScreenProps {
 
 export function RewardsScreen({ onBack, onHowToEarn, onRedeem }: RewardsScreenProps) {
   const [tab, setTab] = useState(0);
+  const { data: balance } = useLoyaltyBalance(null);
+  const pointsText = balance != null ? Number(balance).toLocaleString() : copy.points;
   return (
     <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-background">
       <AccountHeader
@@ -44,7 +47,7 @@ export function RewardsScreen({ onBack, onHowToEarn, onRedeem }: RewardsScreenPr
               variant="headingLg"
               className="text-heading-lg text-primary-foreground"
             >
-              {copy.points}
+              {pointsText}
             </VemtapText>
             <VemtapText variant="labelMd" className="text-primary-foreground">
               {copy.unit}
@@ -111,7 +114,7 @@ export function RewardsScreen({ onBack, onHowToEarn, onRedeem }: RewardsScreenPr
                 partner: copy.diningPartner,
                 meta: copy.diningMeta,
                 points: copy.diningPoints,
-                balance: copy.diningBalance,
+                balanceLabel: copy.diningBalance,
                 image: rewardImages.dining,
               },
               {
@@ -119,7 +122,7 @@ export function RewardsScreen({ onBack, onHowToEarn, onRedeem }: RewardsScreenPr
                 partner: copy.wellnessPartner,
                 meta: copy.wellnessMeta,
                 points: copy.wellnessPoints,
-                balance: copy.wellnessBalance,
+                balanceLabel: copy.wellnessBalance,
                 image: rewardImages.wellness,
               },
               {
@@ -127,10 +130,10 @@ export function RewardsScreen({ onBack, onHowToEarn, onRedeem }: RewardsScreenPr
                 partner: copy.fashionPartner,
                 meta: copy.fashionMeta,
                 points: copy.fashionPoints,
-                balance: copy.fashionBalance,
+                balanceLabel: copy.fashionBalance,
                 image: rewardImages.fashion,
               },
-            ].map(({ title, partner, meta, points, balance, image }) => (
+            ].map(({ title, partner, meta, points, balanceLabel, image }) => (
               <View key={title} className="gap-3 rounded-card bg-surface p-4 shadow-sm">
                 <View className="flex-row gap-3">
                   <Image
@@ -167,7 +170,7 @@ export function RewardsScreen({ onBack, onHowToEarn, onRedeem }: RewardsScreenPr
                     tone="tertiary"
                     className="min-w-0 flex-1"
                   >
-                    {balance}
+                    {balanceLabel}
                   </VemtapText>
                   <Button
                     label="Redeem Now"

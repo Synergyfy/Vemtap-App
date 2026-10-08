@@ -27,6 +27,8 @@ export interface BusinessProfileSummary {
     label: string;
     icon: 'verified' | 'featured' | 'exclusive';
   };
+  /** 9-character code used to fetch the live profile via GET /public/businesses/code/:code */
+  branchCode: string;
 }
 
 export const discoverCategories: readonly DiscoverCategory[] =
@@ -50,6 +52,7 @@ export const businesses: readonly BusinessProfileSummary[] = [
       label: strings.discoverFeed.statuses.verifiedPartner,
       icon: 'verified',
     },
+    branchCode: 'URBANGRLL',
   },
   {
     id: 'glow-serenity',
@@ -68,6 +71,7 @@ export const businesses: readonly BusinessProfileSummary[] = [
       label: strings.discoverFeed.statuses.featuredPartner,
       icon: 'featured',
     },
+    branchCode: 'GLOWSERE',
   },
   {
     id: 'sole-district',
@@ -86,6 +90,7 @@ export const businesses: readonly BusinessProfileSummary[] = [
       label: strings.discoverFeed.statuses.vemtapExclusive,
       icon: 'exclusive',
     },
+    branchCode: 'SOLEDIST',
   },
   {
     id: 'sky-lounge',
@@ -103,6 +108,7 @@ export const businesses: readonly BusinessProfileSummary[] = [
       label: strings.discoverFeed.statuses.verifiedPartner,
       icon: 'verified',
     },
+    branchCode: 'SKYLOUNG',
   },
   {
     id: 'cafe-neo',
@@ -121,5 +127,6 @@ export const businesses: readonly BusinessProfileSummary[] = [
       label: strings.discoverFeed.statuses.verifiedPartner,
       icon: 'verified',
     },
+    branchCode: 'CAFENEO',
   },
 ];

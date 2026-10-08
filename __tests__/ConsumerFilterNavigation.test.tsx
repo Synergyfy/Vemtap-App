@@ -17,6 +17,19 @@ jest.mock('@features/deals/hooks/usePublicOffers', () =>
 jest.mock('@features/deals/hooks/useDealEngagementActions', () =>
   jest.requireActual('./helpers/mockOffersFeed').mockDealEngagementActionsModule(),
 );
+jest.mock('@features/discover/hooks/useDiscoverBusinesses', () =>
+  jest.requireActual('./helpers/mockDiscoverBusinesses').mockDiscoverBusinessesModule(),
+);
+jest.mock('@features/deals/hooks/useFilterCategories', () => ({
+  useFilterCategories: jest.fn(() => ({
+    options: [
+      { name: 'Food & Drinks', icon: 'restaurant' },
+      { name: 'Beauty & Spa', icon: 'spa' },
+    ],
+    isLoading: false,
+    isError: false,
+  })),
+}));
 
 /**
  * The filter icon must open the one shared filter page from every feed that

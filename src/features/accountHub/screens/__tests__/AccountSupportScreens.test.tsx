@@ -6,6 +6,20 @@ import { AccountSettingsSecurityScreen } from '@features/accountHub/screens/Acco
 import { SavingsHistoryScreen } from '@features/accountHub/screens/SavingsHistoryScreen';
 import { strings } from '@constants/strings';
 
+jest.mock('@features/accountHub/hooks/useSavedDeals', () => ({
+  useDealSaveStatus: (offerId: string | null) => {
+    if (!offerId) return { data: undefined, isLoading: false, isError: false };
+    return {
+      data: {
+        saved: ['urban-grill-lunch', 'sole-district-streetwear'].includes(offerId),
+      },
+      isLoading: false,
+      isError: false,
+    };
+  },
+  useToggleDealSave: () => ({ mutate: jest.fn() }),
+}));
+
 describe('standalone account support screens', () => {
   it('renders the saved hub', async () => {
     const view = await render(<SavedHubScreen />);
@@ -44,6 +58,7 @@ describe('standalone account support screens', () => {
     expect(view.getByText('Food & Dining')).toBeTruthy();
     expect(view.getByText('Wellness & Beauty')).toBeTruthy();
     expect(view.getByText('Fashion & Retail')).toBeTruthy();
+    expect(view.getByText(savings.categoryTitle)).toBeTruthy();
     expect(view.getByText(savings.ledgerTitle)).toBeTruthy();
     expect(view.getByText(savings.ledgerCount)).toBeTruthy();
     savings.entries.forEach(entry => {

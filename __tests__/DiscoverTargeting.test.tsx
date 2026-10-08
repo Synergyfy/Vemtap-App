@@ -23,6 +23,9 @@ jest.mock('@features/deals/hooks/usePublicOffers', () =>
 jest.mock('@features/deals/hooks/useDealEngagementActions', () =>
   jest.requireActual('./helpers/mockOffersFeed').mockDealEngagementActionsModule(),
 );
+jest.mock('@features/discover/hooks/useDiscoverBusinesses', () =>
+  jest.requireActual('./helpers/mockDiscoverBusinesses').mockDiscoverBusinessesModule(),
+);
 
 const { homeLocation: loc, home } = strings;
 

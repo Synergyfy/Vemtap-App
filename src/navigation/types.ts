@@ -2,6 +2,8 @@ import type { NavigatorScreenParams } from '@react-navigation/native';
 import type { BusinessProfileSummary } from '@features/discover/data/discoverData';
 import type { GeoCoords } from '@constants/locations';
 
+export type { BusinessProfileSummary } from '@features/discover/data/discoverData';
+
 /**
  * Bottom-tab shell for the customer personal hub
  * (Home · My Deals · Messages · Orders · More), taken from the

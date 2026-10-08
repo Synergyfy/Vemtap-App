@@ -12,6 +12,8 @@ import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
 import { colors } from '@theme/colors';
 import { activityImages } from '@features/accountHub/data/accountHubImages';
+import { useLoyaltyAnalytics } from '@features/accountHub/hooks/useLoyalty';
+import { formatCurrency } from '@utils/formatters';
 
 cssInterop(Image, { className: 'style' });
 cssInterop(ScrollView, {
@@ -225,6 +227,10 @@ export function MyActivityScreen({
   onOpenDeal,
 }: MyActivityScreenProps) {
   const [tab, setTab] = useState(0);
+  const { data: analytics } = useLoyaltyAnalytics(365);
+  const trends = analytics?.trends ?? null;
+  const totalSaved = trends?.netSavings ?? 0;
+  const totalVisited = trends?.totalVisits ?? 0;
   return (
     <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-background">
       <AccountHeader title={copy.title} onBack={onBack} onAction={onMore} />
@@ -282,9 +288,17 @@ export function MyActivityScreen({
             </View>
           </View>
           <View className="flex-row gap-2">
-            <FootprintMetric icon="wallet" value="₦48,500" label={copy.totalSaved} />
+            <FootprintMetric
+              icon="wallet"
+              value={formatCurrency(totalSaved)}
+              label={copy.totalSaved}
+            />
             <FootprintMetric icon="localActivity" value="14" label={copy.claimed} />
-            <FootprintMetric icon="storefront" value="8" label={copy.visited} />
+            <FootprintMetric
+              icon="storefront"
+              value={String(totalVisited)}
+              label={copy.visited}
+            />
           </View>
         </View>
 

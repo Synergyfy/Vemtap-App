@@ -2,6 +2,9 @@
 #
 .DS_Store
 
+# Backend documentation (local reference)
+backend-fixies.md
+
 # Xcode
 #
 build/

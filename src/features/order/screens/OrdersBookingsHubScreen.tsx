@@ -1,13 +1,57 @@
 import React, { useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { EmptyState } from '@components/shared/EmptyState';
+import { ErrorState } from '@components/shared/ErrorState';
+import { LoadingState } from '@components/shared/LoadingState';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
 import { OrderHubCard } from '@features/order/components/OrderHubComponents';
+import { useCustomerOrders } from '@features/order/hooks/useCustomerOrders';
 import { orderImages } from '@features/order/orderData';
+import { formatCurrency, formatWhen } from '@utils/formatters';
 import { colors } from '@theme/colors';
 import { navbarBottomShadow } from '@theme/shadows';
+
+/**
+ * Wire statuses behind each Orders filter chip, in chip order. The API's
+ * `CatalogueOrderStatus` is finer-grained than the four chips the design calls
+ * for, so the extra states are folded into their nearest chip rather than
+ * dropped.
+ */
+const ORDER_STATUS_GROUPS: readonly (readonly string[])[] = [
+  ['new', 'processing'],
+  ['completed'],
+  ['cancelled', 'rejected'],
+  ['refunded', 'partial_refund'],
+];
+
+const TERMINAL_STATUSES = new Set([
+  'cancelled',
+  'rejected',
+  'refunded',
+  'partial_refund',
+]);
+
+function isActiveStatus(status: string | null | undefined): boolean {
+  return status === 'new' || status === 'processing';
+}
+
+function statusLabel(status: string | null | undefined): string {
+  const labels = strings.ordersHub.orderStatusLabels as Record<string, string>;
+  const key = status ?? '';
+  return labels[key] ?? key;
+}
+
+function statusToneFor(
+  status: string | null | undefined,
+): 'success' | 'brand' | 'warning' | 'neutral' {
+  if (isActiveStatus(status)) return 'warning';
+  if (status === 'completed') return 'success';
+  if (TERMINAL_STATUSES.has(status ?? '')) return 'neutral';
+  return 'brand';
+}
 
 export interface OrdersBookingsHubScreenProps {
   onBack?: () => void;
@@ -34,6 +78,19 @@ export function OrdersBookingsHubScreen({
   const noop = () => undefined;
   const filters =
     mode === 'orders' ? strings.ordersHub.orderFilters : strings.ordersHub.bookingFilters;
+
+  const orders = useCustomerOrders();
+  const orderList = orders.data ?? [];
+  const filterCounts = ORDER_STATUS_GROUPS.map(
+    group => orderList.filter(order => group.includes(order.status ?? '')).length,
+  );
+  const visibleOrders = orderList.filter(order =>
+    ORDER_STATUS_GROUPS[filter]?.includes(order.status ?? ''),
+  );
+  /** Counts appear only once the query has settled, so chips don't flicker 0. */
+  const showCounts = orders.data !== undefined;
+  const withCount = (label: string, count: number) =>
+    showCounts ? `${label} (${count})` : label;
 
   return (
     <View className="flex-1 bg-background">
@@ -100,7 +157,7 @@ export function OrdersBookingsHubScreen({
               tone={mode === 'orders' ? 'inverse' : 'secondary'}
               className="font-sans-semibold"
             >
-              {strings.ordersHub.orders}
+              {withCount(strings.ordersHub.orders, orderList.length)}
             </VemtapText>
           </Pressable>
           <Pressable
@@ -184,139 +241,94 @@ export function OrdersBookingsHubScreen({
                 tone={filter === index ? 'brand' : 'secondary'}
                 className={filter === index ? 'font-sans-semibold' : 'font-sans-medium'}
               >
-                {item}
+                {mode === 'orders' ? withCount(item, filterCounts[index] ?? 0) : item}
               </VemtapText>
             </Pressable>
           ))}
         </ScrollView>
 
         {mode === 'orders' ? (
-          <View className="gap-4">
-            <OrderHubCard
-              image={{ uri: orderImages.steak }}
-              merchant={strings.urbanProfile.name}
-              meta={strings.ordersHub.activeOrderNumber}
-              status={strings.ordersHub.preparing}
-              statusTone="warning"
-              accent
-              onPress={() => onOpenOrder?.('VT-ORD-88219')}
-              actions={[
-                {
-                  label: strings.ordersHub.contactKitchen,
-                  onPress: onContactKitchen ?? noop,
-                },
-                {
-                  label: strings.ordersHub.trackOrder,
-                  onPress: onTrackOrder ?? noop,
-                  primary: true,
-                },
-              ]}
-            >
-              <View className="gap-2 rounded-xl bg-surface-subtle p-3">
-                <View className="flex-row items-center justify-between gap-2">
-                  <VemtapText variant="labelSm" className="font-sans-medium">
-                    <Icon name="restaurant" size={16} color={colors.tertiary} />{' '}
-                    {strings.ordersHub.cooking}
-                  </VemtapText>
-                  <VemtapText
-                    variant="labelSm"
-                    tone="brand"
-                    className="font-sans-semibold"
+          orders.isLoading ? (
+            <LoadingState label={strings.common.loading} />
+          ) : orders.isError ? (
+            <ErrorState title={strings.common.error} onRetry={orders.refetch} />
+          ) : visibleOrders.length === 0 ? (
+            <EmptyState
+              variant="contained"
+              icon="shoppingBag"
+              title={
+                filter === 0 ? strings.ordersHub.emptyOrdersTitle : strings.common.empty
+              }
+              description={filter === 0 ? strings.ordersHub.emptyOrdersBody : undefined}
+            />
+          ) : (
+            <View className="gap-4">
+              {visibleOrders.map(order => {
+                const lineImage = order.items?.[0]?.image;
+                return (
+                  <OrderHubCard
+                    key={order.id}
+                    image={lineImage ? { uri: lineImage } : { uri: orderImages.merchant }}
+                    merchant={
+                      order.branch?.name ?? strings.ordersHub.orderMerchantFallback
+                    }
+                    meta={`${strings.ordersHub.orderNumberLabel}${order.id.slice(0, 8).toUpperCase()} • ${formatWhen(order.createdAt ?? '')}`}
+                    status={statusLabel(order.status)}
+                    statusTone={statusToneFor(order.status)}
+                    accent={isActiveStatus(order.status)}
+                    onPress={() => onOpenOrder?.(order.id)}
+                    actions={
+                      isActiveStatus(order.status)
+                        ? [
+                            {
+                              label: strings.ordersHub.contactKitchen,
+                              onPress: onContactKitchen ?? noop,
+                            },
+                            {
+                              label: strings.ordersHub.trackOrder,
+                              onPress: onTrackOrder ?? noop,
+                              primary: true,
+                            },
+                          ]
+                        : []
+                    }
                   >
-                    {strings.ordersHub.readyAt}
-                  </VemtapText>
-                </View>
-                <View className="h-2 overflow-hidden rounded-full bg-surface-container">
-                  <View className="h-full w-2/3 rounded-full bg-primary" />
-                </View>
-                <VemtapText variant="caption" tone="secondary">
-                  {strings.ordersHub.pickupEstimate}
-                </VemtapText>
-              </View>
-              <View className="gap-1 py-1">
-                {strings.ordersHub.activeOrderItems.map(([name, price]) => (
-                  <View key={name} className="flex-row justify-between gap-3">
-                    <VemtapText
-                      variant="bodyMd"
-                      className="min-w-0 flex-1 font-sans-medium"
-                      numberOfLines={1}
-                    >
-                      {name}
-                    </VemtapText>
-                    <VemtapText variant="bodyMd" className="shrink-0">
-                      {price}
-                    </VemtapText>
-                  </View>
-                ))}
-              </View>
-              <View className="mt-2 flex-row items-center justify-between gap-2 rounded-xl bg-surface-subtle p-2.5">
-                <View className="min-w-0 flex-row items-center gap-2">
-                  <VemtapText
-                    variant="caption"
-                    tone="success"
-                    className="rounded bg-success-container px-2 py-0.5 font-sans-semibold"
-                  >
-                    {strings.ordersHub.dealApplied}
-                  </VemtapText>
-                  <VemtapText variant="caption" tone="secondary">
-                    {strings.ordersHub.discount}
-                  </VemtapText>
-                </View>
-                <View className="items-end">
-                  <VemtapText variant="caption" tone="secondary">
-                    {strings.ordersHub.paidCard}
-                  </VemtapText>
-                  <VemtapText variant="labelMd" className="font-sans-bold">
-                    {strings.ordersHub.activeOrderTotal}
-                  </VemtapText>
-                </View>
-              </View>
-            </OrderHubCard>
-            <OrderHubCard
-              image={{ uri: orderImages.burger }}
-              merchant={strings.ordersHub.bakeryName}
-              meta={strings.ordersHub.bakeryMeta}
-              status={strings.ordersHub.pickedUp}
-              onPress={() => onOpenOrder?.('VT-ORD-84102')}
-              actions={[
-                { label: strings.ordersHub.receipt, onPress: noop },
-                { label: strings.ordersHub.review, onPress: noop },
-                { label: strings.ordersHub.reorder, onPress: noop },
-              ]}
-            >
-              <VemtapText variant="bodyMd">{strings.ordersHub.bakeryItems}</VemtapText>
-              <View className="mt-1 flex-row items-center justify-between">
-                <VemtapText variant="caption" tone="secondary">
-                  {strings.ordersHub.bakeryDate}
-                </VemtapText>
-                <VemtapText variant="labelMd" className="font-sans-semibold">
-                  {strings.ordersHub.bakeryTotal}
-                </VemtapText>
-              </View>
-            </OrderHubCard>
-            <OrderHubCard
-              image={{ uri: orderImages.merchant }}
-              merchant={strings.ordersHub.boutiqueName}
-              meta={strings.ordersHub.boutiqueMeta}
-              status={strings.ordersHub.delivered}
-              statusTone="brand"
-              onPress={() => onOpenOrder?.('VT-ORD-79940')}
-              actions={[
-                { label: strings.ordersHub.needHelp, onPress: noop },
-                { label: strings.ordersHub.viewReceipt, onPress: noop },
-              ]}
-            >
-              <VemtapText variant="bodyMd">{strings.ordersHub.boutiqueItem}</VemtapText>
-              <View className="mt-1 flex-row items-center justify-between">
-                <VemtapText variant="caption" tone="secondary">
-                  {strings.ordersHub.boutiqueDate}
-                </VemtapText>
-                <VemtapText variant="labelMd" className="font-sans-semibold">
-                  {strings.ordersHub.boutiqueTotal}
-                </VemtapText>
-              </View>
-            </OrderHubCard>
-          </View>
+                    <View className="gap-1 py-1">
+                      {(order.items ?? []).map(item => (
+                        <View
+                          key={item.id ?? item.itemId ?? ''}
+                          className="flex-row justify-between gap-3"
+                        >
+                          <VemtapText
+                            variant="bodyMd"
+                            className="min-w-0 flex-1 font-sans-medium"
+                            numberOfLines={1}
+                          >
+                            {`${item.quantity ?? 1}x ${item.name ?? strings.ordersHub.orderItemFallback}`}
+                          </VemtapText>
+                          <VemtapText variant="bodyMd" className="shrink-0">
+                            {item.totalPrice == null
+                              ? ''
+                              : formatCurrency(item.totalPrice)}
+                          </VemtapText>
+                        </View>
+                      ))}
+                    </View>
+                    {order.totalAmount == null ? null : (
+                      <View className="mt-2 flex-row items-end justify-between gap-2 rounded-xl bg-surface-subtle p-2.5">
+                        <VemtapText variant="caption" tone="secondary">
+                          {strings.ordersHub.orderTotalLabel}
+                        </VemtapText>
+                        <VemtapText variant="labelMd" className="font-sans-bold">
+                          {formatCurrency(Number(order.totalAmount))}
+                        </VemtapText>
+                      </View>
+                    )}
+                  </OrderHubCard>
+                );
+              })}
+            </View>
+          )
         ) : (
           <View className="gap-4">
             <OrderHubCard

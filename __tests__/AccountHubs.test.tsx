@@ -1,16 +1,43 @@
 import React from 'react';
 import { fireEvent, render } from '@testing-library/react-native';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { CustomerDashboardScreen } from '@features/accountHub/screens/CustomerDashboardScreen';
 import { SavedHubScreen } from '@features/accountHub/screens/SavedHubScreen';
 import { ClaimedDealDetailPassScreen } from '@features/claimedDeal/screens/ClaimedDealDetailPassScreen';
 import { MyDealsHubScreen } from '@features/myDeals/screens/MyDealsHubScreen';
 
+const _mockSaveStatus = jest.fn((offerId: string) => ({
+  saved: offerId === 'urban-grill-lunch' || offerId === 'sole-district-streetwear',
+}));
+const _mockToggleSave = jest.fn();
+
+jest.mock('@features/accountHub/hooks/useSavedDeals', () => ({
+  useDealSaveStatus: (offerId: string | null) => {
+    if (!offerId) return { data: undefined, isLoading: false, isError: false };
+    return {
+      data: {
+        saved: ['urban-grill-lunch', 'sole-district-streetwear'].includes(offerId),
+      },
+      isLoading: false,
+      isError: false,
+    };
+  },
+  useToggleDealSave: () => ({ mutate: jest.fn() }),
+}));
+
+function renderWithClient(ui: React.ReactElement) {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(<QueryClientProvider client={client}>{ui}</QueryClientProvider>);
+}
+
 test('renders all four standalone hub and pass screens', async () => {
   const onOpenDeal = jest.fn();
-  const saved = await render(<SavedHubScreen onOpenDeal={onOpenDeal} />);
-  const dashboard = await render(<CustomerDashboardScreen onOpenDeal={onOpenDeal} />);
-  const deals = await render(<MyDealsHubScreen onOpenDeal={onOpenDeal} />);
-  const pass = await render(
+  const saved = await renderWithClient(<SavedHubScreen onOpenDeal={onOpenDeal} />);
+  const dashboard = await renderWithClient(
+    <CustomerDashboardScreen onOpenDeal={onOpenDeal} />,
+  );
+  const deals = await renderWithClient(<MyDealsHubScreen onOpenDeal={onOpenDeal} />);
+  const pass = await renderWithClient(
     <ClaimedDealDetailPassScreen onUseDeal={onOpenDeal} onOpenChat={onOpenDeal} />,
   );
 
@@ -22,7 +49,7 @@ test('renders all four standalone hub and pass screens', async () => {
 });
 
 test('filters Saved Hub deals, businesses, and search results', async () => {
-  const saved = await render(<SavedHubScreen />);
+  const saved = await renderWithClient(<SavedHubScreen />);
 
   expect(saved.getByText('Urban Grill & Bistro')).toBeTruthy();
   expect(saved.getByText('Glow & Serenity Spa & Salon')).toBeTruthy();

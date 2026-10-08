@@ -2,7 +2,9 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { dealsApi, type Offer } from '@api/dealsApi';
 import { useLocationStore } from '@store/locationStore';
+import { useDealsFilterStore } from '@store/dealsFilterStore';
 import { discoveryOrigin } from '@utils/geo';
+import { applyDealsFilters } from '@features/deals/utils/dealsFilter';
 import {
   mapOfferToFeatured,
   mapOfferToGridItem,
@@ -28,8 +30,21 @@ export function usePublicOffersFeed(limit = 20) {
   const area = useLocationStore(state => state.area);
   const coords = useLocationStore(state => state.coords);
   const radiusKm = useLocationStore(state => state.radiusKm);
+  const categoryNames = useDealsFilterStore(state => state.categoryNames);
+  const minPrice = useDealsFilterStore(state => state.minPrice);
+  const maxPrice = useDealsFilterStore(state => state.maxPrice);
+  const minDiscountPercent = useDealsFilterStore(state => state.minDiscountPercent);
+  const availability = useDealsFilterStore(state => state.availability);
 
   const origin = useMemo(() => discoveryOrigin(area, coords), [area, coords]);
+
+  // The filters are read here rather than passed in so Home and the Deals tab
+  // share one application point — a second copy of this logic would let the two
+  // feeds disagree about what "filtered" means.
+  const criteria = useMemo(
+    () => ({ categoryNames, minPrice, maxPrice, minDiscountPercent, availability }),
+    [categoryNames, minPrice, maxPrice, minDiscountPercent, availability],
+  );
 
   const query = useQuery({
     queryKey: ['offers', 'public', origin.latitude, origin.longitude, radiusKm, limit],
@@ -40,10 +55,13 @@ export function usePublicOffersFeed(limit = 20) {
         lng: origin.longitude,
         radius: radiusKm,
       }),
+    // Applied in `select` rather than sent to the API: the raw payload stays
+    // cached unfiltered, so clearing a filter is instant and never refetches.
+    select: result => applyDealsFilters(result.data ?? [], criteria),
     staleTime: 60_000,
   });
 
-  const offers: Offer[] = query.data?.data ?? [];
+  const offers: Offer[] = query.data ?? [];
 
   return {
     ...query,

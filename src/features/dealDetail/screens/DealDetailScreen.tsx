@@ -28,8 +28,11 @@ import { navbarBottomShadow } from '@theme/shadows';
 import type { AppStackParamList } from '@navigation/types';
 import { useDealDetail } from '@features/dealDetail/hooks/useDealDetail';
 import { useOfferClaim } from '@features/dealDetail/hooks/useOfferClaim';
+import { useDealReaction } from '@features/deals/hooks/useDealEngagementActions';
+import { useDealEngagement } from '@features/deals/hooks/usePublicOffers';
 import { LoadingState } from '@components/shared/LoadingState';
 import { EmptyState } from '@components/shared/EmptyState';
+import { useAuthStore, selectIsAuthenticated } from '@store/authStore';
 import { businesses } from '@features/discover/data/discoverData';
 
 cssInterop(View, { className: 'style' });
@@ -81,11 +84,11 @@ type DealDetailProps = {
 export function DealDetailScreen({ route, navigation }: Props) {
   const insets = useSafeAreaInsets();
   const [expanded, setExpanded] = useState(false);
-  const [liked, setLiked] = useState(false);
   const [claimed, setClaimed] = useState(false);
   const [commentsVisible, setCommentsVisible] = useState(false);
   const [shareVisible, setShareVisible] = useState(false);
   const [claimStep, setClaimStep] = useState<ClaimFlowStep>(null);
+  const isAuthenticated = useAuthStore(selectIsAuthenticated);
   const [claimingAs, setClaimingAs] = useState('john@email.com');
   const [recipient, setRecipient] = useState<RecipientData>({
     firstName: '',
@@ -120,6 +123,14 @@ export function DealDetailScreen({ route, navigation }: Props) {
   const claim = useOfferClaim(route.params.dealId);
 
   /**
+   * Real like toggle with optimistic updates and auth gating.
+   * For fictional deals the hook still works but the API will 401/404;
+   * the hook handles `needsAuth` so the UI can prompt sign-in.
+   */
+  const reaction = useDealReaction(route.params.dealId);
+  const engagement = useDealEngagement(route.params.dealId);
+
+  /**
    * The fictional Discover businesses are reached by id prefix. A real offer has
    * no such prefix and instead carries the merchant's 9-character code, which
    * is what the public business endpoint is keyed by — so the merchant link
@@ -150,7 +161,9 @@ export function DealDetailScreen({ route, navigation }: Props) {
         save: deal.save,
         description: deal.description,
         address: deal.address,
-        likes: deal.likes,
+        // Engagement cache is the one number every screen shares; fall back to
+        // the payload while it loads (and for seed deals with no endpoint).
+        likes: engagement.data?.likesCount ?? deal.likes,
         comments: deal.comments,
       }
     : null;
@@ -259,6 +272,7 @@ export function DealDetailScreen({ route, navigation }: Props) {
     save: details.save,
     badge: details.badge,
     image: deal.image,
+    endsIn: details.endsIn,
   };
 
   return (
@@ -293,20 +307,20 @@ export function DealDetailScreen({ route, navigation }: Props) {
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Like deal"
-                accessibilityState={{ selected: liked }}
-                onPress={() => setLiked(value => !value)}
+                accessibilityState={{ selected: reaction.liked }}
+                onPress={reaction.toggle}
                 style={styles.likePill}
               >
                 <Icon
-                  name={liked ? 'favoriteFilled' : 'favorite'}
+                  name={reaction.liked ? 'favoriteFilled' : 'favorite'}
                   size={20}
-                  color={liked ? colors.error : colors.text}
+                  color={reaction.liked ? colors.error : colors.text}
                 />
                 <VemtapText
                   className="font-sans-semibold text-label-sm"
-                  style={{ color: liked ? colors.error : colors.text }}
+                  style={{ color: reaction.liked ? colors.error : colors.text }}
                 >
-                  {details.likes + (liked ? 1 : 0)}
+                  {details.likes}
                 </VemtapText>
               </Pressable>
             </View>
@@ -404,16 +418,16 @@ export function DealDetailScreen({ route, navigation }: Props) {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Like deal"
-              onPress={() => setLiked(value => !value)}
+              onPress={reaction.toggle}
               style={styles.engagementButton}
             >
               <Icon
-                name={liked ? 'favoriteFilled' : 'favorite'}
+                name={reaction.liked ? 'favoriteFilled' : 'favorite'}
                 size={18}
-                color={liked ? colors.error : colors.textSecondary}
+                color={reaction.liked ? colors.error : colors.textSecondary}
               />
               <VemtapText className="font-sans-semibold text-label-md text-text-secondary">
-                {details.likes + (liked ? 1 : 0)}
+                {details.likes}
               </VemtapText>
             </Pressable>
             <View style={styles.divider} />
@@ -550,7 +564,7 @@ export function DealDetailScreen({ route, navigation }: Props) {
         <View style={styles.claimHint}>
           <Icon name="info" size={13} color={colors.primary} />
           <VemtapText variant="caption" tone="secondary" className="text-center">
-            No payment required now • Claim to reserve
+            {strings.deals.claimFlow.claimHint}
           </VemtapText>
         </View>
       </View>
@@ -558,7 +572,7 @@ export function DealDetailScreen({ route, navigation }: Props) {
       <ClaimConfirmationSheet
         visible={claimStep === 'confirmation'}
         onClose={() => setClaimStep(null)}
-        onConfirm={() => setClaimStep('auth')}
+        onConfirm={() => setClaimStep(isAuthenticated ? 'identity' : 'auth')}
         deal={claimData}
       />
       <ClaimAuthModalSheet

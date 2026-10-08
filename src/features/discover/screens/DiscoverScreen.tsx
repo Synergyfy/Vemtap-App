@@ -11,10 +11,11 @@ import { VemtapText } from '@components/ui/Text';
 import { colors } from '@theme/colors';
 import { navbarBottomShadow } from '@theme/shadows';
 import { strings } from '@constants/strings';
+import { useDiscoverBusinesses } from '@features/discover/hooks/useDiscoverBusinesses';
 import {
-  businesses,
   discoverCategories,
-  type DiscoverCategory,
+  DiscoverCategory,
+  type BusinessProfileSummary,
 } from '@features/discover/data/discoverData';
 import { useConsumerTargeting } from '@features/home/hooks/useConsumerTargeting';
 
@@ -27,13 +28,12 @@ cssInterop(ScrollView, {
 cssInterop(SafeAreaView, { className: 'style' });
 
 export interface DiscoverScreenProps {
-  onOpenBusiness: (businessId: string) => void;
+  onOpenBusiness: (businessId: string, fallbackBusiness?: BusinessProfileSummary) => void;
   onOpenFilters: () => void;
   onToggleMap: () => void;
   onOpenNotifications: () => void;
   onOpenAccount: () => void;
   onOpenEnrollment: () => void;
-  /** Opens the shared district-selection page from the location control. */
   onOpenLocationSelect?: () => void;
   onUseCurrentLocation?: () => void;
 }
@@ -42,34 +42,76 @@ export function DiscoverScreen(props: DiscoverScreenProps): React.JSX.Element;
 export function DiscoverScreen(): React.JSX.Element;
 export function DiscoverScreen(props: Partial<DiscoverScreenProps> = {}) {
   const [searchQuery, setSearchQuery] = useState('');
-  // Same targeting owner as the Home and Deals navbars, so the district and the
-  // radius stay in step across all three feeds.
   const targeting = useConsumerTargeting({
     onOpenLocationSelect: props.onOpenLocationSelect ?? (() => undefined),
     onUseCurrentLocation: props.onUseCurrentLocation,
   });
   const [activeCategory, setActiveCategory] = useState<DiscoverCategory>('All');
   const [mapIcon, setMapIcon] = useState<'map' | 'agenda'>('map');
+  const { data: businesses, isLoading, isError } = useDiscoverBusinesses(8);
 
   const filteredBusinesses = useMemo(() => {
     const query = searchQuery.trim().toLocaleLowerCase();
-
-    return businesses.filter(business => {
-      const matchesCategory =
-        activeCategory === 'All' || business.categoryFilter === activeCategory;
-      const matchesSearch =
-        query.length === 0 ||
-        [business.name, business.category, business.location].some(value =>
-          value.toLocaleLowerCase().includes(query),
-        );
-      return matchesCategory && matchesSearch;
-    });
-  }, [activeCategory, searchQuery]);
+    return businesses
+      ? businesses.filter(business => {
+          const matchesCategory =
+            activeCategory === 'All' || business.categoryFilter === activeCategory;
+          const matchesSearch =
+            query.length === 0 ||
+            [business.name, business.category, business.location].some(value =>
+              value.toLocaleLowerCase().includes(query),
+            );
+          return matchesCategory && matchesSearch;
+        })
+      : [];
+  }, [activeCategory, searchQuery, businesses]);
 
   const toggleMap = () => {
     setMapIcon(value => (value === 'map' ? 'agenda' : 'map'));
     props.onToggleMap?.();
   };
+
+  if (isLoading) {
+    return (
+      <SafeAreaView edges={['top']} className="flex-1 bg-surface">
+        <View className="my-8 text-center">
+          <VemtapText variant="labelMd">{strings.common.loading}</VemtapText>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (isError) {
+    return (
+      <SafeAreaView edges={['top']} className="flex-1 bg-surface">
+        <View accessibilityRole="alert" className="mt-4 items-center">
+          <Icon name="cloudOff" size={48} color={colors.outline} />
+          <VemtapText variant="headingSm" className="mt-2 text-center">
+            {strings.common.error}
+          </VemtapText>
+          <VemtapText variant="caption" tone="secondary" className="text-center">
+            {strings.common.retry}
+          </VemtapText>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!businesses || businesses.length === 0) {
+    return (
+      <SafeAreaView edges={['top']} className="flex-1 bg-surface">
+        <View accessibilityRole="alert" className="mt-4 items-center">
+          <Icon name="storefront" size={48} color={colors.outline} />
+          <VemtapText variant="headingSm" className="mt-2 text-center">
+            {strings.discoverFeed.noBusinessesTitle}
+          </VemtapText>
+          <VemtapText variant="caption" tone="secondary" className="text-center">
+            {strings.discoverFeed.noBusinessesBody}
+          </VemtapText>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView edges={['top']} className="flex-1 bg-surface">
@@ -164,7 +206,7 @@ export function DiscoverScreen(props: Partial<DiscoverScreenProps> = {}) {
         <View className="w-full max-w-screen gap-4 self-center px-6 pb-6 pt-1">
           <View className="flex-row items-center justify-between gap-3 pt-1">
             <VemtapText className="min-w-0 flex-1 font-sans-semibold text-label-sm uppercase tracking-wider text-text-secondary">
-              {strings.discoverFeed.spotlightDiscoveries}
+              {strings.discoverFeed.spotlightDiscoveries(businesses.length)}
             </VemtapText>
             <VemtapText variant="caption" tone="tertiary">
               {strings.discoverFeed.realTimePerks}
@@ -175,7 +217,9 @@ export function DiscoverScreen(props: Partial<DiscoverScreenProps> = {}) {
             <BusinessDiscoveryCard
               key={business.id}
               business={business}
-              onOpen={businessId => props.onOpenBusiness?.(businessId)}
+              onOpen={businessId =>
+                props.onOpenBusiness?.(business.branchCode ?? businessId, business)
+              }
             />
           ))}
 

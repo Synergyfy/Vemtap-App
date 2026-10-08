@@ -23,6 +23,8 @@ export type ClaimDealData = {
   save: string;
   badge: string;
   image: { uri: string };
+  /** Real countdown from the offer; absent when the API sends no expiry. */
+  endsIn?: string;
 };
 
 export type RecipientData = {
@@ -120,12 +122,12 @@ export function ClaimConfirmationSheet({
               <MetaCell
                 icon="eventAvailable"
                 label={strings.deals.claimFlow.validUntil}
-                value="20 Sep (3 days left)"
+                value={deal.endsIn ?? strings.deals.claimFlow.validUntilUnknown}
               />
               <MetaCell
                 icon="wallet"
                 label={strings.deals.claimFlow.commitment}
-                value="₦0 upfront today"
+                value={strings.deals.claimFlow.noCommitment}
               />
             </View>
           </View>
@@ -136,11 +138,10 @@ export function ClaimConfirmationSheet({
           </View>
           <View style={styles.flexCopy}>
             <VemtapText variant="labelMd" className="font-sans-semibold text-text">
-              Easy &amp; Flexible
+              {strings.deals.claimFlow.flexibleTitle}
             </VemtapText>
             <VemtapText variant="bodyMd" tone="secondary" className="mt-1">
-              Make sure you can use this deal before it expires. You can manage all your
-              active claims under My Deals anytime.
+              {strings.deals.claimFlow.flexibleBody}
             </VemtapText>
           </View>
         </View>

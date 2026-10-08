@@ -31,7 +31,7 @@ export function DealsListCard({
 }: DealsListCardProps) {
   const isPromoLeft = deal.leftBadge.tone === 'promo';
   const right = deal.rightBadge;
-  const likeCount = deal.likes + (liked ? 1 : 0);
+  const likeCount = deal.likes;
 
   return (
     <Pressable

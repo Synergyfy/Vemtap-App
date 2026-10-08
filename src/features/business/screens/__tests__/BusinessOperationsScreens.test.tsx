@@ -1,5 +1,6 @@
 import React from 'react';
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BusinessDashboardOverviewScreen } from '@features/business/screens/BusinessDashboardOverviewScreen';
 import { BusinessOrdersHubScreen } from '@features/business/screens/BusinessOrdersHubScreen';
 import { BusinessMessagesHomeScreen } from '@features/business/screens/BusinessMessagesHomeScreen';
@@ -12,6 +13,17 @@ import { businessTabMeta } from '@features/business/components/BusinessTabBar';
 import { strings } from '@constants/strings';
 
 const shell = strings.businessShell;
+
+/**
+ * The Overview screen reads the owner API (my business, dashboard stats, POS,
+ * activity counts), so it needs a QueryClient. In tests there is no API base
+ * URL, the queries reject immediately, and the screen falls back to its
+ * designed copy — which is exactly what these assertions cover.
+ */
+function renderWithClient(ui: React.ReactElement) {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(<QueryClientProvider client={client}>{ui}</QueryClientProvider>);
+}
 
 describe('business tab hubs', () => {
   /**
@@ -42,7 +54,7 @@ describe('business tab hubs', () => {
   }
 
   it.each(hubs)('renders the %s hub with no raw pixel font sizes', async (_name, Hub) => {
-    const view = await render(<Hub onBack={jest.fn()} />);
+    const view = await renderWithClient(<Hub onBack={jest.fn()} />);
     const sizes = fontSizesOf(view);
 
     // `VemtapText` resolves its size from the type scale (compact under these
@@ -81,7 +93,7 @@ describe('business bottom navigation', () => {
 
 describe('business dashboard overview', () => {
   it('renders the branch context, growth tip, metrics, activity and shortcuts', async () => {
-    const view = await render(<BusinessDashboardOverviewScreen />);
+    const view = await renderWithClient(<BusinessDashboardOverviewScreen />);
     const copy = strings.businessDashboard;
 
     expect(view.getByText(copy.branchLive)).toBeTruthy();
@@ -110,7 +122,7 @@ describe('business dashboard overview', () => {
     const onOpenOrders = jest.fn();
     const onOpenMessages = jest.fn();
     const onBoostDeal = jest.fn();
-    const view = await render(
+    const view = await renderWithClient(
       <BusinessDashboardOverviewScreen
         onOpenOrders={onOpenOrders}
         onOpenMessages={onOpenMessages}
@@ -136,7 +148,7 @@ describe('business dashboard overview', () => {
   });
 
   it('opens the branch sheet from the shared modal shell and switches branch', async () => {
-    const view = await render(<BusinessDashboardOverviewScreen />);
+    const view = await renderWithClient(<BusinessDashboardOverviewScreen />);
     const copy = strings.businessDashboard;
 
     expect(view.queryByText(copy.branchSheetTitle)).toBeNull();
@@ -176,7 +188,7 @@ describe('branch switching across the business shell', () => {
   it('reflects the branch selection on the pill', async () => {
     const first = strings.businessBranchSwitcher.branches[0];
     const second = strings.businessBranchSwitcher.branches[1];
-    const dashboard = await render(<BusinessDashboardOverviewScreen />);
+    const dashboard = await renderWithClient(<BusinessDashboardOverviewScreen />);
     await openSheet(dashboard, first.name);
     await act(async () => {
       fireEvent.press(dashboard.getByLabelText(second.name));

@@ -77,6 +77,8 @@ export function useDealReaction(offerId: string) {
       queryClient.setQueryData<ReactionState>(engagementKeys.reaction(offerId), {
         liked: nextLiked,
       });
+      // Optimistic count lives in the same cache every card reads, so the
+      // displayed number moves once here and never again at the render site.
       queryClient.setQueryData<DealEngagement>(engagementKeys.counts(offerId), old =>
         old
           ? { ...old, likesCount: Math.max(0, old.likesCount + (nextLiked ? 1 : -1)) }

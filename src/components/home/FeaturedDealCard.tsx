@@ -28,7 +28,7 @@ export function FeaturedDealCard({
   onOpenDetail,
 }: FeaturedDealCardProps) {
   const liked = deal.liked === true;
-  const likeCount = deal.likes + (liked ? 1 : 0);
+  const likeCount = deal.likes;
 
   return (
     <Pressable

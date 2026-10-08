@@ -9,6 +9,8 @@ import { z } from 'zod';
 import {
   API_BASE_URL,
   API_TIMEOUT_MS,
+  API_CONFIG_HINT,
+  IS_API_CONFIGURED,
   IS_PRODUCTION,
   SENTRY_ENABLED,
 } from '@constants/config';
@@ -52,6 +54,16 @@ export const apiClient: AxiosInstance = axios.create({
 });
 
 apiClient.interceptors.request.use(async config => {
+  // A bundle built without EXPO_PUBLIC_API_BASE_URL would otherwise fail as an
+  // opaque transport error ("Network request failed"), which reads like a
+  // connectivity problem instead of a build-config problem.
+  if (!IS_API_CONFIGURED) {
+    throw new ApiError(API_CONFIG_HINT ?? 'API base URL is not configured', {
+      code: 'API_NOT_CONFIGURED',
+      status: 0,
+    });
+  }
+
   const headers = AxiosHeaders.from(config.headers);
   const accessToken = await getSecureItem('accessToken');
 
@@ -79,6 +91,13 @@ apiClient.interceptors.response.use(
     return response;
   },
   async (error: AxiosError) => {
+    // Errors we raised ourselves (e.g. API_NOT_CONFIGURED) must keep their
+    // message and code — re-wrapping them as a transport failure is what turned
+    // a build-config mistake into a bare "Network request failed".
+    if (error instanceof ApiError) {
+      throw error;
+    }
+
     const status = error.response?.status;
 
     // Normalize network / timeout failures first.

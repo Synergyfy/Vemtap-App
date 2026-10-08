@@ -23,7 +23,7 @@ export function BusinessDiscoveryCard({ business, onOpen }: BusinessDiscoveryCar
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={strings.discoverFeed.openBusiness(business.name)}
-      onPress={() => onOpen(business.id)}
+      onPress={() => onOpen(business.branchCode ?? business.id)}
       className="w-full overflow-hidden rounded-2xl border border-border bg-surface-canvas shadow-md active:scale-[0.99]"
     >
       <View className="relative aspect-video w-full overflow-hidden bg-surface-container">

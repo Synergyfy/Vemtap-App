@@ -10,6 +10,11 @@ import {
   type NotificationCategory,
 } from '@features/accountHub/components/NotificationRow';
 import { StatusPillTabs } from '@features/accountHub/components/HubPrimitives';
+import {
+  useNotifications,
+  useMarkNotificationRead,
+  useMarkAllNotificationsRead,
+} from '@features/accountHub/hooks/useNotifications';
 import { strings } from '@constants/strings';
 import { colors } from '@theme/colors';
 
@@ -127,8 +132,51 @@ export function NotificationsCenterScreen({
   onOpenNotification,
   onNotificationAction,
 }: NotificationsCenterScreenProps) {
-  const [entries, setEntries] = useState(initialEntries);
+  const { data: liveNotifications } = useNotifications();
+  const markReadMutation = useMarkNotificationRead();
+  const markAllReadMutation = useMarkAllNotificationsRead();
+
   const [filter, setFilter] = useState(0);
+
+  const entries = useMemo<NotificationEntry[]>(() => {
+    if (liveNotifications && liveNotifications.length > 0) {
+      return liveNotifications.map(item => {
+        let category: NotificationCategory = 'system';
+        const typeLower = (item.type || '').toLowerCase();
+        if (typeLower.includes('deal') || typeLower.includes('offer')) category = 'deals';
+        else if (typeLower.includes('booking')) category = 'bookings';
+        else if (typeLower.includes('reward') || typeLower.includes('point'))
+          category = 'rewards';
+
+        return {
+          id: item.id,
+          category,
+          icon:
+            category === 'deals'
+              ? 'hourglass'
+              : category === 'bookings'
+                ? 'spa'
+                : category === 'rewards'
+                  ? 'trophy'
+                  : 'announcement',
+          iconBackground:
+            category === 'deals'
+              ? 'amber'
+              : category === 'bookings'
+                ? 'blue'
+                : category === 'rewards'
+                  ? 'green'
+                  : 'system',
+          title: item.title,
+          time: item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'Recent',
+          body: item.message,
+          unread: !item.isRead,
+        };
+      });
+    }
+    return liveNotifications ? [] : initialEntries;
+  }, [liveNotifications]);
+
   const unread = entries.filter(item => item.unread).length;
   const visible = useMemo(
     () =>
@@ -137,11 +185,19 @@ export function NotificationsCenterScreen({
         : entries.filter(item => item.category === categories[filter]),
     [entries, filter],
   );
-  const today = visible.filter(item => item.id === 'expiry' || item.id === 'booking');
+  const today = visible.filter(
+    item => item.id === 'expiry' || item.id === 'booking' || item.unread,
+  );
   const earlier = visible.filter(item => !today.includes(item));
 
-  const markAllRead = () =>
-    setEntries(current => current.map(item => ({ ...item, unread: false })));
+  const markAllRead = () => {
+    markAllReadMutation.mutate();
+  };
+
+  const handleOpen = (id: string) => {
+    markReadMutation.mutate(id);
+    onOpenNotification?.(id);
+  };
 
   return (
     <SafeAreaView edges={['top']} className="flex-1 bg-background">
@@ -223,7 +279,7 @@ export function NotificationsCenterScreen({
                 title={copy.today}
                 count={copy.todayCount}
                 entries={today}
-                onOpen={onOpenNotification}
+                onOpen={handleOpen}
                 onAction={onNotificationAction}
               />
             ) : null}
@@ -232,7 +288,7 @@ export function NotificationsCenterScreen({
                 title={copy.earlier}
                 count={copy.earlierCount}
                 entries={earlier}
-                onOpen={onOpenNotification}
+                onOpen={handleOpen}
                 onAction={onNotificationAction}
               />
             ) : null}

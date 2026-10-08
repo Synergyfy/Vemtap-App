@@ -7,3 +7,8 @@ export * from './categoriesApi';
 export * from './publicBusinessApi';
 export * from './claimApi';
 export * from './publicSearchApi';
+export * from './loyaltyApi';
+export * from './businessDashboardApi';
+export * from './notificationsApi';
+export * from './ordersApi';
+export * from './messagingApi';

@@ -10,7 +10,12 @@ export interface OrderHubCardProps {
   merchant: string;
   meta: string;
   status: string;
-  statusTone?: 'success' | 'brand' | 'warning';
+  /**
+   * `neutral` is the muted treatment for terminal states that are neither a
+   * highlight nor a warning — cancelled and refunded orders would otherwise
+   * have to borrow the brand tint and read as a positive state.
+   */
+  statusTone?: 'success' | 'brand' | 'warning' | 'neutral';
   children: React.ReactNode;
   actions: Array<{ label: string; onPress: () => void; primary?: boolean }>;
   onPress?: () => void;
@@ -63,7 +68,9 @@ export function OrderHubCard({
               ? 'bg-surface-tint'
               : statusTone === 'warning'
                 ? 'bg-tertiary-fixed'
-                : 'bg-success-container'
+                : statusTone === 'neutral'
+                  ? 'bg-surface-container-highest'
+                  : 'bg-success-container'
           }`}
         >
           <VemtapText
@@ -73,7 +80,9 @@ export function OrderHubCard({
                 ? 'brand'
                 : statusTone === 'warning'
                   ? 'default'
-                  : 'success'
+                  : statusTone === 'neutral'
+                    ? 'tertiary'
+                    : 'success'
             }
             className="font-sans-semibold"
           >

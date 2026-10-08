@@ -22,6 +22,7 @@ import { HelpCentreScreen } from '@features/accountHub/screens/HelpCentreScreen'
 import { ClaimedDealDetailPassScreen } from '@features/claimedDeal/screens/ClaimedDealDetailPassScreen';
 import { MyDealsHubScreen } from '@features/myDeals/screens/MyDealsHubScreen';
 import { MessagesScreen } from '@features/merchantChat/screens/MessagesScreen';
+import { useCustomerThreads } from '@features/merchantChat/hooks/useCustomerMessaging';
 import { UrbanConversationScreen } from '@features/merchantChat/screens/UrbanConversationScreen';
 import { OrdersBookingsHubScreen } from '@features/order/screens/OrdersBookingsHubScreen';
 import { UrbanOrderDetailScreen } from '@features/order/screens/UrbanOrderDetailScreen';
@@ -296,11 +297,28 @@ function MoreFlowStack() {
  * bar stays visible across the whole personal flow.
  */
 export function PersonalHubNavigator() {
+  // Live unread total for the Messages tab badge; falls back to the designed
+  // default until the first successful fetch.
+  const { data: threads } = useCustomerThreads();
+  const messagesBadge =
+    threads === undefined
+      ? undefined
+      : {
+          count: (threads ?? []).reduce(
+            (sum, thread) => sum + (thread.customerUnreadCount ?? 0),
+            0,
+          ),
+        };
   return (
     <TypeDensityProvider density="comfortable">
       <Tab.Navigator
         screenOptions={{ headerShown: false }}
-        tabBar={props => <PersonalHubTabBar {...props} />}
+        tabBar={props => (
+          <PersonalHubTabBar
+            {...props}
+            badges={messagesBadge ? { PersonalMessages: messagesBadge } : undefined}
+          />
+        )}
       >
         <Tab.Screen name="PersonalHome" options={{ title: 'Home' }}>
           {HomeFlowStack}

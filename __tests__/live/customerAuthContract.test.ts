@@ -17,7 +17,7 @@
  * hermetic and offline.
  */
 import { authApi, customerAuthApi } from '@api/authApi';
-import { setTokenPair } from '@utils/secureStorage';
+import { setTokenPair, removeSecureItem } from '@utils/secureStorage';
 import { ApiError } from '@api/ApiError';
 
 const LIVE = process.env.LIVE_API_TESTS === '1';
@@ -28,6 +28,16 @@ const probeEmail = `cust.contract.${Date.now()}@vemtap-test.dev`;
 
 describeLive('customer auth — live contract', () => {
   jest.setTimeout(30_000);
+
+  /**
+   * Secure storage now round-trips within a file, so a token minted by one test
+   * would still be attached to the next request. Every test signs in for
+   * itself; starting each one signed out keeps the unauthenticated assertions
+   * honest.
+   */
+  beforeEach(async () => {
+    await removeSecureItem('accessToken');
+  });
 
   describe('POST /auth/customer/register/request-otp', () => {
     it('accepts our request body and parses the response', async () => {
