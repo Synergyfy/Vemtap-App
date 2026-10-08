@@ -194,12 +194,31 @@ jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
 );
 
-jest.mock('expo-secure-store', () => ({
-  getItemAsync: jest.fn(async () => null),
-  setItemAsync: jest.fn(async () => undefined),
-  deleteItemAsync: jest.fn(async () => undefined),
-  WHEN_UNLOCKED_THIS_DEVICE_ONLY: 'WhenUnlockedThisDeviceOnly',
-}));
+/**
+ * In-memory stand-in for the Keychain/Keystore.
+ *
+ * It must actually round-trip values: `jest.setup` used to make `getItemAsync`
+ * always resolve to null, which meant `setTokenPair` wrote nowhere and the API
+ * client's auth interceptor could never attach a token. Every authenticated
+ * live test then 401'd, and the failure looked like a server-side problem
+ * rather than the stub.
+ *
+ * The map lives inside the factory, so jest gives each test file a fresh one.
+ * Files that never write still read null, exactly as before.
+ */
+jest.mock('expo-secure-store', () => {
+  const store = new Map();
+  return {
+    getItemAsync: jest.fn(async key => store.get(key) ?? null),
+    setItemAsync: jest.fn(async (key, value) => {
+      store.set(key, value);
+    }),
+    deleteItemAsync: jest.fn(async key => {
+      store.delete(key);
+    }),
+    WHEN_UNLOCKED_THIS_DEVICE_ONLY: 'WhenUnlockedThisDeviceOnly',
+  };
+});
 
 jest.mock('expo-notifications', () => ({
   setNotificationHandler: jest.fn(),
@@ -364,4 +383,44 @@ jest.mock('@expo-google-fonts/inter', () => {
     Inter_700Bold: 1,
     Inter_800ExtraBold: 1,
   };
+});
+
+/**
+ * Screens may call TanStack Query hooks directly; React Query throws without a
+ * provider ("No QueryClient set"). Wrap every render in a fresh client so
+ * suites do not each need their own wrapper. A test that passes its own
+ * `wrapper` is nested closer to the component under test, so its client still
+ * wins when it provides one.
+ */
+jest.mock('@testing-library/react-native', () => {
+  const actual = jest.requireActual('@testing-library/react-native');
+  const React = require('react');
+  const QueryClient = require('@tanstack/react-query').QueryClient;
+  const QueryClientProvider = require('@tanstack/react-query').QueryClientProvider;
+
+  const mockModule = {
+    ...actual,
+    render: (ui, options = {}) => {
+      const { wrapper, ...rest } = options;
+      const client = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      const tree = wrapper ? React.createElement(wrapper, null, ui) : ui;
+      return actual.render(
+        React.createElement(QueryClientProvider, { client }, tree),
+        rest,
+      );
+    },
+  };
+
+  // `screen` is reassigned by every render. A literal `get screen()` (or the
+  // spread of `actual`) would be flattened by the object-spread helper into a
+  // pre-render snapshot, so every query would throw "render not called".
+  Object.defineProperty(mockModule, 'screen', {
+    enumerable: true,
+    configurable: true,
+    get: () => actual.screen,
+  });
+
+  return mockModule;
 });
