@@ -461,7 +461,14 @@ export function FieldInput({
   leadingIcon,
   trailingIcon,
   trailingIconColor: trailingIconColorProp,
-  keyboardType,
+  /**
+   * `FieldInput` is the free-text field, so it opens the alphabet keyboard.
+   * It renders `BusinessNumberInput`, whose own default is `numeric` — passing
+   * `undefined` through would let that default win and raise a number pad under
+   * fields like "Business Name". Numeric callers still pass their own type
+   * (`numeric`, `phone-pad`, `email-address`).
+   */
+  keyboardType = 'default',
   autoCapitalize = 'sentences',
   maxLength,
   multiline = false,

@@ -52,6 +52,21 @@ describe('business intro, profile and location screens', () => {
     );
   });
 
+  it('opens the alphabet keyboard for the business name field', async () => {
+    const view = await render(<BusinessProfileBasicInfoScreen onContinue={jest.fn()} />);
+
+    // `FieldInput` renders `BusinessNumberInput`, whose own default is
+    // `numeric`. Passing `undefined` through used to let that default win, so
+    // "Business Name" raised a number pad.
+    expect(
+      view.getByLabelText(businessProfileCopy.basicInfo.nameLabel).props.keyboardType,
+    ).toBe('default');
+    expect(
+      view.getByLabelText(businessProfileCopy.basicInfo.descriptionLabel).props
+        .keyboardType,
+    ).toBe('default');
+  });
+
   it('renders the branding step with cover and gallery slots', async () => {
     const view = await render(<BusinessProfileBrandingScreen />);
 
