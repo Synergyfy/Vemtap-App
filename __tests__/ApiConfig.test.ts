@@ -53,12 +53,15 @@ describe('api client guard', () => {
     delete process.env.EXPO_PUBLIC_API_BASE_URL;
     jest.resetModules();
 
-    // eslint-disable-next-line global-require
+    /* eslint-disable global-require -- a fresh registry is the point: these
+       modules read the env at load time, so they must be required after the
+       reset. Scoped to a block rather than `disable-next-line` because prettier
+       wraps the assignment and would strand the comment on the wrong line. */
     const clientModule = require('@api/client') as typeof import('@api/client');
     // Same fresh registry as the client, so `instanceof` compares like with like.
-    // eslint-disable-next-line global-require
     const { ApiError: FreshApiError } =
       require('@api/ApiError') as typeof import('@api/ApiError');
+    /* eslint-enable global-require */
 
     await expect(clientModule.apiClient.get('/auth/login')).rejects.toBeInstanceOf(
       FreshApiError,
