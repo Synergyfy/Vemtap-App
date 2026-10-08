@@ -15,11 +15,32 @@ export function useCustomerOrders() {
   });
 }
 
+/**
+ * Resolves one order out of the customer's own list.
+ *
+ * There is deliberately no `GET /catalogue/orders/{id}` call here: that route
+ * is Admin/Staff-only and answers **403 Forbidden** for a customer token
+ * (verified against the test server). `my-orders` already returns the complete
+ * order — business, branch, lines, totals, status — so the detail screen reads
+ * it from the same cached list rather than making a request it is not allowed
+ * to make.
+ *
+ * Refetching the list is safe and cheap, and keeps a screen opened from a
+ * notification or deep link working when the list has never been fetched.
+ */
 export function useCustomerOrderDetail(id?: string | null) {
-  return useQuery<CatalogueOrder>({
-    queryKey: customerOrderKeys.detail(id ?? ''),
-    queryFn: () => ordersApi.getOrder(id!),
-    enabled: Boolean(id),
+  const list = useQuery<CatalogueOrder[]>({
+    queryKey: customerOrderKeys.list(),
+    queryFn: () => ordersApi.getMyOrders(),
     staleTime: 60_000,
   });
+
+  const order = id ? (list.data ?? []).find(candidate => candidate.id === id) : undefined;
+
+  return {
+    ...list,
+    order,
+    /** Distinguishes "still loading" from "loaded, and this order isn't yours". */
+    isNotFound: list.isSuccess && Boolean(id) && !order,
+  };
 }

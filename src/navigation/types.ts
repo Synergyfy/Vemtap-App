@@ -5,12 +5,16 @@ import type { GeoCoords } from '@constants/locations';
 export type { BusinessProfileSummary } from '@features/discover/data/discoverData';
 
 /**
- * Bottom-tab shell for the customer personal hub
- * (Home · My Deals · Messages · Orders · More), taken from the
- * "Customer Dashboard (Personal Overview)" spec. Root-level sibling of `Tabs`.
+ * The customer personal flow: a plain pushed stack, not a bottom-tab shell.
+ *
+ * These screens used to live in a five-tab personal hub with its own bottom
+ * navigation (Home · My Deals · Messages · Orders · More). The hub is only ever
+ * entered from the Account screen, so the second bar only offered a way to
+ * wander into a sibling tab with no route back to the origin. Each entry now
+ * pushes one page onto this stack, and its back button pops to Account.
  */
 export type PersonalHubParamList = {
-  /** The overview also accepts a deep link so deal/booking details stay in this shell. */
+  /** The overview also accepts a deep link so deal/booking details stay in this stack. */
   PersonalHome:
     | {
         deepLink?:
@@ -22,28 +26,18 @@ export type PersonalHubParamList = {
   PersonalMessages: undefined;
   PersonalOrders: undefined;
   PersonalMore: undefined;
-  /**
-   * Stack roots are named distinctly from their tab route. React Navigation keys
-   * routes by name, so a stack screen sharing its tab's name trips the dev-only
-   * "screens with the same name nested inside one another" warning.
-   */
-  PersonalHomeOverview: undefined;
-  PersonalMyDealsList: undefined;
-  PersonalMessagesInbox: undefined;
-  PersonalOrdersBookings: undefined;
-  PersonalMoreHub: undefined;
-  /** Personal-flow detail screens, so the personal bar stays visible end to end. */
   PersonalActivity: undefined;
   PersonalRewards: undefined;
   PersonalSavings: undefined;
+  PersonalSaved: undefined;
   PersonalNotifications: undefined;
   PersonalSettings: undefined;
   PersonalEditProfile: undefined;
   PersonalHelpCentre: undefined;
   PersonalClaimedDealPass: { dealId?: string } | undefined;
-  PersonalOrderDetail: { orderNumber?: string } | undefined;
+  PersonalOrderDetail: { orderId?: string } | undefined;
   PersonalBookingDetail: { bookingNumber?: string } | undefined;
-  PersonalConversation: { merchant?: string } | undefined;
+  PersonalConversation: { threadId?: string } | undefined;
 };
 
 /**
@@ -312,7 +306,6 @@ export type RootStackParamList = {
   DealDetail: { dealId: string };
   BusinessSetup: NavigatorScreenParams<BusinessSetupStackParamList> | undefined;
   BusinessTabs: NavigatorScreenParams<BusinessTabParamList> | undefined;
-  PersonalHub: NavigatorScreenParams<PersonalHubParamList> | undefined;
 };
 
 export type AuthStackParamList = {
@@ -434,6 +427,12 @@ export type DiscoverStackParamList = {
 
 export type AccountStackParamList = {
   AccountHome: undefined;
+  /**
+   * The personal flow is a nested stack inside the Account tab, not a root
+   * sibling. Mounting it here is what keeps the consumer bottom navigation
+   * (Home · Deals · Business · Account) visible on every personal page.
+   */
+  PersonalHub: NavigatorScreenParams<PersonalHubParamList> | undefined;
   AccountDashboard: undefined;
   MyDeals: undefined;
   OrdersBookings: undefined;
@@ -446,9 +445,9 @@ export type AccountStackParamList = {
   AccountSettings: undefined;
   EditProfile: undefined;
   ClaimedDealPass: { dealId?: string } | undefined;
-  OrderDetail: { orderNumber?: string } | undefined;
+  OrderDetail: { orderId?: string } | undefined;
   BookingDetail: { bookingNumber?: string } | undefined;
-  Conversation: { merchant?: string } | undefined;
+  Conversation: { threadId?: string } | undefined;
 };
 
 export type MainTabParamList = {

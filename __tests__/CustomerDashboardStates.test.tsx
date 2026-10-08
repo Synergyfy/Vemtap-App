@@ -128,7 +128,7 @@ test('an empty account renders zero values and empty states, not placeholders', 
   mockAnalytics.mockReturnValue({
     isSuccess: true,
     isError: false,
-    data: { trends: { netSavings: 0 } },
+    data: { totals: { netSavings: 0 } },
   });
   mockLogs.mockReturnValue({
     isLoading: false,
@@ -168,7 +168,7 @@ test('a funded account renders real points, tier, ledger rows and two recommenda
   mockAnalytics.mockReturnValue({
     isSuccess: true,
     isError: false,
-    data: { trends: { netSavings: 24500 } },
+    data: { totals: { netSavings: 24500 } },
   });
   mockLogs.mockReturnValue({
     isLoading: false,

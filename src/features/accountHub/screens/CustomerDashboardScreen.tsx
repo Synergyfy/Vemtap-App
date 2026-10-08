@@ -90,8 +90,11 @@ function availabilityFor(
 }
 
 export interface CustomerDashboardScreenProps {
+  /** Renders the leading back control when the screen was pushed onto a stack. */
+  onBack?: () => void;
   onLocation?: () => void;
   onNotifications?: () => void;
+  onShop?: () => void;
   onOpenAccount?: () => void;
   onOpenDeal?: (dealId: string) => void;
   onOpenOffer?: (offerId: string) => void;
@@ -100,8 +103,10 @@ export interface CustomerDashboardScreenProps {
 }
 
 export function CustomerDashboardScreen({
+  onBack,
   onLocation,
   onNotifications,
+  onShop,
   onOpenAccount,
   onOpenDeal,
   onOpenOffer,
@@ -128,7 +133,7 @@ export function CustomerDashboardScreen({
   const activeDealsMetric = '0';
   const pointsMetric = points === null ? copy.metricUnavailable : formatPoints(points);
   const savedMetric = analytics.isSuccess
-    ? formatCompactNaira(analytics.data?.trends?.netSavings ?? 0)
+    ? formatCompactNaira(analytics.data?.totals?.netSavings ?? 0)
     : copy.metricUnavailable;
   const metricValues = [activeDealsMetric, pointsMetric, savedMetric];
   const availability = availabilityFor(rewards, homeBusinessId, points, balance.isError);
@@ -140,6 +145,17 @@ export function CustomerDashboardScreen({
         className="flex-row items-center justify-between bg-surface px-4 py-2"
         style={navbarBottomShadow}
       >
+        {onBack ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={strings.common.goBack}
+            hitSlop={8}
+            onPress={onBack}
+            className="-ml-2 mr-1 h-11 w-11 shrink-0 items-center justify-center rounded-full active:bg-surface-container-low"
+          >
+            <Icon name="back" size={24} color={colors.surfaceDark} />
+          </Pressable>
+        ) : null}
         <View className="min-w-0 flex-1">
           <VemtapText
             accessibilityRole="header"
@@ -162,6 +178,7 @@ export function CustomerDashboardScreen({
           </Pressable>
         </View>
         <View className="shrink-0 flex-row items-center gap-2">
+          <HubIconButton icon="localMall" label={copy.shop} onPress={onShop} />
           <HubIconButton
             icon="notifications"
             label={copy.notifications}

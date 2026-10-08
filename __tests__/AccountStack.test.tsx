@@ -1,15 +1,42 @@
 import React from 'react';
 import { fireEvent, render } from '@testing-library/react-native';
 import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { AccountStackNavigator } from '@navigation/TabNavigator';
-import { PersonalHubNavigator } from '@navigation/PersonalHubNavigator';
+import { TabNavigator } from '@navigation/TabNavigator';
 import {
   compactTypeScale,
   comfortableTypeScale,
   denseTypeScale,
   typeScale,
 } from '@theme/typography';
+
+jest.mock('@features/home/hooks/useNearbyBusinesses', () =>
+  jest.requireActual('./helpers/mockHomeBusinesses').mockHomeBusinessesModule(),
+);
+jest.mock('@features/home/hooks/useNearbyProducts', () =>
+  jest.requireActual('./helpers/mockHomeProducts').mockHomeProductsModule(),
+);
+jest.mock('@features/deals/hooks/usePublicOffers', () =>
+  jest.requireActual('./helpers/mockOffersFeed').mockOffersFeedModule(),
+);
+jest.mock('@features/deals/hooks/useDealEngagementActions', () =>
+  jest.requireActual('./helpers/mockOffersFeed').mockDealEngagementActionsModule(),
+);
+jest.mock('@features/discover/hooks/useDiscoverBusinesses', () =>
+  jest.requireActual('./helpers/mockDiscoverBusinesses').mockDiscoverBusinessesModule(),
+);
+jest.mock('@features/accountHub/hooks/useSavedDeals', () => ({
+  useDealSaveStatus: (offerId: string | null) => {
+    if (!offerId) return { data: undefined, isLoading: false, isError: false };
+    return {
+      data: {
+        saved: ['urban-grill-lunch', 'sole-district-streetwear'].includes(offerId),
+      },
+      isLoading: false,
+      isError: false,
+    };
+  },
+  useToggleDealSave: () => ({ mutate: jest.fn() }),
+}));
 
 // Selector-capable so screens can read the signed-in user, plus `getState` for
 // the sign-out path that reads the store outside a component.
@@ -21,59 +48,69 @@ jest.mock('@store/authStore', () => ({
   ),
 }));
 
-const Root = createNativeStackNavigator();
-
 /**
- * Mirrors the real root: the consumer account stack and the personal-hub shell are
- * siblings, so the blue card's "Go to Customer Dashboard" swaps shells and the
- * personal bottom navigation owns the bar from there on.
+ * Renders the real consumer shell. The personal flow is nested inside the
+ * Account tab, so this is the only harness that can prove the bottom navigation
+ * is still on screen while a personal page is open.
  */
-function TestRoot() {
-  return (
-    <Root.Navigator screenOptions={{ headerShown: false }}>
-      <Root.Screen name="Account" component={AccountStackNavigator} />
-      <Root.Screen name="PersonalHub" component={PersonalHubNavigator} />
-    </Root.Navigator>
-  );
-}
-
 async function renderAccountStack() {
-  return render(
+  const screen = await render(
     <NavigationContainer>
-      <TestRoot />
+      <TabNavigator />
     </NavigationContainer>,
   );
+  const accountTab =
+    screen.queryAllByLabelText('Account').slice(-1)[0] ??
+    screen.queryAllByText('Account').slice(-1)[0];
+  await fireEvent.press(accountTab);
+  return screen;
 }
 
-const personalNavLabels = ['Home', 'My Deals', 'Messages', 'Orders', 'More'];
+/** The consumer shell's tab labels. `Account` is omitted — it collides with the
+ * hub's own title, so its presence proves nothing. */
+const consumerNavLabels = ['Home', 'Deals', 'Business'];
 
-/** The account hub's blue card enters the personal-hub shell. */
+/** True when every consumer tab label is on screen. */
+function consumerBarVisible(screen: Awaited<ReturnType<typeof renderAccountStack>>) {
+  return consumerNavLabels.every(
+    label =>
+      screen.queryAllByLabelText(label).length > 0 ||
+      screen.queryAllByText(label).length > 0,
+  );
+}
+
+/** The Activity & Deals Dashboard row pushes the personal overview. */
 async function renderDashboard() {
   const screen = await renderAccountStack();
-  await fireEvent.press(screen.getByText('Go to Customer Dashboard'));
+  await fireEvent.press(screen.getByText('Dashboard'));
   return screen;
 }
 
 test('Account tab opens the account hub and links to the customer dashboard', async () => {
   const screen = await renderAccountStack();
 
-  expect(screen.getByText('Go to Customer Dashboard')).toBeTruthy();
+  expect(screen.getByText('Dashboard')).toBeTruthy();
   expect(screen.getByText('My Deals')).toBeTruthy();
   expect(screen.getByText('Activity & Deals')).toBeTruthy();
 
-  await fireEvent.press(screen.getByText('Go to Customer Dashboard'));
+  await fireEvent.press(screen.getByText('Dashboard'));
   expect(screen.getByText('Hello, Zainab 👋')).toBeTruthy();
-  // The personal flow shows the personal nav, not the general consumer one.
-  personalNavLabels.forEach(label => expect(screen.getByLabelText(label)).toBeTruthy());
-  expect(screen.queryByLabelText('Discover')).toBeNull();
+  // The consumer bar stays on screen while the personal page is open.
+  expect(consumerBarVisible(screen)).toBe(true);
 });
 
-test('the personal navigation stays visible across the personal flow', async () => {
+test('a personal page keeps the consumer bar and backs out to Account', async () => {
   const screen = await renderDashboard();
 
   await fireEvent.press(screen.getByText('Rewards'));
   expect(screen.getByText('Rewards & Loyalty')).toBeTruthy();
-  personalNavLabels.forEach(label => expect(screen.getByLabelText(label)).toBeTruthy());
+  expect(consumerBarVisible(screen)).toBe(true);
+
+  await fireEvent.press(screen.getByLabelText('Go back'));
+  expect(screen.getByText('Hello, Zainab 👋')).toBeTruthy();
+
+  await fireEvent.press(screen.getByLabelText('Go back'));
+  expect(screen.getByText('Activity & Deals')).toBeTruthy();
 });
 
 test('account hub rows route to their hubs', async () => {
@@ -186,18 +223,54 @@ test('rewards card price text is reduced', async () => {
   expect(styles.fontSize).toBeLessThan(denseTypeScale['label-sm'].size);
 });
 
-test('personal-flow rows from Account open in the personal shell, not the consumer nav', async () => {
+test('personal-flow rows keep the consumer bar and back out to Account', async () => {
   const screen = await renderAccountStack();
 
   // Account hub → My Deals.
   await fireEvent.press(screen.getByText('My Deals'));
-  personalNavLabels.forEach(label => expect(screen.getByLabelText(label)).toBeTruthy());
-  // The general consumer tab is gone once the personal shell owns the bar.
-  expect(screen.queryAllByLabelText('Discover')).toHaveLength(0);
+  expect(screen.getByText('Total Savings to Date')).toBeTruthy();
+  expect(consumerBarVisible(screen)).toBe(true);
 
-  // Account → More → Activity keeps the personal bar too.
-  await fireEvent.press(screen.getByLabelText('More'));
+  await fireEvent.press(screen.getByLabelText('Go back'));
+  expect(screen.getByText('Activity & Deals')).toBeTruthy();
+});
+
+test('nested personal pages pop one level at a time, then back to Account', async () => {
+  const screen = await renderDashboard();
+
+  // Overview → More → Activity.
+  await fireEvent.press(screen.getByLabelText('Open account menu'));
   await fireEvent.press(screen.getByText('My Activity'));
   expect(screen.getByText('User Activity')).toBeTruthy();
-  personalNavLabels.forEach(label => expect(screen.getByLabelText(label)).toBeTruthy());
+  expect(consumerBarVisible(screen)).toBe(true);
+
+  // Activity → More → Overview, then Overview → Account.
+  await fireEvent.press(screen.getByLabelText('Go back'));
+  expect(screen.queryByText('User Activity')).toBeNull();
+  await fireEvent.press(screen.getByLabelText('Go back'));
+  expect(screen.getByText('Hello, Zainab 👋')).toBeTruthy();
+  await fireEvent.press(screen.getByLabelText('Go back'));
+  expect(screen.getByText('Activity & Deals')).toBeTruthy();
+});
+
+test('the Activity & Deals Dashboard row opens the personal overview', async () => {
+  const screen = await renderAccountStack();
+
+  await fireEvent.press(screen.getByText('Dashboard'));
+
+  expect(screen.getByText('Hello, Zainab 👋')).toBeTruthy();
+  expect(consumerBarVisible(screen)).toBe(true);
+});
+
+test('the Activity & Deals Messages row opens the personal inbox', async () => {
+  const screen = await renderAccountStack();
+
+  await fireEvent.press(screen.getByText('Messages'));
+
+  expect(screen.getByPlaceholderText('Search conversations, businesses...')).toBeTruthy();
+  expect(consumerBarVisible(screen)).toBe(true);
+
+  // Back returns to the Account hub, not the personal overview.
+  await fireEvent.press(screen.getByLabelText('Go back'));
+  expect(screen.getByText('Activity & Deals')).toBeTruthy();
 });

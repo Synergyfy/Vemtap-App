@@ -83,12 +83,12 @@ export function OtpVerificationScreen() {
 
         {/* Hero */}
         <View className="mb-6 items-center text-center">
-          <View className="relative mb-4 h-20 w-20 items-center justify-center rounded-full bg-surface-container-low shadow-sm">
-            <View className="h-14 w-14 items-center justify-center rounded-full bg-surface-container">
-              <Icon name="mailRead" size={30} color={colors.primary} />
+          <View className="relative mb-4 h-[135px] w-[135px] items-center justify-center rounded-full bg-surface-container-low shadow-sm">
+            <View className="h-[95px] w-[95px] items-center justify-center rounded-full bg-surface-container">
+              <Icon name="mailRead" size={51} color={colors.primary} />
             </View>
-            <View className="absolute -bottom-1 -right-1 h-7 w-7 items-center justify-center rounded-full bg-primary shadow-md">
-              <Icon name="verifiedUser" size={16} color="#FFFFFF" />
+            <View className="absolute -bottom-1 -right-1 h-[47px] w-[47px] items-center justify-center rounded-full bg-primary shadow-md">
+              <Icon name="verifiedUser" size={27} color="#FFFFFF" />
             </View>
           </View>
           <VemtapText

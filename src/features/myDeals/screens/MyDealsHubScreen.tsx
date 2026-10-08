@@ -32,6 +32,7 @@ const images = {
 };
 
 export interface MyDealsHubScreenProps {
+  onBack?: () => void;
   onSearch?: () => void;
   onFilter?: () => void;
   onAccount?: () => void;
@@ -40,6 +41,7 @@ export interface MyDealsHubScreenProps {
 }
 
 export function MyDealsHubScreen({
+  onBack,
   onSearch,
   onFilter,
   onAccount,
@@ -53,6 +55,7 @@ export function MyDealsHubScreen({
     <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-background">
       <HubHeader
         title={copy.title}
+        onBack={onBack}
         actionNames={['search', 'tune']}
         actionLabels={[copy.searchAction, copy.filterAction]}
         onActions={[onSearch, onFilter]}

@@ -39,7 +39,7 @@ const images = [
 
 export interface MessagesScreenProps {
   onBack?: () => void;
-  onOpenConversation?: (merchant: string) => void;
+  onOpenConversation?: (threadId: string) => void;
   onCompose?: () => void;
   onSearch?: () => void;
   onFilter?: () => void;
@@ -293,7 +293,7 @@ export function MessagesScreen({
               context={entry.context}
               contextIcon={entry.contextIcon}
               unread={entry.unread}
-              onPress={() => onOpenConversation?.(entry.name)}
+              onPress={() => onOpenConversation?.(entry.key)}
             />
           ))
         )}

@@ -5,7 +5,6 @@ import { AuthStack } from '@navigation/AuthStack';
 import { AppStack } from '@navigation/AppStack';
 import { BusinessSetupNavigator } from '@navigation/BusinessSetupNavigator';
 import { BusinessTabNavigator } from '@navigation/BusinessTabNavigator';
-import { PersonalHubNavigator } from '@navigation/PersonalHubNavigator';
 import type { RootStackParamList } from '@navigation/types';
 import { useAuthStore, selectIsAuthenticated } from '@store/authStore';
 
@@ -94,12 +93,6 @@ export function RootNavigator() {
           existing.
         */}
         <Stack.Screen name="BusinessTabs" component={BusinessTabNavigator} />
-        {/*
-          The customer personal hub owns its own bottom navigation (Home · My
-          Deals · Messages · Orders · More). It is a root sibling of `Tabs` so
-          the two shells can never render a stacked pair of bottom bars.
-        */}
-        <Stack.Screen name="PersonalHub" component={PersonalHubNavigator} />
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -228,9 +228,9 @@ export function MyActivityScreen({
 }: MyActivityScreenProps) {
   const [tab, setTab] = useState(0);
   const { data: analytics } = useLoyaltyAnalytics(365);
-  const trends = analytics?.trends ?? null;
-  const totalSaved = trends?.netSavings ?? 0;
-  const totalVisited = trends?.totalVisits ?? 0;
+  const totals = analytics?.totals ?? null;
+  const totalSaved = totals?.netSavings ?? 0;
+  const totalVisited = totals?.totalVisits ?? 0;
   return (
     <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-background">
       <AccountHeader title={copy.title} onBack={onBack} onAction={onMore} />

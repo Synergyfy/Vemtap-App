@@ -197,27 +197,26 @@ beforeEach(() => {
 test('opens businesses feed inside Discover tab', async () => {
   const screen = await renderShell();
 
-  await fireEvent.press(await screen.findByLabelText(/Discover, tab/i));
+  await fireEvent.press(await screen.findByLabelText(/Business, tab/i));
   expect(await screen.findByText('Businesses Near You')).toBeTruthy();
   expect(screen.getByLabelText(/Home, tab/i).props.accessibilityState).toMatchObject({
     selected: false,
   });
-  expect(screen.getByLabelText(/Discover, tab/i).props.accessibilityState).toMatchObject({
+  expect(screen.getByLabelText(/Business, tab/i).props.accessibilityState).toMatchObject({
     selected: true,
   });
   expect(screen.getByLabelText(/Deals, tab/i)).toBeTruthy();
-  expect(screen.getByLabelText(/Saved, tab/i)).toBeTruthy();
   expect(screen.getByLabelText(/Account, tab/i)).toBeTruthy();
 });
 
 test('keeps Discover active when Urban Grill profile is pushed', async () => {
   const screen = await renderShell();
 
-  await fireEvent.press(await screen.findByLabelText(/Discover, tab/i));
+  await fireEvent.press(await screen.findByLabelText(/Business, tab/i));
   await fireEvent.press(await screen.findByLabelText('View Urban Grill & Bistro'));
 
   expect((await screen.findAllByText('Urban Grill & Bistro')).length).toBeGreaterThan(0);
-  expect(screen.getByLabelText(/Discover, tab/i).props.accessibilityState).toMatchObject({
+  expect(screen.getByLabelText(/Business, tab/i).props.accessibilityState).toMatchObject({
     selected: true,
   });
   expect(screen.getByLabelText(/Home, tab/i)).toBeTruthy();
@@ -227,11 +226,11 @@ test('keeps Discover active when Urban Grill profile is pushed', async () => {
 test('opens Glow profile while Discover remains selected', async () => {
   const screen = await renderShell();
 
-  await fireEvent.press(await screen.findByLabelText(/Discover, tab/i));
+  await fireEvent.press(await screen.findByLabelText(/Business, tab/i));
   await fireEvent.press(await screen.findByLabelText('View Glow & Serenity Spa'));
 
   expect((await screen.findAllByText('Glow & Serenity Spa')).length).toBeGreaterThan(0);
-  expect(screen.getByLabelText(/Discover, tab/i).props.accessibilityState).toMatchObject({
+  expect(screen.getByLabelText(/Business, tab/i).props.accessibilityState).toMatchObject({
     selected: true,
   });
 });

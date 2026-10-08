@@ -138,7 +138,7 @@ describe('discover targeting controls', () => {
       </NavigationContainer>,
     );
     await act(async () => {
-      fireEvent.press(screen.getByLabelText(/Discover, tab/i));
+      fireEvent.press(screen.getByLabelText(/Business, tab/i));
     });
     await act(async () => {
       fireEvent.press(screen.getByLabelText(`${AREA_PILL_LABELS[DEFAULT_AREA]}, Abuja`));

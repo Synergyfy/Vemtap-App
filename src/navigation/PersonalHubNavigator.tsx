@@ -1,20 +1,13 @@
 import React, { useEffect } from 'react';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import {
-  useNavigation,
-  useRoute,
-  type CompositeNavigationProp,
-  type RouteProp,
-} from '@react-navigation/native';
-import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { PersonalHubTabBar } from '@features/accountHub/components/PersonalHubTabBar';
 import { CustomerDashboardScreen } from '@features/accountHub/screens/CustomerDashboardScreen';
 import { MoreHubScreen } from '@features/accountHub/screens/MoreHubScreen';
 import { MyActivityScreen } from '@features/accountHub/screens/MyActivityScreen';
 import { RewardsScreen } from '@features/accountHub/screens/RewardsScreen';
 import { SavingsHistoryScreen } from '@features/accountHub/screens/SavingsHistoryScreen';
+import { SavedHubScreen } from '@features/accountHub/screens/SavedHubScreen';
 import { NotificationsCenterScreen } from '@features/accountHub/screens/NotificationsCenterScreen';
 import { AccountSettingsSecurityScreen } from '@features/accountHub/screens/AccountSettingsSecurityScreen';
 import { EditProfileScreen } from '@features/accountHub/screens/EditProfileScreen';
@@ -22,43 +15,23 @@ import { HelpCentreScreen } from '@features/accountHub/screens/HelpCentreScreen'
 import { ClaimedDealDetailPassScreen } from '@features/claimedDeal/screens/ClaimedDealDetailPassScreen';
 import { MyDealsHubScreen } from '@features/myDeals/screens/MyDealsHubScreen';
 import { MessagesScreen } from '@features/merchantChat/screens/MessagesScreen';
-import { useCustomerThreads } from '@features/merchantChat/hooks/useCustomerMessaging';
 import { UrbanConversationScreen } from '@features/merchantChat/screens/UrbanConversationScreen';
 import { OrdersBookingsHubScreen } from '@features/order/screens/OrdersBookingsHubScreen';
 import { UrbanOrderDetailScreen } from '@features/order/screens/UrbanOrderDetailScreen';
 import { BookingDetailScreen } from '@features/accountHub/screens/BookingDetailScreen';
 import { TypeDensityProvider } from '@theme/TypeDensityProvider';
-import type {
-  AppStackParamList,
-  PersonalHubParamList,
-  RootStackParamList,
-} from './types';
+import type { PersonalHubParamList } from './types';
 
-const Tab = createBottomTabNavigator<PersonalHubParamList>();
-const HomeStack = createNativeStackNavigator<PersonalHubParamList>();
-const DealsStack = createNativeStackNavigator<PersonalHubParamList>();
-const MessagesStack = createNativeStackNavigator<PersonalHubParamList>();
-const OrdersStack = createNativeStackNavigator<PersonalHubParamList>();
-const MoreStack = createNativeStackNavigator<PersonalHubParamList>();
+const Stack = createNativeStackNavigator<PersonalHubParamList>();
 
-const stackOptions = { headerShown: false } as const;
+type HubNavigation = NativeStackNavigationProp<PersonalHubParamList>;
 
-type HubNavigation = CompositeNavigationProp<
-  NativeStackNavigationProp<PersonalHubParamList>,
-  CompositeNavigationProp<
-    BottomTabNavigationProp<PersonalHubParamList>,
-    NativeStackNavigationProp<RootStackParamList>
-  >
->;
-
-/** The overview is the personal hub's Home tab, so its actions stay in-shell. */
+/** The overview accepts a deep link so deal/booking details land in this stack. */
 function PersonalHomeRoute() {
   const navigation = useNavigation<HubNavigation>();
   const route = useRoute<RouteProp<PersonalHubParamList, 'PersonalHome'>>();
   const deepLink = route.params?.deepLink;
 
-  // Deep links (claimed deal pass, booking detail) resolve inside this shell so the
-  // personal bottom navigation stays visible instead of handing off to AppStack.
   useEffect(() => {
     if (!deepLink) return;
     if (deepLink.screen === 'PersonalClaimedDealPass') {
@@ -73,6 +46,7 @@ function PersonalHomeRoute() {
 
   return (
     <CustomerDashboardScreen
+      onBack={navigation.goBack}
       onNotifications={() => navigation.navigate('PersonalNotifications')}
       onOpenAccount={() => navigation.navigate('PersonalMore')}
       onOpenRewards={() => navigation.navigate('PersonalRewards')}
@@ -92,6 +66,7 @@ function PersonalMyDealsRoute() {
   const navigation = useNavigation<HubNavigation>();
   return (
     <MyDealsHubScreen
+      onBack={navigation.goBack}
       onAccount={() => navigation.navigate('PersonalMore')}
       onOpenDeal={dealId => navigation.navigate('PersonalClaimedDealPass', { dealId })}
     />
@@ -103,8 +78,8 @@ function PersonalMessagesRoute() {
   return (
     <MessagesScreen
       onBack={navigation.goBack}
-      onOpenConversation={merchant =>
-        navigation.navigate('PersonalConversation', { merchant })
+      onOpenConversation={threadId =>
+        navigation.navigate('PersonalConversation', { threadId })
       }
     />
   );
@@ -112,7 +87,13 @@ function PersonalMessagesRoute() {
 
 function PersonalConversationRoute() {
   const navigation = useNavigation<HubNavigation>();
-  return <UrbanConversationScreen onBack={navigation.goBack} />;
+  const route = useRoute<RouteProp<PersonalHubParamList, 'PersonalConversation'>>();
+  return (
+    <UrbanConversationScreen
+      threadId={route.params?.threadId}
+      onBack={navigation.goBack}
+    />
+  );
 }
 
 function PersonalOrdersRoute() {
@@ -120,9 +101,7 @@ function PersonalOrdersRoute() {
   return (
     <OrdersBookingsHubScreen
       onBack={navigation.goBack}
-      onOpenOrder={orderNumber =>
-        navigation.navigate('PersonalOrderDetail', { orderNumber })
-      }
+      onOpenOrder={orderId => navigation.navigate('PersonalOrderDetail', { orderId })}
       onOpenBooking={bookingNumber =>
         navigation.navigate('PersonalBookingDetail', { bookingNumber })
       }
@@ -132,7 +111,10 @@ function PersonalOrdersRoute() {
 
 function PersonalOrderDetailRoute() {
   const navigation = useNavigation<HubNavigation>();
-  return <UrbanOrderDetailScreen onBack={navigation.goBack} />;
+  const route = useRoute<RouteProp<PersonalHubParamList, 'PersonalOrderDetail'>>();
+  return (
+    <UrbanOrderDetailScreen orderId={route.params?.orderId} onBack={navigation.goBack} />
+  );
 }
 
 function PersonalBookingDetailRoute() {
@@ -179,6 +161,17 @@ function PersonalSavingsRoute() {
   return <SavingsHistoryScreen onBack={navigation.goBack} />;
 }
 
+function PersonalSavedRoute() {
+  const navigation = useNavigation<HubNavigation>();
+  return (
+    <SavedHubScreen
+      onBack={navigation.goBack}
+      onNotifications={() => navigation.navigate('PersonalNotifications')}
+      onOpenDeal={dealId => navigation.navigate('PersonalClaimedDealPass', { dealId })}
+    />
+  );
+}
+
 function PersonalNotificationsRoute() {
   const navigation = useNavigation<HubNavigation>();
   return <NotificationsCenterScreen onBack={navigation.goBack} />;
@@ -204,140 +197,46 @@ function PersonalClaimedDealPassRoute() {
   return <ClaimedDealDetailPassScreen onBack={navigation.goBack} />;
 }
 
-/** Personal-flow screens reachable from the overview, kept inside the personal shell. */
-const personalFlowScreens: Array<[keyof PersonalHubParamList, React.ComponentType<any>]> =
-  [
-    ['PersonalRewards', PersonalRewardsRoute],
-    ['PersonalActivity', PersonalActivityRoute],
-    ['PersonalSavings', PersonalSavingsRoute],
-    ['PersonalNotifications', PersonalNotificationsRoute],
-    ['PersonalSettings', PersonalSettingsRoute],
-    ['PersonalEditProfile', PersonalEditProfileRoute],
-    ['PersonalHelpCentre', PersonalHelpCentreRoute],
-    ['PersonalClaimedDealPass', PersonalClaimedDealPassRoute],
-  ];
-
-function HomeFlowStack() {
-  return (
-    <HomeStack.Navigator screenOptions={stackOptions}>
-      <HomeStack.Screen name="PersonalHomeOverview" component={PersonalHomeRoute} />
-      {personalFlowScreens.map(([name, component]) => (
-        <HomeStack.Screen key={name} name={name} component={component} />
-      ))}
-    </HomeStack.Navigator>
-  );
-}
-
-function DealsFlowStack() {
-  return (
-    <DealsStack.Navigator screenOptions={stackOptions}>
-      <DealsStack.Screen name="PersonalMyDealsList" component={PersonalMyDealsRoute} />
-      <DealsStack.Screen
-        name="PersonalClaimedDealPass"
-        component={PersonalClaimedDealPassRoute}
-      />
-    </DealsStack.Navigator>
-  );
-}
-
-function MessagesFlowStack() {
-  return (
-    <MessagesStack.Navigator screenOptions={stackOptions}>
-      <MessagesStack.Screen
-        name="PersonalMessagesInbox"
-        component={PersonalMessagesRoute}
-      />
-      <MessagesStack.Screen
-        name="PersonalConversation"
-        component={PersonalConversationRoute}
-      />
-    </MessagesStack.Navigator>
-  );
-}
-
-function OrdersFlowStack() {
-  return (
-    <OrdersStack.Navigator screenOptions={stackOptions}>
-      <OrdersStack.Screen name="PersonalOrdersBookings" component={PersonalOrdersRoute} />
-      <OrdersStack.Screen
-        name="PersonalOrderDetail"
-        component={PersonalOrderDetailRoute}
-      />
-      <OrdersStack.Screen
-        name="PersonalBookingDetail"
-        component={PersonalBookingDetailRoute}
-      />
-    </OrdersStack.Navigator>
-  );
-}
-
-function MoreFlowStack() {
-  return (
-    <MoreStack.Navigator screenOptions={stackOptions}>
-      <MoreStack.Screen name="PersonalMoreHub" component={PersonalMoreRoute} />
-      {personalFlowScreens
-        .filter(([name]) => name !== 'PersonalClaimedDealPass')
-        .map(([name, component]) => (
-          <MoreStack.Screen key={name} name={name} component={component} />
-        ))}
-    </MoreStack.Navigator>
-  );
-}
-
 /**
- * Customer personal-hub shell.
+ * The customer personal flow.
  *
- * Owns the bottom navigation extracted from the "Customer Dashboard (Personal
- * Overview)" spec — Home · My Deals · Messages · Orders · More — which is personal
- * to the signed-in customer, unlike the general customer dashboard nav
- * (Home · Deals · Discover · Saved · Account).
- *
- * Mounted at the root as a sibling of `Tabs`, so the personal bar and the general
- * bar can never stack: entering the personal flow swaps shells, and the personal
- * bar stays visible across the whole personal flow.
+ * This was a five-tab bottom-navigation shell (Home · My Deals · Messages ·
+ * Orders · More), then a bar-less root-level stack. It is now nested inside the
+ * consumer Account tab: each entry pushes one page, the Account tab's bottom
+ * navigation stays visible throughout, and the back button pops to the previous
+ * page (or straight back to the Account hub).
  */
 export function PersonalHubNavigator() {
-  // Live unread total for the Messages tab badge; falls back to the designed
-  // default until the first successful fetch.
-  const { data: threads } = useCustomerThreads();
-  const messagesBadge =
-    threads === undefined
-      ? undefined
-      : {
-          count: (threads ?? []).reduce(
-            (sum, thread) => sum + (thread.customerUnreadCount ?? 0),
-            0,
-          ),
-        };
   return (
     <TypeDensityProvider density="comfortable">
-      <Tab.Navigator
-        screenOptions={{ headerShown: false }}
-        tabBar={props => (
-          <PersonalHubTabBar
-            {...props}
-            badges={messagesBadge ? { PersonalMessages: messagesBadge } : undefined}
-          />
-        )}
-      >
-        <Tab.Screen name="PersonalHome" options={{ title: 'Home' }}>
-          {HomeFlowStack}
-        </Tab.Screen>
-        <Tab.Screen name="PersonalMyDeals" options={{ title: 'My Deals' }}>
-          {DealsFlowStack}
-        </Tab.Screen>
-        <Tab.Screen name="PersonalMessages" options={{ title: 'Messages' }}>
-          {MessagesFlowStack}
-        </Tab.Screen>
-        <Tab.Screen name="PersonalOrders" options={{ title: 'Orders' }}>
-          {OrdersFlowStack}
-        </Tab.Screen>
-        <Tab.Screen name="PersonalMore" options={{ title: 'More' }}>
-          {MoreFlowStack}
-        </Tab.Screen>
-      </Tab.Navigator>
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="PersonalHome" component={PersonalHomeRoute} />
+        <Stack.Screen name="PersonalMyDeals" component={PersonalMyDealsRoute} />
+        <Stack.Screen name="PersonalMessages" component={PersonalMessagesRoute} />
+        <Stack.Screen name="PersonalOrders" component={PersonalOrdersRoute} />
+        <Stack.Screen name="PersonalMore" component={PersonalMoreRoute} />
+        <Stack.Screen name="PersonalConversation" component={PersonalConversationRoute} />
+        <Stack.Screen name="PersonalOrderDetail" component={PersonalOrderDetailRoute} />
+        <Stack.Screen
+          name="PersonalBookingDetail"
+          component={PersonalBookingDetailRoute}
+        />
+        <Stack.Screen
+          name="PersonalClaimedDealPass"
+          component={PersonalClaimedDealPassRoute}
+        />
+        <Stack.Screen name="PersonalRewards" component={PersonalRewardsRoute} />
+        <Stack.Screen name="PersonalActivity" component={PersonalActivityRoute} />
+        <Stack.Screen name="PersonalSavings" component={PersonalSavingsRoute} />
+        <Stack.Screen name="PersonalSaved" component={PersonalSavedRoute} />
+        <Stack.Screen
+          name="PersonalNotifications"
+          component={PersonalNotificationsRoute}
+        />
+        <Stack.Screen name="PersonalSettings" component={PersonalSettingsRoute} />
+        <Stack.Screen name="PersonalEditProfile" component={PersonalEditProfileRoute} />
+        <Stack.Screen name="PersonalHelpCentre" component={PersonalHelpCentreRoute} />
+      </Stack.Navigator>
     </TypeDensityProvider>
   );
 }
-
-export type { AppStackParamList };

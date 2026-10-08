@@ -2,12 +2,15 @@ import React from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Button } from '@components/ui/Button';
 import { Icon, type IconName } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
 import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
+import { useLoyaltyAnalytics } from '@features/accountHub/hooks/useLoyalty';
+import { useCustomerOrders } from '@features/order/hooks/useCustomerOrders';
+import { isActiveStatus } from '@features/order/orderStatus';
+import { formatCompactNaira } from '@utils/formatters';
 import { colors } from '@theme/colors';
 import { navbarBottomShadow } from '@theme/shadows';
 
@@ -104,6 +107,7 @@ export interface AccountHomeScreenProps {
   onOpenAccountMenu?: () => void;
   onEditProfile?: () => void;
   onOpenCustomerDashboard?: () => void;
+  onOpenMessages?: () => void;
   onOpenDeals?: () => void;
   onOpenOrders?: () => void;
   onOpenSavings?: () => void;
@@ -124,6 +128,7 @@ export function AccountHomeScreen({
   onOpenAccountMenu,
   onEditProfile,
   onOpenCustomerDashboard,
+  onOpenMessages,
   onOpenDeals,
   onOpenOrders,
   onOpenSavings,
@@ -138,6 +143,30 @@ export function AccountHomeScreen({
   onSignOut,
 }: AccountHomeScreenProps) {
   const me = useCurrentUserDisplay();
+  const analytics = useLoyaltyAnalytics();
+
+  // Same source as the dashboard's "Saved Total": the customer's net savings
+  // across all businesses. `—` until the query settles, so the tile can never
+  // print a stale or invented figure.
+  const totalSaved = analytics.isSuccess
+    ? formatCompactNaira(analytics.data?.totals?.netSavings ?? 0)
+    : strings.customerDashboard.metricUnavailable;
+  // There is still no customer-facing claims endpoint (`GET /me/claims` is an
+  // open backend ask), so the count is unknown; `0` matches the dashboard's
+  // Active Deals metric until the endpoint lands.
+  const activeDeals = copy.activeDealsValueFor(0);
+
+  // Orders are real, so the "Pending" badge is a live count of the ones still
+  // open. Saved items stay badgeless: `useSavedDealsList` is an explicit stub
+  // because the backend has no `GET /me/saved/deals` yet, and a badge would
+  // have to invent a number.
+  const orders = useCustomerOrders();
+  const pendingOrders = (orders.data ?? []).filter(order =>
+    isActiveStatus(order.status),
+  ).length;
+  const pendingBadge = orders.isSuccess
+    ? copy.ordersBookingsBadgeFor(pendingOrders)
+    : undefined;
   return (
     <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-background">
       <View
@@ -248,7 +277,7 @@ export function AccountHomeScreen({
                   className="font-sans-bold text-badge-discount-text"
                   numberOfLines={1}
                 >
-                  {copy.totalSavedValue}
+                  {totalSaved}
                 </VemtapText>
               </View>
             </View>
@@ -263,99 +292,49 @@ export function AccountHomeScreen({
                   className="font-sans-bold"
                   numberOfLines={1}
                 >
-                  {copy.activeDealsValue}
+                  {activeDeals}
                 </VemtapText>
               </View>
             </View>
           </View>
         </View>
 
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={copy.goToDashboard}
-          onPress={onOpenCustomerDashboard}
-          className="w-full overflow-hidden rounded-card shadow-md active:scale-[0.99]"
-        >
-          <LinearGradient
-            colors={[colors.primaryContainer, colors.primaryContainer, colors.navy]}
-            locations={[0, 0.3, 1]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            className="p-4"
-          >
-            <View className="flex-row items-start justify-between gap-2">
-              <View className="min-w-0 flex-row items-center gap-2">
-                <View className="flex-row items-center gap-1.5 rounded-full bg-surface/20 px-2 py-1">
-                  <View className="h-1.5 w-1.5 rounded-full bg-surface" />
-                  <VemtapText
-                    variant="caption"
-                    className="font-sans-semibold text-surface"
-                    numberOfLines={1}
-                  >
-                    {copy.liveHub}
-                  </VemtapText>
-                </View>
-                <VemtapText variant="caption" className="text-surface" numberOfLines={1}>
-                  {copy.goToDashboardShort}
-                </VemtapText>
-              </View>
-              <View className="h-7 w-7 shrink-0 items-center justify-center rounded-full bg-surface/20">
-                <Icon name="arrowForward" size={18} color={colors.surface} />
-              </View>
-            </View>
-            <View className="mt-3 flex-row items-center gap-4">
-              <View className="h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-surface/20">
-                <Icon name="dashboardCustomize" size={28} color={colors.surface} />
-              </View>
-              <View className="min-w-0 flex-1">
-                <VemtapText
-                  variant="headingSm"
-                  className="font-sans-bold text-surface"
-                  numberOfLines={1}
-                >
-                  {copy.goToDashboard}
-                </VemtapText>
-                <VemtapText
-                  variant="caption"
-                  className="mt-0.5 text-surface"
-                  numberOfLines={2}
-                >
-                  {copy.goToDashboardBody}
-                </VemtapText>
-              </View>
-            </View>
-          </LinearGradient>
-        </Pressable>
-
         <View className="gap-2">
           <SectionLabel>{copy.activitySection}</SectionLabel>
           <View className="overflow-hidden rounded-card border border-border bg-surface shadow-md">
             <AccountRow
+              icon="dashboardCustomize"
+              title={copy.dashboard}
+              meta={copy.dashboardMeta}
+              onPress={onOpenCustomerDashboard}
+            />
+            <AccountRow
+              icon="message"
+              title={copy.messages}
+              meta={copy.messagesMeta}
+              onPress={onOpenMessages}
+            />
+            <AccountRow
               icon="localOffer"
               title={copy.myDeals}
-              badge={copy.myDealsBadge}
+              badge={copy.myDealsBadgeFor(0)}
               badgeTone="success"
               onPress={onOpenDeals}
             />
             <AccountRow
               icon="receipt"
               title={copy.ordersBookings}
-              badge={copy.ordersBookingsBadge}
+              badge={pendingBadge}
               badgeTone="brand"
               onPress={onOpenOrders}
             />
             <AccountRow
               icon="savings"
               title={copy.savingsHistory}
-              badge={copy.savingsHistoryBadge}
+              badge={totalSaved}
               onPress={onOpenSavings}
             />
-            <AccountRow
-              icon="bookmark"
-              title={copy.savedItems}
-              badge={copy.savedItemsBadge}
-              onPress={onOpenSaved}
-            />
+            <AccountRow icon="bookmark" title={copy.savedItems} onPress={onOpenSaved} />
           </View>
         </View>
 

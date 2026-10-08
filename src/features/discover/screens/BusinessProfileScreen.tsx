@@ -45,6 +45,7 @@ export interface BusinessProfileScreenProps {
   code?: string;
   onBack: () => void;
   onOpenDeal?: (dealId: string) => void;
+  onOpenInApp?: () => void;
 }
 
 const mapRegion = {
@@ -59,6 +60,7 @@ export function BusinessProfileScreen({
   code,
   onBack,
   onOpenDeal = () => undefined,
+  onOpenInApp = () => undefined,
 }: BusinessProfileScreenProps) {
   const [bookmarked, setBookmarked] = useState(false);
   const [following, setFollowing] = useState(false);
@@ -345,7 +347,7 @@ export function BusinessProfileScreen({
                 ? `https://wa.me/${livePhone.replace(/[^\d]/g, '')}`
                 : 'https://wa.me'
             }
-            onInApp={() => undefined}
+            onInApp={onOpenInApp}
             onWebsite={() => undefined}
           />
         </View>

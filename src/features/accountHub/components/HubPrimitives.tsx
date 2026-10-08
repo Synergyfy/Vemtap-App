@@ -5,6 +5,7 @@ import { Button } from '@components/ui/Button';
 import { Icon, type IconName } from '@components/ui/Icon';
 import { SearchClearButton } from '@components/ui/SearchClearButton';
 import { VemtapText } from '@components/ui/Text';
+import { strings } from '@constants/strings';
 import { colors } from '@theme/colors';
 import { navbarBottomShadow } from '@theme/shadows';
 import { cn } from '@utils/cn';
@@ -27,6 +28,7 @@ export function HubHeader({
   actionLabels = [],
   onActions = [],
   accountAction,
+  onBack,
 }: {
   title: string;
   leadingIcon?: IconName;
@@ -35,6 +37,8 @@ export function HubHeader({
   actionLabels?: string[];
   onActions?: Array<(() => void) | undefined>;
   accountAction?: () => void;
+  /** Renders the standard leading back control when the screen was pushed. */
+  onBack?: () => void;
 }) {
   return (
     <View
@@ -42,6 +46,17 @@ export function HubHeader({
       style={navbarBottomShadow}
     >
       <View className="min-w-0 flex-1 flex-row items-center gap-2">
+        {onBack ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={strings.common.goBack}
+            hitSlop={8}
+            onPress={onBack}
+            className="-ml-2 h-11 w-11 shrink-0 items-center justify-center rounded-full active:bg-surface-container-low"
+          >
+            <Icon name="back" size={24} color={colors.surfaceDark} />
+          </Pressable>
+        ) : null}
         {leadingIcon ? (
           <Icon name={leadingIcon} size={20} color={colors.primary} />
         ) : null}
@@ -141,7 +156,7 @@ export function StatusPillTabs({
   onSelect,
   variant = 'solid',
   segmented = false,
-  disabledTabs = [],
+  disabledTabs,
 }: {
   labels: readonly string[];
   /** Optional per-tab badge counts (business Orders / Bookings switcher). */
@@ -154,6 +169,15 @@ export function StatusPillTabs({
   /** Tab indexes that must not react, e.g. a destination that is not wired yet. */
   disabledTabs?: readonly number[];
 }) {
+  // A stale bundle or a bad payload must never white-screen the tab row:
+  // normalize every prop before touching it so this render cannot throw.
+  const items = (Array.isArray(labels) ? labels : []).map((label, index) => {
+    if (typeof label === 'string') return label;
+    if (typeof label === 'number' || typeof label === 'boolean') return String(label);
+    return `${index}-${String(label ?? '')}`;
+  });
+  const badgeCounts = Array.isArray(counts) ? counts : undefined;
+  const disabled = Array.isArray(disabledTabs) ? disabledTabs : [];
   const activeClass =
     variant === 'subtle'
       ? 'shrink-0 rounded-full bg-surface-tint-blue px-4 py-2 shadow-sm'
@@ -167,9 +191,9 @@ export function StatusPillTabs({
   if (variant === 'switcher') {
     return (
       <View className="flex-row items-center gap-1 rounded-card bg-surface-container-high p-1">
-        {labels.map((label, index) => {
+        {items.map((label, index) => {
           const isSelected = index === selected;
-          const isDisabled = disabledTabs.includes(index);
+          const isDisabled = disabled.includes(index);
           return (
             <Pressable
               key={label}
@@ -178,7 +202,7 @@ export function StatusPillTabs({
               accessibilityState={{ selected: isSelected, disabled: isDisabled }}
               accessibilityHint={isDisabled ? `${label} is unavailable` : undefined}
               disabled={isDisabled}
-              onPress={() => onSelect(index)}
+              onPress={() => onSelect?.(index)}
               className={cn(
                 'min-w-0 flex-1 flex-row items-center justify-center gap-2 rounded-lg py-2',
                 isSelected && 'bg-surface-container-lowest shadow-sm',
@@ -195,7 +219,7 @@ export function StatusPillTabs({
               >
                 {label}
               </VemtapText>
-              {counts?.[index] ? (
+              {badgeCounts?.[index] ? (
                 <View
                   className={cn(
                     'rounded-full px-1.5 py-0.5',
@@ -210,7 +234,7 @@ export function StatusPillTabs({
                         : 'font-sans-medium text-text-secondary',
                     )}
                   >
-                    {counts[index]}
+                    {badgeCounts[index]}
                   </VemtapText>
                 </View>
               ) : null}
@@ -223,12 +247,12 @@ export function StatusPillTabs({
   if (segmented) {
     return (
       <View className="flex-row gap-1 rounded-full bg-surface-container-low p-1">
-        {labels.map((label, index) => (
+        {items.map((label, index) => (
           <Pressable
             key={label}
             accessibilityRole="tab"
             accessibilityState={{ selected: index === selected }}
-            onPress={() => onSelect(index)}
+            onPress={() => onSelect?.(index)}
             className={
               index === selected
                 ? 'flex-1 items-center rounded-full bg-primary py-1.5 shadow-sm'
@@ -248,12 +272,12 @@ export function StatusPillTabs({
   }
   return (
     <View className="flex-row gap-2">
-      {labels.map((label, index) => (
+      {items.map((label, index) => (
         <Pressable
           key={label}
           accessibilityRole="tab"
           accessibilityState={{ selected: index === selected }}
-          onPress={() => onSelect(index)}
+          onPress={() => onSelect?.(index)}
           className={index === selected ? activeClass : inactiveClass}
         >
           <VemtapText

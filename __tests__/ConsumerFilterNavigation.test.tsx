@@ -84,7 +84,7 @@ describe('shared deal filters', () => {
 
   it('opens the same filter page from the Discover feed', async () => {
     await openShell();
-    await pressTab(strings.home.tabDiscover);
+    await pressTab(strings.home.tabBusiness);
     await act(async () => {
       fireEvent.press(screen.getByLabelText(discoverFilter));
     });

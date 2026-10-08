@@ -101,8 +101,8 @@ function sumStat(points: unknown[], key: keyof LoyaltyTrends): number | null {
 /**
  * `GET /loyalty/analytics` documents `trends` as `{ totalVisits, rewardPoints,
  * netSavings }`, but older responses have shipped it as an array of points (or
- * null). Normalise every shape to one object so callers can read
- * `trends.netSavings` without runtime surprises.
+ * null). Normalise every shape to one object so callers can read it without
+ * runtime surprises.
  */
 function normalizeTrends(raw: unknown): unknown {
   if (Array.isArray(raw)) {
@@ -116,9 +116,41 @@ function normalizeTrends(raw: unknown): unknown {
   return null;
 }
 
-export const loyaltyAnalyticsSchema = z.object({
-  trends: z.preprocess(normalizeTrends, trendPointSchema.nullable()).catch(null),
-});
+/**
+ * `GET /loyalty/analytics` returns the customer's totals at the **top level**
+ * and change indicators under `trends`. Verified against the live server:
+ *
+ * ```json
+ * { "totalVisits": 1, "currentPointsBalance": 0, "netSavings": 0,
+ *   "trends": { "totalVisits": "+1", "rewardPoints": "0", "netSavings": "0" } }
+ * ```
+ *
+ * The schema used to parse only `trends`, so every consumer that asked for
+ * "Saved Total" was reading the signed *change* (the `+1`) rather than the
+ * total. Totals are now read from the top level, with `trends` kept as the
+ * fallback so trends-only payloads (and the array form) still resolve.
+ *
+ * The exact semantics of `trends` — percent (`"+25%"`) versus absolute
+ * (`"+1"`) — is not documented by the backend and is unconfirmed; it is kept
+ * parsed for the savings growth indicator but must not be shown as a total.
+ */
+export const loyaltyAnalyticsSchema = z
+  .object({
+    totalVisits: analyticsStatSchema,
+    currentPointsBalance: analyticsStatSchema,
+    netSavings: analyticsStatSchema,
+    trends: z.preprocess(normalizeTrends, trendPointSchema.nullable()).catch(null),
+  })
+  .transform(raw => ({
+    totals: {
+      totalVisits: raw.totalVisits ?? raw.trends?.totalVisits ?? null,
+      // `rewardPoints` is the long-standing internal name for the point
+      // balance; the API spells the same total `currentPointsBalance`.
+      rewardPoints: raw.currentPointsBalance ?? raw.trends?.rewardPoints ?? null,
+      netSavings: raw.netSavings ?? raw.trends?.netSavings ?? null,
+    },
+    trends: raw.trends,
+  }));
 export type LoyaltyAnalytics = z.infer<typeof loyaltyAnalyticsSchema>;
 
 export const loyaltyApi = {

@@ -9,7 +9,7 @@ cssInterop(View, { className: 'style' });
 const icons: Record<string, IconName> = {
   Home: 'home',
   Deals: 'localOffer',
-  Discover: 'explore',
+  Business: 'storefront',
   Saved: 'bookmark',
   Account: 'accountCircle',
   Nearby: 'nearMe',

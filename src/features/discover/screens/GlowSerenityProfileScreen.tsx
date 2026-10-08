@@ -35,12 +35,14 @@ export interface GlowSerenityProfileProps {
   onBack: () => void;
   onOpenServices: () => void;
   onOpenDeal: (dealId: string) => void;
+  onOpenInApp?: () => void;
 }
 
 export function GlowSerenityProfileScreen({
   onBack,
   onOpenServices,
   onOpenDeal,
+  onOpenInApp = () => undefined,
 }: GlowSerenityProfileProps) {
   const [following, setFollowing] = useState(false);
   const [aboutExpanded, setAboutExpanded] = useState(false);
@@ -261,7 +263,7 @@ export function GlowSerenityProfileScreen({
           <ContactActionGrid
             phone="+2348000000000"
             whatsappUrl="https://wa.me"
-            onInApp={() => undefined}
+            onInApp={onOpenInApp}
             onWebsite={() => undefined}
           />
         </View>

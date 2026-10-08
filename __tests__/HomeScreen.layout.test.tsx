@@ -38,10 +38,9 @@ describe('HomeScreen Deals Near You layout', () => {
       selected: true,
     });
     expect(
-      screen.getByLabelText(/Discover, tab/i).props.accessibilityState,
+      screen.getByLabelText(/Business, tab/i).props.accessibilityState,
     ).toMatchObject({ selected: false });
     expect(screen.getByLabelText(/Deals, tab/i)).toBeTruthy();
-    expect(screen.getByLabelText(/Saved, tab/i)).toBeTruthy();
     expect(screen.getByLabelText(/Account, tab/i)).toBeTruthy();
   });
 

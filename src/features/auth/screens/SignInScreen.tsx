@@ -50,7 +50,7 @@ export function SignInScreen() {
   const { control, handleSubmit, formState } = useForm<SignInFormInput>({
     resolver: zodResolver(signInFormSchema),
     defaultValues: { identifier: '', credential: '', rememberMe: true },
-    mode: 'onBlur',
+    mode: 'onChange',
   });
 
   const onSubmit = useCallback(

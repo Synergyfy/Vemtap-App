@@ -11,15 +11,29 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RegistrationHeader } from '@components/auth/RegistrationHeader';
+import { EmptyState } from '@components/shared/EmptyState';
+import { ErrorState } from '@components/shared/ErrorState';
+import { LoadingState } from '@components/shared/LoadingState';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
 import { orderImages } from '@features/order/orderData';
+import {
+  useCustomerThreadMessages,
+  useCustomerThreads,
+  useSendCustomerReply,
+} from '@features/merchantChat/hooks/useCustomerMessaging';
+import { formatWhen } from '@utils/formatters';
 import { ConversationBubble } from '@features/merchantChat/components/ConversationBubble';
 import { colors } from '@theme/colors';
 import { navbarBottomShadow } from '@theme/shadows';
 
 export interface UrbanConversationScreenProps {
+  /**
+   * The in-house thread to open. Messages come from
+   * `GET /customer/messaging/threads/{threadId}` and replies go to its `/reply`.
+   */
+  threadId?: string;
   onBack?: () => void;
   onCallMerchant?: () => void;
   onOpenDetails?: () => void;
@@ -29,11 +43,11 @@ export interface UrbanConversationScreenProps {
   onAttachment?: () => void;
   onEmoji?: () => void;
   onCamera?: () => void;
-  onSend?: (message: string) => void;
   onQuickReply?: (message: string) => void;
 }
 
 export function UrbanConversationScreen({
+  threadId,
   onBack,
   onCallMerchant,
   onOpenDetails,
@@ -43,7 +57,6 @@ export function UrbanConversationScreen({
   onAttachment,
   onEmoji,
   onCamera,
-  onSend,
   onQuickReply,
 }: UrbanConversationScreenProps) {
   const insets = useSafeAreaInsets();
@@ -51,6 +64,13 @@ export function UrbanConversationScreen({
   const [showDeal, setShowDeal] = useState(true);
   const [draft, setDraft] = useState('');
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  const threadsQuery = useCustomerThreads();
+  const thread = threadId
+    ? (threadsQuery.data ?? []).find(candidate => candidate.id === threadId)
+    : undefined;
+  const messagesQuery = useCustomerThreadMessages(threadId);
+  const sendReply = useSendCustomerReply();
 
   useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
@@ -68,11 +88,11 @@ export function UrbanConversationScreen({
 
   const send = useCallback(() => {
     const message = draft.trim();
-    if (!message) return;
-    onSend?.(message);
+    if (!message || !threadId) return;
+    sendReply.mutate({ threadId, payload: { content: message } });
     setDraft('');
     requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));
-  }, [draft, onSend]);
+  }, [draft, threadId, sendReply]);
 
   const closeDeal = useCallback(() => {
     setShowDeal(false);
@@ -92,7 +112,11 @@ export function UrbanConversationScreen({
           <View className="min-w-0 flex-1 flex-row items-center gap-3">
             <View className="relative h-11 w-11 shrink-0">
               <Image
-                source={{ uri: orderImages.merchant }}
+                source={
+                  thread?.branch?.logoUrl
+                    ? { uri: thread.branch.logoUrl }
+                    : { uri: orderImages.merchant }
+                }
                 className="h-full w-full rounded-full bg-surface-container"
               />
               <View className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-surface bg-success" />
@@ -104,7 +128,7 @@ export function UrbanConversationScreen({
                   numberOfLines={1}
                   className="min-w-0 flex-1"
                 >
-                  {strings.urbanConversation.merchant}
+                  {thread?.branch?.name ?? strings.urbanConversation.merchant}
                 </VemtapText>
                 <Icon name="verified" size={17} color={colors.primary} />
               </View>
@@ -238,49 +262,22 @@ export function UrbanConversationScreen({
             {strings.urbanConversation.security}
           </VemtapText>
         </View>
-        <ConversationBubble
-          message={strings.urbanConversation.merchantOne}
-          time={strings.urbanConversation.timeOne}
-          sender="merchant"
-        />
-        <ConversationBubble
-          message={strings.urbanConversation.customerOne}
-          time={strings.urbanConversation.timeTwo}
-          sender="customer"
-        />
-        <ConversationBubble
-          message={strings.urbanConversation.merchantTwo}
-          time={strings.urbanConversation.timeThree}
-          sender="merchant"
-        />
-        <ConversationBubble
-          message={strings.urbanConversation.merchantThree}
-          time={strings.urbanConversation.timeFour}
-          sender="merchant"
-        >
-          <Pressable
-            accessibilityRole="button"
-            onPress={onViewPass}
-            className="w-full flex-row items-center gap-2 rounded-xl bg-surface-tint-blue p-2"
-          >
-            <View className="h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface shadow-sm">
-              <Icon name="qrCode" size={20} color={colors.primary} />
-            </View>
-            <View className="min-w-0 flex-1">
-              <VemtapText
-                variant="labelSm"
-                className="font-sans-semibold"
-                numberOfLines={1}
-              >
-                {strings.urbanConversation.table}
-              </VemtapText>
-              <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-                {strings.urbanConversation.tableMeta}
-              </VemtapText>
-            </View>
-            <Icon name="forward" size={18} color={colors.textTertiary} />
-          </Pressable>
-        </ConversationBubble>
+        {messagesQuery.isLoading ? (
+          <LoadingState label={strings.common.loading} />
+        ) : messagesQuery.isError ? (
+          <ErrorState title={strings.common.error} onRetry={messagesQuery.refetch} />
+        ) : (messagesQuery.data ?? []).length === 0 ? (
+          <EmptyState variant="contained" icon="message" title={strings.common.empty} />
+        ) : (
+          (messagesQuery.data ?? []).map(message => (
+            <ConversationBubble
+              key={message.id}
+              message={message.content}
+              time={formatWhen(message.createdAt ?? '')}
+              sender={message.direction === 'INBOUND' ? 'merchant' : 'customer'}
+            />
+          ))
+        )}
       </ScrollView>
 
       <View

@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { ErrorBoundary } from '@components/shared/ErrorBoundary';
 import { RegistrationHeader } from '@components/auth/RegistrationHeader';
 import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
@@ -178,17 +179,29 @@ export function NotificationsCenterScreen({
   }, [liveNotifications]);
 
   const unread = entries.filter(item => item.unread).length;
+  // A filter index beyond the category map (e.g. a labels/categories length
+  // mismatch after an edit) must fall back to "all" instead of blanking the
+  // list with an undefined category.
+  const activeCategory = categories[filter] ?? 'all';
   const visible = useMemo(
     () =>
-      filter === 0
+      activeCategory === 'all'
         ? entries
-        : entries.filter(item => item.category === categories[filter]),
-    [entries, filter],
+        : entries.filter(item => item.category === activeCategory),
+    [entries, activeCategory],
   );
   const today = visible.filter(
     item => item.id === 'expiry' || item.id === 'booking' || item.unread,
   );
   const earlier = visible.filter(item => !today.includes(item));
+  // Defensive: a partial strings payload must not throw while building the
+  // chip labels — an empty list renders an empty pill row instead of crashing.
+  const filterLabels = (Array.isArray(copy.filters) ? copy.filters : []).map(
+    (label, index) => {
+      const count = Array.isArray(copy.counts) ? copy.counts[index] : '';
+      return count ? `${label} ${count}` : `${label}`;
+    },
+  );
 
   const markAllRead = () => {
     markAllReadMutation.mutate();
@@ -200,115 +213,121 @@ export function NotificationsCenterScreen({
   };
 
   return (
-    <SafeAreaView edges={['top']} className="flex-1 bg-background">
-      <RegistrationHeader
-        title={copy.title}
-        onBack={() => onBack?.()}
-        showMoreAction
-        onMore={onMore}
-      />
-      <ScrollView
-        className="flex-1"
-        contentContainerClassName="gap-5 px-4 pb-8 pt-3"
-        showsVerticalScrollIndicator={false}
-      >
-        <View className="flex-row items-center justify-between gap-2">
-          <View className="min-w-0 flex-1 flex-row items-center gap-2">
-            <VemtapText variant="headingMd" className="text-heading-md" numberOfLines={1}>
-              {copy.inbox}
-            </VemtapText>
-            <View
-              className={`shrink-0 rounded-full px-2 py-0.5 shadow-sm ${unread ? 'bg-primary' : 'bg-surface-container-highest'}`}
-            >
+    // Screen-scoped recovery: a render crash inside this screen shows the
+    // shared fallback in place instead of replacing the whole app shell.
+    <ErrorBoundary>
+      <SafeAreaView edges={['top']} className="flex-1 bg-background">
+        <RegistrationHeader
+          title={copy.title}
+          onBack={() => onBack?.()}
+          showMoreAction
+          onMore={onMore}
+        />
+        <ScrollView
+          className="flex-1"
+          contentContainerClassName="gap-5 px-4 pb-8 pt-3"
+          showsVerticalScrollIndicator={false}
+        >
+          <View className="flex-row items-center justify-between gap-2">
+            <View className="min-w-0 flex-1 flex-row items-center gap-2">
               <VemtapText
-                variant="caption"
-                className={unread ? 'text-primary-foreground' : 'text-text-secondary'}
+                variant="headingMd"
+                className="text-heading-md"
+                numberOfLines={1}
               >
-                {unread ? copy.unread : copy.zeroNew}
+                {copy.inbox}
+              </VemtapText>
+              <View
+                className={`shrink-0 rounded-full px-2 py-0.5 shadow-sm ${unread ? 'bg-primary' : 'bg-surface-container-highest'}`}
+              >
+                <VemtapText
+                  variant="caption"
+                  className={unread ? 'text-primary-foreground' : 'text-text-secondary'}
+                >
+                  {unread ? copy.unread : copy.zeroNew}
+                </VemtapText>
+              </View>
+            </View>
+            <Button
+              label={unread ? copy.allRead : copy.caughtUp}
+              labelVariant="labelSm"
+              variant="ghost"
+              size="sm"
+              fullWidth={false}
+              disabled={!unread}
+              leftIcon={
+                <Icon
+                  name={unread ? 'doneAll' : 'check'}
+                  size={17}
+                  color={unread ? colors.primary : colors.textTertiary}
+                />
+              }
+              onPress={markAllRead}
+            />
+          </View>
+          <View className="-mx-4">
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerClassName="gap-2 px-4"
+            >
+              <StatusPillTabs
+                labels={filterLabels}
+                selected={filter}
+                onSelect={setFilter}
+              />
+            </ScrollView>
+          </View>
+          {visible.length === 0 ? (
+            <View className="items-center px-4 py-12">
+              <View className="h-16 w-16 items-center justify-center rounded-full bg-surface-container-high">
+                <Icon name="doNotDisturb" size={32} color={colors.secondary} />
+              </View>
+              <VemtapText variant="headingSm" className="mt-3 text-center">
+                {copy.caughtUpTitle}
+              </VemtapText>
+              <VemtapText tone="secondary" className="mt-1 text-center">
+                {copy.caughtUpBody}
               </VemtapText>
             </View>
-          </View>
-          <Button
-            label={unread ? copy.allRead : copy.caughtUp}
-            labelVariant="labelSm"
-            variant="ghost"
-            size="sm"
-            fullWidth={false}
-            disabled={!unread}
-            leftIcon={
-              <Icon
-                name={unread ? 'doneAll' : 'check'}
-                size={17}
-                color={unread ? colors.primary : colors.textTertiary}
-              />
-            }
-            onPress={markAllRead}
-          />
-        </View>
-        <View className="-mx-4">
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerClassName="gap-2 px-4"
-          >
-            <StatusPillTabs
-              labels={copy.filters.map((label, index) =>
-                copy.counts[index] ? `${label} ${copy.counts[index]}` : label,
-              )}
-              selected={filter}
-              onSelect={setFilter}
+          ) : (
+            <>
+              {today.length ? (
+                <NotificationSection
+                  title={copy.today}
+                  count={copy.todayCount}
+                  entries={today}
+                  onOpen={handleOpen}
+                  onAction={onNotificationAction}
+                />
+              ) : null}
+              {earlier.length ? (
+                <NotificationSection
+                  title={copy.earlier}
+                  count={copy.earlierCount}
+                  entries={earlier}
+                  onOpen={handleOpen}
+                  onAction={onNotificationAction}
+                />
+              ) : null}
+            </>
+          )}
+          <View className="gap-3 pt-3">
+            <Button
+              label={copy.preferences}
+              labelVariant="labelMd"
+              variant="secondary"
+              onPress={onManagePreferences}
+              leftIcon={<Icon name="tune" size={19} color={colors.secondary} />}
+              rightIcon={<Icon name="forward" size={18} color={colors.textTertiary} />}
             />
-          </ScrollView>
-        </View>
-        {visible.length === 0 ? (
-          <View className="items-center px-4 py-12">
-            <View className="h-16 w-16 items-center justify-center rounded-full bg-surface-container-high">
-              <Icon name="doNotDisturb" size={32} color={colors.secondary} />
-            </View>
-            <VemtapText variant="headingSm" className="mt-3 text-center">
-              {copy.caughtUpTitle}
-            </VemtapText>
-            <VemtapText tone="secondary" className="mt-1 text-center">
-              {copy.caughtUpBody}
+            <VemtapText variant="caption" tone="tertiary" className="text-center">
+              {copy.tailored}
             </VemtapText>
           </View>
-        ) : (
-          <>
-            {today.length ? (
-              <NotificationSection
-                title={copy.today}
-                count={copy.todayCount}
-                entries={today}
-                onOpen={handleOpen}
-                onAction={onNotificationAction}
-              />
-            ) : null}
-            {earlier.length ? (
-              <NotificationSection
-                title={copy.earlier}
-                count={copy.earlierCount}
-                entries={earlier}
-                onOpen={handleOpen}
-                onAction={onNotificationAction}
-              />
-            ) : null}
-          </>
-        )}
-        <View className="gap-3 pt-3">
-          <Button
-            label={copy.preferences}
-            labelVariant="labelMd"
-            variant="secondary"
-            onPress={onManagePreferences}
-            leftIcon={<Icon name="tune" size={19} color={colors.secondary} />}
-            rightIcon={<Icon name="forward" size={18} color={colors.textTertiary} />}
-          />
-          <VemtapText variant="caption" tone="tertiary" className="text-center">
-            {copy.tailored}
-          </VemtapText>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+        </ScrollView>
+      </SafeAreaView>
+    </ErrorBoundary>
   );
 }
 

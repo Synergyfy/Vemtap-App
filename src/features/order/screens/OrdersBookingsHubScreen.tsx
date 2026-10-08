@@ -9,6 +9,7 @@ import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
 import { OrderHubCard } from '@features/order/components/OrderHubComponents';
 import { useCustomerOrders } from '@features/order/hooks/useCustomerOrders';
+import { isActiveStatus, statusLabel, statusToneFor } from '@features/order/orderStatus';
 import { orderImages } from '@features/order/orderData';
 import { formatCurrency, formatWhen } from '@utils/formatters';
 import { colors } from '@theme/colors';
@@ -27,36 +28,10 @@ const ORDER_STATUS_GROUPS: readonly (readonly string[])[] = [
   ['refunded', 'partial_refund'],
 ];
 
-const TERMINAL_STATUSES = new Set([
-  'cancelled',
-  'rejected',
-  'refunded',
-  'partial_refund',
-]);
-
-function isActiveStatus(status: string | null | undefined): boolean {
-  return status === 'new' || status === 'processing';
-}
-
-function statusLabel(status: string | null | undefined): string {
-  const labels = strings.ordersHub.orderStatusLabels as Record<string, string>;
-  const key = status ?? '';
-  return labels[key] ?? key;
-}
-
-function statusToneFor(
-  status: string | null | undefined,
-): 'success' | 'brand' | 'warning' | 'neutral' {
-  if (isActiveStatus(status)) return 'warning';
-  if (status === 'completed') return 'success';
-  if (TERMINAL_STATUSES.has(status ?? '')) return 'neutral';
-  return 'brand';
-}
-
 export interface OrdersBookingsHubScreenProps {
   onBack?: () => void;
   onSearch?: () => void;
-  onOpenOrder?: (orderNumber: string) => void;
+  onOpenOrder?: (orderId: string) => void;
   onOpenBooking?: (bookingNumber: string) => void;
   onContactKitchen?: () => void;
   onTrackOrder?: () => void;

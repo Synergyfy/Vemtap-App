@@ -17,11 +17,11 @@ import { useLocationStore } from '@store/locationStore';
 import { queryClient } from '@store/queryClient';
 import { clearSecureStorage } from '@utils/secureStorage';
 import { FeaturedDealsScreen } from '@features/home/screens/FeaturedDealsScreen';
-import { SavedHubScreen } from '@features/accountHub/screens/SavedHubScreen';
 import { AccountHomeScreen } from '@features/accountHub/screens/AccountHomeScreen';
 import { CustomerDashboardScreen } from '@features/accountHub/screens/CustomerDashboardScreen';
 import { MyDealsHubScreen } from '@features/myDeals/screens/MyDealsHubScreen';
 import { OrdersBookingsHubScreen } from '@features/order/screens/OrdersBookingsHubScreen';
+import { PersonalHubNavigator } from '@navigation/PersonalHubNavigator';
 import { UrbanOrderDetailScreen } from '@features/order/screens/UrbanOrderDetailScreen';
 import { MessagesScreen } from '@features/merchantChat/screens/MessagesScreen';
 import { UrbanConversationScreen } from '@features/merchantChat/screens/UrbanConversationScreen';
@@ -54,7 +54,6 @@ import type {
   MainTabParamList,
   RootStackParamList,
 } from '@navigation/types';
-import { businesses } from '@features/discover/data/discoverData';
 import { strings } from '@constants/strings';
 import { tabBarTopShadow } from '@theme/shadows';
 import { typeMetrics } from '@theme/typography';
@@ -94,7 +93,11 @@ function DealsTabScreen() {
   // Notifications and the account hub live in the account shell, so the bell
   // hands off across shells instead of duplicating those screens here.
   const onOpenNotifications = useMemo(
-    () => () => navigation.navigate('PersonalHub', { screen: 'PersonalNotifications' }),
+    () => () =>
+      navigation.navigate('Account', {
+        screen: 'PersonalHub',
+        params: { screen: 'PersonalNotifications' },
+      }),
     [navigation],
   );
   const onOpenAccount = useMemo(
@@ -162,7 +165,11 @@ function HomeFeedScreen() {
     [navigation],
   );
   const onOpenNotifications = useMemo(
-    () => () => navigation.navigate('PersonalHub', { screen: 'PersonalNotifications' }),
+    () => () =>
+      navigation.navigate('Account', {
+        screen: 'PersonalHub',
+        params: { screen: 'PersonalNotifications' },
+      }),
     [navigation],
   );
   const onOpenAccount = useMemo(
@@ -230,7 +237,11 @@ function HomeDealsDiscoveryScreen() {
     [area, navigation],
   );
   const onOpenNotifications = useMemo(
-    () => () => navigation.navigate('PersonalHub', { screen: 'PersonalNotifications' }),
+    () => () =>
+      navigation.navigate('Account', {
+        screen: 'PersonalHub',
+        params: { screen: 'PersonalNotifications' },
+      }),
     [navigation],
   );
   const onOpenAccount = useMemo(
@@ -270,6 +281,19 @@ type DiscoverStackNavigation = CompositeNavigationProp<
     >
   >
 >;
+
+/** Cross-shell handoff to the personal hub's Messages tab via the Account tab. */
+function useOpenPersonalMessages() {
+  const navigation = useNavigation<DiscoverStackNavigation>();
+  return useCallback(
+    () =>
+      navigation.navigate('Account', {
+        screen: 'PersonalHub',
+        params: { screen: 'PersonalMessages' },
+      }),
+    [navigation],
+  );
+}
 
 function DiscoverHomeScreen() {
   const navigation = useNavigation<DiscoverStackNavigation>();
@@ -316,18 +340,21 @@ function BusinessProfileTabScreen() {
   // Two sources for one screen: the bundled Discover businesses pass a
   // `business` summary, while a real offer passes the merchant's code and the
   // profile is fetched from `GET /public/businesses/code/:code`.
+  const openMessages = useOpenPersonalMessages();
   return (
     <BusinessProfileScreen
       {...('business' in route.params
         ? { business: route.params.business }
         : { code: route.params.code })}
       onBack={navigation.goBack}
+      onOpenInApp={openMessages}
     />
   );
 }
 
 function UrbanGrillProfileTabScreen() {
   const navigation = useNavigation<DiscoverStackNavigation>();
+  const openMessages = useOpenPersonalMessages();
   return (
     <UrbanGrillProfileScreen
       onBack={navigation.goBack}
@@ -337,6 +364,7 @@ function UrbanGrillProfileTabScreen() {
       onOpenDeal={() =>
         navigation.navigate('DealDetail', { dealId: 'urban-grill-lunch' })
       }
+      onOpenInApp={openMessages}
     />
   );
 }
@@ -388,11 +416,13 @@ function UrbanGrillDealsTabScreen() {
 
 function GlowSerenityProfileTabScreen() {
   const navigation = useNavigation<DiscoverStackNavigation>();
+  const openMessages = useOpenPersonalMessages();
   return (
     <GlowSerenityProfileScreen
       onBack={navigation.goBack}
       onOpenServices={() => navigation.push('GlowSerenityServices')}
       onOpenDeal={() => navigation.navigate('DealDetail', { dealId: 'glow-spa-weekend' })}
+      onOpenInApp={openMessages}
     />
   );
 }
@@ -438,47 +468,6 @@ function DiscoverTabScreen() {
   );
 }
 
-type SavedTabNavigation = BottomTabNavigationProp<MainTabParamList> &
-  NativeStackNavigationProp<AppStackParamList> &
-  NativeStackNavigationProp<RootStackParamList>;
-
-function SavedTabScreen() {
-  const navigation = useNavigation<SavedTabNavigation>();
-  const onOpenDeal = useCallback(
-    (dealId: string) => navigation.navigate('DealDetail', { dealId }),
-    [navigation],
-  );
-  const onOpenBusiness = useCallback(
-    (businessName: string) => {
-      const business = businesses.find(
-        item => item.name.toLocaleLowerCase() === businessName.toLocaleLowerCase(),
-      );
-      if (business) {
-        navigation.navigate('Tabs', {
-          screen: 'Discover',
-          params: {
-            screen: 'BusinessProfile',
-            params: { business },
-          },
-        });
-      }
-    },
-    [navigation],
-  );
-
-  return (
-    <SavedHubScreen
-      onBack={navigation.goBack}
-      onNotifications={() =>
-        navigation.navigate('PersonalHub', { screen: 'PersonalNotifications' })
-      }
-      onOpenDeal={onOpenDeal}
-      onOpenBusiness={onOpenBusiness}
-      onOpenService={onOpenDeal}
-    />
-  );
-}
-
 type AccountStackNavigation = CompositeNavigationProp<
   NativeStackNavigationProp<AccountStackParamList>,
   CompositeNavigationProp<
@@ -520,6 +509,7 @@ function usePersonalFlowHandoff() {
       rewards: () => navigation.navigate('PersonalHub', { screen: 'PersonalRewards' }),
       activity: () => navigation.navigate('PersonalHub', { screen: 'PersonalActivity' }),
       savings: () => navigation.navigate('PersonalHub', { screen: 'PersonalSavings' }),
+      saved: () => navigation.navigate('PersonalHub', { screen: 'PersonalSaved' }),
       notifications: () =>
         navigation.navigate('PersonalHub', { screen: 'PersonalNotifications' }),
       settings: () => navigation.navigate('PersonalHub', { screen: 'PersonalSettings' }),
@@ -544,10 +534,13 @@ function AccountHomeRoute() {
       // Enters the personal-hub shell, which owns the personal bottom navigation
       // (Home · My Deals · Messages · Orders · More) for the whole personal flow.
       onOpenCustomerDashboard={() => navigation.navigate('PersonalHub')}
+      // Messages is a personal-flow screen, so the row hands off to the shell that
+      // owns it rather than pushing a second copy under the consumer bar.
+      onOpenMessages={personal.messages}
       onOpenDeals={personal.myDeals}
       onOpenOrders={personal.orders}
       onOpenSavings={personal.savings}
-      onOpenSaved={() => navigation.navigate('Saved')}
+      onOpenSaved={personal.saved}
       onOpenPrivacy={personal.settings}
       onOpenHelpCentre={personal.helpCentre}
       onOpenTerms={personal.settings}
@@ -586,6 +579,7 @@ function AccountDashboardRoute() {
       onNotifications={() =>
         navigation.navigate('PersonalHub', { screen: 'PersonalNotifications' })
       }
+      onShop={() => navigation.navigate('Home')}
       onOpenAccount={() => navigation.navigate('PersonalHub', { screen: 'PersonalMore' })}
       onOpenDeal={openDeal}
       onOpenOffer={dealId => navigation.navigate('DealDetail', { dealId })}
@@ -614,7 +608,7 @@ function OrdersBookingsRoute() {
   return (
     <OrdersBookingsHubScreen
       onBack={navigation.goBack}
-      onOpenOrder={orderNumber => navigation.navigate('OrderDetail', { orderNumber })}
+      onOpenOrder={orderId => navigation.navigate('OrderDetail', { orderId })}
       onOpenBooking={bookingNumber =>
         navigation.navigate('BookingDetail', { bookingNumber })
       }
@@ -630,7 +624,7 @@ function MessagesRoute() {
   return (
     <MessagesScreen
       onBack={navigation.goBack}
-      onOpenConversation={merchant => navigation.navigate('Conversation', { merchant })}
+      onOpenConversation={threadId => navigation.navigate('Conversation', { threadId })}
     />
   );
 }
@@ -644,7 +638,7 @@ function MoreRoute() {
       onOpenRewards={personal.rewards}
       onOpenSavings={personal.savings}
       onOpenActivity={personal.activity}
-      onOpenSaved={() => navigation.navigate('Saved')}
+      onOpenSaved={personal.saved}
       onOpenNotifications={personal.notifications}
       onOpenSettings={personal.settings}
       onOpenOrders={personal.orders}
@@ -724,8 +718,10 @@ function ClaimedDealPassRoute() {
 
 function OrderDetailRoute() {
   const navigation = useNavigation<AccountStackNavigation>();
+  const route = useRoute<RouteProp<AccountStackParamList, 'OrderDetail'>>();
   return (
     <UrbanOrderDetailScreen
+      orderId={route.params?.orderId}
       onBack={() => navigation.goBack()}
       onChat={() => navigation.navigate('Conversation', {})}
     />
@@ -744,8 +740,10 @@ function BookingDetailRoute() {
 
 function ConversationRoute() {
   const navigation = useNavigation<AccountStackNavigation>();
+  const route = useRoute<RouteProp<AccountStackParamList, 'Conversation'>>();
   return (
     <UrbanConversationScreen
+      threadId={route.params?.threadId}
       onBack={() => navigation.goBack()}
       onViewPass={() => navigation.navigate('ClaimedDealPass', {})}
     />
@@ -757,6 +755,12 @@ export function AccountStackNavigator() {
     <TypeDensityProvider density="comfortable">
       <AccountStack.Navigator screenOptions={{ headerShown: false }}>
         <AccountStack.Screen name="AccountHome" component={AccountHomeRoute} />
+        {/*
+          Nested inside the Account tab on purpose: the tab's bottom navigation
+          stays visible on every personal page instead of being covered by a
+          root-level screen.
+        */}
+        <AccountStack.Screen name="PersonalHub" component={PersonalHubNavigator} />
         <AccountStack.Screen name="AccountDashboard" component={AccountDashboardRoute} />
         <AccountStack.Screen name="MyDeals" component={MyDealsRoute} />
         <AccountStack.Screen name="OrdersBookings" component={OrdersBookingsRoute} />
@@ -830,19 +834,9 @@ export function TabNavigator() {
         name="Discover"
         component={DiscoverTabScreen}
         options={{
-          title: strings.home.tabDiscover,
+          title: strings.home.tabBusiness,
           tabBarIcon: ({ focused }) => (
-            <TabIcon label={strings.home.tabDiscover} focused={focused} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Saved"
-        component={SavedTabScreen}
-        options={{
-          title: strings.home.tabSaved,
-          tabBarIcon: ({ focused }) => (
-            <TabIcon label={strings.home.tabSaved} focused={focused} />
+            <TabIcon label={strings.home.tabBusiness} focused={focused} />
           ),
         }}
       />
