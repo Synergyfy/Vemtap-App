@@ -99,6 +99,26 @@ function sumStat(points: unknown[], key: keyof LoyaltyTrends): number | null {
 }
 
 /**
+ * One labelled period-over-period comparison from `growthVsPreviousPeriod`.
+ * `percent` is `null` when the previous period had no activity — the backend
+ * deliberately does not report a misleading 0% (or Infinity), so callers must
+ * render nothing rather than coerce it to zero.
+ */
+const savingsGrowthMetricSchema = z.object({
+  current: z.number().nullish(),
+  previous: z.number().nullish(),
+  percent: z.number().nullable().optional(),
+});
+export type SavingsGrowthMetric = z.infer<typeof savingsGrowthMetricSchema>;
+
+const savingsGrowthSchema = z.object({
+  periodDays: z.number().nullish(),
+  netSavings: savingsGrowthMetricSchema.nullish(),
+  dealsRedeemed: savingsGrowthMetricSchema.nullish(),
+});
+export type SavingsGrowth = z.infer<typeof savingsGrowthSchema>;
+
+/**
  * `GET /loyalty/analytics` documents `trends` as `{ totalVisits, rewardPoints,
  * netSavings }`, but older responses have shipped it as an array of points (or
  * null). Normalise every shape to one object so callers can read it without
@@ -130,15 +150,24 @@ function normalizeTrends(raw: unknown): unknown {
  * total. Totals are now read from the top level, with `trends` kept as the
  * fallback so trends-only payloads (and the array form) still resolve.
  *
+ * **`netSavings` is now naira** — the real amount saved on redeemed claims.
+ * The old points proxy is published separately as `redeemedPoints`, so the
+ * point figure keeps its own name here.
+ *
  * The exact semantics of `trends` — percent (`"+25%"`) versus absolute
  * (`"+1"`) — is not documented by the backend and is unconfirmed; it is kept
  * parsed for the savings growth indicator but must not be shown as a total.
+ * Prefer `growth`, which is labelled and naira-based.
  */
 export const loyaltyAnalyticsSchema = z
   .object({
     totalVisits: analyticsStatSchema,
     currentPointsBalance: analyticsStatSchema,
     netSavings: analyticsStatSchema,
+    redeemedPoints: analyticsStatSchema,
+    dealsRedeemed: analyticsStatSchema,
+    avgDiscountPercent: analyticsStatSchema,
+    growthVsPreviousPeriod: savingsGrowthSchema.nullish(),
     trends: z.preprocess(normalizeTrends, trendPointSchema.nullable()).catch(null),
   })
   .transform(raw => ({
@@ -147,11 +176,38 @@ export const loyaltyAnalyticsSchema = z
       // `rewardPoints` is the long-standing internal name for the point
       // balance; the API spells the same total `currentPointsBalance`.
       rewardPoints: raw.currentPointsBalance ?? raw.trends?.rewardPoints ?? null,
+      // Naira saved on redeemed claims (was a points proxy before Phase 3).
       netSavings: raw.netSavings ?? raw.trends?.netSavings ?? null,
+      redeemedPoints: raw.redeemedPoints ?? null,
+      dealsRedeemed: raw.dealsRedeemed ?? null,
+      avgDiscountPercent: raw.avgDiscountPercent ?? null,
     },
+    /** Labelled period-over-period comparison; `percent` is null without a baseline. */
+    growth: raw.growthVsPreviousPeriod ?? null,
     trends: raw.trends,
   }));
 export type LoyaltyAnalytics = z.infer<typeof loyaltyAnalyticsSchema>;
+
+/**
+ * `GET /loyalty/points/tier` — server-authoritative tier for the customer's
+ * point balance. The thresholds match the app's former `rewardTiers.ts`, which
+ * can now be dropped in favour of this endpoint.
+ */
+export const loyaltyTierThresholdSchema = z.object({
+  name: z.string(),
+  minPoints: z.number(),
+});
+export type LoyaltyTierThreshold = z.infer<typeof loyaltyTierThresholdSchema>;
+
+export const loyaltyTierSchema = z.object({
+  points: z.number().nullish().default(0),
+  tier: z.string().nullish(),
+  nextTier: z.string().nullable().optional(),
+  pointsToNext: z.number().nullable().optional(),
+  progressPercent: z.number().nullable().optional(),
+  thresholds: z.array(loyaltyTierThresholdSchema).nullish().default([]),
+});
+export type LoyaltyTier = z.infer<typeof loyaltyTierSchema>;
 
 /** Business-side loyalty stats (Business hub Loyalty module). */
 export const loyaltyBusinessStatsSchema = z.looseObject({
@@ -179,16 +235,50 @@ export const loyaltyApi = {
     businessId?: string | null,
     options: ApiRequestOptions = {},
   ): Promise<Reward[]> {
+    // No business context (e.g. the Rewards card on the customer dashboard)?
+    // `global=true` returns platform-wide rewards. Without a scope the API
+    // rejects the call with 400.
+    const params: Record<string, string> = businessId
+      ? { businessId }
+      : { global: 'true' };
     const result = await requestValidated<RewardList>(
       {
         method: 'GET',
         url: '/loyalty/rewards',
-        params: businessId ? { businessId } : {},
+        params,
         ...options,
       },
       rewardListSchema,
     );
     return result.data ?? [];
+  },
+
+  /**
+   * Public: platform-wide rewards, for callers with no business context.
+   * Unauthenticated.
+   */
+  async listGlobalRewards(options: ApiRequestOptions = {}): Promise<Reward[]> {
+    const result = await requestValidated<RewardList>(
+      {
+        method: 'GET',
+        url: '/loyalty/rewards',
+        params: { global: 'true' },
+        ...options,
+      },
+      rewardListSchema,
+    );
+    return result.data ?? [];
+  },
+
+  /**
+   * Customer: tier for the current point balance.
+   * Auth: Bearer JWT, CUSTOMER role. Server-authoritative thresholds.
+   */
+  async getTier(options: ApiRequestOptions = {}): Promise<LoyaltyTier> {
+    return requestValidated<LoyaltyTier>(
+      { method: 'GET', url: '/loyalty/points/tier', ...options },
+      loyaltyTierSchema,
+    );
   },
 
   /**
@@ -247,14 +337,17 @@ export const loyaltyApi = {
    */
   async getAnalytics(
     days: number,
-    options: ApiRequestOptions = {},
+    options: ApiRequestOptions & { allTime?: boolean } = {},
   ): Promise<LoyaltyAnalytics> {
+    const { allTime, ...requestOptions } = options;
     return requestValidated<LoyaltyAnalytics>(
       {
         method: 'GET',
         url: '/loyalty/analytics',
-        params: { days },
-        ...options,
+        // `allTime` is the backend's escape hatch for the "All Time" timeframe
+        // chip; when set it wins over `days`.
+        params: allTime ? { allTime: 'true' } : { days },
+        ...requestOptions,
       },
       loyaltyAnalyticsSchema,
     );

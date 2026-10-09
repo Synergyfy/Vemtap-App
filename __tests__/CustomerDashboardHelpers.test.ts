@@ -1,49 +1,52 @@
-import { resolveTier, rewardTiers } from '@features/accountHub/data/rewardTiers';
+import { loyaltyTierSchema } from '@api/loyaltyApi';
 import { formatCompactNaira, formatPoints, formatWhen } from '@utils/formatters';
 
-describe('resolveTier', () => {
-  test('a new customer sits at Bronze with zero progress', () => {
-    const status = resolveTier(0);
-    expect(status.tier).toEqual({ rank: 1, name: 'Bronze', points: 0 });
-    expect(status.next?.name).toBe('Silver');
-    expect(status.progress).toBe(0);
+describe('loyaltyTierSchema', () => {
+  // Tier thresholds are server-authoritative (`GET /loyalty/points/tier`), so
+  // the app no longer resolves them locally. These assert we read the payload
+  // correctly, including the "no next tier" case.
+  const parse = (payload: unknown) => loyaltyTierSchema.parse(payload);
+
+  test('reads tier, next tier and progress from the API', () => {
+    const tier = parse({
+      points: 2450,
+      tier: 'Gold',
+      nextTier: 'Platinum',
+      pointsToNext: 3000,
+      progressPercent: 81.7,
+      thresholds: [
+        { name: 'Bronze', minPoints: 0 },
+        { name: 'Silver', minPoints: 1000 },
+        { name: 'Gold', minPoints: 2000 },
+        { name: 'Platinum', minPoints: 3000 },
+        { name: 'Diamond', minPoints: 6000 },
+      ],
+    });
+    expect(tier.tier).toBe('Gold');
+    expect(tier.nextTier).toBe('Platinum');
+    expect(tier.pointsToNext).toBe(3000);
+    expect(Math.round(tier.progressPercent ?? 0)).toBe(82);
+    expect(tier.thresholds).toHaveLength(5);
   });
 
-  test('thresholds are inclusive at the boundary', () => {
-    expect(resolveTier(999).tier.name).toBe('Bronze');
-    expect(resolveTier(1000).tier.name).toBe('Silver');
-    expect(resolveTier(2000).tier.name).toBe('Gold');
-    expect(resolveTier(3000).tier.name).toBe('Platinum');
+  test('the top tier has no next tier', () => {
+    const tier = parse({
+      points: 6000,
+      tier: 'Diamond',
+      nextTier: null,
+      pointsToNext: null,
+      progressPercent: 100,
+      thresholds: [{ name: 'Diamond', minPoints: 6000 }],
+    });
+    expect(tier.tier).toBe('Diamond');
+    expect(tier.nextTier).toBeNull();
   });
 
-  test('matches the design numbers: 2,450 points is Gold, ~82% to Platinum', () => {
-    const status = resolveTier(2450);
-    expect(status.tier).toEqual({ rank: 3, name: 'Gold', points: 2000 });
-    expect(status.next).toEqual({ rank: 4, name: 'Platinum', points: 3000 });
-    expect(status.progress).toBeCloseTo(2450 / 3000, 5);
-    expect(Math.round(status.progress * 100)).toBe(82);
-  });
-
-  test('the top tier has no next tier and reports full progress', () => {
-    for (const points of [6000, 12000]) {
-      const status = resolveTier(points);
-      expect(status.tier.name).toBe('Diamond');
-      expect(status.next).toBeNull();
-      expect(status.progress).toBe(1);
-    }
-  });
-
-  test('invalid or negative input falls back to the floor', () => {
-    expect(resolveTier(-50).tier.name).toBe('Bronze');
-    expect(resolveTier(-50).progress).toBe(0);
-    expect(resolveTier(Number.NaN).tier.name).toBe('Bronze');
-  });
-
-  test('tiers ascend strictly by points', () => {
-    for (let i = 1; i < rewardTiers.length; i += 1) {
-      expect(rewardTiers[i].points).toBeGreaterThan(rewardTiers[i - 1].points);
-      expect(rewardTiers[i].rank).toBe(rewardTiers[i - 1].rank + 1);
-    }
+  test('tolerates a payload with only the balance', () => {
+    const tier = parse({ points: 120 });
+    expect(tier.points).toBe(120);
+    expect(tier.tier).toBeUndefined();
+    expect(tier.thresholds).toEqual([]);
   });
 });
 

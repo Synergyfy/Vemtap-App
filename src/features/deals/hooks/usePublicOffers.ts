@@ -119,6 +119,61 @@ export function usePublicOffersFeed(limit = 20) {
 }
 
 /**
+ * "Deals You May Like" — the customer-only ranked feed (`GET /recommendations`).
+ *
+ * Same origin and radius as `usePublicOffersFeed`, so both cards agree on what
+ * "nearby" means, but two things are deliberately different:
+ *
+ *  - **No client filters.** This endpoint is a fixed ranked list, so the price /
+ *    discount / category / availability criteria do not apply here.
+ *  - **No distances.** The server filters by proximity but omits `distanceKm`,
+ *    so cards must render without it; the mapper is fed the same origin purely
+ *    for its formatting helpers.
+ *
+ * A 401/403 (anonymous visitor, or a signed-in owner) is not an error worth
+ * showing: the caller falls back to the plain public feed, which is why
+ * `enabled` stays on and the query is allowed to fail quietly.
+ */
+export function useRecommendations(limit = 10) {
+  const area = useLocationStore(state => state.area);
+  const coords = useLocationStore(state => state.coords);
+  const radiusKm = useLocationStore(state => state.radiusKm);
+  const origin = useMemo(() => discoveryOrigin(area, coords), [area, coords]);
+
+  const query = useQuery<OfferFeed>({
+    queryKey: [
+      'offers',
+      'recommendations',
+      origin.latitude,
+      origin.longitude,
+      radiusKm,
+      limit,
+    ],
+    queryFn: () =>
+      dealsApi.getRecommendations({
+        limit,
+        lat: origin.latitude,
+        lng: origin.longitude,
+        radius: radiusKm,
+      }),
+    staleTime: 300_000,
+  });
+
+  const offers: Offer[] = query.data?.data ?? [];
+
+  return {
+    ...query,
+    offers,
+    /** Same mapper as the public feed, minus any distance rendering: the
+     * endpoint omits `distanceKm`. */
+    list: offers.map(offer => mapOfferToListItem(offer, origin)),
+    /** True once the call has actually succeeded, so the caller knows the
+     * recommendations (not the fallback feed) are on screen. */
+    hasRecommendations: query.isSuccess,
+  };
+}
+
+/**
  * Engagement counts for a single offer. The public engagement endpoint is one
  * request per offer, so this is fetched per rendered row and cached per offerId
  * rather than fanned out for the whole feed. A batch endpoint would remove the

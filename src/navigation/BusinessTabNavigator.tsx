@@ -61,6 +61,7 @@ import {
   countUnreadMessages,
   useBusinessDashboard,
   useMyBusiness,
+  usePosDashboard,
 } from '@features/business/hooks/useBusinessDashboardData';
 import { useActiveBranch } from '@features/business/hooks/useActiveBranch';
 import { useBusinessHubData } from '@features/business/hooks/useBusinessHubData';
@@ -312,8 +313,13 @@ function BusinessBookingsRoute() {
 
 function BusinessPosOrdersRoute() {
   const navigation = useBusinessNavigation();
+  const { activeBranchId } = useActiveBranch();
+  const posQuery = usePosDashboard(activeBranchId);
+  // The screen presents the payload itself; undefined (still loading or failed)
+  // keeps the designed figures rather than flashing zeros.
   return (
     <BusinessPosOrdersViewScreen
+      pos={posQuery.data}
       onBack={navigation.goBack}
       // Opening a transaction hands the terminal over to the customer-facing
       // table display, which continues through payment, rating and receipt.

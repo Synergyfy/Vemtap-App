@@ -1,4 +1,5 @@
 export * from './authApi';
+export * from './campaignsApi';
 export * from './dealsApi';
 export * from './catalogueApi';
 export * from './businessProfileApi';
@@ -13,3 +14,5 @@ export * from './notificationsApi';
 export * from './ordersApi';
 export * from './messagingApi';
 export * from './savedApi';
+export * from './savingsApi';
+export * from './bookingsApi';

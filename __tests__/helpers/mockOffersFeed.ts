@@ -113,6 +113,20 @@ export const mockOffersFeedModule = () => {
         grid: MOCK_OFFERS.map(offer => mapper.mapOfferToGridItem(offer, origin)),
       },
     })),
+    /**
+     * The customer-only ranked feed. Defaults to "unavailable" (no data, not an
+     * error) so surfaces render the public feed exactly as they did before the
+     * endpoint was wired; a test that cares about recommendations overrides this
+     * or asserts on `hasRecommendations`.
+     */
+    useRecommendations: jest.fn(() => ({
+      offers: [],
+      list: [],
+      isLoading: false,
+      isError: false,
+      isSuccess: false,
+      hasRecommendations: false,
+    })),
     useDealEngagement: jest.fn(() => ({
       data: undefined,
       isLoading: false,

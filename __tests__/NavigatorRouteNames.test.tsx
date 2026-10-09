@@ -5,6 +5,11 @@ import { TabNavigator } from '@navigation/TabNavigator';
 import { BusinessTabNavigator } from '@navigation/BusinessTabNavigator';
 import { PersonalHubNavigator } from '@navigation/PersonalHubNavigator';
 
+// Mounts three whole navigators (customer tabs, business tabs, personal hub)
+// in one test, so it needs more headroom than the global cap on a loaded
+// machine. Without this the suite fails on wall-clock, not on behaviour.
+jest.setTimeout(180_000);
+
 jest.mock('@features/home/hooks/useNearbyBusinesses', () =>
   jest.requireActual('./helpers/mockHomeBusinesses').mockHomeBusinessesModule(),
 );

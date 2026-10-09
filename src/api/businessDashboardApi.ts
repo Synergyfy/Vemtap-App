@@ -145,6 +145,8 @@ export const posDashboardSchema = z.looseObject({
   revenue: looseCount,
   transactionCount: looseCount,
   averageSaleValue: looseCount,
+  /** Pending offline / held sales waiting to sync — the POS Terminal row badge. */
+  heldSalesCount: looseCount.optional(),
   paymentBreakdown: z.unknown().optional(),
 });
 export type PosDashboard = z.infer<typeof posDashboardSchema>;

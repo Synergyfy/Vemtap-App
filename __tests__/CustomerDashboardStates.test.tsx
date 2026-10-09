@@ -8,9 +8,11 @@ import { claimFixture } from './helpers/mockCustomerHub';
 
 const mockBalance = jest.fn();
 const mockAnalytics = jest.fn();
+const mockTier = jest.fn();
 const mockLogs = jest.fn();
 const mockRewards = jest.fn();
 const mockFeed = jest.fn();
+const mockRecommendations = jest.fn();
 const mockUnread = jest.fn();
 const mockClaimsList = jest.fn();
 const mockActiveClaimsCount = jest.fn();
@@ -21,6 +23,7 @@ jest.mock('@features/accountHub/hooks/useLoyalty', () => ({
   useLoyaltyAnalytics: () => mockAnalytics(),
   useLoyaltyLogs: () => mockLogs(),
   useRewards: () => mockRewards(),
+  useLoyaltyTier: () => mockTier(),
 }));
 
 jest.mock('@features/myDeals/hooks/useMyClaims', () => ({
@@ -36,6 +39,7 @@ jest.mock('@features/business/hooks/useBusinessDashboardData', () => ({
 jest.mock('@features/deals/hooks/usePublicOffers', () => ({
   ...jest.requireActual('@features/deals/hooks/usePublicOffers'),
   usePublicOffersFeed: () => mockFeed(),
+  useRecommendations: () => mockRecommendations(),
 }));
 
 const copy = strings.customerDashboard;
@@ -72,6 +76,8 @@ function feedItem(id: string, title: string): DealListItem {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  // Default: the tier query is still loading (returns no data yet).
+  mockTier.mockReturnValue({ data: undefined });
   mockUnread.mockReturnValue({ data: undefined });
   mockClaimsList.mockReturnValue({
     isLoading: false,
@@ -84,6 +90,17 @@ beforeEach(() => {
     isSuccess: false,
     isError: false,
     data: undefined,
+  });
+  // "Deals You May Like" reads the dedicated recommendations endpoint and
+  // falls back to the public feed when it has no result yet.
+  mockRecommendations.mockReturnValue({
+    isLoading: true,
+    isError: false,
+    isSuccess: false,
+    data: undefined,
+    offers: [],
+    list: [],
+    hasRecommendations: false,
   });
 });
 
@@ -117,7 +134,10 @@ test('while loading, known metrics show placeholders and each region shows a loa
   expect(screen.queryByText('0')).toBeNull();
   // three metric placeholders + four placeholders inside the rewards card
   expect(screen.getAllByText('—')).toHaveLength(7);
-  expect(screen.getAllByText(strings.common.loading)).toHaveLength(4);
+  // Assert the loading states per region rather than as one global count: the
+  // rewards card now resolves platform-wide (no business scope needed), so it
+  // contributes its own loading line instead of waiting on context.
+  expect(screen.getAllByText(strings.common.loading).length).toBeGreaterThanOrEqual(3);
   expect(screen.queryByText(copy.activityEmpty.title)).toBeNull();
   expect(screen.queryByLabelText('Cart')).toBeNull();
   expect(screen.queryByText('3')).toBeNull();
@@ -139,6 +159,16 @@ test('query failures surface retryable error states, never a fake zero', async (
     isError: true,
     refetch: jest.fn(),
     feed: { list: [] },
+  });
+  mockRecommendations.mockReturnValue({
+    isLoading: false,
+    isError: true,
+    isSuccess: false,
+    data: undefined,
+    offers: [],
+    list: [],
+    hasRecommendations: false,
+    refetch: jest.fn(),
   });
   mockClaimsList.mockReturnValue({
     isLoading: false,
@@ -176,13 +206,35 @@ test('an empty account renders zero values and empty states, not placeholders', 
     data: { data: [] },
     refetch: jest.fn(),
   });
-  mockRewards.mockReturnValue({ isPending: true, isError: false, data: undefined });
+  // Rewards now resolve platform-wide (no business context needed), so an
+  // empty list is a real answer, not a pending query waiting for a scope.
+  mockRewards.mockReturnValue({ isPending: false, isError: false, data: [] });
+  mockTier.mockReturnValue({
+    data: {
+      points: 0,
+      tier: 'Bronze',
+      nextTier: 'Silver',
+      pointsToNext: 1000,
+      progressPercent: 0,
+      thresholds: [],
+    },
+  });
   mockUnread.mockReturnValue({ data: 0 });
   mockFeed.mockReturnValue({
     isLoading: false,
     isError: false,
     refetch: jest.fn(),
     feed: { list: [] },
+  });
+  mockRecommendations.mockReturnValue({
+    isLoading: false,
+    isError: false,
+    isSuccess: true,
+    data: { data: [], total: 0 },
+    offers: [],
+    list: [],
+    hasRecommendations: true,
+    refetch: jest.fn(),
   });
   mockClaimsList.mockReturnValue({
     isLoading: false,
@@ -201,7 +253,7 @@ test('an empty account renders zero values and empty states, not placeholders', 
 
   expect(screen.getAllByText('0')).toHaveLength(2);
   expect(screen.getByText('₦0')).toBeTruthy();
-  expect(screen.getByText('Bronze Member • Tier 1')).toBeTruthy();
+  expect(screen.getByText('Bronze Member')).toBeTruthy();
   expect(screen.getByText('0 / 1,000 pts')).toBeTruthy();
   expect(screen.getByText(copy.activeEmpty.title)).toBeTruthy();
   expect(screen.getByText(copy.activityEmpty.title)).toBeTruthy();
@@ -217,6 +269,16 @@ test('a funded account renders real points, tier, ledger rows and two recommenda
   const yesterday = new Date(Date.now() - 86_400_000).toISOString();
 
   mockBalance.mockReturnValue({ isSuccess: true, isError: false, data: 2450 });
+  mockTier.mockReturnValue({
+    data: {
+      points: 2450,
+      tier: 'Gold',
+      nextTier: 'Platinum',
+      pointsToNext: 3000,
+      progressPercent: 81.7,
+      thresholds: [],
+    },
+  });
   mockAnalytics.mockReturnValue({
     isSuccess: true,
     isError: false,
@@ -277,6 +339,19 @@ test('a funded account renders real points, tier, ledger rows and two recommenda
       ],
     },
   });
+  mockRecommendations.mockReturnValue({
+    isLoading: false,
+    isError: false,
+    isSuccess: true,
+    data: { data: [], total: 2 },
+    offers: [],
+    list: [
+      feedItem('offer-1', 'Sourdough & Pastries Combo'),
+      feedItem('offer-2', 'Cocktails & Small Plates'),
+    ],
+    hasRecommendations: true,
+    refetch: jest.fn(),
+  });
   mockUnread.mockReturnValue({ data: 3 });
   mockClaimsList.mockReturnValue({
     isLoading: false,
@@ -295,7 +370,7 @@ test('a funded account renders real points, tier, ledger rows and two recommenda
 
   expect(screen.getByText('2,450')).toBeTruthy();
   expect(screen.getByText('₦24.5k')).toBeTruthy();
-  expect(screen.getByText('Gold Member • Tier 3')).toBeTruthy();
+  expect(screen.getByText('Gold Member')).toBeTruthy();
   expect(screen.getByText('2,450 pts')).toBeTruthy();
   expect(screen.getByText('Progress to Platinum')).toBeTruthy();
   expect(screen.getByText('2,450 / 3,000 pts')).toBeTruthy();

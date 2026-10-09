@@ -382,6 +382,38 @@ export const dealsApi = {
   },
 
   /**
+   * Customer-only ranked offers: `GET /recommendations`.
+   *
+   * Rows are identical to the public offers feed (`mapPublicOffers` on the
+   * server), so `offerSchema`/`offerFeedSchema` are reused as-is, with one
+   * caveat worth keeping: the endpoint filters by proximity but does **not**
+   * return `distanceKm`, so nothing here may render a distance.
+   *
+   * The server also excludes offers this customer already claimed (matched on
+   * userId, email or phone), which is the whole point of the endpoint over the
+   * plain feed, and it accepts a CUSTOMER token only — an owner gets a 403.
+   */
+  async getRecommendations(
+    query: { lat?: number; lng?: number; radius?: number; limit?: number } = {},
+    options: ApiRequestOptions = {},
+  ): Promise<OfferFeed> {
+    return requestValidated<OfferFeed>(
+      {
+        method: 'GET',
+        url: '/recommendations',
+        params: {
+          lat: query.lat,
+          lng: query.lng,
+          radius: query.radius,
+          limit: query.limit,
+        },
+        ...options,
+      },
+      offerFeedSchema,
+    );
+  },
+
+  /**
    * A single offer by id. Public and unauthenticated.
    *
    * Verified live: a real UUID returns 200, an unknown UUID returns 404, and a

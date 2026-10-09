@@ -57,17 +57,19 @@ interface ThreadEntry {
   categories: string[];
 }
 
-// Design (`messages_2`) filters conversations by per-row `data-category`
-// values (`unread`, `deals`, `bookings`). The API exposes no category field
-// on `ConversationThread`, so topic categories are derived from the thread's
-// latest message snippet; `unread` comes from `customerUnreadCount`.
+// Design `data-filter` values for the four chips, in render order.
+const FILTER_KEYS = ['all', 'unread', 'deals', 'bookings'];
+
+/**
+ * Fallback keyword classification, used only for threads the server has not
+ * classified (`subjectType` GENERAL and no `categories`). Threads recorded
+ * against a deal, claim, booking or order already carry `categories`, so the
+ * regexes no longer decide where a real conversation lives.
+ */
 const DEAL_CATEGORY_RE =
   /\b(deal|deals|offer|offers|voucher|vouchers|discount|discounts|promo|coupon|coupons|claim|claims|redeem|savings|% off)\b/i;
 const BOOKING_CATEGORY_RE =
   /\b(book|books|booked|booking|bookings|reserve|reserved|reservation|reservations|table|appointment|appointments|schedule|scheduled|slot|slots|order|orders|ordered)\b/i;
-
-// Design `data-filter` values for the four chips, in render order.
-const FILTER_KEYS = ['all', 'unread', 'deals', 'bookings'];
 
 /**
  * One API thread → one conversation card. Everything comes from
@@ -80,6 +82,16 @@ function toEntry(thread: ConversationThread, index: number): ThreadEntry {
   const logo = thread.business?.logoUrl ?? thread.branch?.logoUrl ?? null;
   const message = thread.lastMessageContent ?? '';
   const unread = thread.customerUnreadCount ?? 0;
+  // `categories` is server-side (see `ThreadSubjectType`): `unread`, `deals`,
+  // `bookings`. It is authoritative when present, so only an unclassified
+  // thread falls back to keyword matching on its last snippet.
+  const categories = thread.categories?.length
+    ? thread.categories
+    : [
+        ...(unread > 0 ? ['unread'] : []),
+        ...(DEAL_CATEGORY_RE.test(message) ? ['deals'] : []),
+        ...(BOOKING_CATEGORY_RE.test(message) ? ['bookings'] : []),
+      ];
   return {
     key: thread.id,
     image: logo ? { uri: logo } : images[index % images.length],
@@ -89,11 +101,7 @@ function toEntry(thread: ConversationThread, index: number): ThreadEntry {
     context: thread.branch?.address ?? '',
     contextIcon: 'locationOn',
     unread,
-    categories: [
-      ...(unread > 0 ? ['unread'] : []),
-      ...(DEAL_CATEGORY_RE.test(message) ? ['deals'] : []),
-      ...(BOOKING_CATEGORY_RE.test(message) ? ['bookings'] : []),
-    ],
+    categories,
   };
 }
 

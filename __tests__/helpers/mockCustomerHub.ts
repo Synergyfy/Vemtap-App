@@ -102,6 +102,103 @@ export const claimFixture = {
   },
 };
 
+/** Fixtures mirroring one redeemed claim from `GET /me/savings`. */
+export const savingsFixtures = {
+  entry: {
+    id: 'saving-1',
+    redeemedAt: '2026-10-08T18:27:00.343Z',
+    merchantName: 'Patrick Ventures',
+    merchantImageUrl: null,
+    offerName: 'Apo Lunch Combo',
+    claimCode: 'VEM4-1YVXBYLZA-S2DT',
+    originalAmount: 10000,
+    paidAmount: 8500,
+    savedAmount: 1500,
+    currency: 'NGN',
+    categoryId: 'cat-1',
+    categoryName: 'Food & Dining',
+  },
+  category: {
+    id: 'cat-1',
+    name: 'Food & Dining',
+    redemptions: 1,
+    savedAmount: 1500,
+    sharePercent: 100,
+  },
+};
+
+const okQuery = <T>(data: T) => ({
+  data,
+  isLoading: false,
+  isPending: false,
+  isError: false,
+  isSuccess: true,
+  refetch: jest.fn(),
+});
+
+/**
+ * Mocks for the savings ledger (`GET /me/savings`) and the loyalty figures
+ * that back the Savings hero. Defaults to a successful, populated response so
+ * the screen renders real-looking rows; override per test for empty/error.
+ */
+export const mockSavingsModule = (options: { empty?: boolean } = {}) => {
+  const empty = options.empty ?? false;
+  return {
+    SAVINGS_RANGE_DAYS: { month: 30, quarter: 90, allTime: undefined },
+    useSavingsLedger: jest.fn(() =>
+      okQuery({
+        data: empty ? [] : [savingsFixtures.entry],
+        total: empty ? 0 : 1,
+        page: 1,
+        limit: 10,
+        totalSavedAmount: empty ? 0 : 1500,
+      }),
+    ),
+    useSavingsCategories: jest.fn(() =>
+      okQuery({
+        data: empty ? [] : [savingsFixtures.category],
+        totalSavedAmount: empty ? 0 : 1500,
+        totalRedemptions: empty ? 0 : 1,
+      }),
+    ),
+  };
+};
+
+/** Loyalty figures behind the Savings hero and the dashboard Rewards card. */
+export const mockLoyaltyModule = () => ({
+  useLoyaltyAnalytics: jest.fn(() =>
+    okQuery({
+      totals: {
+        totalVisits: 0,
+        rewardPoints: 0,
+        netSavings: 1500,
+        redeemedPoints: 0,
+        dealsRedeemed: 1,
+        avgDiscountPercent: 15,
+      },
+      growth: {
+        periodDays: 30,
+        netSavings: { current: 1500, previous: 0, percent: null },
+        dealsRedeemed: { current: 1, previous: 0, percent: null },
+      },
+      trends: null,
+    }),
+  ),
+  useLoyaltyBalance: jest.fn(() => okQuery(0)),
+  useLoyaltyTier: jest.fn(() =>
+    okQuery({
+      points: 0,
+      tier: 'Bronze',
+      nextTier: 'Silver',
+      pointsToNext: 1000,
+      progressPercent: 0,
+      thresholds: [{ name: 'Bronze', minPoints: 0 }],
+    }),
+  ),
+  useRewards: jest.fn(() => okQuery([])),
+  useLoyaltyLogs: jest.fn(() => okQuery({ data: [], total: 0 })),
+});
+
 export const mockSavedHubModule = () => ({
   savedHubKeys: {
     all: ['me', 'saved'],

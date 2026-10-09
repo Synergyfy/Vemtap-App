@@ -2095,7 +2095,10 @@ export const strings = {
     rewards: 'Your Rewards',
     viewRewards: 'View Rewards',
     tierStatus: 'Tier Status',
-    tierFor: (name: string, rank: number) => `${name} Member • Tier ${rank}`,
+    // Rank is optional: the API's tier endpoint returns names + thresholds,
+    // not an ordinal, so callers render the name on its own when it has no rank.
+    tierFor: (name: string, rank?: number) =>
+      rank == null ? `${name} Member` : `${name} Member • Tier ${rank}`,
     balance: 'Balance',
     balanceFor: (points: string) => `${points} pts`,
     progressTo: (tier: string) => `Progress to ${tier}`,
@@ -2434,6 +2437,8 @@ export const strings = {
     groomingTotal: '₦9,500',
     bookings: {
       upcoming: 'Upcoming',
+      cancelled: 'Cancelled',
+      duration: 'Duration',
       addCalendar: 'Add to Calendar',
       directions: 'Get Directions',
       completed: 'Completed',
@@ -2441,6 +2446,7 @@ export const strings = {
       service: 'Deep Hydration Radiance Facial',
       serviceBody: 'Includes botanical peel & cryo-lymphatic massage session.',
       deposit: 'Deposit Paid (₦10,000)',
+      merchantFallback: 'Appointment',
     },
     orderNumberLabel: 'Order #',
     orderTotalLabel: 'Total',
@@ -2465,6 +2471,7 @@ export const strings = {
     emptyOrdersBody: 'Your orders from local merchants will appear here.',
     emptyBookingsTitle: 'No bookings yet',
     emptyBookingsBody: 'Your table reservations and appointments will appear here.',
+    bookingRef: 'Booking ref',
     nav: ['Home', 'My Deals', 'Messages', 'Orders', 'More'] as const,
     home: 'Home',
     myDeals: 'My Deals',
@@ -2762,19 +2769,24 @@ export const strings = {
       exportStatement: 'Export Statement',
       timeframes: ['This Month', 'Last 3 Mo', 'All Time'] as const,
       lifetimeLabel: 'Total Lifetime Savings',
-      lifetimeTotals: ['₦48,500', '₦124,300', '₦289,750'] as const,
-      growthPill: '+18% vs last mo',
+      /** Rendered while the ledger, or a figure it feeds, is still loading. */
+      unknown: '—',
+      growthPill: (percent: number) =>
+        `${percent >= 0 ? '+' : ''}${percent}% vs last period`,
       dealsRedeemedLabel: 'Deals Redeemed',
-      dealsRedeemedValue: '14',
       dealsRedeemedUnit: 'deals',
       avgDiscountLabel: 'Avg Discount',
-      avgDiscountValue: '22%',
       avgDiscountUnit: 'off',
       pointsLabel: 'VEM Points',
-      pointsValue: '1,450',
       pointsUnit: 'pts',
       categoryTitle: 'Savings by Category',
-      categoryCount: '3 active categories',
+      categoryCount: (count: number) =>
+        `${count} active ${count === 1 ? 'category' : 'categories'}`,
+      noCategories: 'No savings in this period yet.',
+      redemptions: 'redemptions',
+      noRedemptions:
+        'No redeemed deals in this period yet. Savings appear here once a merchant redeems your pass.',
+      loadFailed: "Couldn't load your savings. Pull to retry.",
       categories: [
         {
           id: 'dining',
@@ -2805,7 +2817,7 @@ export const strings = {
         },
       ] as const,
       ledgerTitle: 'Transaction Ledger',
-      ledgerCount: '14 records',
+      ledgerCount: (total: number) => `${total} ${total === 1 ? 'record' : 'records'}`,
       ledger: 'Detailed History Ledger',
       seeAll: 'See All',
       vip: 'Abuja VIP',
@@ -3549,6 +3561,8 @@ export const strings = {
     ] as const,
     terminalName: 'POS Terminal 01 (Cashier Counter)',
     terminalStatus: 'Online \u00b7 0s Latency',
+    /** Badge on the terminal row when offline/held sales are waiting to sync. */
+    heldSalesFor: (n: number) => `${n} held sale${n === 1 ? '' : 's'}`,
     volumeLabel: 'Daily In-Store Volume',
     volumeValue: '\u20A6142,500',
     volumeMeta: '/ 12 transactions',

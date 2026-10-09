@@ -9,11 +9,24 @@ import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
 import { OrderHubCard } from '@features/order/components/OrderHubComponents';
 import { useCustomerOrders } from '@features/order/hooks/useCustomerOrders';
+import { useMyBookings } from '@features/booking/hooks/useBookings';
+import type { Booking } from '@api/bookingsApi';
 import { isActiveStatus, statusLabel, statusToneFor } from '@features/order/orderStatus';
 import { orderImages } from '@features/order/orderData';
 import { formatCurrency, formatWhen } from '@utils/formatters';
 import { colors } from '@theme/colors';
 import { navbarBottomShadow } from '@theme/shadows';
+
+/**
+ * Booking statuses behind each Bookings filter chip, in chip order. The API's
+ * `booked`/`confirmed` are both still upcoming; `completed` and `cancelled` are
+ * terminal and cannot be rescheduled (cancel + rebook instead).
+ */
+const BOOKING_STATUS_GROUPS: readonly (readonly string[])[] = [
+  ['booked', 'confirmed'],
+  ['completed'],
+  ['cancelled'],
+];
 
 /**
  * Wire statuses behind each Orders filter chip, in chip order. The API's
@@ -27,6 +40,21 @@ const ORDER_STATUS_GROUPS: readonly (readonly string[])[] = [
   ['cancelled', 'rejected'],
   ['refunded', 'partial_refund'],
 ];
+
+/** Chip label for a booking status; unknown values fall back to the raw status. */
+function bookingStatusLabel(status: string | null | undefined): string {
+  switch (status) {
+    case 'booked':
+    case 'confirmed':
+      return strings.ordersHub.bookings.upcoming;
+    case 'completed':
+      return strings.ordersHub.bookings.completed;
+    case 'cancelled':
+      return strings.ordersHub.bookings.cancelled;
+    default:
+      return status ?? strings.common.empty;
+  }
+}
 
 export interface OrdersBookingsHubScreenProps {
   onBack?: () => void;
@@ -54,6 +82,16 @@ export function OrdersBookingsHubScreen({
   const filters =
     mode === 'orders' ? strings.ordersHub.orderFilters : strings.ordersHub.bookingFilters;
 
+  const bookings = useMyBookings();
+  const bookingList = bookings.data ?? [];
+  const bookingFilterCounts = BOOKING_STATUS_GROUPS.map(
+    group => bookingList.filter(booking => group.includes(booking.status ?? '')).length,
+  );
+  const visibleBookings = bookingList.filter(booking =>
+    BOOKING_STATUS_GROUPS[filter]?.includes(booking.status ?? ''),
+  );
+  const showBookingCounts = bookings.data !== undefined;
+
   const orders = useCustomerOrders();
   const orderList = orders.data ?? [];
   const filterCounts = ORDER_STATUS_GROUPS.map(
@@ -66,6 +104,8 @@ export function OrdersBookingsHubScreen({
   const showCounts = orders.data !== undefined;
   const withCount = (label: string, count: number) =>
     showCounts ? `${label} (${count})` : label;
+  const withBookingCount = (label: string, count: number) =>
+    showBookingCounts ? `${label} (${count})` : label;
 
   return (
     <View className="flex-1 bg-background">
@@ -216,7 +256,9 @@ export function OrdersBookingsHubScreen({
                 tone={filter === index ? 'brand' : 'secondary'}
                 className={filter === index ? 'font-sans-semibold' : 'font-sans-medium'}
               >
-                {mode === 'orders' ? withCount(item, filterCounts[index] ?? 0) : item}
+                {mode === 'orders'
+                  ? withCount(item, filterCounts[index] ?? 0)
+                  : withBookingCount(item, bookingFilterCounts[index] ?? 0)}
               </VemtapText>
             </Pressable>
           ))}
@@ -304,81 +346,80 @@ export function OrdersBookingsHubScreen({
               })}
             </View>
           )
+        ) : bookings.isLoading ? (
+          <LoadingState label={strings.common.loading} />
+        ) : bookings.isError ? (
+          <ErrorState title={strings.common.error} onRetry={bookings.refetch} />
+        ) : visibleBookings.length === 0 ? (
+          <EmptyState
+            variant="contained"
+            icon="spa"
+            title={
+              filter === 0 ? strings.ordersHub.emptyBookingsTitle : strings.common.empty
+            }
+            description={filter === 0 ? strings.ordersHub.emptyBookingsBody : undefined}
+          />
         ) : (
           <View className="gap-4">
-            <OrderHubCard
-              image={{ uri: orderImages.merchant }}
-              merchant={strings.ordersHub.glowName}
-              meta={strings.ordersHub.glowMeta}
-              status={strings.ordersHub.bookings.upcoming}
-              statusTone="brand"
-              onPress={() => onOpenBooking?.('VT-BK-5019')}
-              actions={[
-                { label: strings.ordersHub.bookings.addCalendar, onPress: noop },
-                {
-                  label: strings.ordersHub.bookings.directions,
-                  onPress: noop,
-                  primary: true,
-                },
-              ]}
-            >
-              <View className="gap-2 rounded-xl bg-surface-subtle p-3">
-                <VemtapText variant="labelMd" className="font-sans-semibold">
-                  {strings.ordersHub.bookingDate}
-                </VemtapText>
-                <View className="flex-row items-center justify-between gap-2">
+            {visibleBookings.map((booking: Booking) => (
+              <OrderHubCard
+                key={booking.id}
+                image={{ uri: orderImages.merchant }}
+                actions={
+                  booking.status === 'cancelled' || booking.status === 'completed'
+                    ? [
+                        {
+                          label: strings.ordersHub.bookings.bookAgain,
+                          onPress: noop,
+                        },
+                      ]
+                    : [
+                        { label: strings.ordersHub.bookings.addCalendar, onPress: noop },
+                        {
+                          label: strings.ordersHub.bookings.directions,
+                          onPress: noop,
+                          primary: true,
+                        },
+                      ]
+                }
+                merchant={
+                  booking.businessName ?? strings.ordersHub.bookings.merchantFallback
+                }
+                meta={
+                  booking.branchName
+                    ? `${booking.branchName} • ${booking.date} ${booking.time}`
+                    : `${booking.date} ${booking.time}`
+                }
+                status={bookingStatusLabel(booking.status)}
+                statusTone={
+                  booking.status === 'completed'
+                    ? 'neutral'
+                    : booking.status === 'cancelled'
+                      ? 'warning'
+                      : 'brand'
+                }
+                onPress={() => onOpenBooking?.(booking.reference ?? booking.id)}
+              >
+                <View className="gap-1 py-1">
+                  <VemtapText variant="bodyMd" className="font-sans-semibold">
+                    {booking.itemName ?? strings.ordersHub.bookings.merchantFallback}
+                  </VemtapText>
                   <VemtapText variant="caption" tone="secondary">
-                    {strings.ordersHub.bookingTime}
+                    {`${strings.ordersHub.bookings.duration}: ${booking.durationMinutes ?? 30} min`}
                   </VemtapText>
-                  <VemtapText variant="caption" className="font-sans-medium">
-                    {strings.ordersHub.therapist}
-                  </VemtapText>
+                  {booking.reference ? (
+                    <VemtapText variant="caption" tone="tertiary">
+                      {`${strings.ordersHub.bookingRef}: ${booking.reference}`}
+                    </VemtapText>
+                  ) : null}
+                  {booking.status === 'cancelled' && booking.cancellationReason ? (
+                    <VemtapText variant="caption" tone="tertiary" numberOfLines={2}>
+                      {booking.cancellationReason}
+                    </VemtapText>
+                  ) : null}
                 </View>
-              </View>
-              <View className="mt-3 gap-1">
-                <VemtapText variant="bodyMd" className="font-sans-semibold">
-                  {strings.ordersHub.bookings.service}
-                </VemtapText>
-                <VemtapText variant="caption" tone="secondary">
-                  {strings.ordersHub.bookings.serviceBody}
-                </VemtapText>
-                <View className="mt-1 flex-row items-center justify-between">
-                  <VemtapText
-                    variant="caption"
-                    tone="success"
-                    className="font-sans-semibold"
-                  >
-                    {strings.ordersHub.bookings.deposit}
-                  </VemtapText>
-                  <VemtapText variant="labelMd" className="font-sans-bold">
-                    {strings.ordersHub.bookingTotal}
-                  </VemtapText>
-                </View>
-              </View>
-            </OrderHubCard>
-            <OrderHubCard
-              image={{ uri: orderImages.steak }}
-              merchant={strings.ordersHub.groomingName}
-              meta={strings.ordersHub.groomingMeta}
-              status={strings.ordersHub.bookings.completed}
-              onPress={() => onOpenBooking?.('VT-BK-4811')}
-              actions={[
-                { label: strings.ordersHub.review, onPress: noop },
-                { label: strings.ordersHub.bookings.bookAgain, onPress: noop },
-              ]}
-            >
-              <VemtapText variant="bodyMd">
-                {strings.ordersHub.groomingService}
-              </VemtapText>
-              <View className="mt-1 flex-row items-center justify-between">
-                <VemtapText variant="caption" tone="secondary">
-                  {strings.ordersHub.groomingDate}
-                </VemtapText>
-                <VemtapText variant="labelMd" className="font-sans-semibold">
-                  {strings.ordersHub.groomingTotal}
-                </VemtapText>
-              </View>
-            </OrderHubCard>
+              </OrderHubCard>
+            ))}
           </View>
         )}
 

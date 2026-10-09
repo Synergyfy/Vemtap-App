@@ -1,12 +1,14 @@
 import React from 'react';
 import {
   Image,
+  Linking,
   Pressable,
   ScrollView,
   View,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
+import { useQuery } from '@tanstack/react-query';
 import { cssInterop } from 'nativewind';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -29,13 +31,17 @@ import {
   useLoyaltyAnalytics,
   useLoyaltyBalance,
   useLoyaltyLogs,
+  useLoyaltyTier,
   useRewards,
 } from '@features/accountHub/hooks/useLoyalty';
+import { campaignsApi } from '@api/campaignsApi';
 import { useActiveClaimsCount, useMyClaims } from '@features/myDeals/hooks/useMyClaims';
-import { usePublicOffersFeed } from '@features/deals/hooks/usePublicOffers';
+import {
+  usePublicOffersFeed,
+  useRecommendations,
+} from '@features/deals/hooks/usePublicOffers';
 import { useUnreadNotificationsCount } from '@features/business/hooks/useBusinessDashboardData';
-import { resolveTier } from '@features/accountHub/data/rewardTiers';
-import type { LoyaltyLog, Reward } from '@api/loyaltyApi';
+import type { LoyaltyLog, LoyaltyTier, Reward } from '@api/loyaltyApi';
 import { formatCompactNaira, formatPoints, formatWhen } from '@utils/formatters';
 import { colors } from '@theme/colors';
 import { navbarBottomShadow } from '@theme/shadows';
@@ -70,7 +76,6 @@ const activityIcons: Record<LoyaltyLog['type'], IconName> = {
 
 function availabilityFor(
   rewards: { isError: boolean; isPending: boolean; data?: Reward[] },
-  homeBusinessId: string | null,
   points: number | null,
   balanceError: boolean,
 ): RewardsAvailability {
@@ -80,9 +85,8 @@ function availabilityFor(
   if (points === null) {
     return { state: 'loading' };
   }
-  if (!homeBusinessId) {
-    return { state: 'zero' };
-  }
+  // No business context is no longer a zero state: the rewards query falls
+  // back to the platform-wide list, which can legitimately be empty.
   if (rewards.isPending) {
     return { state: 'loading' };
   }
@@ -126,8 +130,22 @@ export function CustomerDashboardScreen({
 
   const balance = useLoyaltyBalance(null);
   const analytics = useLoyaltyAnalytics();
+  // Disabled until the balance resolves, so the query object is optional here.
+  const tierQuery = useLoyaltyTier({ enabled: balance.isSuccess });
   const logs = useLoyaltyLogs(null, 1, 3);
   const feed = usePublicOffersFeed();
+  // Featured campaign banner: copy and CTA only. The banners module has no
+  // image field and stores a Tailwind gradient class, so the hero keeps its own
+  // artwork and just adopts the banner's headline, body and button.
+  const featuredBanner = useQuery({
+    queryKey: ['campaigns', 'featured'],
+    queryFn: () => campaignsApi.getFeaturedCampaigns(),
+    staleTime: 300_000,
+  });
+  const banner = featuredBanner.data?.[0];
+  // "Deals You May Like" prefers the ranked, already-claimed-filtered feed and
+  // silently falls back to the public feed when that call is unavailable.
+  const recommended = useRecommendations(10);
   const unread = useUnreadNotificationsCount();
   const unreadCount = unread.data ?? 0;
 
@@ -147,8 +165,11 @@ export function CustomerDashboardScreen({
     ? formatCompactNaira(analytics.data?.totals?.netSavings ?? 0)
     : copy.metricUnavailable;
   const metricValues = [activeDealsMetric, pointsMetric, savedMetric];
-  const availability = availabilityFor(rewards, homeBusinessId, points, balance.isError);
-  const recommendations = feed.feed.list.slice(0, 2);
+  const availability = availabilityFor(rewards, points, balance.isError);
+  const tier = tierQuery?.data;
+  const recommendations = (
+    recommended.hasRecommendations ? recommended.list : feed.feed.list
+  ).slice(0, 2);
 
   return (
     <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-background">
@@ -236,22 +257,30 @@ export function CustomerDashboardScreen({
             </View>
             <View className="mt-auto">
               <VemtapText variant="headingLg" className="text-heading-lg text-surface">
-                {copy.campaignTitle}
+                {banner?.title ?? copy.campaignTitle}
               </VemtapText>
               <VemtapText
                 variant="bodyMd"
                 className="text-surface-container-highest"
                 numberOfLines={1}
               >
-                {copy.campaignBody}
+                {banner?.description ?? copy.campaignBody}
               </VemtapText>
               <View className="mt-2 flex-row items-center justify-between">
                 <Button
-                  label={copy.exploreDeals}
+                  label={banner?.actionLabel ?? copy.exploreDeals}
                   labelVariant="labelSm"
                   size="sm"
                   fullWidth={false}
-                  onPress={() => onOpenDeal?.('weekend-deals')}
+                  onPress={() => {
+                    // A banner without a URL is a headline, not a link, so it
+                    // falls back to the designed destination.
+                    if (banner?.actionUrl) {
+                      Linking.openURL(banner.actionUrl).catch(() => undefined);
+                      return;
+                    }
+                    onOpenDeal?.('weekend-deals');
+                  }}
                   rightIcon={
                     <Icon name="arrowForward" size={16} color={colors.surface} />
                   }
@@ -349,7 +378,12 @@ export function CustomerDashboardScreen({
             />
           )}
         </View>
-        <RewardsCard points={points} availability={availability} onOpen={onOpenRewards} />
+        <RewardsCard
+          points={points}
+          tier={tier}
+          availability={availability}
+          onOpen={onOpenRewards}
+        />
         <ActivityLedger logs={logs} onOpen={onOpenActivity} />
         <View className="gap-3 px-4">
           <View className="flex-row items-center justify-between">
@@ -361,9 +395,9 @@ export function CustomerDashboardScreen({
           <VemtapText variant="caption" tone="secondary">
             {copy.mayLikeBodyFor(area)}
           </VemtapText>
-          {feed.isLoading ? (
+          {recommended.isLoading && !feed.isLoading ? (
             <LoadingState label={strings.common.loading} />
-          ) : feed.isError ? (
+          ) : feed.isError && !recommended.hasRecommendations ? (
             <EmptyState
               variant="contained"
               icon="cloudOff"
@@ -451,28 +485,35 @@ function HubIconButton({
 
 function RewardsCard({
   points,
+  tier,
   availability,
   onOpen,
 }: {
   points: number | null;
+  /** Server-authoritative tier from `GET /loyalty/points/tier`. */
+  tier?: LoyaltyTier;
   availability: RewardsAvailability;
   onOpen?: () => void;
 }) {
-  const status = resolveTier(points ?? 0);
+  // Tier and progress come from the API (see `loyaltyTierSchema`). While the
+  // request is in flight — or if it fails — the bar renders empty rather than
+  // guessing from a local threshold table.
+  const progressPercent = tier?.progressPercent ?? 0;
+  const nextTier = tier?.nextTier ?? null;
   const barStyle: StyleProp<ViewStyle> = {
-    width: `${Math.round(status.progress * 100)}%`,
+    width: `${Math.round(progressPercent)}%`,
   };
   const progressLabel =
-    points === null
+    points === null || !tier
       ? copy.metricUnavailable
-      : status.next
-        ? copy.progressTo(status.next.name)
+      : nextTier
+        ? copy.progressTo(nextTier)
         : copy.progressComplete;
   const progressValue =
-    points === null
+    points === null || !tier
       ? copy.metricUnavailable
-      : status.next
-        ? copy.progressValue(formatPoints(points), formatPoints(status.next.points))
+      : nextTier
+        ? copy.progressValue(formatPoints(points), formatPoints(tier.pointsToNext ?? 0))
         : copy.balanceFor(formatPoints(points));
   const availabilityLine =
     availability.state === 'loading'
@@ -502,9 +543,9 @@ function RewardsCard({
             {copy.tierStatus}
           </VemtapText>
           <VemtapText variant="labelMd" className="font-sans-semibold" numberOfLines={1}>
-            {points === null
+            {points === null || !tier?.tier
               ? copy.metricUnavailable
-              : copy.tierFor(status.tier.name, status.tier.rank)}
+              : copy.tierFor(tier.tier)}
           </VemtapText>
         </View>
         <View className="shrink-0 items-end">

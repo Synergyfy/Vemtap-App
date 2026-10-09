@@ -33,6 +33,15 @@ export const conversationThreadSchema = z.object({
   customerUnreadCount: z.number().nullish().default(0),
   /** GENERAL | DEAL | CLAIM | ORDER | BOOKING — latest conversation context. */
   subjectType: z.string().nullish(),
+  /** Links the thread to the claim or order it is about, when known. */
+  claimId: z.string().nullish(),
+  orderId: z.string().nullish(),
+  /**
+   * Server-side classification driving the filter chips: `unread`, `deals`,
+   * `bookings`. Additive — a thread can be both `unread` and `deals`. Absent on
+   * deployments that predate subject types, hence optional.
+   */
+  categories: z.array(z.string()).nullish(),
 });
 export type ConversationThread = z.infer<typeof conversationThreadSchema>;
 
@@ -75,6 +84,15 @@ export const messageListSchema = z.union([
 export interface StartConversationPayload {
   branchId: string;
   content: string;
+  /**
+   * What the conversation is about, so the Messages filter chips can classify
+   * it without guessing from the message text. Defaults to `GENERAL`.
+   */
+  subjectType?: 'GENERAL' | 'DEAL' | 'CLAIM' | 'ORDER' | 'BOOKING';
+  /** Set alongside `CLAIM` to link the thread to a claimed deal pass. */
+  claimId?: string;
+  /** Set alongside `ORDER` to link the thread to an order. */
+  orderId?: string;
 }
 
 export interface ReplyMessagePayload {

@@ -23,6 +23,9 @@ test('reads totals from the top level, not from trends', () => {
     totalVisits: 12,
     rewardPoints: 450,
     netSavings: 18500,
+    redeemedPoints: null,
+    dealsRedeemed: null,
+    avgDiscountPercent: null,
   });
   // The change indicators are still parsed and available.
   expect(parsed.data.trends).toEqual({
@@ -49,6 +52,9 @@ test('parses the live shape (zero totals alongside string trends)', () => {
     totalVisits: 1,
     rewardPoints: 0,
     netSavings: 0,
+    redeemedPoints: null,
+    dealsRedeemed: null,
+    avgDiscountPercent: null,
   });
 });
 
@@ -63,6 +69,9 @@ test('falls back to trends when the totals are absent', () => {
     totalVisits: 12,
     rewardPoints: 340,
     netSavings: 18500,
+    redeemedPoints: null,
+    dealsRedeemed: null,
+    avgDiscountPercent: null,
   });
 });
 
@@ -77,6 +86,9 @@ test('coerces numeric strings and tolerates missing fields', () => {
     totalVisits: 7,
     rewardPoints: null,
     netSavings: 1200,
+    redeemedPoints: null,
+    dealsRedeemed: null,
+    avgDiscountPercent: null,
   });
 });
 
@@ -94,6 +106,9 @@ test('sums an array of trend points into one object', () => {
     totalVisits: 5,
     rewardPoints: 25,
     netSavings: 150,
+    redeemedPoints: null,
+    dealsRedeemed: null,
+    avgDiscountPercent: null,
   });
 });
 
@@ -107,6 +122,9 @@ test('never fails the query on an unexpected trends shape', () => {
       totalVisits: null,
       rewardPoints: null,
       netSavings: null,
+      redeemedPoints: null,
+      dealsRedeemed: null,
+      avgDiscountPercent: null,
     });
   }
 
@@ -118,5 +136,8 @@ test('never fails the query on an unexpected trends shape', () => {
     totalVisits: null,
     rewardPoints: null,
     netSavings: null,
+    redeemedPoints: null,
+    dealsRedeemed: null,
+    avgDiscountPercent: null,
   });
 });

@@ -14,6 +14,7 @@ import {
   SetupCard,
 } from '@features/business/components/BusinessPrimitives';
 import { cn } from '@utils/cn';
+import { formatCompactNaira } from '@utils/formatters';
 
 cssInterop(Pressable, { className: 'style' });
 cssInterop(TextInput, { className: 'style' });
@@ -30,12 +31,50 @@ const channelTone: Record<string, string> = {
   success: 'bg-badge-discount-bg text-badge-discount-text',
 };
 
+/** Live figures for the POS terminal row, derived from `GET /pos/dashboard`. */
+export interface PosTerminalView {
+  volumeValue: string;
+  volumeMeta: string;
+  /** Pending offline/held sales; 0 hides the badge entirely. */
+  heldSalesCount: number;
+}
+
+/**
+ * Formats the dashboard payload for the terminal row, falling back to the
+ * designed copy when the call has not answered. Amounts arrive as numbers or
+ * numeric strings (`looseCount`), hence the coercion.
+ */
+/** The subset of `GET /pos/dashboard` the terminal row renders. `looseCount`
+ * parses to `string | number | null`, so the inputs stay loose. */
+export interface PosTerminalSource {
+  revenue?: string | number | null;
+  transactionCount?: string | number | null;
+  heldSalesCount?: string | number | null;
+}
+
+export function presentPosTerminal(data?: PosTerminalSource): PosTerminalView {
+  const revenue = Number(data?.revenue ?? 0);
+  const transactions = Number(data?.transactionCount ?? 0);
+  const held = Number(data?.heldSalesCount ?? 0);
+
+  return {
+    volumeValue: data ? formatCompactNaira(revenue) : copy.volumeValue,
+    volumeMeta: data
+      ? `/ ${transactions} transaction${transactions === 1 ? '' : 's'}`
+      : copy.volumeMeta,
+    heldSalesCount: held,
+  };
+}
+
 export interface BusinessPosOrdersViewScreenProps {
   onBack: () => void;
   onOpenBranchSwitcher?: () => void;
   onOpenPos?: () => void;
   onOpenOrder?: (id: string) => void;
   onPrintReceipt?: (id: string) => void;
+  /** Raw `GET /pos/dashboard` totals for the terminal row; omitted keeps the
+   * designed figures. The screen presents them, so callers pass the payload. */
+  pos?: PosTerminalSource;
 }
 
 export function BusinessPosOrdersViewScreen({
@@ -44,7 +83,9 @@ export function BusinessPosOrdersViewScreen({
   onOpenPos,
   onOpenOrder,
   onPrintReceipt,
+  pos,
 }: BusinessPosOrdersViewScreenProps) {
+  const terminal = presentPosTerminal(pos);
   const [filter, setFilter] = useState(0);
   const [query, setQuery] = useState('');
 
@@ -123,6 +164,18 @@ export function BusinessPosOrdersViewScreen({
                 <VemtapText variant="caption" className="text-success" numberOfLines={1}>
                   {copy.terminalStatus}
                 </VemtapText>
+                {/* Only surfaced when sales are actually stuck offline. */}
+                {terminal.heldSalesCount > 0 ? (
+                  <View className="rounded-full bg-surface-tint-blue px-2 py-0.5">
+                    <VemtapText
+                      variant="micro"
+                      className="font-sans-semibold text-primary"
+                      numberOfLines={1}
+                    >
+                      {copy.heldSalesFor(terminal.heldSalesCount)}
+                    </VemtapText>
+                  </View>
+                ) : null}
               </View>
             </View>
             <Pressable
@@ -140,10 +193,10 @@ export function BusinessPosOrdersViewScreen({
                 {copy.openPos}
               </VemtapText>
               <VemtapText variant="labelMd" className="font-sans-bold" numberOfLines={1}>
-                {copy.volumeValue}
+                {terminal.volumeValue}
               </VemtapText>
               <VemtapText variant="micro" tone="tertiary" numberOfLines={1}>
-                {copy.volumeMeta}
+                {terminal.volumeMeta}
               </VemtapText>
             </Pressable>
           </View>
