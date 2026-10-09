@@ -232,4 +232,38 @@ describe('business tab navigation', () => {
       ),
     ).toBeTruthy();
   });
+
+  it('unwinds a tab whose nested screen arrived through a cross-tab hop', async () => {
+    // A screen inside one stack hops to a route in a sibling stack the way
+    // `useBusinessNavigation` does: through the tab navigator, which parks the
+    // target screen as params on the tab route. The Orders tab is then sitting
+    // on a POS screen with nothing underneath it, so re-tapping it has to
+    // rebuild the tab rather than pop to a base that never existed.
+    await renderShell();
+    await pressLabel(shell.tabs.more);
+    await pressLabel(strings.businessMore.switchToCustomer);
+    expect(screen.getByText(strings.switchToCustomer.title)).toBeTruthy();
+
+    await act(async () => {
+      // BusinessPosOrders lives in the Orders stack, we are pressed into More:
+      // the hop addresses the tab and names the screen inside it, which is what
+      // leaves the screen parked as params on the tab route.
+      const { navigate } = navigationRef as {
+        navigate: (name: string, params?: object) => void;
+      };
+      navigate('BusinessOrders', { screen: 'BusinessPosOrders' });
+    });
+    await waitFor(() => expect(screen.getByText(strings.businessPos.title)).toBeTruthy());
+
+    await pressLabel(shell.tabs.orders);
+
+    await waitFor(() => expect(screen.queryByText(strings.businessPos.title)).toBeNull());
+    expect(
+      screen.getByLabelText(
+        screen.queryByLabelText(strings.businessOrders.alertTitle)
+          ? strings.businessOrders.alertTitle
+          : strings.businessOrders.alertTitleFor(0),
+      ),
+    ).toBeTruthy();
+  });
 });

@@ -1,4 +1,5 @@
 import { useHistoryBack } from '@navigation/useHistoryBack';
+import { tabRePressListenersFor } from '@navigation/navigationHistory';
 import React, { useCallback, useMemo } from 'react';
 import {
   createBottomTabNavigator,
@@ -61,6 +62,13 @@ import { tabBarTopShadow } from '@theme/shadows';
 import { typeMetrics } from '@theme/typography';
 import { TypeDensityProvider } from '@theme/TypeDensityProvider';
 import { useAuthStore } from '@store/authStore';
+
+// A re-tap on the focused tab unwinds it to the screen its stack starts on. Each
+// tab supplies its own base screen, because that is where its stack lives; the
+// Deals tab has no stack of its own and is left out.
+const rePressHome = tabRePressListenersFor('HomeFeed');
+const rePressDiscover = tabRePressListenersFor('DiscoverHome');
+const rePressAccount = tabRePressListenersFor('AccountHome');
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 const HomeStack = createNativeStackNavigator<HomeStackParamList>();
@@ -847,6 +855,7 @@ export function TabNavigator() {
       <Tab.Screen
         name="Home"
         component={HomeTabScreen}
+        listeners={rePressHome}
         options={{
           title: strings.home.tabHome,
           tabBarIcon: ({ focused }) => (
@@ -867,6 +876,7 @@ export function TabNavigator() {
       <Tab.Screen
         name="Discover"
         component={DiscoverTabScreen}
+        listeners={rePressDiscover}
         options={{
           title: strings.home.tabBusiness,
           tabBarIcon: ({ focused }) => (
@@ -877,6 +887,7 @@ export function TabNavigator() {
       <Tab.Screen
         name="Account"
         component={AccountStackNavigator}
+        listeners={rePressAccount}
         options={{
           title: strings.home.tabAccount,
           tabBarIcon: ({ focused }) => (
