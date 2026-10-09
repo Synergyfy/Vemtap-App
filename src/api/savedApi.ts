@@ -100,11 +100,27 @@ export const savedRowSchema = z.discriminatedUnion('type', [
 ]);
 export type SavedRow = z.infer<typeof savedRowSchema>;
 
+/**
+ * Per-store counts, returned by `GET /me/saved` when no `type` filter is sent
+ * (a filtered read skips the other stores and cannot count them). Optional for
+ * that reason — and because a client may point at a server predating it.
+ */
+export const savedTotalsSchema = z.object({
+  all: z.number(),
+  deals: z.number(),
+  businesses: z.number(),
+  services: z.number(),
+});
+export type SavedTotals = z.infer<typeof savedTotalsSchema>;
+
 export const savedPageSchema = z.object({
   data: z.array(savedRowSchema),
   total: z.number(),
   page: z.number().nullable().optional(),
   limit: z.number().nullable().optional(),
+  // Must be declared here: zod strips unknown keys, so without this the field
+  // would arrive and be dropped before the caller ever saw it.
+  totals: savedTotalsSchema.nullish(),
 });
 export type SavedPage = z.infer<typeof savedPageSchema>;
 

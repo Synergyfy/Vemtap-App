@@ -1,7 +1,11 @@
 import React from 'react';
 import { renderHook, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useSavedFeed, useToggleDealSave } from '@features/accountHub/hooks/useSavedHub';
+import {
+  useSavedFeed,
+  useSavedTotals,
+  useToggleDealSave,
+} from '@features/accountHub/hooks/useSavedHub';
 import { useMyClaims } from '@features/myDeals/hooks/useMyClaims';
 
 /**
@@ -70,6 +74,38 @@ test('useSavedFeed asks the unified feed for the requested store', async () => {
 
   await waitFor(() => expect(result.current.isSuccess).toBe(true));
   expect(mockListSaved).toHaveBeenCalledWith({ type: 'DEAL', page: 1, limit: 50 });
+});
+
+test('useSavedTotals reads the breakdown from one unfiltered request', async () => {
+  mockListSaved.mockResolvedValueOnce({
+    data: [],
+    total: 9,
+    page: 1,
+    limit: 1,
+    totals: { all: 9, deals: 4, businesses: 3, services: 2 },
+  } as never);
+
+  const { result } = await renderHook(() => useSavedTotals(), { wrapper });
+
+  await waitFor(() => expect(result.current.isSuccess).toBe(true));
+  // One request for every store, not a `limit: 1` read per store.
+  expect(mockListSaved).toHaveBeenCalledTimes(1);
+  expect(mockListSaved).toHaveBeenCalledWith({ limit: 1 });
+  expect(result.current).toMatchObject({
+    all: 9,
+    deals: 4,
+    businesses: 3,
+    services: 2,
+  });
+});
+
+test('useSavedTotals stays idle for a non-customer session', async () => {
+  mockRole = null;
+  const { result } = await renderHook(() => useSavedTotals(), { wrapper });
+
+  expect(result.current.isSuccess).toBe(false);
+  expect(result.current.all).toBeUndefined();
+  expect(mockListSaved).not.toHaveBeenCalled();
 });
 
 test('useSavedFeed stays idle for a non-customer session', async () => {

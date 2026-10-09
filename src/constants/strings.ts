@@ -1961,11 +1961,16 @@ export const strings = {
   savedHub: {
     title: 'Saved Items Hub',
     searchPlaceholder: 'Search saved deals, businesses & items...',
+    /**
+     * Tab labels only. The counts on these tabs are live (`useSavedTotals`),
+     * so no designed figures live here — a hardcoded number in the strings
+     * file would be dead data that reads like a real one.
+     */
     filters: [
-      { label: 'All', count: 9 },
-      { label: 'Deals', count: 4 },
-      { label: 'Businesses', count: 3 },
-      { label: 'Services & Menu', count: 2 },
+      { label: 'All' },
+      { label: 'Deals' },
+      { label: 'Businesses' },
+      { label: 'Services & Menu' },
     ],
     /** Live-state copy for the server-backed hub. */
     noMatchesTitle: 'No matching saved items',

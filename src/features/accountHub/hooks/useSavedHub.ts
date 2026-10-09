@@ -25,7 +25,6 @@ export const savedHubKeys = {
   all: ['me', 'saved'] as const,
   feed: (type: SavedItemType | 'ALL', page: number) =>
     [...savedHubKeys.all, 'feed', type, page] as const,
-  counts: (type: SavedItemType) => [...savedHubKeys.all, 'count', type] as const,
   dealStatus: (offerId: string) => ['deals', 'saved', 'status', offerId] as const,
   businessStatus: (businessId: string) =>
     [...savedHubKeys.all, 'status', 'business', businessId] as const,
@@ -53,44 +52,31 @@ export function useSavedFeed(type?: SavedItemType, page = 1) {
 }
 
 /**
- * Per-store totals for the tab labels. Each count is a `limit: 1` read of the
- * same feed, so it shares row parsing with the lists. Three requests, cached
- * for five minutes; `all` is their sum, which is exactly how the server
- * computes the unified total.
+ * Per-store totals for the tab labels and the Account badge.
+ *
+ * `GET /me/saved` already reads all three stores to merge them and reports
+ * each one's count, so this is one request rather than a `limit: 1` read per
+ * store. The response shape is unchanged for callers: figures stay `undefined`
+ * until the query settles, because `AccountHomeScreen` uses that to decide
+ * whether to show a badge at all.
  */
 export function useSavedTotals() {
   const isCustomer = useAuthStore(state => isCustomerSession(state.user?.role));
-
-  const deals = useQuery<number>({
-    queryKey: savedHubKeys.counts('DEAL'),
-    queryFn: async () => (await savedApi.listSaved({ type: 'DEAL', limit: 1 })).total,
-    enabled: isCustomer,
-    staleTime: COUNT_STALE_MS,
-  });
-  const businesses = useQuery<number>({
-    queryKey: savedHubKeys.counts('BUSINESS'),
-    queryFn: async () => (await savedApi.listSaved({ type: 'BUSINESS', limit: 1 })).total,
-    enabled: isCustomer,
-    staleTime: COUNT_STALE_MS,
-  });
-  const services = useQuery<number>({
-    queryKey: savedHubKeys.counts('SERVICE'),
-    queryFn: async () => (await savedApi.listSaved({ type: 'SERVICE', limit: 1 })).total,
+  const query = useQuery<SavedPage>({
+    queryKey: [...savedHubKeys.all, 'totals'],
+    queryFn: () => savedApi.listSaved({ limit: 1 }),
     enabled: isCustomer,
     staleTime: COUNT_STALE_MS,
   });
 
-  const settled = deals.isSuccess && businesses.isSuccess && services.isSuccess;
-
+  const totals = query.data?.totals;
   return {
-    deals: deals.data,
-    businesses: businesses.data,
-    services: services.data,
-    all: settled
-      ? (deals.data ?? 0) + (businesses.data ?? 0) + (services.data ?? 0)
-      : undefined,
-    isSuccess: settled,
-    isLoading: deals.isLoading || businesses.isLoading || services.isLoading,
+    deals: totals?.deals,
+    businesses: totals?.businesses,
+    services: totals?.services,
+    all: totals?.all,
+    isSuccess: totals !== undefined,
+    isLoading: query.isLoading,
   };
 }
 
