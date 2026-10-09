@@ -126,7 +126,14 @@ export const businessCatalogueItemSchema = catalogueItemSchema.extend({
 });
 export type BusinessCatalogueItem = z.infer<typeof businessCatalogueItemSchema>;
 
-export const businessCatalogueFeedSchema = z.object({
+/**
+ * `GET /catalogue/items` answers with a **bare array** — verified live with an
+ * owner token — not the `{ data, total }` envelope the public feeds use. Both
+ * forms are accepted and normalised to a single feed shape so callers can always
+ * read `.data` / `.total`; a bare array carries no page metadata, so `total`
+ * falls back to the row count.
+ */
+const businessCatalogueEnvelopeSchema = z.object({
   data: z.array(businessCatalogueItemSchema),
   total: nullableNumber(0),
   page: z.number().nullish(),
@@ -135,6 +142,21 @@ export const businessCatalogueFeedSchema = z.object({
   hasNextPage: nullableFlag(false),
   hasPrevPage: nullableFlag(false),
 });
+
+export const businessCatalogueFeedSchema = z.union([
+  businessCatalogueEnvelopeSchema,
+  // The page fields are filled with `undefined`/`false` so both union members
+  // share one inferred shape; otherwise `.page` would not exist on the type.
+  z.array(businessCatalogueItemSchema).transform(items => ({
+    data: items,
+    total: items.length,
+    page: undefined,
+    limit: undefined,
+    totalPages: undefined,
+    hasNextPage: false,
+    hasPrevPage: false,
+  })),
+]);
 export type BusinessCatalogueFeed = z.infer<typeof businessCatalogueFeedSchema>;
 
 /**
