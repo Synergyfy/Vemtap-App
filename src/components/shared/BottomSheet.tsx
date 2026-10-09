@@ -26,7 +26,7 @@ export function BottomSheet({
   visible,
   onClose,
   title,
-  titleVariant: _titleVariant,
+  titleVariant = 'headingXl',
   titleClassName,
   count,
   children,
@@ -113,13 +113,7 @@ export function BottomSheet({
           <View style={styles.handle} />
           <View style={styles.header}>
             <View style={styles.titleRow}>
-              <VemtapText
-                variant="headingXl"
-                className={cn(
-                  'font-sans-semibold text-heading-xl tracking-tight text-text',
-                  titleClassName,
-                )}
-              >
+              <VemtapText variant={titleVariant} className={cn(titleClassName)}>
                 {title}
               </VemtapText>
               {typeof count === 'number' ? (

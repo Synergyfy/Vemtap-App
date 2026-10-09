@@ -68,6 +68,10 @@ export const businessProfileCopy = {
     previewEmptySubtitle: 'Select specialty',
     continue: 'Continue to Branding',
     saveDraft: 'Save as Draft',
+    // Shown above the CTA while a required field is missing, so a disabled
+    // button never reads as a broken tap.
+    nameRequired: 'Enter your business name to continue.',
+    categoryRequired: 'Pick a primary category to continue.',
   },
   branding: {
     header: 'Media And Branding',
@@ -88,6 +92,9 @@ export const businessProfileCopy = {
     logoChange: 'Change',
     logoRemove: 'Remove',
     logoHint: 'Optimal resolution: 400 × 400px',
+    photoPermissionTitle: 'Photo access needed',
+    photoPermissionBody:
+      'Allow photo access so you can upload your logo, cover banner and storefront photos.',
     coverTitle: 'Storefront Cover Banner',
     coverSpec: '16:9 Recommended',
     coverBody: 'Primary banner shown on your business profile and search cards.',
@@ -103,6 +110,8 @@ export const businessProfileCopy = {
     previewOpen: 'Open Now',
     previewName: 'Urban Grill & Bistro',
     previewMeta: 'American Fusion • Casual Dining • 0.3 mi away',
+    /** Trail of the composed meta line once category/specialties are known. */
+    previewDistance: '0.3 mi away',
     continue: 'Continue to Contact & Channels',
     back: 'Back',
     saveDraft: 'Save as Draft',
@@ -140,6 +149,83 @@ export const businessProfileCopy = {
     launchBody: 'Urban Grill Lagos will be visible to 1,420+ food lovers within 3 km.',
     complete: 'Complete Profile Setup',
     saveDraft: 'Save as Draft',
+    // These two feed the account step and the invoices, so they are validated.
+    phoneRequired: 'Enter your primary business phone number to continue.',
+    emailRequired: 'Enter a valid official business email to continue.',
+  },
+  accountSetup: {
+    create: {
+      header: 'Create Account',
+      step: 'Account Setup',
+      percent: 'Almost Done',
+      title: 'Secure your business account',
+      subtitle:
+        'Your business profile is saved locally. Create the login you will use to manage it from anywhere.',
+      emailLabel: 'Login Email',
+      emailPlaceholder: 'owner@yourbusiness.ng',
+      emailHint: 'This is also the address your invoices and platform notices go to.',
+      passwordLabel: 'Create Password',
+      passwordPlaceholder: 'Minimum 8 characters',
+      confirmLabel: 'Confirm Password',
+      confirmPlaceholder: 'Repeat your password',
+      rulesTitle: 'Password must include',
+      ruleMinLength: 'At least 8 characters',
+      ruleLowercase: 'A lowercase letter',
+      ruleUppercase: 'An uppercase letter',
+      ruleNumber: 'A number',
+      ruleSymbol: 'A special character',
+      continue: 'Create Account & Continue',
+      errors: {
+        emailRequired: 'Enter a valid email address',
+        passwordWeak: 'Your password does not meet all the rules yet',
+        passwordMismatch: 'Passwords do not match',
+      },
+    },
+    confirm: {
+      header: 'Confirm Account',
+      step: 'Account Setup',
+      percent: 'Almost Done',
+      title: "Confirm it's you",
+      subtitle:
+        'Add a business to your existing VEMTAP account. Your customer profile, deals and claims stay exactly as they are.',
+      emailLabel: 'Account Email',
+      passwordLabel: 'Password / 6-digit PIN',
+      passwordPlaceholder: 'Enter your password or 6-digit PIN',
+      continue: 'Add Business & Continue',
+      continueGoogle: 'Continue with Google Account',
+      keepBoth:
+        'You keep both customer and business access — switch between them anytime from your account.',
+      googleHint:
+        'Your Google account is already verified, so there is no password to enter.',
+      forgotPassword: 'Forgot your password?',
+      resetDone: 'Back to confirmation',
+      resetSuccessHint: 'PIN updated. Enter it above to finish adding your business.',
+      errors: {
+        passwordRequired: 'Enter your password to continue',
+      },
+    },
+    otp: {
+      header: 'Verify Email',
+      step: 'Email Verification',
+      percent: 'Almost Done',
+      title: 'Enter your verification code',
+      subtitlePrefix: 'We sent a 4-digit code to',
+      verify: 'Verify & Create Account',
+      resend: 'Resend code',
+      resendIn: 'Resend in',
+      sent: 'A new code is on its way',
+      editEmail: 'Change email',
+      spamHint:
+        "Check your spam folder if it doesn't arrive within a minute. The code expires after 10 minutes.",
+      errors: {
+        codeIncomplete: 'Enter the 4-digit code',
+      },
+    },
+    upgrade: {
+      successTitle: 'Business added',
+      successBody: 'Your owner tools are ready. Continuing setup…',
+      errorFallback: 'Could not add your business. Please try again.',
+    },
   },
 } as const;
 
@@ -183,6 +269,7 @@ export const businessLocationCopy = {
     landmarkPlaceholder: 'e.g. Opposite City Mall, 2nd Floor',
     continue: 'Continue to Branch Details',
     saveDraft: 'Save as Draft',
+    addressRequired: 'Enter or choose your business address to continue.',
   },
   locations: {
     header: 'Location Details',

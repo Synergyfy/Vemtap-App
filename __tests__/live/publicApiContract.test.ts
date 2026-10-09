@@ -360,25 +360,48 @@ describeLive('public API — live contract', () => {
 
   describe('GET /products', () => {
     /**
-     * The public catalogue currently returns **no products at all**, so Home's
-     * products section renders an empty state. This test exists so that state is
-     * backed by evidence: if the endpoint ever starts returning rows, it fails
-     * here first and the section gets real data rather than staying empty
-     * forever.
+     * The endpoint is now backed by real catalogue items (active, non-suspended,
+     * across all branches) instead of the legacy empty products table, so these
+     * assert the envelope and the item shape Home's section parses — no longer
+     * the old "empty catalogue" state.
      */
-    it('is reachable and currently returns an empty catalogue', async () => {
-      const feed = await catalogueApi.listPublishedProducts({ limit: 10 });
+    it('returns the catalogue-item page envelope', async () => {
+      const feed = await catalogueApi.listPublishedProducts({
+        limit: 10,
+        itemType: 'product',
+      });
 
-      expect(feed.data).toEqual([]);
-      expect(feed.total).toBe(0);
+      expect(Array.isArray(feed.data)).toBe(true);
+      expect(feed.total).toBeGreaterThanOrEqual(feed.data.length);
+      expect(typeof feed.hasNextPage).toBe('boolean');
+      expect(typeof feed.hasPrevPage).toBe('boolean');
     });
 
-    it('returns the same empty page envelope on every page', async () => {
-      const page = await catalogueApi.listPublishedProducts({ page: 2, limit: 10 });
+    it('returns catalogue items with a name and a price field', async () => {
+      const feed = await catalogueApi.listPublishedProducts({
+        limit: 5,
+        itemType: 'product',
+      });
 
-      expect(page.data).toEqual([]);
-      expect(page.hasNextPage).toBe(false);
-      expect(page.hasPrevPage).toBe(false);
+      for (const item of feed.data) {
+        expect(item.id).toBeTruthy();
+        expect(item.name).toBeTruthy();
+        // Money arrives as a number or numeric string; `null` is allowed.
+        expect(
+          item.price === null || ['string', 'number'].includes(typeof item.price),
+        ).toBe(true);
+      }
+    });
+
+    it('keeps itemType=product exclusive of services', async () => {
+      const feed = await catalogueApi.listPublishedProducts({
+        limit: 20,
+        itemType: 'product',
+      });
+
+      for (const item of feed.data) {
+        expect(item.itemType).toBe('product');
+      }
     });
   });
 

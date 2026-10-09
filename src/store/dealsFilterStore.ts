@@ -11,11 +11,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
  * pill and the feed disagree about the same number. The filter page writes
  * radius through `setRadiusKm` instead.
  *
- * Only the filters the API cannot express server-side live here: category,
- * price, discount and availability. Category is matched by name because the
- * offers feed carries `categoryName` but accepts only a single `categoryId`,
- * while the design asks for multi-select. Price and discount have no server
- * parameters at all.
+ * Price and discount are request parameters now (Phase 2 added `minPrice`,
+ * `maxPrice` and `minDiscount` to the offers feed); category and availability
+ * remain client-side refinements. Category is matched by name because the
+ * offers feed carries `categoryName` while the design asks for multi-select and
+ * the API accepts only a single `categoryId`; availability has no server
+ * parameter at all.
  */
 export interface DealsFilterState {
   /** Taxonomy names, matched against an offer's `categoryName`. */

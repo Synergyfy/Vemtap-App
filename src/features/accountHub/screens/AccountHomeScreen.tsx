@@ -121,6 +121,8 @@ export interface AccountHomeScreenProps {
   onOpenContactSupport?: () => void;
   onOpenTerms?: () => void;
   onOpenBusinessSetup?: () => void;
+  /** Overrides the default "Set up your business" label for dual-role owners. */
+  businessCtaLabel?: string;
   onSignOut?: () => void;
 }
 
@@ -142,6 +144,7 @@ export function AccountHomeScreen({
   onOpenContactSupport,
   onOpenTerms,
   onOpenBusinessSetup,
+  businessCtaLabel,
   onSignOut,
 }: AccountHomeScreenProps) {
   const me = useCurrentUserDisplay();
@@ -399,7 +402,7 @@ export function AccountHomeScreen({
 
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={copy.setUpBusiness}
+          accessibilityLabel={businessCtaLabel ?? copy.setUpBusiness}
           onPress={onOpenBusinessSetup}
           className="items-center gap-1 py-2"
         >
@@ -411,7 +414,7 @@ export function AccountHomeScreen({
           </View>
           <View className="flex-row items-center gap-1.5">
             <VemtapText variant="labelSm" tone="brand" className="font-sans-semibold">
-              {copy.setUpBusiness}
+              {businessCtaLabel ?? copy.setUpBusiness}
             </VemtapText>
             <Icon name="arrowForward" size={15} color={colors.primary} />
           </View>

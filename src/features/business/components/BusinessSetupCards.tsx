@@ -601,6 +601,8 @@ export function GalleryTile({
 
 export function FeedPreviewCard({
   imageUri,
+  logoUri,
+  imageLabel,
   badge,
   openBadge,
   name,
@@ -608,6 +610,10 @@ export function FeedPreviewCard({
   rating,
 }: {
   imageUri: string;
+  /** Picked store logo; falls back to the generic icon tile when absent. */
+  logoUri?: string;
+  /** Accessibility label for the banner image (used by tests too). */
+  imageLabel?: string;
   badge: string;
   openBadge: string;
   name: string;
@@ -621,6 +627,7 @@ export function FeedPreviewCard({
           uri={imageUri}
           height={128}
           rounded="card"
+          alt={imageLabel ?? 'Business banner preview'}
           className="h-full w-full rounded-none shadow-none"
         />
         <View className="absolute left-2 top-2 rounded-full bg-badge-discount-bg px-2 py-0.5 shadow-sm">
@@ -641,15 +648,25 @@ export function FeedPreviewCard({
           </VemtapText>
         </View>
       </View>
-      <View className="flex-row items-start gap-3 p-3">
-        <View className="-mt-6 h-11 w-11 shrink-0 items-center justify-center rounded-field bg-primary shadow-sm">
-          <Icon name="restaurant" size={20} color={colors.surface} />
+      <View className="flex-row items-start gap-3 px-3 pb-3 pt-5">
+        <View className="-mt-6 h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-field bg-primary shadow-sm">
+          {logoUri ? (
+            <InlineImageCard
+              uri={logoUri}
+              height={44}
+              rounded="field"
+              alt={`${name} logo`}
+              className="h-full w-full rounded-none shadow-none"
+            />
+          ) : (
+            <Icon name="restaurant" size={20} color={colors.surface} />
+          )}
         </View>
         <View className="min-w-0 flex-1">
           <View className="flex-row items-center justify-between gap-2">
             <VemtapText
-              variant="headingSm"
-              className="min-w-0 flex-1 text-text"
+              variant="labelMd"
+              className="min-w-0 flex-1 font-sans-semibold text-text"
               numberOfLines={1}
             >
               {name}

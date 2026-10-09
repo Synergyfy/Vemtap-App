@@ -3,32 +3,29 @@ import { useQuery } from '@tanstack/react-query';
 import { publicSearchApi } from '@api/publicSearchApi';
 import { toNearbyBusiness } from '@features/home/hooks/useNearbyBusinesses';
 import { mapOfferToHomeNearby } from '@features/home/utils/homeOfferMapper';
+import { toPopularProduct } from '@features/home/utils/productMapper';
 import { useLocationStore } from '@store/locationStore';
 import { discoveryOrigin } from '@utils/geo';
 import { useDebounce } from '@hooks/useDebounce';
-import type { NearbyBusiness, NearbyDeal } from '@features/home/data/homeFeed';
+import type {
+  NearbyBusiness,
+  NearbyDeal,
+  PopularProduct,
+} from '@features/home/data/homeFeed';
 
 /**
- * Search across deals, businesses and categories from one endpoint.
+ * Search across deals, businesses, products and categories from one endpoint.
  *
- * `GET /public/search?q=…` is public and already groups results by entity, which
- * is what the design's placeholder asks for ("Search deals, businesses or
- * products"), so chips and the search bar share this one path rather than each
- * driving a different filter mechanism.
+ * `GET /public/search` is public and groups results by entity, which is what the
+ * design's search bar asks for ("Search deals, businesses or products"). The
+ * request now carries `lat`/`lng`/`radius`, so the results are narrowed to the
+ * same discovery origin the Home and Deals sections below filter by — a search
+ * no longer ignores the district it sits in.
  *
- * Three limitations of the current API are respected rather than papered over:
- *
- *  - **No products group.** The placeholder mentions products, but the endpoint
- *    returns only deals, businesses and categories — and `GET /products` is empty
- *    server-side anyway. Nothing product-shaped is rendered.
- *  - **No location params.** `lat`, `lng` and `radius` are rejected with a 400 by
- *    the whitelist, so results are *global*: a search ignores the district the
- *    sections below it filter by. Distance is still printed from the local
- *    origin, because that is a local calculation, not a server one.
- *  - **No `uniqueCode` on business results**, so a result cannot be opened as a
- *    merchant profile — the code endpoint answers 404 for everything these
- *    payloads carry (see `useDealDetail` for the same gap on offer details).
- *    Business rows are therefore not pressable, matching Home's own section.
+ * Remaining honesty note: business results carry no `uniqueCode`, so a result
+ * cannot be opened as a merchant profile — the code endpoint answers 404 for
+ * what these payloads carry. Business rows are therefore not pressable,
+ * matching Home's own section.
  *
  * Deliberately split in two: `useSearch` is plain input state with no query
  * client behind it, and `useSearchResults` owns the request. A text field that
@@ -37,7 +34,8 @@ import type { NearbyBusiness, NearbyDeal } from '@features/home/data/homeFeed';
  */
 
 export const searchKeys = {
-  results: (term: string) => ['public-search', term] as const,
+  results: (term: string, lat: number, lng: number, radius: number) =>
+    ['public-search', term, lat, lng, radius] as const,
 };
 
 /**
@@ -90,6 +88,7 @@ export function useSearch(): UseSearch {
 export interface SearchResultsData {
   deals: NearbyDeal[];
   businesses: NearbyBusiness[];
+  products: PopularProduct[];
   /** A request is owed or in flight — drives the searching state. */
   searching: boolean;
   isError: boolean;
@@ -108,6 +107,7 @@ export function useSearchResults(
 ): SearchResultsData {
   const area = useLocationStore(state => state.area);
   const coords = useLocationStore(state => state.coords);
+  const radiusKm = useLocationStore(state => state.radiusKm);
   const origin = useMemo(() => discoveryOrigin(area, coords), [area, coords]);
 
   // Mapped once per fetch rather than on every render; `origin` only changes
@@ -116,15 +116,25 @@ export function useSearchResults(
     () => (result: Awaited<ReturnType<typeof publicSearchApi.search>>) => ({
       deals: result.deals.map(offer => mapOfferToHomeNearby(offer, origin)),
       businesses: result.businesses.map(toNearbyBusiness),
+      products: result.products.map(toPopularProduct),
     }),
     [origin],
   );
 
   // The raw payload is cached and `select` maps it, so the transformation runs
   // once per fetch and the result is shared between callers of this term.
+  // Origin and radius are part of the key: moving, or widening the radius, must
+  // refetch rather than serve the previous district's results.
   const results = useQuery({
-    queryKey: searchKeys.results(term),
-    queryFn: () => publicSearchApi.search({ q: term, limit: LIMIT }),
+    queryKey: searchKeys.results(term, origin.latitude, origin.longitude, radiusKm),
+    queryFn: () =>
+      publicSearchApi.search({
+        q: term,
+        limit: LIMIT,
+        lat: origin.latitude,
+        lng: origin.longitude,
+        radius: radiusKm,
+      }),
     select,
     enabled: term.length > 0,
     staleTime: 60_000,
@@ -139,6 +149,7 @@ export function useSearchResults(
     searching: debouncePending || inFlight,
     deals: results.data?.deals ?? [],
     businesses: results.data?.businesses ?? [],
+    products: results.data?.products ?? [],
     isError: results.isError,
     retry: results.refetch,
   };

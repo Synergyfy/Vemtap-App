@@ -3,6 +3,8 @@ import { View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { LiveNearbyListCard } from '@components/home/LiveNearbyListCard';
 import { BusinessRow } from '@components/home/BusinessRow';
+import { PopularProductCard } from '@components/home/PopularProductCard';
+import { TwoColumnGrid } from '@components/shared/TwoColumnGrid';
 import { VemtapText } from '@components/ui/Text';
 import { EmptyState } from '@components/shared/EmptyState';
 import { LoadingState } from '@components/shared/LoadingState';
@@ -29,7 +31,8 @@ export interface SearchResultsProps {
  * Groups are rendered only when they have results, so a search for a shop name
  * does not open with a heading over nothing. Business rows are not pressable:
  * the payload carries no `uniqueCode`, which is the only value the merchant
- * profile endpoint accepts (see `usePublicSearch`).
+ * profile endpoint accepts (see `usePublicSearch`). Products reuse Home's
+ * product card in the same two-column grid Home renders them in.
  *
  * This component owns the request. It is only mounted while a query is active,
  * so a screen merely showing a search bar never issues one — and never needs a
@@ -54,7 +57,10 @@ export function SearchResults({ search, onOpenDeal }: SearchResultsProps) {
     );
   }
 
-  const isEmpty = results.deals.length === 0 && results.businesses.length === 0;
+  const isEmpty =
+    results.deals.length === 0 &&
+    results.businesses.length === 0 &&
+    results.products.length === 0;
   if (isEmpty) {
     return (
       <EmptyState
@@ -87,6 +93,17 @@ export function SearchResults({ search, onOpenDeal }: SearchResultsProps) {
               <BusinessRow key={business.id} business={business} />
             ))}
           </View>
+        </View>
+      ) : null}
+
+      {results.products.length > 0 ? (
+        <View className="flex-col gap-3">
+          <GroupHeading>{strings.search.products}</GroupHeading>
+          <TwoColumnGrid
+            items={results.products}
+            keyExtractor={product => product.id}
+            renderItem={product => <PopularProductCard product={product} />}
+          />
         </View>
       ) : null}
     </View>

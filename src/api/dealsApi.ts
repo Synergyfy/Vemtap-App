@@ -3,12 +3,28 @@ import { request, requestValidated } from '@api/client';
 import { nullableArray, nullableFlag, nullableNumber } from '@api/schemaHelpers';
 import type { ApiRequestOptions } from '@app-types/api';
 
-/** Cursor pagination inputs shared by the list endpoints. */
+/**
+ * The validated sort vocabulary of the public offers feed (Phase 2). Sending
+ * anything outside this union is a `400`, so callers must pick from it.
+ * `popular`/`featured` keep offset pagination and return no cursor.
+ */
+export type OfferSortBy =
+  'newest' | 'oldest' | 'price_asc' | 'price_desc' | 'trending' | 'popular' | 'featured';
+
+/**
+ * Audience eligibility, evaluated server-side with the same rule claim time
+ * enforces. `everyone_nearby`/`all` apply no filter; anything else (`vip`) is a
+ * `400`.
+ */
+export type OfferAudience =
+  'everyone_nearby' | 'all' | 'new_customers' | 'returning_customers';
+
+/** Query inputs of the public offers feed. */
 type PaginatedQuery = {
   page?: number;
   limit?: number;
   search?: string;
-  sortBy?: string;
+  sortBy?: OfferSortBy;
   /**
    * Proximity filter. `radius` is in **kilometres** — verified live against the
    * test API, where `lat`/`lng` of Apo with `radius=1` returns nothing and
@@ -18,6 +34,14 @@ type PaginatedQuery = {
   lat?: number;
   lng?: number;
   radius?: number;
+  /** Price/discount narrowing, applied server-side (Phase 2). */
+  minPrice?: number;
+  maxPrice?: number;
+  /** 0–100, computed from the offer's effective discount. */
+  minDiscount?: number;
+  audience?: OfferAudience;
+  /** Pass the previous response's `nextCursor` to fetch the next page. */
+  cursor?: string;
 };
 
 /**
@@ -234,6 +258,27 @@ export const publicBusinessesSchema = z.object({
   businesses: z.array(publicBusinessSchema),
 });
 
+/**
+ * The filter contract of `GET /public/businesses` (Phase 2). The response is
+ * unchanged — no pagination — so this is a query type, not a new envelope.
+ *
+ *  - `search` matches name/description.
+ *  - `categoryId` is a taxonomy UUID (the consumer filter chips use names).
+ *  - `lat`/`lng`/`radius` (km) match a business when any active branch
+ *    (falling back to the business coordinates) is inside the radius.
+ *  - `sortBy` is validated server-side now; invalid values are a `400`.
+ */
+export type PublicBusinessSortBy = 'newest' | 'name_asc';
+
+export interface PublicBusinessQuery {
+  search?: string;
+  categoryId?: string;
+  lat?: number;
+  lng?: number;
+  radius?: number;
+  sortBy?: PublicBusinessSortBy;
+}
+
 export const platformStatsSchema = z.object({
   totalBusinesses: nullableNumber(0),
   totalActiveDeals: nullableNumber(0),
@@ -324,6 +369,11 @@ export const dealsApi = {
           lat: query.lat,
           lng: query.lng,
           radius: query.radius,
+          minPrice: query.minPrice,
+          maxPrice: query.maxPrice,
+          minDiscount: query.minDiscount,
+          audience: query.audience,
+          cursor: query.cursor,
         },
         ...options,
       },
@@ -360,9 +410,12 @@ export const dealsApi = {
     );
   },
 
-  async listPublicBusinesses(options: ApiRequestOptions = {}): Promise<PublicBusiness[]> {
+  async listPublicBusinesses(
+    query: PublicBusinessQuery = {},
+    options: ApiRequestOptions = {},
+  ): Promise<PublicBusiness[]> {
     const response = await requestValidated<z.infer<typeof publicBusinessesSchema>>(
-      { method: 'GET', url: '/public/businesses', ...options },
+      { method: 'GET', url: '/public/businesses', params: { ...query }, ...options },
       publicBusinessesSchema,
     );
     return response.businesses;

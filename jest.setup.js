@@ -304,6 +304,24 @@ jest.mock('expo-linear-gradient', () => {
   return { LinearGradient };
 });
 
+jest.mock('expo-image-picker', () => ({
+  requestMediaLibraryPermissionsAsync: jest.fn(async () => ({
+    status: 'granted',
+    granted: true,
+    canAskAgain: true,
+    expires: 'never',
+  })),
+  launchImageLibraryAsync: jest.fn(async () => ({
+    canceled: true,
+    assets: [],
+  })),
+  MediaTypeOptions: {
+    Images: 'Images',
+    Videos: 'Videos',
+    All: 'All',
+  },
+}));
+
 jest.mock('expo-location', () => ({
   requestForegroundPermissionsAsync: jest.fn(async () => ({
     status: 'granted',
@@ -424,3 +442,20 @@ jest.mock('@testing-library/react-native', () => {
 
   return mockModule;
 });
+
+/**
+ * The messaging realtime layer must never open a real websocket in tests.
+ * Screens and routes can still import the socket module; every call is a no-op.
+ */
+jest.mock('socket.io-client', () => ({
+  io: jest.fn(() => ({
+    on: jest.fn(),
+    off: jest.fn(),
+    emit: jest.fn(),
+    connect: jest.fn(),
+    disconnect: jest.fn(),
+    removeAllListeners: jest.fn(),
+    connected: false,
+    auth: undefined,
+  })),
+}));

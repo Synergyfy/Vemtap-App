@@ -6,12 +6,18 @@ import { BusinessDiscoveryCard } from '@components/discover/BusinessDiscoveryCar
 import { CategoryChips } from '@components/home/CategoryChips';
 import { LocationTargetingControls } from '@components/home/LocationTargetingControls';
 import { HomeSearchBar } from '@components/home/HomeSearchBar';
+import { EmptyState } from '@components/shared/EmptyState';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { colors } from '@theme/colors';
 import { navbarBottomShadow } from '@theme/shadows';
 import { strings } from '@constants/strings';
-import { useDiscoverBusinesses } from '@features/discover/hooks/useDiscoverBusinesses';
+import {
+  mapDiscoverCategory,
+  useDiscoverBusinesses,
+} from '@features/discover/hooks/useDiscoverBusinesses';
+import { useFilterCategories } from '@features/deals/hooks/useFilterCategories';
+import { useSearch } from '@features/search/hooks/usePublicSearch';
 import {
   discoverCategories,
   DiscoverCategory,
@@ -41,30 +47,45 @@ export interface DiscoverScreenProps {
 export function DiscoverScreen(props: DiscoverScreenProps): React.JSX.Element;
 export function DiscoverScreen(): React.JSX.Element;
 export function DiscoverScreen(props: Partial<DiscoverScreenProps> = {}) {
-  const [searchQuery, setSearchQuery] = useState('');
+  const search = useSearch();
   const targeting = useConsumerTargeting({
     onOpenLocationSelect: props.onOpenLocationSelect ?? (() => undefined),
     onUseCurrentLocation: props.onUseCurrentLocation,
   });
   const [activeCategory, setActiveCategory] = useState<DiscoverCategory>('All');
   const [mapIcon, setMapIcon] = useState<'map' | 'agenda'>('map');
-  const { data: businesses, isLoading, isError } = useDiscoverBusinesses(8);
+  const { options: categoryOptions } = useFilterCategories();
+
+  /**
+   * The server filters this list by taxonomy UUID; Discover's chips are local
+   * display categories. Map the active chip onto a taxonomy entry with the same
+   * name→display-category rule the card mapping uses, and send its id.
+   * A chip with no taxonomy match (if one ever exists) returns `undefined` and
+   * keeps the client-side category filter below.
+   */
+  const activeCategoryId = useMemo(() => {
+    if (activeCategory === 'All') return undefined;
+    return categoryOptions.find(
+      option => mapDiscoverCategory(option.name) === activeCategory,
+    )?.id;
+  }, [activeCategory, categoryOptions]);
+
+  const {
+    data: businesses,
+    isLoading,
+    isError,
+  } = useDiscoverBusinesses(
+    { search: search.debounced, categoryId: activeCategoryId },
+    8,
+  );
 
   const filteredBusinesses = useMemo(() => {
-    const query = searchQuery.trim().toLocaleLowerCase();
-    return businesses
-      ? businesses.filter(business => {
-          const matchesCategory =
-            activeCategory === 'All' || business.categoryFilter === activeCategory;
-          const matchesSearch =
-            query.length === 0 ||
-            [business.name, business.category, business.location].some(value =>
-              value.toLocaleLowerCase().includes(query),
-            );
-          return matchesCategory && matchesSearch;
-        })
-      : [];
-  }, [activeCategory, searchQuery, businesses]);
+    if (!businesses) return [];
+    // A mapped category was already applied server-side; only unmapped chips
+    // still need the client-side category check. Search is server-side now.
+    if (activeCategory === 'All' || activeCategoryId) return businesses;
+    return businesses.filter(business => business.categoryFilter === activeCategory);
+  }, [activeCategory, activeCategoryId, businesses]);
 
   const toggleMap = () => {
     setMapIcon(value => (value === 'map' ? 'agenda' : 'map'));
@@ -97,7 +118,10 @@ export function DiscoverScreen(props: Partial<DiscoverScreenProps> = {}) {
     );
   }
 
-  if (!businesses || businesses.length === 0) {
+  // While a search is active the query may legitimately return nothing; the
+  // screen stays up (with the search field) and the list area shows the shared
+  // empty state, so the term can still be cleared.
+  if ((!businesses || businesses.length === 0) && !search.active) {
     return (
       <SafeAreaView edges={['top']} className="flex-1 bg-surface">
         <View accessibilityRole="alert" className="mt-4 items-center">
@@ -188,8 +212,8 @@ export function DiscoverScreen(props: Partial<DiscoverScreenProps> = {}) {
 
           <HomeSearchBar
             variant="outlined"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
+            value={search.query}
+            onChangeText={search.setQuery}
             showFilter={false}
             placeholder={strings.discoverFeed.searchPlaceholder}
           />
@@ -206,22 +230,31 @@ export function DiscoverScreen(props: Partial<DiscoverScreenProps> = {}) {
         <View className="w-full max-w-screen gap-4 self-center px-6 pb-6 pt-1">
           <View className="flex-row items-center justify-between gap-3 pt-1">
             <VemtapText className="min-w-0 flex-1 font-sans-semibold text-label-sm uppercase tracking-wider text-text-secondary">
-              {strings.discoverFeed.spotlightDiscoveries(businesses.length)}
+              {strings.discoverFeed.spotlightDiscoveries(businesses?.length ?? 0)}
             </VemtapText>
             <VemtapText variant="caption" tone="tertiary">
               {strings.discoverFeed.realTimePerks}
             </VemtapText>
           </View>
 
-          {filteredBusinesses.map(business => (
-            <BusinessDiscoveryCard
-              key={business.id}
-              business={business}
-              onOpen={businessId =>
-                props.onOpenBusiness?.(business.branchCode ?? businessId, business)
-              }
+          {filteredBusinesses.length === 0 ? (
+            <EmptyState
+              variant="contained"
+              icon="search"
+              title={strings.search.emptyTitle}
+              description={strings.search.emptyBody}
             />
-          ))}
+          ) : (
+            filteredBusinesses.map(business => (
+              <BusinessDiscoveryCard
+                key={business.id}
+                business={business}
+                onOpen={businessId =>
+                  props.onOpenBusiness?.(business.branchCode ?? businessId, business)
+                }
+              />
+            ))
+          )}
 
           <Pressable
             accessibilityRole="link"

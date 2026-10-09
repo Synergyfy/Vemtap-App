@@ -19,19 +19,36 @@ const DISCOVER_CATEGORY_MAP: Record<string, string> = {
 } as const;
 
 /**
- * Fetches a page of public businesses from the shared `/public/businesses` endpoint.
- * The hook handles the mapper, so the screen always receives `BusinessProfileSummary`
- * shape (rating/reviews/distance blank when the list endpoint has no coordinates).
+ * Fetches public businesses from the shared `/public/businesses` endpoint.
+ *
+ * Phase 2 gave the endpoint `search` and `categoryId` filters, so this hook now
+ * forwards the Discover screen's controls instead of filtering a single global
+ * page client-side. Both params are part of the query key: changing the query
+ * or the mapped category refetches.
+ *
+ * The endpoint has no `limit`/`page` params (the response is the full list), so
+ * `limit` stays a client-side slice of whatever the server returns.
  */
 export const discoverBusinessKeys = {
-  list: (limit: number = 8) => ['businesses', 'discover', limit] as const,
+  list: (search: string, categoryId: string, limit: number) =>
+    ['businesses', 'discover', search, categoryId, limit] as const,
 };
 
-export function useDiscoverBusinesses(limit: number = 8) {
+export function useDiscoverBusinesses(
+  params: { search?: string; categoryId?: string } = {},
+  limit: number = 8,
+) {
+  const search = params.search?.trim() ?? '';
+  const categoryId = params.categoryId ?? '';
+
   return useQuery<PublicBusiness[], Error, BusinessProfileSummary[]>({
-    queryKey: discoverBusinessKeys.list(limit),
-    queryFn: () => dealsApi.listPublicBusinesses({ limit } as any),
-    select: businesses => businesses.map(toDiscoverBusiness),
+    queryKey: discoverBusinessKeys.list(search, categoryId, limit),
+    queryFn: () =>
+      dealsApi.listPublicBusinesses({
+        search: search || undefined,
+        categoryId: categoryId || undefined,
+      }),
+    select: businesses => businesses.slice(0, limit).map(toDiscoverBusiness),
     staleTime: 300_000,
   });
 }
@@ -71,7 +88,7 @@ export function toDiscoverBusiness(business: PublicBusiness): BusinessProfileSum
 }
 
 /** Simple lookup table: live categoryName → DiscoverCategory. */
-function mapDiscoverCategory(
+export function mapDiscoverCategory(
   categoryName?: string | null,
 ):
   | 'Food & Dining'

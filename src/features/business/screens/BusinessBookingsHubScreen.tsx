@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { Button } from '@components/ui/Button';
@@ -12,6 +12,7 @@ import {
   BusinessSelectionChip,
 } from '@features/business/components/BusinessPrimitives';
 import { StatusPillTabs } from '@features/accountHub/components/HubPrimitives';
+import type { PresentedBooking } from '@features/business/hooks/useBusinessBookings';
 import { cn } from '@utils/cn';
 
 cssInterop(Pressable, { className: 'style' });
@@ -60,6 +61,54 @@ export interface BusinessBookingsHubScreenProps {
   onCheckIn?: (id: string) => void;
   onOpenCalendar?: () => void;
   onOpenNotifications?: () => void;
+  /** Live data from the route; omitted renders the designed fallback copy. */
+  bookings?: readonly PresentedBooking[];
+  branchName?: string;
+  orderTotal?: number;
+  bookingTotal?: number;
+  onSelectDay?: (date?: string) => void;
+  onSelectFilter?: (filter: { status?: string; date?: string }) => void;
+}
+
+const FILTER_PARAMS: readonly { status?: string; date?: string }[] = [
+  {},
+  { date: 'today' },
+  { status: 'completed' },
+  { status: 'cancelled' },
+];
+
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const MONTHS = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
+
+/** Today + the next three days, derived from the device clock. */
+function nextDays() {
+  const base = new Date();
+  return Array.from({ length: 4 }, (_, index) => {
+    const date = new Date(base);
+    date.setDate(base.getDate() + index);
+    const iso = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    return {
+      id: iso,
+      day: index === 0 ? 'Today' : index === 1 ? 'Tomorrow' : WEEKDAYS[date.getDay()],
+      date: String(date.getDate()).padStart(2, '0'),
+      month: `${MONTHS[date.getMonth()]}, ${WEEKDAYS[date.getDay()]}`,
+      current: index === 0,
+      iso,
+    };
+  });
 }
 
 export function BusinessBookingsHubScreen({
@@ -70,10 +119,38 @@ export function BusinessBookingsHubScreen({
   onCheckIn,
   onOpenCalendar,
   onOpenNotifications,
+  bookings,
+  branchName,
+  orderTotal,
+  bookingTotal,
+  onSelectDay,
+  onSelectFilter,
 }: BusinessBookingsHubScreenProps) {
   const [switcher, setSwitcher] = useState(1);
   const [day, setDay] = useState(0);
   const [filter, setFilter] = useState(0);
+
+  const fallbackBookings: PresentedBooking[] = copy.bookings.map(booking => ({
+    id: booking.id,
+    time: booking.time,
+    duration: booking.duration,
+    startsSoon: booking.startsSoon,
+    tone: booking.tone,
+    customer: booking.customer,
+    badge: booking.badge,
+    service: booking.service,
+    staff: booking.staff,
+    note: booking.note,
+    cta: booking.cta,
+    nextStatus: undefined,
+  }));
+  const list = bookings ?? fallbackBookings;
+
+  const days = useMemo(() => (bookings ? nextDays() : copy.days), [bookings]);
+  const switcherCounts: [string, string] =
+    orderTotal !== undefined && bookingTotal !== undefined
+      ? [String(orderTotal), String(bookingTotal)]
+      : [...copy.switcherCounts];
 
   return (
     <BusinessScreenLayout
@@ -106,7 +183,7 @@ export function BusinessBookingsHubScreen({
             className="min-w-0 flex-1 font-sans-semibold"
             numberOfLines={1}
           >
-            {copy.branch}
+            {branchName ?? copy.branch}
           </VemtapText>
           <Icon name="expandMore" size={18} color={colors.onSurfaceVariant} />
         </Pressable>
@@ -130,7 +207,7 @@ export function BusinessBookingsHubScreen({
       <StatusPillTabs
         variant="switcher"
         labels={copy.switcher}
-        counts={copy.switcherCounts}
+        counts={switcherCounts}
         selected={switcher}
         onSelect={index => {
           setSwitcher(index);
@@ -144,7 +221,7 @@ export function BusinessBookingsHubScreen({
           showsHorizontalScrollIndicator={false}
           contentContainerClassName="gap-2 px-6 py-1"
         >
-          {copy.days.map((item, index) => {
+          {days.map((item, index) => {
             const isSelected = index === day;
             return (
               <Pressable
@@ -152,7 +229,10 @@ export function BusinessBookingsHubScreen({
                 accessibilityRole="button"
                 accessibilityState={{ selected: isSelected }}
                 accessibilityLabel={`${item.day} ${item.date} ${item.month}`}
-                onPress={() => setDay(index)}
+                onPress={() => {
+                  setDay(index);
+                  onSelectDay?.((item as { iso?: string }).iso);
+                }}
                 className={cn(
                   'min-w-[62px] items-center justify-center rounded-lg px-2 py-1 active:scale-95',
                   isSelected ? 'bg-primary' : 'bg-surface-container-low',
@@ -201,7 +281,10 @@ export function BusinessBookingsHubScreen({
               key={`${item.label}-${item.count}`}
               label={`${item.label} ${item.count}`}
               selected={index === filter}
-              onPress={() => setFilter(index)}
+              onPress={() => {
+                setFilter(index);
+                onSelectFilter?.(FILTER_PARAMS[index] ?? {});
+              }}
               tone="brand"
               plain
             />
@@ -215,7 +298,7 @@ export function BusinessBookingsHubScreen({
         </View>
         <View className="min-w-0 flex-1">
           <VemtapText variant="labelMd" className="font-sans-semibold" numberOfLines={1}>
-            {copy.summaryTitle}
+            {bookings ? copy.summaryTitleFor(list.length) : copy.summaryTitle}
           </VemtapText>
           <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
             {`${copy.summaryMetaLabel} `}
@@ -227,8 +310,20 @@ export function BusinessBookingsHubScreen({
         </View>
       </View>
 
+      {bookings && bookings.length === 0 ? (
+        <View className="items-center gap-1 rounded-card bg-surface-container-low p-6">
+          <Icon name="calendar" size={26} color={colors.textTertiary} />
+          <VemtapText variant="labelMd" className="font-sans-semibold">
+            {copy.emptyTitle}
+          </VemtapText>
+          <VemtapText variant="caption" tone="secondary" className="text-center">
+            {copy.emptyBody}
+          </VemtapText>
+        </View>
+      ) : null}
+
       <View className="gap-3">
-        {copy.bookings.map(booking => {
+        {list.map(booking => {
           const tone = toneStyles[booking.tone];
           return (
             <Pressable
@@ -298,7 +393,9 @@ export function BusinessBookingsHubScreen({
                   ) : null}
                 </View>
                 <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-                  {`${booking.service} \u00b7 ${booking.staff}`}
+                  {booking.staff
+                    ? `${booking.service} \u00b7 ${booking.staff}`
+                    : booking.service}
                 </VemtapText>
                 {booking.note ? (
                   <VemtapText

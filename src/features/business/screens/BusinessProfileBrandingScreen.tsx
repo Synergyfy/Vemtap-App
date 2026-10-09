@@ -1,7 +1,8 @@
 import React, { useCallback, useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { Alert, Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as ImagePicker from 'expo-image-picker';
 import { cssInterop } from 'nativewind';
 import { RegistrationHeader } from '@components/auth/RegistrationHeader';
 import { Icon } from '@components/ui/Icon';
@@ -47,6 +48,9 @@ export interface BusinessBrandingValue {
   logoRemoved: boolean;
   coverReplaced: boolean;
   galleryUris: string[];
+  /** Local URIs of picked images; uploaded when a media endpoint is wired. */
+  logoUri?: string;
+  coverUri?: string;
 }
 
 export interface BusinessProfileBrandingScreenProps {
@@ -56,6 +60,35 @@ export interface BusinessProfileBrandingScreenProps {
   onChangeLogo?: () => void;
   onChangeCover?: () => void;
   onAddPhoto?: () => string | undefined;
+  /** Draft context shown in the live preview (collected on Basic Info). */
+  businessName?: string;
+  categoryName?: string;
+  specialties?: string[];
+  /** Restores picked media when the user returns to this step. */
+  initialValue?: Partial<BusinessBrandingValue>;
+}
+
+/**
+ * Opens the system photo library. Editing is enabled so the logo and cover
+ * arrive in roughly the aspect the design reserves for them. Returns null when
+ * the user cancels or denies access.
+ */
+async function pickImageFromLibrary(aspect?: [number, number]): Promise<string | null> {
+  const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  if (!permission.granted) {
+    Alert.alert(copy.branding.photoPermissionTitle, copy.branding.photoPermissionBody);
+    return null;
+  }
+
+  const result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ['images'],
+    allowsEditing: true,
+    ...(aspect ? { aspect } : {}),
+    quality: 0.8,
+  });
+
+  if (result.canceled) return null;
+  return result.assets[0]?.uri ?? null;
 }
 
 /**
@@ -69,13 +102,23 @@ export function BusinessProfileBrandingScreen({
   onChangeLogo,
   onChangeCover,
   onAddPhoto,
+  businessName,
+  categoryName,
+  specialties,
+  initialValue,
 }: BusinessProfileBrandingScreenProps) {
-  const [logoRemoved, setLogoRemoved] = useState(false);
-  const [logoChanged, setLogoChanged] = useState(false);
-  const [coverReplaced, setCoverReplaced] = useState(false);
-  const [galleryUris, setGalleryUris] = useState<string[]>([
-    ...businessBrandingImages.gallery,
-  ]);
+  const [logoRemoved, setLogoRemoved] = useState(initialValue?.logoRemoved ?? false);
+  const [logoChanged, setLogoChanged] = useState(initialValue?.logoChanged ?? false);
+  const [coverReplaced, setCoverReplaced] = useState(
+    initialValue?.coverReplaced ?? false,
+  );
+  const [logoUri, setLogoUri] = useState<string | undefined>(initialValue?.logoUri);
+  const [coverUri, setCoverUri] = useState<string | undefined>(initialValue?.coverUri);
+  const [galleryUris, setGalleryUris] = useState<string[]>(
+    initialValue?.galleryUris?.length
+      ? [...initialValue.galleryUris]
+      : [...businessBrandingImages.gallery],
+  );
 
   const handleBack = useCallback(() => onBack?.(), [onBack]);
 
@@ -83,23 +126,31 @@ export function BusinessProfileBrandingScreen({
     setLogoRemoved(current => !current);
   }, []);
 
-  const onChangeLogoPress = useCallback(() => {
+  const onChangeLogoPress = useCallback(async () => {
+    const uri = await pickImageFromLibrary([1, 1]);
+    if (!uri) return;
+    setLogoUri(uri);
     setLogoChanged(true);
+    setLogoRemoved(false);
     onChangeLogo?.();
   }, [onChangeLogo]);
 
-  const onCoverPress = useCallback(() => {
+  const onCoverPress = useCallback(async () => {
+    const uri = await pickImageFromLibrary([16, 9]);
+    if (!uri) return;
+    setCoverUri(uri);
     setCoverReplaced(true);
     onChangeCover?.();
   }, [onChangeCover]);
 
-  const onAddGallery = useCallback(() => {
+  const onAddGallery = useCallback(async () => {
     if (galleryUris.length >= GALLERY_MAX) {
       return;
     }
-    const next = onAddPhoto?.();
-    if (typeof next === 'string') {
-      setGalleryUris(current => [...current, next]);
+    const external = onAddPhoto?.();
+    const uri = typeof external === 'string' ? external : await pickImageFromLibrary();
+    if (uri) {
+      setGalleryUris(current => [...current, uri]);
     }
   }, [galleryUris.length, onAddPhoto]);
 
@@ -112,7 +163,18 @@ export function BusinessProfileBrandingScreen({
     logoRemoved,
     coverReplaced,
     galleryUris,
+    logoUri,
+    coverUri,
   };
+
+  // Live preview mirrors the draft: name/logo/banner come from Basic Info and
+  // this step's picks; the meta line composes the chosen category + specialties.
+  const metaParts = [categoryName, ...(specialties ?? [])]
+    .map(part => part?.trim())
+    .filter((part): part is string => Boolean(part));
+  const previewMeta = metaParts.length
+    ? `${metaParts.join(' • ')} • ${copy.branding.previewDistance}`
+    : copy.branding.previewMeta;
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top', 'bottom']}>
@@ -196,6 +258,13 @@ export function BusinessProfileBrandingScreen({
                   <View className="h-full w-full items-center justify-center bg-surface-container-high">
                     <Icon name="imagePlus" size={26} color={colors.textTertiary} />
                   </View>
+                ) : logoUri ? (
+                  <InlineImageCard
+                    uri={logoUri}
+                    height={80}
+                    rounded="field"
+                    className="h-full w-full rounded-none shadow-none"
+                  />
                 ) : (
                   <View className="relative h-full w-full items-center justify-center bg-surface-container-high">
                     <View className="h-12 w-12 items-center justify-center rounded-full bg-primary shadow-sm">
@@ -258,7 +327,7 @@ export function BusinessProfileBrandingScreen({
               <StatusPill label={copy.branding.coverSpec} tone="neutral" />
             </View>
             <InlineImageCard
-              uri={businessBrandingImages.cover}
+              uri={coverUri ?? businessBrandingImages.cover}
               height={176}
               rounded="field"
             >
@@ -334,11 +403,13 @@ export function BusinessProfileBrandingScreen({
             className="bg-surface-container-low shadow-none"
           >
             <FeedPreviewCard
-              imageUri={businessBrandingImages.feed}
+              imageUri={coverUri ?? businessBrandingImages.cover}
+              logoUri={logoRemoved ? undefined : logoUri}
+              imageLabel={copy.branding.previewTitle}
               badge={copy.branding.previewBadge}
               openBadge={copy.branding.previewOpen}
-              name={copy.branding.previewName}
-              meta={copy.branding.previewMeta}
+              name={businessName?.trim() || copy.branding.previewName}
+              meta={previewMeta}
               rating="4.9"
             />
           </PreviewShell>

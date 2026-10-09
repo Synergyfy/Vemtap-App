@@ -361,6 +361,23 @@ describe('switch to customer', () => {
     expect(view.getByText(copy.footer)).toBeTruthy();
   });
 
+  it('shows the logged-in business and customer identity when provided', async () => {
+    const view = await render(
+      <SwitchToCustomerScreen
+        merchantName="Ada's Kitchen"
+        customerName="Ada Obi"
+        customerMeta="ada.obi@example.com"
+      />,
+    );
+
+    expect(view.getByText("Ada's Kitchen")).toBeTruthy();
+    expect(view.getByText('Ada Obi')).toBeTruthy();
+    expect(view.getByText('ada.obi@example.com')).toBeTruthy();
+    // Design placeholders are replaced, not duplicated.
+    expect(view.queryByText(copy.fromName)).toBeNull();
+    expect(view.queryByText(copy.toName)).toBeNull();
+  });
+
   it('confirms the switch, stays in business and opens the deal', async () => {
     const onConfirmSwitch = jest.fn();
     const onStayInBusiness = jest.fn();

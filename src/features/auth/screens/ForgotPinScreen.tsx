@@ -29,19 +29,34 @@ const OTP_LENGTH = 6;
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'ForgotPin'>;
 
+export interface ForgotPinScreenProps {
+  /** Prefills the email phase — used when the reset is opened from a signed-in flow. */
+  initialEmail?: string;
+  /**
+   * Replaces the default "back to sign in" action after a successful reset.
+   * The business wizard returns to its confirmation step instead.
+   */
+  onDone?: () => void;
+  doneLabel?: string;
+}
+
 /**
  * Customer PIN reset. No Stitch design exists for this flow, so it is composed
  * from the same primitives as registration: TextField, the shared OtpInput and
  * the shared PinInput. One route, two phases, mirroring the two API calls
  * (POST /auth/customer/pin/forgot then POST /auth/customer/pin/reset).
  */
-export function ForgotPinScreen() {
+export function ForgotPinScreen({
+  initialEmail,
+  onDone,
+  doneLabel,
+}: ForgotPinScreenProps = {}) {
   const navigation = useNavigation<Nav>();
   const requestPinReset = useRequestPinReset();
   const resetPin = useResetPin();
 
   const [phase, setPhase] = useState<'email' | 'code'>('email');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(initialEmail ?? '');
   const [emailError, setEmailError] = useState<string | null>(null);
   const [code, setCode] = useState('');
   const [newPin, setNewPin] = useState('');
@@ -215,10 +230,10 @@ export function ForgotPinScreen() {
                   onPress={onSubmit}
                 />
                 <Button
-                  label={strings.auth.forgotPinBackToSignIn}
+                  label={doneLabel ?? strings.auth.forgotPinBackToSignIn}
                   variant="ghost"
                   disabled={!success}
-                  onPress={() => navigation.goBack()}
+                  onPress={() => (onDone ? onDone() : navigation.goBack())}
                 />
               </View>
             </View>

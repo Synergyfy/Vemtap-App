@@ -8,7 +8,11 @@ import { strings } from '@constants/strings';
 import { TypeDensityProvider } from '@theme/TypeDensityProvider';
 import { colors } from '@theme/colors';
 import { businessHubMedia } from '@features/business/data/businessHubImages';
-import { BusinessBranchSwitcher } from '@features/business/components/BusinessBranchSwitcher';
+import {
+  BusinessBranchSwitcher,
+  type BusinessBranch,
+} from '@features/business/components/BusinessBranchSwitcher';
+import type { BusinessHubView } from '@features/business/hooks/useBusinessHubData';
 import {
   BusinessProductImage,
   BusinessScreenLayout,
@@ -47,6 +51,11 @@ export interface BusinessMoreHubScreenProps {
   onAddBranch?: () => void;
   onOpenMasterQr?: () => void;
   onOpenNotifications?: () => void;
+  /** Live branch list; omitted renders the designed fallback copy. */
+  branches?: readonly BusinessBranch[];
+  activeBranchId?: string;
+  /** Live business identity; omitted renders the designed fallback copy. */
+  hub?: BusinessHubView;
 }
 
 export function BusinessMoreHubScreen({
@@ -59,7 +68,12 @@ export function BusinessMoreHubScreen({
   onAddBranch,
   onOpenMasterQr,
   onOpenNotifications,
+  branches,
+  activeBranchId,
+  hub,
 }: BusinessMoreHubScreenProps) {
+  const activeBranchName = branches?.find(branch => branch.id === activeBranchId)?.name;
+  const locationLabel = activeBranchName || hub?.branchNames || copy.location;
   // Dense hub: many rows read at a glance, so the subtree (navbar included)
   // uses the compact type density rather than per-row size overrides.
   return (
@@ -69,10 +83,12 @@ export function BusinessMoreHubScreen({
           title: copy.title,
           centerTitle: false,
           showAvatar: true,
+          avatarUri: hub?.logoUrl,
           titleAccessory: (
             <BusinessBranchSwitcher
               size="sm"
-              branches={strings.businessBranchSwitcher.branches}
+              branches={branches ?? strings.businessBranchSwitcher.branches}
+              activeBranchId={activeBranchId}
               onChangeBranch={onChangeBranch}
               onAddBranch={onAddBranch}
             />
@@ -90,13 +106,13 @@ export function BusinessMoreHubScreen({
         <View className="overflow-hidden rounded-card-lg bg-surface-container-lowest shadow-sm">
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={copy.name}
+            accessibilityLabel={hub?.name ?? copy.name}
             onPress={onOpenProfileDeck}
             className="flex-row items-center gap-3 p-3.5"
           >
             <View className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl bg-surface-container">
               <BusinessProductImage
-                source={{ uri: businessHubMedia.logo.uri }}
+                source={{ uri: hub?.logoUrl ?? businessHubMedia.logo.uri }}
                 alt={businessHubMedia.logo.alt}
                 className="h-full w-full"
               />
@@ -108,13 +124,15 @@ export function BusinessMoreHubScreen({
                   className="min-w-0 font-sans-semibold"
                   numberOfLines={1}
                 >
-                  {copy.name}
+                  {hub?.name ?? copy.name}
                 </VemtapText>
-                <Icon name="verified" size={16} color={colors.primary} />
+                {!hub || hub.isVerified ? (
+                  <Icon name="verified" size={16} color={colors.primary} />
+                ) : null}
               </View>
               <View className="flex-row flex-wrap items-center gap-1.5">
                 <VemtapText variant="caption" tone="tertiary" numberOfLines={1}>
-                  {copy.accountId}
+                  {hub?.uniqueCode ?? copy.accountId}
                 </VemtapText>
                 <View className="rounded-full bg-surface-tint-blue px-2 py-0.5">
                   <VemtapText
@@ -129,7 +147,7 @@ export function BusinessMoreHubScreen({
               <View className="flex-row items-center gap-1">
                 <Icon name="locationOn" size={13} color={colors.textSecondary} />
                 <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-                  {copy.location}
+                  {locationLabel}
                 </VemtapText>
               </View>
             </View>

@@ -446,6 +446,7 @@ export interface FieldInputProps {
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
   maxLength?: number;
   multiline?: boolean;
+  secureTextEntry?: boolean;
   tone?: 'subtle' | 'lowest';
   onTrailingIconPress?: () => void;
   className?: string;
@@ -472,6 +473,7 @@ export function FieldInput({
   autoCapitalize = 'sentences',
   maxLength,
   multiline = false,
+  secureTextEntry = false,
   tone = 'subtle',
   onTrailingIconPress,
   className,
@@ -503,6 +505,7 @@ export function FieldInput({
       autoCapitalize={autoCapitalize}
       maxLength={maxLength}
       multiline={multiline}
+      secureTextEntry={secureTextEntry}
       minHeight={multiline ? 96 : undefined}
       leadingIcon={
         leadingIcon ? (
@@ -659,6 +662,7 @@ export interface PrimaryActionButtonProps {
   label: string;
   onPress?: () => void;
   loading?: boolean;
+  disabled?: boolean;
   icon?: IconName;
   className?: string;
 }
@@ -667,6 +671,7 @@ export function PrimaryActionButton({
   label,
   onPress,
   loading = false,
+  disabled = false,
   icon = 'arrowForward',
   className,
 }: PrimaryActionButtonProps) {
@@ -675,6 +680,7 @@ export function PrimaryActionButton({
       label={label}
       labelVariant="labelMd"
       loading={loading}
+      disabled={disabled}
       onPress={onPress}
       className={className}
       rightIcon={<Icon name={icon} size={20} color={colors.surface} />}

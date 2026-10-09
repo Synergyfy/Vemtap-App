@@ -18,6 +18,7 @@ import { queryClient } from '@store/queryClient';
 import { clearSecureStorage } from '@utils/secureStorage';
 import { FeaturedDealsScreen } from '@features/home/screens/FeaturedDealsScreen';
 import { AccountHomeScreen } from '@features/accountHub/screens/AccountHomeScreen';
+import { useOpenBusinessSetup } from '@features/business/hooks/useOpenBusinessSetup';
 import { CustomerDashboardScreen } from '@features/accountHub/screens/CustomerDashboardScreen';
 import { MyDealsHubScreen } from '@features/myDeals/screens/MyDealsHubScreen';
 import { OrdersBookingsHubScreen } from '@features/order/screens/OrdersBookingsHubScreen';
@@ -151,10 +152,7 @@ function HomeFeedScreen() {
     () => () => navigation.navigate('DealFilters'),
     [navigation],
   );
-  const onOpenBusinessSetup = useMemo(
-    () => () => navigation.navigate('BusinessSetup'),
-    [navigation],
-  );
+  const onOpenBusinessSetup = useOpenBusinessSetup();
   const onOpenDealsTab = useMemo(() => () => navigation.navigate('Deals'), [navigation]);
   const onOpenDiscoverTab = useMemo(
     () => () => navigation.navigate('Discover'),
@@ -204,10 +202,7 @@ function HomeFeaturedDealsScreen() {
     () => () => navigation.navigate('DealFilters'),
     [navigation],
   );
-  const onOpenBusinessSetup = useMemo(
-    () => () => navigation.navigate('BusinessSetup'),
-    [navigation],
-  );
+  const onOpenBusinessSetup = useOpenBusinessSetup();
 
   return (
     <FeaturedDealsScreen
@@ -320,6 +315,7 @@ function DiscoverHomeScreen() {
     () => () => navigation.navigate('DealFilters'),
     [navigation],
   );
+  const openBusinessSetup = useOpenBusinessSetup();
 
   return (
     <DiscoverScreen
@@ -328,7 +324,7 @@ function DiscoverHomeScreen() {
       onToggleMap={() => undefined}
       onOpenNotifications={() => undefined}
       onOpenAccount={() => navigation.navigate('Tabs', { screen: 'Account' })}
-      onOpenEnrollment={() => navigation.navigate('BusinessSetup')}
+      onOpenEnrollment={openBusinessSetup}
       onOpenLocationSelect={onOpenLocationSelect}
     />
   );
@@ -525,6 +521,9 @@ function usePersonalFlowHandoff() {
 function AccountHomeRoute() {
   const navigation = useNavigation<AccountStackNavigation>();
   const personal = usePersonalFlowHandoff();
+  const ownerAccount = useAuthStore(state => state.ownerAccount);
+  const onOpenBusinessSetup = useOpenBusinessSetup();
+
   return (
     <AccountHomeScreen
       onOpenNotifications={personal.notifications}
@@ -544,6 +543,8 @@ function AccountHomeRoute() {
       onOpenPrivacy={personal.settings}
       onOpenHelpCentre={personal.helpCentre}
       onOpenTerms={personal.settings}
+      onOpenBusinessSetup={onOpenBusinessSetup}
+      businessCtaLabel={ownerAccount ? strings.accountHome.switchToBusiness : undefined}
       onSignOut={signOut}
     />
   );

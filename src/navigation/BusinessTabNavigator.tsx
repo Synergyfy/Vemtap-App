@@ -1,17 +1,26 @@
-import React, { useState } from 'react';
-import { View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Alert, Linking, View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useRoute, type RouteProp } from '@react-navigation/native';
 import { strings } from '@constants/strings';
-import { BusinessTabBar } from '@features/business/components/BusinessTabBar';
+import {
+  BusinessTabBar,
+  type BusinessTabBadge,
+} from '@features/business/components/BusinessTabBar';
 import { BusinessDashboardOverviewScreen } from '@features/business/screens/BusinessDashboardOverviewScreen';
 import { BusinessOrdersHubScreen } from '@features/business/screens/BusinessOrdersHubScreen';
 import { OrderDetailScreen } from '@features/business/screens/BusinessOrderDetailScreen';
 import { BusinessBookingsHubScreen } from '@features/business/screens/BusinessBookingsHubScreen';
 import { BusinessPosOrdersViewScreen } from '@features/business/screens/BusinessPosOrdersViewScreen';
-import { BusinessMessagesHomeScreen } from '@features/business/screens/BusinessMessagesHomeScreen';
-import { BusinessConversationScreen } from '@features/business/screens/BusinessConversationScreen';
+import {
+  BusinessMessagesHomeScreen,
+  toBusinessMessageThreadView,
+} from '@features/business/screens/BusinessMessagesHomeScreen';
+import {
+  BusinessConversationScreen,
+  toBusinessConversationMessage,
+} from '@features/business/screens/BusinessConversationScreen';
 import { BusinessHubCentralManagementScreen } from '@features/business/screens/BusinessHubCentralManagementScreen';
 import { BusinessMoreHubScreen } from '@features/business/screens/BusinessMoreHubScreen';
 import { BusinessManagementHubScreen } from '@features/business/screens/BusinessManagementHubScreen';
@@ -48,6 +57,41 @@ import { BusinessVerificationTrustScreen } from '@features/business/screens/Busi
 import { BusinessSupportHelpScreen } from '@features/business/screens/BusinessSupportHelpScreen';
 import { BusinessSettingsScreen } from '@features/business/screens/BusinessSettingsScreen';
 import { SwitchToCustomerScreen } from '@features/business/screens/SwitchToCustomerScreen';
+import {
+  countUnreadMessages,
+  useBusinessDashboard,
+  useMyBusiness,
+} from '@features/business/hooks/useBusinessDashboardData';
+import { useActiveBranch } from '@features/business/hooks/useActiveBranch';
+import { useBusinessHubData } from '@features/business/hooks/useBusinessHubData';
+import {
+  useBusinessThreadMessages,
+  useBusinessThreads,
+  useMarkBusinessThreadRead,
+  useSendBusinessReply,
+} from '@features/business/hooks/useBusinessMessaging';
+import { useBusinessMessagingRealtime } from '@features/business/hooks/useBusinessMessagingRealtime';
+import {
+  emitMessagingTyping,
+  joinMessagingThread,
+  leaveMessagingThread,
+  setActiveMessagingThread,
+} from '@api/messagingSocket';
+import {
+  presentOrder,
+  presentOrderDetail,
+  useBusinessOrderCounts,
+  useBusinessOrderDetail,
+  useBusinessOrders,
+  useUpdateOrderStatus,
+} from '@features/business/hooks/useBusinessOrders';
+import {
+  presentBooking,
+  useBusinessBookings,
+  useUpdateBookingStatus,
+} from '@features/business/hooks/useBusinessBookings';
+import { useAuthStore } from '@store/authStore';
+import { navigationRef } from '@navigation/navigationRef';
 import { CampaignsHubScreen } from '@features/business/screens/CampaignsHubScreen';
 import { CustomerSegmentsScreen } from '@features/business/screens/CustomerSegmentsScreen';
 import { BoostEngineScreen } from '@features/business/screens/BoostEngineScreen';
@@ -115,6 +159,7 @@ import { ReferralDetailScreen } from '@features/business/screens/ReferralDetailS
 import { BusinessNetworkActiveDashboardScreen } from '@features/business/screens/BusinessNetworkActiveDashboardScreen';
 import { InviteABusinessSheet } from '@features/business/screens/InviteABusinessSheet';
 import { TypeDensityProvider } from '@theme/TypeDensityProvider';
+import { useSwitchRole } from '@features/auth/hooks/useSwitchRole';
 import { useBusinessNavigation } from './useBusinessNavigation';
 import type { BusinessTabParamList } from './types';
 
@@ -138,10 +183,19 @@ function BusinessOverviewRoute() {
   const navigation = useBusinessNavigation();
   return (
     <BusinessDashboardOverviewScreen
+      onOpenAnalytics={() => navigation.navigate('BusinessAnalytics')}
       onOpenOrders={() => navigation.navigate('BusinessOrders')}
       onOpenMessages={() => navigation.navigate('BusinessMessages')}
-      onManageLocations={() => navigation.navigate('BusinessHub')}
-      onAddBranch={() => navigation.navigate('BusinessHub')}
+      // Quick shortcuts + the rows/cards that share their handlers.
+      onOpenScanner={() => navigation.navigate('PosCustomerLookupActive')}
+      onOpenPos={() => navigation.navigate('PosHomeSalesOperations')}
+      onCreateDeal={() => navigation.navigate('CreateDealLocationAssignment')}
+      onAddProduct={() => navigation.navigate('AddProductBasicsMedia')}
+      onBoostDeal={() => navigation.navigate('BoostEngine')}
+      onOpenPosSync={() => navigation.navigate('PosSyncReconciliation')}
+      onAddBranch={() => navigation.navigate('LocationsBranches')}
+      onManageLocations={() => navigation.navigate('LocationsBranches')}
+      onOpenReport={() => navigation.navigate('AnalyticsExportReport')}
     />
   );
 }
@@ -153,44 +207,94 @@ function BusinessOverviewRoute() {
  */
 function BusinessOrdersSurfaceRoute() {
   const navigation = useBusinessNavigation();
+  const { branches, activeBranchId, setActiveBranch } = useActiveBranch();
+  const [status, setStatus] = useState<string | undefined>(undefined);
+  const ordersQuery = useBusinessOrders({
+    type: 'order',
+    status,
+    branchId: activeBranchId ?? undefined,
+  });
+  const counts = useBusinessOrderCounts(activeBranchId);
+  const updateStatus = useUpdateOrderStatus();
+
   return (
     <BusinessOrdersHubScreen
-      // Branch changes are reported by the shared switcher; this flow has no
-      // per-branch data fetch yet, so the selection stays local to the control.
-      // Adding a location lives in the setup stack, which this nested Orders
-      // screen cannot address; hand off to the branch management surface here.
-      onAddBranch={() => navigation.navigate('BusinessManagementHub')}
+      branches={branches}
+      activeBranchId={activeBranchId ?? undefined}
+      onChangeBranch={setActiveBranch}
+      onAddBranch={() => navigation.navigate('LocationsBranches')}
+      onOpenBookings={() => navigation.navigate('BusinessBookings')}
       onOpenPosOrders={() => navigation.navigate('BusinessPosOrders')}
-      onOpenOrder={orderId =>
-        navigation.navigate('BusinessOrderDetail', { orderId: orderId ?? 'vg-94021' })
+      onOpenOrder={orderId => navigation.navigate('BusinessOrderDetail', { orderId })}
+      onSelectStatus={setStatus}
+      onUpdateOrderStatus={(id, nextStatus) =>
+        updateStatus.mutate({ id, status: nextStatus })
       }
-      onAcceptOrder={() => undefined}
-      onSendToKitchen={() => undefined}
+      orders={ordersQuery.isSuccess ? ordersQuery.data.data.map(presentOrder) : undefined}
+      orderCounts={counts.counts}
+      orderTotal={counts.orderTotal}
+      bookingTotal={counts.bookingTotal}
     />
   );
 }
 
 function BusinessOrderDetailRoute() {
   const navigation = useBusinessNavigation();
+  const route = useRoute<RouteProp<BusinessTabParamList, 'BusinessOrderDetail'>>();
+  const orderId = route.params?.orderId;
+  const orderQuery = useBusinessOrderDetail(orderId);
+  const updateStatus = useUpdateOrderStatus();
+
+  const setStatus = (status: string) => {
+    if (orderId) updateStatus.mutate({ id: orderId, status });
+  };
+
   return (
     <OrderDetailScreen
       onBack={navigation.goBack}
-      onMarkProcessing={() => undefined}
-      onMarkReady={() => undefined}
-      onConfirmPayment={() => undefined}
-      onAdjustRefund={() => undefined}
+      detail={orderQuery.isSuccess ? presentOrderDetail(orderQuery.data) : undefined}
+      onAcceptOrder={() => setStatus('processing')}
+      onDeclineOrder={() => setStatus('rejected')}
+      onMarkProcessing={() => setStatus('processing')}
+      onMarkReady={() => setStatus('ready')}
+      onConfirmPayment={() => setStatus('completed')}
+      onAdjustRefund={() => setStatus('refunded')}
+      onCallCustomer={() => {
+        const phone = orderQuery.data?.customer?.phone;
+        if (phone) {
+          Linking.openURL(`tel:${phone}`).catch(() => undefined);
+        }
+      }}
       onOpenChat={() => navigation.navigate('BusinessMessages')}
+      onOpenBranchSwitcher={() => navigation.navigate('LocationsBranches')}
     />
   );
 }
 
 function BusinessBookingsRoute() {
   const navigation = useBusinessNavigation();
+  const { branches, activeBranchId, setActiveBranch } = useActiveBranch();
+  const [day, setDay] = useState<string | undefined>(undefined);
+  const [filter, setFilter] = useState<{ status?: string; date?: string }>({});
+  const bookingsQuery = useBusinessBookings({
+    branchId: activeBranchId ?? undefined,
+    date: day,
+    status: filter.status,
+  });
+  const counts = useBusinessOrderCounts(activeBranchId);
+  const updateStatus = useUpdateBookingStatus();
+
+  const activeBranchName = branches.find(branch => branch.id === activeBranchId)?.name;
+
   return (
     <BusinessBookingsHubScreen
-      // Returns to the Orders surface already sitting below in this stack, so
-      // switching never pushes a duplicate screen. If Bookings was opened
-      // directly (deep link) there is nothing to pop, so navigate instead.
+      branchName={activeBranchName}
+      bookings={
+        bookingsQuery.isSuccess ? bookingsQuery.data.data.map(presentBooking) : undefined
+      }
+      orderTotal={counts.orderTotal}
+      bookingTotal={counts.bookingTotal}
+      onOpenBranchSwitcher={() => setActiveBranch(activeBranchId ?? '')}
       onOpenOrders={() => {
         if (navigation.canGoBack()) {
           navigation.goBack();
@@ -198,7 +302,10 @@ function BusinessBookingsRoute() {
           navigation.navigate('BusinessOrdersHome');
         }
       }}
-      onCheckIn={() => undefined}
+      onSelectDay={setDay}
+      onSelectFilter={setFilter}
+      onCheckIn={id => updateStatus.mutate({ id, status: 'completed' })}
+      onOpenBooking={id => navigation.navigate('BusinessOrderDetail', { orderId: id })}
     />
   );
 }
@@ -218,8 +325,24 @@ function BusinessPosOrdersRoute() {
 
 function BusinessMessagesRoute() {
   const navigation = useBusinessNavigation();
+  const { activeBranchId, branches } = useActiveBranch();
+  const threadsQuery = useBusinessThreads(activeBranchId);
+
+  const threads = threadsQuery.isSuccess
+    ? threadsQuery.data.map(toBusinessMessageThreadView)
+    : undefined;
+  const activeBranchName = branches.find(branch => branch.id === activeBranchId)?.name;
+
   return (
     <BusinessMessagesHomeScreen
+      threads={threads}
+      isLoading={threadsQuery.isLoading}
+      isError={threadsQuery.isError}
+      onRetry={() => {
+        threadsQuery.refetch();
+      }}
+      branchName={activeBranchName}
+      onOpenBranchSwitcher={() => navigation.navigate('LocationsBranches')}
       onOpenThread={threadId => navigation.navigate('BusinessConversation', { threadId })}
     />
   );
@@ -228,23 +351,62 @@ function BusinessMessagesRoute() {
 function BusinessConversationRoute() {
   const navigation = useBusinessNavigation();
   const route = useRoute<RouteProp<BusinessTabParamList, 'BusinessConversation'>>();
-  const threadId = route.params?.threadId ?? strings.businessMessages.threads[0].id;
-  const thread = strings.businessMessages.threads.find(item => item.id === threadId);
+  const threadId = route.params?.threadId;
+  const { activeBranchId } = useActiveBranch();
+  const threadsQuery = useBusinessThreads(activeBranchId);
+  const messagesQuery = useBusinessThreadMessages(threadId, activeBranchId);
+  const sendReply = useSendBusinessReply();
+  const { mutate: markThreadRead } = useMarkBusinessThreadRead();
+
+  const thread = threadsQuery.data?.find(item => item.id === threadId);
+  const headerThread = thread ? toBusinessMessageThreadView(thread) : undefined;
+
+  useEffect(() => {
+    if (!threadId) return;
+    setActiveMessagingThread(threadId);
+    joinMessagingThread(threadId);
+    return () => {
+      setActiveMessagingThread(null);
+      leaveMessagingThread(threadId);
+    };
+  }, [threadId]);
+
+  useEffect(() => {
+    if (!threadId || !activeBranchId) return;
+    markThreadRead({ threadId, branchId: activeBranchId });
+  }, [activeBranchId, markThreadRead, threadId]);
+
+  if (!threadId) return null;
+
+  const messages = messagesQuery.isSuccess
+    ? messagesQuery.data.map(toBusinessConversationMessage)
+    : undefined;
 
   return (
     <BusinessConversationScreen
-      threadId={threadId}
       onBack={navigation.goBack}
       thread={
-        thread
+        headerThread
           ? {
-              name: thread.name,
-              time: thread.time,
-              context: thread.context,
-              contextIcon: thread.contextIcon,
+              name: headerThread.name,
+              time: headerThread.time,
+              context: headerThread.context,
+              contextIcon: headerThread.contextIcon,
             }
           : undefined
       }
+      messages={messages}
+      isLoading={messagesQuery.isLoading}
+      isSending={sendReply.isPending}
+      onTyping={isTyping => emitMessagingTyping(threadId, isTyping)}
+      onSend={content => {
+        if (!activeBranchId) return;
+        sendReply.mutate({
+          threadId,
+          branchId: activeBranchId,
+          payload: { content },
+        });
+      }}
     />
   );
 }
@@ -252,8 +414,19 @@ function BusinessConversationRoute() {
 /** Every Business-tab module id resolves to exactly one destination. */
 function BusinessHubRoute() {
   const navigation = useBusinessNavigation();
+  const { branches, activeBranchId, setActiveBranch } = useActiveBranch();
+  const { view } = useBusinessHubData(activeBranchId);
+
+  const openExternal = (url: string) => {
+    if (url) Linking.openURL(url).catch(() => undefined);
+  };
+
   return (
     <BusinessHubCentralManagementScreen
+      hub={view}
+      branches={branches}
+      activeBranchId={activeBranchId ?? undefined}
+      onChangeBranch={setActiveBranch}
       onOpenDeals={() =>
         navigation.navigate('CentralDealsManagement', { layout: 'hero' })
       }
@@ -266,6 +439,18 @@ function BusinessHubRoute() {
       onOpenStaff={() => navigation.navigate('StaffDirectory')}
       onEditProfile={() => navigation.navigate('BusinessProfilePreview')}
       onOpenLocationSwitcher={() => navigation.navigate('BusinessManagementHub')}
+      onPreviewStorefront={() => navigation.navigate('BusinessProfilePreview')}
+      onCall={() => openExternal(view.phone ? `tel:${view.phone}` : '')}
+      onOpenWebsite={() =>
+        openExternal(
+          view.website
+            ? /^https?:\/\//i.test(view.website)
+              ? view.website
+              : `https://${view.website}`
+            : '',
+        )
+      }
+      onOpenReader={() => navigation.navigate('PaymentHardwareSetup')}
     />
   );
 }
@@ -870,14 +1055,46 @@ function BusinessSettingsRoute() {
 
 function SwitchToCustomerRoute() {
   const navigation = useBusinessNavigation();
+  const switchRole = useSwitchRole();
+  const user = useAuthStore(state => state.user);
+  const { data: myBusiness } = useMyBusiness();
+
+  const customerName = [user?.firstName, user?.lastName].filter(Boolean).join(' ').trim();
+  const customerMeta = user?.email || user?.phone || undefined;
+
   return (
     <SwitchToCustomerScreen
+      merchantName={myBusiness?.name}
+      customerName={customerName || undefined}
+      customerMeta={customerMeta}
       onBack={navigation.goBack}
       onOpenProfile={() => undefined}
       onConfirmSwitch={() =>
-        navigation.getParent()?.navigate('Tabs', { screen: 'Account' })
+        switchRole.mutate('customer', {
+          onSuccess: () => {
+            // The customer app lives in AppStack on the root stack; the
+            // business shell is a sibling, so navigate through the root ref
+            // instead of the shell's immediate parent.
+            if (navigationRef?.isReady()) {
+              navigationRef.navigate('AppStack', {
+                screen: 'Tabs',
+                params: { screen: 'Account' },
+              });
+              return;
+            }
+            navigation.raw.navigate('AppStack', {
+              screen: 'Tabs',
+              params: { screen: 'Account' },
+            });
+          },
+          onError: error =>
+            Alert.alert(
+              strings.switchToCustomer.error.title,
+              error.message || strings.switchToCustomer.error.body,
+            ),
+        })
       }
-      onStayInBusiness={() => navigation.goBack()}
+      onStayInBusiness={navigation.goBack}
       onOpenDeal={() => undefined}
     />
   );
@@ -2278,8 +2495,14 @@ function BusinessMoreRoute() {
   // the root for a sibling stack does not bubble, so each row takes the
   // shortest correct path.
   const navigation = useBusinessNavigation();
+  const { branches, activeBranchId, setActiveBranch } = useActiveBranch();
+  const { view } = useBusinessHubData(activeBranchId);
   return (
     <BusinessMoreHubScreen
+      hub={view}
+      branches={branches}
+      activeBranchId={activeBranchId ?? undefined}
+      onChangeBranch={setActiveBranch}
       onAddBranch={() => navigation.navigate('BusinessManagementHub')}
       onOpenRow={id => {
         switch (id) {
@@ -2661,12 +2884,46 @@ function BusinessMoreTabNavigator() {
   );
 }
 
+/**
+ * Live bottom-bar badges. Orders shows how many orders are still `new`
+ * (awaiting acceptance); Messages shows the unread message count from the
+ * dashboard payload. Both stay hidden while the API hasn't answered, so the
+ * footer can never display a designed/fake number.
+ */
+function BusinessTabBarWithLiveBadges(
+  props: React.ComponentProps<typeof BusinessTabBar>,
+) {
+  const { activeBranchId } = useActiveBranch();
+  const counts = useBusinessOrderCounts(activeBranchId);
+  const dashboard = useBusinessDashboard(activeBranchId, Boolean(activeBranchId));
+
+  const badges: Partial<Record<string, BusinessTabBadge>> = {};
+
+  if (counts.counts.new > 0) {
+    badges.BusinessOrders = { count: counts.counts.new, tone: 'brand' };
+  }
+
+  const unreadMessages = dashboard.data
+    ? countUnreadMessages(dashboard.data.messages)
+    : 0;
+  if (unreadMessages > 0) {
+    badges.BusinessMessages = { count: unreadMessages, tone: 'error' };
+  }
+
+  return <BusinessTabBar {...props} badges={badges} />;
+}
+
 export function BusinessTabNavigator() {
+  // One socket + one realtime bridge for the whole business shell: the inbox,
+  // the open thread, and the live Messages tab badge all stay in sync.
+  const { activeBranchId } = useActiveBranch();
+  useBusinessMessagingRealtime(activeBranchId);
+
   return (
     <TypeDensityProvider density="compact">
       <Tab.Navigator
         screenOptions={{ headerShown: false }}
-        tabBar={props => <BusinessTabBar {...props} />}
+        tabBar={props => <BusinessTabBarWithLiveBadges {...props} />}
       >
         <Tab.Screen
           name="BusinessOverview"

@@ -3,16 +3,29 @@ import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BusinessDashboardOverviewScreen } from '@features/business/screens/BusinessDashboardOverviewScreen';
 import { BusinessOrdersHubScreen } from '@features/business/screens/BusinessOrdersHubScreen';
-import { BusinessMessagesHomeScreen } from '@features/business/screens/BusinessMessagesHomeScreen';
+import {
+  BusinessMessagesHomeScreen,
+  type BusinessMessageThreadView,
+} from '@features/business/screens/BusinessMessagesHomeScreen';
 import { BusinessHubCentralManagementScreen } from '@features/business/screens/BusinessHubCentralManagementScreen';
 import { BusinessMoreHubScreen } from '@features/business/screens/BusinessMoreHubScreen';
 import { OrderDetailScreen } from '@features/business/screens/BusinessOrderDetailScreen';
 import { BusinessBookingsHubScreen } from '@features/business/screens/BusinessBookingsHubScreen';
 import { BusinessPosOrdersViewScreen } from '@features/business/screens/BusinessPosOrdersViewScreen';
-import { businessTabMeta } from '@features/business/components/BusinessTabBar';
+import {
+  BusinessTabBar,
+  businessTabMeta,
+} from '@features/business/components/BusinessTabBar';
+import { useAuthStore } from '@store/authStore';
 import { strings } from '@constants/strings';
 
 const shell = strings.businessShell;
+
+// Branch selection is persisted in the auth store; reset it so one test's pick
+// cannot change what the next test sees on the shared switcher.
+beforeEach(() => {
+  useAuthStore.setState({ activeBranchId: null });
+});
 
 /**
  * The Overview screen reads the owner API (my business, dashboard stats, POS,
@@ -68,7 +81,7 @@ describe('business tab hubs', () => {
 });
 
 describe('business bottom navigation', () => {
-  it('owns the five design tabs with their badges', () => {
+  it('owns the five design tabs with live (not baked) badges', () => {
     expect(Object.keys(businessTabMeta)).toEqual([
       'BusinessOverview',
       'BusinessOrders',
@@ -78,16 +91,43 @@ describe('business bottom navigation', () => {
     ]);
     expect(businessTabMeta.BusinessOverview.label).toBe(shell.tabs.overview);
     expect(businessTabMeta.BusinessOrders.icon).toBe('receipt');
-    expect(businessTabMeta.BusinessOrders.badge).toEqual({
-      count: shell.ordersBadge,
-      tone: 'brand',
-    });
-    expect(businessTabMeta.BusinessMessages.badge).toEqual({
-      count: shell.messagesBadge,
-      tone: 'error',
-    });
+    // Counts arrive from the API via `BusinessTabBarWithLiveBadges`; the static
+    // meta must never carry a designed number.
+    expect(businessTabMeta.BusinessOrders.badge).toBeUndefined();
+    expect(businessTabMeta.BusinessMessages.badge).toBeUndefined();
     expect(businessTabMeta.BusinessHub.icon).toBe('storefront');
     expect(businessTabMeta.BusinessMore.label).toBe(shell.tabs.more);
+  });
+
+  it('renders only the live badge it is given', async () => {
+    const tabBarProps = {
+      state: {
+        routes: [
+          { key: 'k-orders', name: 'BusinessOrders' },
+          { key: 'k-messages', name: 'BusinessMessages' },
+        ],
+        index: 0,
+      } as never,
+      navigation: {
+        emit: () => ({ defaultPrevented: false }),
+        navigate: jest.fn(),
+      } as never,
+      descriptors: {} as never,
+      insets: { top: 0, bottom: 0, left: 0, right: 0 },
+    };
+
+    const live = await render(
+      <BusinessTabBar
+        {...tabBarProps}
+        badges={{ BusinessOrders: { count: 4, tone: 'brand' } }}
+      />,
+    );
+    expect(live.getByText('4')).toBeTruthy();
+    // The messages tab has no live count, so the designed `2` must not appear.
+    expect(live.queryByText(String(shell.messagesBadge))).toBeNull();
+
+    const bare = await render(<BusinessTabBar {...tabBarProps} />);
+    expect(bare.queryByText(String(shell.ordersBadge))).toBeNull();
   });
 });
 
@@ -267,17 +307,47 @@ describe('business orders hub', () => {
 });
 
 describe('business messages home', () => {
-  it('renders filters, the connected strip and every thread', async () => {
-    const view = await render(<BusinessMessagesHomeScreen />);
+  const threads: BusinessMessageThreadView[] = [
+    {
+      id: 't1',
+      name: 'Sarah Adams',
+      initials: 'SA',
+      preview: 'Hi, is the lunch combo still available?',
+      time: 'Today, 10:42 AM',
+      unread: 2,
+      context: 'Deal',
+      contextIcon: 'localOffer',
+      contextTone: 'discount',
+      categories: ['unread', 'deals'],
+    },
+    {
+      id: 't2',
+      name: 'Michael James',
+      initials: 'MJ',
+      preview: 'Your order is packed and ready for pickup.',
+      time: 'Today, 9:24 AM',
+      unread: 0,
+      context: 'Order',
+      contextIcon: 'receipt',
+      contextTone: 'brand',
+      categories: ['orders'],
+    },
+  ];
+  const filterCounts = ['2', '1', '1', '1', '0'];
+
+  it('renders live filters with counts, the branch strip and every conversation', async () => {
+    const view = await render(
+      <BusinessMessagesHomeScreen threads={threads} branchName="Maitama Branch" />,
+    );
     const copy = strings.businessMessages;
 
     expect(view.getAllByText(copy.title).length).toBeGreaterThan(0);
-    copy.filters.forEach(chip =>
-      expect(view.getByText(`${chip.label} ${chip.count}`)).toBeTruthy(),
-    );
+    copy.filters.forEach((chip, index) => {
+      expect(view.getByText(`${chip.label} (${filterCounts[index]})`)).toBeTruthy();
+    });
     expect(view.getByText(copy.connected)).toBeTruthy();
-    expect(view.getByText(copy.hubBranch)).toBeTruthy();
-    copy.threads.forEach(thread => {
+    expect(view.getByText('Maitama Branch')).toBeTruthy();
+    threads.forEach(thread => {
       expect(view.getByText(thread.name)).toBeTruthy();
       expect(view.getByText(thread.preview)).toBeTruthy();
     });
@@ -289,21 +359,54 @@ describe('business messages home', () => {
     const onNewMessage = jest.fn();
     const view = await render(
       <BusinessMessagesHomeScreen
+        threads={threads}
         onOpenThread={onOpenThread}
         onNewMessage={onNewMessage}
       />,
     );
+
+    await act(async () => {
+      fireEvent.press(view.getByLabelText(threads[0].name));
+    });
+    expect(onOpenThread).toHaveBeenCalledWith(threads[0].id);
+
+    await act(async () => {
+      fireEvent.press(view.getByText(strings.businessMessages.newMessage));
+    });
+    expect(onNewMessage).toHaveBeenCalled();
+  });
+
+  it('filters rows by chip and by search query', async () => {
+    const view = await render(<BusinessMessagesHomeScreen threads={threads} />);
     const copy = strings.businessMessages;
 
     await act(async () => {
-      fireEvent.press(view.getByLabelText(copy.threads[0].name));
+      fireEvent.press(view.getByText(`${copy.filters[2].label} (1)`));
     });
-    expect(onOpenThread).toHaveBeenCalledWith(copy.threads[0].id);
+    expect(view.queryByText(threads[0].name)).toBeNull();
+    expect(view.getByText(threads[1].name)).toBeTruthy();
 
     await act(async () => {
-      fireEvent.press(view.getByText(copy.newMessage));
+      fireEvent.changeText(view.getByPlaceholderText(copy.searchPlaceholder), 'sarah');
     });
-    expect(onNewMessage).toHaveBeenCalled();
+    expect(view.queryByText(threads[1].name)).toBeNull();
+  });
+
+  it('shows the empty state when there are no conversations', async () => {
+    const view = await render(<BusinessMessagesHomeScreen threads={[]} />);
+    expect(view.getByText(strings.businessMessages.emptyTitle)).toBeTruthy();
+  });
+
+  it('shows the error state with a retry action', async () => {
+    const onRetry = jest.fn();
+    const view = await render(
+      <BusinessMessagesHomeScreen threads={undefined} isError onRetry={onRetry} />,
+    );
+
+    await act(async () => {
+      fireEvent.press(view.getByText(strings.common.retry));
+    });
+    expect(onRetry).toHaveBeenCalled();
   });
 });
 
@@ -517,5 +620,39 @@ describe('business POS orders view', () => {
     });
     expect(view.queryByText(copy.orders[0].reference)).toBeNull();
     expect(view.getByText(copy.orders[2].reference)).toBeTruthy();
+  });
+});
+
+describe('overview quick shortcuts', () => {
+  it('routes every shortcut to its handler', async () => {
+    const copy = strings.businessDashboard;
+    const handlers: Record<string, jest.Mock> = {
+      scan: jest.fn(),
+      pos: jest.fn(),
+      deal: jest.fn(),
+      product: jest.fn(),
+      messages: jest.fn(),
+      boost: jest.fn(),
+    };
+    const view = await renderWithClient(
+      <BusinessDashboardOverviewScreen
+        onOpenScanner={handlers.scan}
+        onOpenPos={handlers.pos}
+        onCreateDeal={handlers.deal}
+        onAddProduct={handlers.product}
+        onOpenMessages={handlers.messages}
+        onBoostDeal={handlers.boost}
+      />,
+    );
+
+    await act(async () => {
+      copy.shortcuts.forEach(shortcut => {
+        fireEvent.press(view.getByLabelText(shortcut.title));
+      });
+    });
+
+    copy.shortcuts.forEach(shortcut => {
+      expect(handlers[shortcut.id]).toHaveBeenCalledTimes(1);
+    });
   });
 });

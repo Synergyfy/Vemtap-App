@@ -138,8 +138,27 @@ beforeEach(() => {
       .mockOffersFeedModule()
       .usePublicOffersFeed(),
   );
-  mockSearch.mockResolvedValue({ deals: [], businesses: [], categories: [] });
+  mockSearch.mockResolvedValue({
+    deals: [],
+    businesses: [],
+    categories: [],
+    products: [],
+  });
 });
+
+/**
+ * Phase 2: the search request carries the discovery origin, so results are
+ * narrowed to the district the surrounding sections filter by. The coordinates
+ * come from the location store's defaults rather than being hardcoded here.
+ */
+function expectSearchRequest(expected: { q: string; limit: number }) {
+  expect(mockSearch).toHaveBeenCalledTimes(1);
+  const params = mockSearch.mock.calls[0][0] as Record<string, unknown>;
+  expect(params).toMatchObject(expected);
+  expect(typeof params.lat).toBe('number');
+  expect(typeof params.lng).toBe('number');
+  expect(params.radius).toBeGreaterThan(0);
+}
 
 describe('Home search', () => {
   it('swaps the sections for results once the query settles', async () => {
@@ -147,6 +166,7 @@ describe('Home search', () => {
       deals: [OFFER],
       businesses: [BUSINESS],
       categories: [],
+      products: [],
     });
 
     const screen = await renderHome();
@@ -156,7 +176,7 @@ describe('Home search', () => {
     fireEvent.changeText(screen.getByLabelText(strings.home.searchPlaceholder), 'lunch');
 
     await waitFor(() => expect(mockSearch).toHaveBeenCalledTimes(1), { timeout: 3000 });
-    expect(mockSearch).toHaveBeenCalledWith({ q: 'lunch', limit: 20 });
+    expectSearchRequest({ q: 'lunch', limit: 20 });
 
     await waitFor(
       () => expect(screen.getByText('20% Off Prime Lunch Combo')).toBeTruthy(),
@@ -170,7 +190,12 @@ describe('Home search', () => {
   });
 
   it('reads a search for the grouped business result', async () => {
-    mockSearch.mockResolvedValue({ deals: [], businesses: [BUSINESS], categories: [] });
+    mockSearch.mockResolvedValue({
+      deals: [],
+      businesses: [BUSINESS],
+      categories: [],
+      products: [],
+    });
 
     const screen = await renderHome();
     fireEvent.changeText(screen.getByLabelText(strings.home.searchPlaceholder), 'aroma');
@@ -216,7 +241,11 @@ describe('Home category chips', () => {
     fireEvent.press(screen.getByText('🍔 Food'));
 
     await waitFor(
-      () => expect(mockSearch).toHaveBeenCalledWith({ q: 'Food', limit: 20 }),
+      () => {
+        expect(mockSearch).toHaveBeenCalledTimes(1);
+        const params = mockSearch.mock.calls[0][0] as Record<string, unknown>;
+        expect(params).toMatchObject({ q: 'Food', limit: 20 });
+      },
       { timeout: 3000 },
     );
     // The label is display copy, so it lands in the input minus its emoji.
@@ -226,7 +255,12 @@ describe('Home category chips', () => {
   });
 
   it('lights the chip the query matches and clears on All', async () => {
-    mockSearch.mockResolvedValue({ deals: [OFFER], businesses: [], categories: [] });
+    mockSearch.mockResolvedValue({
+      deals: [OFFER],
+      businesses: [],
+      categories: [],
+      products: [],
+    });
     const screen = await renderHome();
 
     fireEvent.press(screen.getByText('🍔 Food'));
@@ -255,7 +289,12 @@ describe('Home category chips', () => {
 
 describe('Deals tab search', () => {
   it('shares the same endpoint and replaces the feed', async () => {
-    mockSearch.mockResolvedValue({ deals: [OFFER], businesses: [], categories: [] });
+    mockSearch.mockResolvedValue({
+      deals: [OFFER],
+      businesses: [],
+      categories: [],
+      products: [],
+    });
 
     const screen = await renderDeals();
     expect(screen.getByText(strings.deals.featuredEyebrow)).toBeTruthy();
@@ -269,7 +308,7 @@ describe('Deals tab search', () => {
       () => expect(screen.getByText('20% Off Prime Lunch Combo')).toBeTruthy(),
       { timeout: 3000 },
     );
-    expect(mockSearch).toHaveBeenCalledWith({ q: 'lunch', limit: 20 });
+    expectSearchRequest({ q: 'lunch', limit: 20 });
     expect(screen.queryByText(strings.deals.featuredEyebrow)).toBeNull();
   });
 });

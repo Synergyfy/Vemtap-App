@@ -131,6 +131,8 @@ export * from './screens/AddServiceDurationPricingScreen';
 export * from './screens/BusinessIntroductionScreen';
 export * from './screens/BusinessLocationsMultiBranchScreen';
 export * from './screens/BusinessPlanTrialOverviewScreen';
+export * from './screens/BusinessAccountCredentialsScreen';
+export * from './screens/BusinessAccountOtpScreen';
 export * from './screens/BusinessProfileBasicInfoScreen';
 export * from './screens/BusinessProfileBrandingScreen';
 export * from './screens/BusinessProfileContactChannelsScreen';

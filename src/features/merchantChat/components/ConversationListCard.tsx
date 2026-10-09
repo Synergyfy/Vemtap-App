@@ -11,12 +11,16 @@ cssInterop(Pressable, { className: 'style' });
 cssInterop(Image, { className: 'style' });
 
 export interface ConversationListCardProps {
-  image: ImageSourcePropType;
+  image?: ImageSourcePropType;
+  /** Rendered in place of the image when the participant has no portrait. */
+  avatarFallback?: React.ReactNode;
   name: string;
   time: string;
   message: string;
   context: string;
   contextIcon: IconName;
+  /** Context chip tone; defaults to the brand tint. */
+  contextTone?: 'brand' | 'discount' | 'neutral';
   unread?: number;
   online?: boolean;
   verified?: boolean;
@@ -24,19 +28,43 @@ export interface ConversationListCardProps {
   onPress: () => void;
 }
 
+const contextToneStyles: Record<
+  NonNullable<ConversationListCardProps['contextTone']>,
+  { chip: string; text: string; icon: string }
+> = {
+  brand: {
+    chip: 'bg-surface-tint',
+    text: 'text-primary',
+    icon: colors.primary,
+  },
+  discount: {
+    chip: 'bg-badge-discount-bg',
+    text: 'text-badge-discount-text',
+    icon: colors.badgeDiscountText,
+  },
+  neutral: {
+    chip: 'bg-surface-container-high',
+    text: 'text-on-surface-variant',
+    icon: colors.onSurfaceVariant,
+  },
+};
+
 export function ConversationListCard({
   image,
+  avatarFallback,
   name,
   time,
   message,
   context,
   contextIcon,
+  contextTone = 'brand',
   unread = 0,
   online = false,
   verified = false,
   sender = '',
   onPress,
 }: ConversationListCardProps) {
+  const tone = contextToneStyles[contextTone];
   return (
     <Pressable
       accessibilityRole="button"
@@ -45,10 +73,14 @@ export function ConversationListCard({
       className="w-full min-w-0 flex-row gap-3 overflow-hidden rounded-card border border-border bg-surface p-4 shadow-md active:bg-surface-container-low"
     >
       <View className="relative h-[52px] w-[52px] shrink-0">
-        <Image
-          source={image}
-          className="h-full w-full rounded-full bg-surface-container"
-        />
+        {image ? (
+          <Image
+            source={image}
+            className="h-full w-full rounded-full bg-surface-container"
+          />
+        ) : (
+          avatarFallback
+        )}
         {online ? (
           <View className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-surface bg-success" />
         ) : null}
@@ -74,13 +106,12 @@ export function ConversationListCard({
           </VemtapText>
         </View>
         {context ? (
-          <View className="my-1 max-w-full self-start rounded bg-surface-tint px-2 py-0.5">
+          <View className={`my-1 max-w-full self-start rounded px-2 py-0.5 ${tone.chip}`}>
             <View className="min-w-0 flex-row items-center gap-1">
-              <Icon name={contextIcon} size={13} color={colors.primary} />
+              <Icon name={contextIcon} size={13} color={tone.icon} />
               <VemtapText
                 variant="caption"
-                tone="brand"
-                className="min-w-0 flex-1 font-sans-medium"
+                className={`min-w-0 flex-1 font-sans-medium ${tone.text}`}
                 numberOfLines={1}
               >
                 {context}

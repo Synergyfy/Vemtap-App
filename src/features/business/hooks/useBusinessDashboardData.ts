@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import {
   businessDashboardApi,
+  type ActiveSubscription,
   type BusinessDashboard,
   type MyBusiness,
   type PendingClaim,
@@ -29,6 +30,7 @@ export const businessDashboardKeys = {
   unreadCount: () => ['business', 'unread-count'] as const,
   newOrdersCount: () => ['business', 'new-orders-count'] as const,
   claims: () => ['business', 'claims'] as const,
+  subscription: () => ['business', 'subscription', 'active'] as const,
 };
 
 /** The caller's business (name, verification, branches). */
@@ -36,6 +38,15 @@ export function useMyBusiness() {
   return useQuery<MyBusiness>({
     queryKey: businessDashboardKeys.myBusiness(),
     queryFn: () => businessDashboardApi.getMyBusiness(),
+    staleTime: 300_000,
+  });
+}
+
+/** Active subscription for the current business (plan name + trial window). */
+export function useBusinessSubscription() {
+  return useQuery<ActiveSubscription>({
+    queryKey: businessDashboardKeys.subscription(),
+    queryFn: () => businessDashboardApi.getActiveSubscription(),
     staleTime: 300_000,
   });
 }
@@ -151,6 +162,29 @@ export function formatCompactNaira(value: number): string {
   if (value >= 1_000_000) return `₦${(value / 1_000_000).toFixed(1)}m`;
   if (value >= 1_000) return `₦${(value / 1_000).toFixed(1)}k`;
   return `₦${value}`;
+}
+
+/**
+ * Human age of the dashboard payload (`generatedAt`): "Just now", "5m ago",
+ * "2h ago". Returns null when the timestamp is missing/unparseable so the
+ * screen keeps its design copy.
+ */
+export function formatUpdatedAgo(
+  iso: string | null | undefined,
+  now: number = Date.now(),
+): string | null {
+  if (!iso) return null;
+  const timestamp = Date.parse(iso);
+  if (!Number.isFinite(timestamp)) return null;
+
+  const minutes = Math.floor(Math.max(0, now - timestamp) / 60_000);
+  if (minutes < 1) return 'Just now';
+  if (minutes < 60) return `${minutes}m ago`;
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+
+  return `${Math.floor(hours / 24)}d ago`;
 }
 
 const countKeys = ['value', 'count', 'visits', 'total', 'amount'] as const;

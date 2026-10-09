@@ -14,6 +14,11 @@ import {
   BusinessScreenLayout,
 } from '@features/business/components/BusinessPrimitives';
 import { HorizontallyScrollableRow } from '@features/business/components/BusinessSetupPrimitives';
+import type { BusinessBranch } from '@features/business/components/BusinessBranchSwitcher';
+import type {
+  BusinessHubModuleId,
+  BusinessHubView,
+} from '@features/business/hooks/useBusinessHubData';
 
 cssInterop(Pressable, { className: 'style' });
 cssInterop(LinearGradient, { className: 'style' });
@@ -68,6 +73,11 @@ export interface BusinessHubCentralManagementScreenProps {
   onOpenReader?: () => void;
   onCall?: () => void;
   onOpenWebsite?: () => void;
+  /** Live view from the hub queries; omitted keeps the designed fallback. */
+  hub?: BusinessHubView;
+  branches?: readonly BusinessBranch[];
+  activeBranchId?: string;
+  onChangeBranch?: (branchId: string) => void;
 }
 
 export function BusinessHubCentralManagementScreen({
@@ -83,9 +93,25 @@ export function BusinessHubCentralManagementScreen({
   onOpenReader,
   onCall,
   onOpenWebsite,
+  hub,
+  branches,
+  activeBranchId,
+  onChangeBranch,
 }: BusinessHubCentralManagementScreenProps) {
-  const [branch, setBranch] = useState<string>(copy.branchOptions[0]);
   const [branchPickerOpen, setBranchPickerOpen] = useState(false);
+  const [fallbackBranch, setFallbackBranch] = useState<string>(copy.branchOptions[0]);
+
+  const liveBranchOptions = (branches ?? []).map(branchOption => ({
+    id: branchOption.id,
+    name: branchOption.name,
+  }));
+  const branchOptions =
+    liveBranchOptions.length > 0
+      ? liveBranchOptions
+      : copy.branchOptions.map(name => ({ id: name, name }));
+  const resolvedBranchId = activeBranchId ?? fallbackBranch;
+  const activeBranch =
+    branchOptions.find(option => option.id === resolvedBranchId) ?? branchOptions[0];
 
   const moduleActions: Record<string, (() => void) | undefined> = {
     locations: onOpenLocations,
@@ -96,13 +122,25 @@ export function BusinessHubCentralManagementScreen({
     staff: onOpenStaff,
   };
 
-  const handleSelectBranch = (option: string) => {
-    setBranch(option);
+  const handleSelectBranch = (branchId: string) => {
     setBranchPickerOpen(false);
+    if (liveBranchOptions.length > 0) {
+      onChangeBranch?.(branchId);
+    } else {
+      setFallbackBranch(branchId);
+    }
     onOpenLocationSwitcher?.();
   };
 
-  const branchLabel = `${copy.viewingPrefix}: ${branch}`;
+  const branchLabel = `${copy.viewingPrefix}: ${activeBranch?.name ?? ''}`;
+
+  const features = hub
+    ? hub.amenities.map((label, index) => ({
+        id: `amenity-${index}`,
+        label,
+        icon: 'checkCircle' as IconName,
+      }))
+    : copy.features;
 
   // Dense hub: many rows read at a glance, so the subtree (navbar included)
   // uses the compact type density rather than per-row size overrides.
@@ -113,9 +151,11 @@ export function BusinessHubCentralManagementScreen({
           title: copy.title,
           centerTitle: false,
           showAvatar: true,
-          titleAccessory: (
-            <Icon name="verified" size={18} color={colors.primaryContainer} />
-          ),
+          avatarUri: hub?.logoUrl,
+          titleAccessory:
+            !hub || hub.isVerified ? (
+              <Icon name="verified" size={18} color={colors.primaryContainer} />
+            ) : undefined,
           actions: [
             {
               icon: 'swapHoriz',
@@ -157,15 +197,15 @@ export function BusinessHubCentralManagementScreen({
             {/* The popover is clamped to the viewport so it can never run off-screen. */}
             {branchPickerOpen ? (
               <View className="absolute left-0 top-full z-30 mt-1 w-64 max-w-[70vw] gap-1 rounded-xl bg-surface-container-lowest p-1 shadow-xl">
-                {copy.branchOptions.map(option => {
-                  const selected = option === branch;
+                {branchOptions.map(option => {
+                  const selected = option.id === activeBranch?.id;
                   return (
                     <Pressable
-                      key={option}
+                      key={option.id}
                       accessibilityRole="button"
                       accessibilityState={{ selected }}
-                      accessibilityLabel={option}
-                      onPress={() => handleSelectBranch(option)}
+                      accessibilityLabel={option.name}
+                      onPress={() => handleSelectBranch(option.id)}
                       className={`flex-row items-center justify-between rounded-lg px-3 py-2 ${
                         selected
                           ? 'bg-surface-tint-blue'
@@ -181,7 +221,7 @@ export function BusinessHubCentralManagementScreen({
                         }
                         numberOfLines={1}
                       >
-                        {option}
+                        {option.name}
                       </VemtapText>
                       <Icon
                         name={selected ? 'check' : 'arrowForward'}
@@ -206,7 +246,7 @@ export function BusinessHubCentralManagementScreen({
         <View className="mt-3 overflow-hidden rounded-card-lg bg-surface-container-lowest shadow-md">
           <View className="relative h-28 w-full overflow-hidden bg-surface-dim">
             <BusinessProductImage
-              source={{ uri: businessHubMedia.cover.uri }}
+              source={{ uri: hub?.coverUrl ?? businessHubMedia.cover.uri }}
               alt={businessHubMedia.cover.alt}
               className="h-full w-full"
             />
@@ -215,22 +255,24 @@ export function BusinessHubCentralManagementScreen({
               locations={[0, 0.5, 1]}
               className="absolute inset-0"
             />
-            <View className="absolute right-2.5 top-2.5 flex-row items-center gap-1.5 rounded-full bg-badge-discount-bg px-2.5 py-1 shadow-sm">
-              <Icon name="verified" size={13} color={colors.badgeDiscountText} />
-              <VemtapText
-                variant="caption"
-                className="font-sans-semibold text-badge-discount-text"
-              >
-                {copy.verifiedBusiness}
-              </VemtapText>
-            </View>
+            {!hub || hub.isVerified ? (
+              <View className="absolute right-2.5 top-2.5 flex-row items-center gap-1.5 rounded-full bg-badge-discount-bg px-2.5 py-1 shadow-sm">
+                <Icon name="verified" size={13} color={colors.badgeDiscountText} />
+                <VemtapText
+                  variant="caption"
+                  className="font-sans-semibold text-badge-discount-text"
+                >
+                  {copy.verifiedBusiness}
+                </VemtapText>
+              </View>
+            ) : null}
           </View>
 
           <View className="relative gap-1 p-4 pt-0">
             <View className="-mt-9 mb-1 flex-row items-end justify-between gap-3">
               <View className="h-[68px] w-[68px] overflow-hidden rounded-card-lg bg-surface-container-lowest p-1 shadow-lg">
                 <BusinessProductImage
-                  source={{ uri: businessHubMedia.logo.uri }}
+                  source={{ uri: hub?.logoUrl ?? businessHubMedia.logo.uri }}
                   alt={businessHubMedia.logo.alt}
                   className="h-full w-full rounded-xl"
                 />
@@ -251,10 +293,10 @@ export function BusinessHubCentralManagementScreen({
               className="font-sans-semibold"
               numberOfLines={1}
             >
-              {copy.name}
+              {hub?.name ?? copy.name}
             </VemtapText>
             <VemtapText variant="bodyMd" tone="secondary" numberOfLines={2}>
-              {copy.category}
+              {hub?.categoryLine ?? copy.category}
             </VemtapText>
 
             <View className="mt-2 flex-row gap-2 pt-1">
@@ -271,7 +313,14 @@ export function BusinessHubCentralManagementScreen({
                     className="font-sans-semibold"
                     numberOfLines={1}
                   >
-                    {copy.branchesStat.value}
+                    {hub
+                      ? [
+                          `${hub.branchCount} Branch${hub.branchCount === 1 ? '' : 'es'}`,
+                          hub.branchNames,
+                        ]
+                          .filter(Boolean)
+                          .join(' · ')
+                      : copy.branchesStat.value}
                   </VemtapText>
                 </View>
               </View>
@@ -288,10 +337,25 @@ export function BusinessHubCentralManagementScreen({
                     className="font-sans-semibold"
                     numberOfLines={1}
                   >
-                    {copy.reviewsStat.rating}
-                    <VemtapText variant="caption" tone="secondary">
-                      {` ${copy.reviewsStat.count}`}
-                    </VemtapText>
+                    {hub ? (
+                      hub.reviews.total > 0 && hub.reviews.average !== null ? (
+                        <>
+                          {hub.reviews.average.toFixed(1)}
+                          <VemtapText variant="caption" tone="secondary">
+                            {` (${hub.reviews.total})`}
+                          </VemtapText>
+                        </>
+                      ) : (
+                        'No reviews yet'
+                      )
+                    ) : (
+                      <>
+                        {copy.reviewsStat.rating}
+                        <VemtapText variant="caption" tone="secondary">
+                          {` ${copy.reviewsStat.count}`}
+                        </VemtapText>
+                      </>
+                    )}
                   </VemtapText>
                 </View>
               </View>
@@ -306,7 +370,7 @@ export function BusinessHubCentralManagementScreen({
               >
                 <Icon name="call" size={15} color={colors.textSecondary} />
                 <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-                  {copy.phone}
+                  {hub?.phone || copy.phone}
                 </VemtapText>
               </Pressable>
               <Pressable
@@ -317,55 +381,57 @@ export function BusinessHubCentralManagementScreen({
               >
                 <Icon name="web" size={15} color={colors.textSecondary} />
                 <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-                  {copy.website}
+                  {hub?.website || copy.website}
                 </VemtapText>
               </Pressable>
             </View>
           </View>
         </View>
 
-        <View className="mt-3 gap-1.5">
-          <View className="flex-row items-center justify-between gap-2">
-            <VemtapText
-              variant="caption"
-              tone="secondary"
-              className="font-sans-semibold uppercase tracking-wider"
-              numberOfLines={1}
-            >
-              {copy.featuresTitle}
-            </VemtapText>
-            <View className="flex-row items-center gap-0.5">
-              <View className="h-1.5 w-1.5 rounded-full bg-badge-discount-text" />
+        {!hub || features.length > 0 ? (
+          <View className="mt-3 gap-1.5">
+            <View className="flex-row items-center justify-between gap-2">
               <VemtapText
                 variant="caption"
-                className="font-sans-semibold text-badge-discount-text"
+                tone="secondary"
+                className="font-sans-semibold uppercase tracking-wider"
+                numberOfLines={1}
               >
-                {copy.featuresAllActive}
+                {copy.featuresTitle}
               </VemtapText>
-            </View>
-          </View>
-          <HorizontallyScrollableRow>
-            {copy.features.map(feature => (
-              <View
-                key={feature.id}
-                className="shrink-0 flex-row items-center gap-1.5 rounded-full bg-surface-container-high px-3 py-1.5"
-              >
-                <Icon
-                  name={feature.icon as IconName}
-                  size={15}
-                  color={colors.primaryContainer}
-                />
+              <View className="flex-row items-center gap-0.5">
+                <View className="h-1.5 w-1.5 rounded-full bg-badge-discount-text" />
                 <VemtapText
                   variant="caption"
-                  className="font-sans-medium"
-                  numberOfLines={1}
+                  className="font-sans-semibold text-badge-discount-text"
                 >
-                  {feature.label}
+                  {copy.featuresAllActive}
                 </VemtapText>
               </View>
-            ))}
-          </HorizontallyScrollableRow>
-        </View>
+            </View>
+            <HorizontallyScrollableRow>
+              {features.map(feature => (
+                <View
+                  key={feature.id}
+                  className="shrink-0 flex-row items-center gap-1.5 rounded-full bg-surface-container-high px-3 py-1.5"
+                >
+                  <Icon
+                    name={feature.icon as IconName}
+                    size={15}
+                    color={colors.primaryContainer}
+                  />
+                  <VemtapText
+                    variant="caption"
+                    className="font-sans-medium"
+                    numberOfLines={1}
+                  >
+                    {feature.label}
+                  </VemtapText>
+                </View>
+              ))}
+            </HorizontallyScrollableRow>
+          </View>
+        ) : null}
 
         <View className="mt-3 gap-3">
           <View className="flex-row items-center justify-between gap-2">
@@ -423,7 +489,7 @@ export function BusinessHubCentralManagementScreen({
                       className={`font-sans-semibold ${accent.body}`}
                       numberOfLines={2}
                     >
-                      {module.body}
+                      {hub?.moduleBodies[module.id as BusinessHubModuleId] ?? module.body}
                     </VemtapText>
                     <VemtapText
                       variant="caption"
@@ -465,7 +531,7 @@ export function BusinessHubCentralManagementScreen({
                   {copy.readerTitle}
                 </VemtapText>
                 <VemtapText variant="caption" className="text-surface" numberOfLines={1}>
-                  {copy.readerStatus}
+                  {hub?.readerStatus ?? copy.readerStatus}
                 </VemtapText>
               </View>
             </View>

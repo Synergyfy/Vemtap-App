@@ -15,20 +15,43 @@ import type { Session } from '@api/authApi';
  */
 type AuthStatus = 'unknown' | 'onboarding' | 'authenticated' | 'unauthenticated';
 
+/** Which side of a dual-role account the app is currently showing. */
+export type ActiveMode = 'customer' | 'business';
+
 interface AuthState {
   user: Session['user'] | null;
   status: AuthStatus;
   /** Set when the account is created but still owes us a location. */
   pendingOnboarding: boolean;
+  /**
+   * Last-used side. Only meaningful for dual-role accounts; a pure customer
+   * account is always coerced to 'customer'.
+   */
+  activeMode: ActiveMode;
+  /** True once the account has an owner side (DB role Owner or a business). */
+  ownerAccount: boolean;
+  /**
+   * Branch selected on any business surface (Overview/Orders/More share it so
+   * they can never disagree). Null means "not chosen yet" — the hook resolves
+   * the main branch.
+   */
+  activeBranchId: string | null;
   setSession: (session: Session) => void;
   /** Registered + session stored, but location onboarding is still owed. */
   beginOnboarding: (session: Session) => void;
   /** Location step complete — promote to a fully authenticated session. */
   completeOnboarding: () => void;
   setUser: (user: Session['user']) => void;
+  /** Flip the active side after `POST /auth/switch-role` succeeds. */
+  applyRoleSwitch: (user: Session['user'], mode: ActiveMode) => void;
+  setActiveMode: (mode: ActiveMode) => void;
+  setActiveBranch: (branchId: string | null) => void;
   clearSession: () => void;
   markUnauthenticated: () => void;
 }
+
+const isOwnerUser = (user: Session['user'] | null): boolean =>
+  user?.role?.toLowerCase() === 'owner' || Boolean(user?.businessId);
 
 export const useAuthStore = create<AuthState>()(
   devtools(
@@ -37,22 +60,51 @@ export const useAuthStore = create<AuthState>()(
         user: null,
         status: 'unknown',
         pendingOnboarding: false,
+        // Consumer-first default: a fresh owner login lands in the business
+        // app, while customers are always coerced to 'customer' below.
+        activeMode: 'business',
+        ownerAccount: false,
+        activeBranchId: null,
         // Sign-in and password registration authenticate immediately. Only the
         // customer OTP/PIN signup defers, via `beginOnboarding` — keying this off
         // `isNewUser` would strand a returning user who signed in.
         setSession: session =>
-          set({ user: session.user, status: 'authenticated', pendingOnboarding: false }),
+          set(state => {
+            const ownerAccount = state.ownerAccount || isOwnerUser(session.user);
+            return {
+              user: session.user,
+              status: 'authenticated',
+              pendingOnboarding: false,
+              ownerAccount,
+              // Preserve the last-used side only while the account actually has
+              // an owner side; customers can never be in business mode.
+              activeMode: ownerAccount ? state.activeMode : 'customer',
+            };
+          }),
         beginOnboarding: session =>
           set({
             user: session.user,
             status: 'onboarding',
             pendingOnboarding: true,
+            ownerAccount: true,
+            activeMode: 'business',
           }),
         completeOnboarding: () =>
           set({ status: 'authenticated', pendingOnboarding: false }),
         setUser: user => set({ user }),
+        applyRoleSwitch: (user, mode) =>
+          set({ user, activeMode: mode, ownerAccount: true }),
+        setActiveMode: mode => set({ activeMode: mode }),
+        setActiveBranch: branchId => set({ activeBranchId: branchId }),
         clearSession: () =>
-          set({ user: null, status: 'unauthenticated', pendingOnboarding: false }),
+          set({
+            user: null,
+            status: 'unauthenticated',
+            pendingOnboarding: false,
+            ownerAccount: false,
+            activeMode: 'business',
+            activeBranchId: null,
+          }),
         markUnauthenticated: () =>
           set({ status: 'unauthenticated', pendingOnboarding: false }),
       }),
@@ -63,6 +115,9 @@ export const useAuthStore = create<AuthState>()(
           user: state.user,
           status: state.status,
           pendingOnboarding: state.pendingOnboarding,
+          activeMode: state.activeMode,
+          ownerAccount: state.ownerAccount,
+          activeBranchId: state.activeBranchId,
         }),
       },
     ),

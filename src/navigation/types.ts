@@ -254,6 +254,9 @@ export type BusinessSetupStackParamList = {
   BusinessProfileBasicInfo: undefined;
   BusinessProfileBranding: undefined;
   BusinessProfileContactChannels: undefined;
+  BusinessAccountCredentials: undefined;
+  BusinessAccountOtp: undefined;
+  BusinessAccountResetPin: undefined;
   BusinessLocation: undefined;
   BusinessLocations: undefined;
   AddBranchLocation: undefined;

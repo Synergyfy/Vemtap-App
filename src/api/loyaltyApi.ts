@@ -153,6 +153,22 @@ export const loyaltyAnalyticsSchema = z
   }));
 export type LoyaltyAnalytics = z.infer<typeof loyaltyAnalyticsSchema>;
 
+/** Business-side loyalty stats (Business hub Loyalty module). */
+export const loyaltyBusinessStatsSchema = z.looseObject({
+  stats: z
+    .array(
+      z.looseObject({
+        label: z.string().nullish(),
+        value: z.string().nullish(),
+        change: z.number().nullish(),
+      }),
+    )
+    .nullish()
+    .transform(value => value ?? []),
+  growthForecast: z.string().nullish(),
+});
+export type LoyaltyBusinessStats = z.infer<typeof loyaltyBusinessStatsSchema>;
+
 export const loyaltyApi = {
   /**
    * Public: list available rewards for a branch/business.
@@ -260,6 +276,25 @@ export const loyaltyApi = {
         ...options,
       },
       usePointCodeSchema,
+    );
+  },
+
+  /**
+   * Owner: business loyalty stats (customers, points issued, redemptions,
+   * active programmes). Auth: Bearer JWT, OWNER/MANAGER/STAFF/ADMIN.
+   */
+  async getBusinessStats(
+    branchId?: string | null,
+    options: ApiRequestOptions = {},
+  ): Promise<LoyaltyBusinessStats> {
+    return requestValidated<LoyaltyBusinessStats>(
+      {
+        method: 'GET',
+        url: '/loyalty/business-stats',
+        params: branchId ? { branchId } : {},
+        ...options,
+      },
+      loyaltyBusinessStatsSchema,
     );
   },
 };

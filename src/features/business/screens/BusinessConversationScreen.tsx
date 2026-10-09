@@ -1,11 +1,14 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { Button } from '@components/ui/Button';
 import { EmptyState } from '@components/shared/EmptyState';
-import { Icon } from '@components/ui/Icon';
+import { Icon, type IconName } from '@components/ui/Icon';
+import { LoadingState } from '@components/shared/LoadingState';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
 import { colors } from '@theme/colors';
+import { formatWhen } from '@utils/formatters';
+import type { ChatMessage } from '@api/messagingApi';
 import {
   BusinessScreenLayout,
   BusinessSelectionChip,
@@ -14,85 +17,89 @@ import { FieldInput } from '@features/business/components/BusinessSetupPrimitive
 import { ConversationBubble } from '@features/merchantChat/components/ConversationBubble';
 
 const copy = strings.businessMessages;
+const TYPING_IDLE_MS = 2_000;
 
-export type BusinessThreadId = keyof typeof copy.conversation.transcripts;
-
-export interface BusinessConversationScreenProps {
-  /** Thread id from `strings.businessMessages.threads`. */
-  threadId: string;
-  onBack: () => void;
-  /** Thread record from the messages hub; falls back to the copy when absent. */
-  thread?: {
-    name: string;
-    time: string;
-    context: string;
-    contextIcon:
-      'localOffer' | 'receipt' | 'inventory' | 'eventAvailable' | 'help' | 'spa';
-  };
-}
-
-interface SentMessage {
+export interface BusinessConversationMessage {
   id: string;
   sender: 'customer' | 'merchant';
   time: string;
   text: string;
 }
 
-function clockLabel(): string {
-  return new Date().toLocaleTimeString('en-NG', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-  });
+/** API message → bubble view-model. */
+export function toBusinessConversationMessage(
+  message: ChatMessage,
+): BusinessConversationMessage {
+  return {
+    id: message.id,
+    sender: message.direction === 'INBOUND' ? 'customer' : 'merchant',
+    time: message.timestamp ? formatWhen(message.timestamp) : '',
+    text: message.content,
+  };
+}
+
+export interface BusinessConversationScreenProps {
+  onBack: () => void;
+  /** Thread record from the messages hub; falls back to generic copy when absent. */
+  thread?: {
+    name: string;
+    time: string;
+    context: string;
+    contextIcon: IconName;
+  };
+  /** Real messages, oldest first. `undefined` means "still loading". */
+  messages?: BusinessConversationMessage[];
+  isLoading?: boolean;
+  isSending?: boolean;
+  onTyping?: (isTyping: boolean) => void;
+  onSend: (content: string) => void;
 }
 
 /**
  * Business conversation — the single chat surface behind every thread row on the
  * Messages hub.
  *
- * One screen serves all six threads (the same approach the consumer chat uses):
- * the thread id selects the transcript, so there is no per-conversation screen
- * variant to keep in sync (AGENTS rule 17). Bubbles come from the shared
- * `ConversationBubble`, not a second bubble implementation.
+ * Messages and sending are owned by the navigator route (REST + socket); this
+ * screen owns only the draft, so it stays testable (rule.md).
  */
 export function BusinessConversationScreen({
-  threadId,
   onBack,
   thread,
+  messages,
+  isLoading = false,
+  isSending = false,
+  onTyping,
+  onSend,
 }: BusinessConversationScreenProps) {
-  const transcript =
-    copy.conversation.transcripts[
-      (threadId as BusinessThreadId) in copy.conversation.transcripts
-        ? (threadId as BusinessThreadId)
-        : 'tunde'
-    ];
-  const seeded = useMemo<{ name: string; time: string; context: string }>(
-    () => ({
-      name: thread?.name ?? 'Customer',
-      time: thread?.time ?? '',
-      context: thread?.context ?? '',
-    }),
-    [thread],
-  );
-  const [messages, setMessages] = useState<SentMessage[]>(() =>
-    transcript.messages.map(message => ({ ...message })),
-  );
   const [draft, setDraft] = useState('');
+  const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (typingTimer.current) clearTimeout(typingTimer.current);
+    },
+    [],
+  );
+
+  function handleDraftChange(text: string) {
+    setDraft(text);
+    onTyping?.(text.trim().length > 0);
+    if (typingTimer.current) clearTimeout(typingTimer.current);
+    typingTimer.current = setTimeout(() => onTyping?.(false), TYPING_IDLE_MS);
+  }
 
   function send() {
     const text = draft.trim();
-    if (!text) return;
-    setMessages(current => [
-      ...current,
-      { id: `local-${current.length}`, sender: 'merchant', time: clockLabel(), text },
-    ]);
+    if (!text || isSending) return;
+    onSend(text);
     setDraft('');
+    onTyping?.(false);
   }
 
   return (
     <BusinessScreenLayout
       header={{
-        title: seeded.name,
+        title: thread?.name ?? copy.customerFallback,
         onBack,
         titleVariant: 'headingSm',
         subtitle: copy.online,
@@ -115,17 +122,17 @@ export function BusinessConversationScreen({
             className="min-w-0 flex-1"
             numberOfLines={1}
           >
-            {seeded.context}
+            {thread?.context ?? ''}
           </VemtapText>
         </View>
-        {seeded.time ? (
+        {thread?.time ? (
           <VemtapText
             variant="micro"
             tone="tertiary"
             className="shrink-0"
             numberOfLines={1}
           >
-            {seeded.time}
+            {thread.time}
           </VemtapText>
         ) : null}
       </View>
@@ -137,10 +144,9 @@ export function BusinessConversationScreen({
         keyboardShouldPersistTaps="handled"
         accessibilityLabel={copy.conversation.transcriptLabel}
       >
-        <VemtapText variant="micro" tone="tertiary" className="self-center text-center">
-          {transcript.intro}
-        </VemtapText>
-        {messages.length === 0 ? (
+        {isLoading ? (
+          <LoadingState label={strings.common.loading} />
+        ) : !messages || messages.length === 0 ? (
           <EmptyState
             variant="contained"
             title={copy.conversation.emptyTitle}
@@ -176,7 +182,7 @@ export function BusinessConversationScreen({
           <View className="min-w-0 flex-1">
             <FieldInput
               value={draft}
-              onChangeText={setDraft}
+              onChangeText={handleDraftChange}
               placeholder={copy.conversation.composerPlaceholder}
               accessibilityLabel={copy.conversation.composerPlaceholder}
             />
@@ -188,6 +194,7 @@ export function BusinessConversationScreen({
             fullWidth={false}
             accessibilityLabel={copy.conversation.sendHint}
             className="min-h-[44px]"
+            loading={isSending}
             leftIcon={<Icon name="send" size={16} color={colors.surface} />}
             onPress={send}
           />

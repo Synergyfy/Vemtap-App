@@ -99,3 +99,34 @@ test('blocks the reset until both PINs match', async () => {
 
   expect(mockResetPin).not.toHaveBeenCalled();
 });
+
+test('prefills the signed-in email when opened from the business wizard', async () => {
+  const screen = await render(<ForgotPinScreen initialEmail="owner@urbangrill.ng" />);
+
+  expect(screen.getByTestId('forgot-pin-email').props.value).toBe('owner@urbangrill.ng');
+});
+
+test('uses the wizard done label and callback after a successful reset', async () => {
+  const onDone = jest.fn();
+  const screen = await render(
+    <ForgotPinScreen
+      initialEmail="owner@urbangrill.ng"
+      doneLabel="Back to confirmation"
+      onDone={onDone}
+    />,
+  );
+
+  await fireEvent.press(screen.getByText('Send reset code'));
+  await act(async () => mockRequestPinReset.mock.calls[0][1].onSuccess());
+
+  await fireEvent.changeText(screen.getByLabelText('Reset code'), '123456');
+  await fireEvent.changeText(screen.getByLabelText('New 6-digit PIN'), '445566');
+  await fireEvent.changeText(screen.getByLabelText('Confirm new 6-digit PIN'), '445566');
+  await fireEvent.press(screen.getByRole('button', { name: 'Reset PIN' }));
+  await act(async () => mockResetPin.mock.calls[0][1].onSuccess());
+
+  await fireEvent.press(screen.getByText('Back to confirmation'));
+
+  expect(onDone).toHaveBeenCalledTimes(1);
+  expect(mockNavigation.goBack).not.toHaveBeenCalled();
+});

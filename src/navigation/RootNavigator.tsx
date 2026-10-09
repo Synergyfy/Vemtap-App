@@ -5,6 +5,7 @@ import { AuthStack } from '@navigation/AuthStack';
 import { AppStack } from '@navigation/AppStack';
 import { BusinessSetupNavigator } from '@navigation/BusinessSetupNavigator';
 import { BusinessTabNavigator } from '@navigation/BusinessTabNavigator';
+import { navigationRef } from '@navigation/navigationRef';
 import type { RootStackParamList } from '@navigation/types';
 import { useAuthStore, selectIsAuthenticated } from '@store/authStore';
 
@@ -78,7 +79,7 @@ export function RootNavigator() {
   const isAuthenticated = useAuthStore(selectIsAuthenticated);
 
   return (
-    <NavigationContainer linking={linking}>
+    <NavigationContainer ref={navigationRef} linking={linking}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {isAuthenticated ? (
           <Stack.Screen name="AppStack" component={AppStack} />

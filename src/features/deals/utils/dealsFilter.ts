@@ -1,16 +1,21 @@
 import type { Offer } from '@api/dealsApi';
 
 /**
- * The filters the offers feed applies itself.
+ * The client-side refinements the offers feed applies itself.
  *
- * Everything here is client-side because the API cannot express it: the public
- * offers endpoint takes `categoryId` (a single UUID) but not a list, and rejects
- * `minPrice`, `maxPrice` and `minDiscount` outright. The offers do carry
- * `categoryName`, `calculatedPrice`, `discountPercent` and their start/end dates,
- * so all four dimensions are answerable from what the feed already loaded.
+ * Category and availability are here because the API cannot express them the
+ * way the design needs: the offers endpoint takes a single `categoryId` while
+ * the filter page is multi-select over `categoryName`, and there is no
+ * availability signal at all. The offers carry `categoryName`, `startDate` and
+ * `endDate`, so both dimensions are answerable from the loaded page.
  *
- * That makes these filters a refinement of the loaded page rather than a server
- * query — the same page the app has always shown, since nothing paginates.
+ * Price and discount used to live here too. Phase 2 added `minPrice`,
+ * `maxPrice` and `minDiscount` server-side, so `usePublicOffersFeed` sends them
+ * with the request and only passes `null` through this util — the fields stay
+ * supported for callers (and tests) that refine a local list.
+ *
+ * That makes these refinements a refinement of the loaded page rather than a
+ * server query — consistent with the cursor-paginated feed they decorate.
  */
 
 export interface DealsFilterCriteria {

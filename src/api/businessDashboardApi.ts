@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { requestValidated } from '@api/client';
+import { request, requestValidated } from '@api/client';
 import { nullableArray, nullableFlag, nullableText } from '@api/schemaHelpers';
 import { profileBranchSchema } from '@api/businessProfileApi';
 import type { ApiRequestOptions } from '@app-types/api';
@@ -48,9 +48,23 @@ export const myBusinessSchema = z.looseObject({
   id: z.string(),
   name: z.string(),
   isVerified: nullableFlag(false),
+  logoUrl: nullableText(),
+  coverImage: nullableText(),
   city: nullableText(),
   state: nullableText(),
   address: nullableText(),
+  phone: nullableText(),
+  whatsappNumber: nullableText(),
+  officialEmail: nullableText(),
+  website: nullableText(),
+  uniqueCode: nullableText(),
+  description: nullableText(),
+  status: nullableText(),
+  category: z.looseObject({ id: z.string().optional(), name: nullableText() }).nullish(),
+  subcategory: z
+    .looseObject({ id: z.string().optional(), name: nullableText() })
+    .nullish(),
+  amenities: nullableArray(z.string()),
   branches: nullableArray(profileBranchSchema),
 });
 export type MyBusiness = z.infer<typeof myBusinessSchema>;
@@ -58,7 +72,23 @@ export type MyBusiness = z.infer<typeof myBusinessSchema>;
 export const businessDashboardSchema = z.looseObject({
   businessName: nullableText(),
   businessLogo: nullableText(),
+  generatedAt: nullableText(),
   stats: looseRecord.default({}),
+  weekly: z
+    .looseObject({
+      visits: looseCount,
+      claims: looseCount,
+      revenue: looseCount,
+    })
+    .nullish(),
+  insights: nullableArray(
+    z.looseObject({
+      id: nullableText(),
+      title: nullableText(),
+      message: nullableText(),
+      priority: nullableText(),
+    }),
+  ),
   recentVisitors: nullableArray(looseRecord),
   activityData: nullableArray(looseRecord),
   rewards: nullableArray(looseRecord),
@@ -68,6 +98,48 @@ export const businessDashboardSchema = z.looseObject({
   devices: nullableArray(looseRecord),
 });
 export type BusinessDashboard = z.infer<typeof businessDashboardSchema>;
+
+/** Active subscription for the signed-in business (plan + trial state). */
+export const activeSubscriptionSchema = z.looseObject({
+  status: nullableText(),
+  isTrial: nullableFlag(false),
+  trialEndsAt: nullableText(),
+  endDate: nullableText(),
+  plan: z
+    .looseObject({
+      name: nullableText(),
+      isFree: nullableFlag(false),
+    })
+    .nullish(),
+});
+export type ActiveSubscription = z.infer<typeof activeSubscriptionSchema>;
+
+/** Merchant rating summary for the Business hub stat tile. */
+export const reviewsSummarySchema = z.looseObject({
+  averageRating: z.number().nullable().optional(),
+  totalReviews: z
+    .number()
+    .nullish()
+    .transform(value => value ?? 0),
+  pendingReviews: z
+    .number()
+    .nullish()
+    .transform(value => value ?? 0),
+});
+export type ReviewsSummary = z.infer<typeof reviewsSummarySchema>;
+
+/** Customer totals for the CRM card (visits + branch-linked accounts). */
+export const customersSummarySchema = z.looseObject({
+  totalCustomers: z
+    .number()
+    .nullish()
+    .transform(value => value ?? 0),
+  newThisWeek: z
+    .number()
+    .nullish()
+    .transform(value => value ?? 0),
+});
+export type CustomersSummary = z.infer<typeof customersSummarySchema>;
 
 export const posDashboardSchema = z.looseObject({
   revenue: looseCount,
@@ -106,6 +178,22 @@ export const businessDashboardApi = {
   },
 
   /**
+   * Update business fields the registration payload cannot carry (e.g. the
+   * deferred `description`). Requires an owner session.
+   */
+  async updateMyBusiness(
+    updates: Record<string, unknown>,
+    options: ApiRequestOptions = {},
+  ): Promise<void> {
+    await request<unknown>({
+      method: 'PATCH',
+      url: '/businesses/my-business',
+      data: updates,
+      ...options,
+    });
+  },
+
+  /**
    * Overview payload for one branch (`branchId` is required by the API).
    * Stats, activity chart, messages, notifications, staff and devices.
    */
@@ -121,6 +209,32 @@ export const businessDashboardApi = {
         ...options,
       },
       businessDashboardSchema,
+    );
+  },
+
+  /** Active subscription for the current business (drives the trial pill). */
+  async getActiveSubscription(
+    options: ApiRequestOptions = {},
+  ): Promise<ActiveSubscription> {
+    return requestValidated<ActiveSubscription>(
+      { method: 'GET', url: '/subscriptions/active', ...options },
+      activeSubscriptionSchema,
+    );
+  },
+
+  /** Average/total of approved deal reviews for the business. */
+  async getReviewsSummary(options: ApiRequestOptions = {}): Promise<ReviewsSummary> {
+    return requestValidated<ReviewsSummary>(
+      { method: 'GET', url: '/deals/business/reviews/summary', ...options },
+      reviewsSummarySchema,
+    );
+  },
+
+  /** Distinct customer totals for the business (CRM hub card). */
+  async getCustomersSummary(options: ApiRequestOptions = {}): Promise<CustomersSummary> {
+    return requestValidated<CustomersSummary>(
+      { method: 'GET', url: '/businesses/my-business/customers-summary', ...options },
+      customersSummarySchema,
     );
   },
 

@@ -62,6 +62,8 @@ const CATEGORY_ICONS: readonly (readonly [needle: string, icon: IconName])[] = [
 ];
 
 export interface CategoryOption {
+  /** Taxonomy UUID — the only value the server-side `categoryId` filter takes. */
+  id: string;
   name: string;
   icon: IconName;
 }
@@ -96,7 +98,7 @@ export function useFilterCategories() {
       const keep = name.length > 0 && !SEED_JUNK.has(name) && !seen.has(name);
       if (keep) {
         seen.add(name);
-        result.push({ name, icon: categoryIcon(name) });
+        result.push({ id: category.id, name, icon: categoryIcon(name) });
       }
     }
     return result;

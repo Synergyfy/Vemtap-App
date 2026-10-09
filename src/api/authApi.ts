@@ -99,6 +99,12 @@ export type User = z.infer<typeof userSchema>;
 /** Session as the API returns it. The access token is stored in secure storage, not here. */
 export type Session = z.infer<typeof sessionSchema>;
 
+/** Only the two sides of a dual-role account are switchable. */
+export const switchRoleInputSchema = z.object({
+  role: z.enum(['Owner', 'Customer']),
+});
+export type SwitchRoleInput = z.infer<typeof switchRoleInputSchema>;
+
 export const authApi = {
   async login(input: LoginInput, options: ApiRequestOptions = {}): Promise<Session> {
     return requestValidated<Session>(
@@ -133,6 +139,26 @@ export const authApi = {
     return requestValidated<User>(
       { method: 'GET', url: '/auth/profile', ...options },
       userSchema,
+    );
+  },
+
+  /**
+   * Flip the active side of a dual-role account. The API returns a scoped
+   * session: CUSTOMER tokens carry no business context, OWNER tokens do.
+   */
+  async switchRole(
+    input: SwitchRoleInput,
+    options: ApiRequestOptions = {},
+  ): Promise<Session> {
+    return requestValidated<Session>(
+      {
+        method: 'POST',
+        url: '/auth/switch-role',
+        data: input,
+        idempotencyKey: createIdempotencyKey(),
+        ...options,
+      },
+      sessionSchema,
     );
   },
 

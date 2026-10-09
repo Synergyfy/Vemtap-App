@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -11,6 +11,7 @@ import { TypeDensityProvider } from '@theme/TypeDensityProvider';
 import { colors } from '@theme/colors';
 import {
   BusinessInlineAction,
+  BusinessProductImage,
   BusinessSectionHeading,
   SetupCard,
 } from '@features/business/components/BusinessPrimitives';
@@ -22,16 +23,18 @@ import {
   countUnreadMessages,
   formatCompactNaira,
   formatNaira,
+  formatUpdatedAgo,
   pickStat,
-  toBranchList,
   toStatNumber,
   useBusinessDashboard,
+  useBusinessSubscription,
   useMyBusiness,
   useNewOrdersCount,
   usePendingClaims,
   usePosDashboard,
   useUnreadNotificationsCount,
 } from '@features/business/hooks/useBusinessDashboardData';
+import { useActiveBranch } from '@features/business/hooks/useActiveBranch';
 import { navbarBottomShadow } from '@theme/shadows';
 import { cn } from '@utils/cn';
 
@@ -76,18 +79,10 @@ export function BusinessDashboardOverviewScreen({
   onOpenReport,
 }: BusinessDashboardOverviewScreenProps) {
   const myBusiness = useMyBusiness();
-  // Real branches once `GET /businesses/my-business` answers; the designed
-  // list keeps the screen usable while signed out or offline.
-  const branches = useMemo(() => {
-    const live = toBranchList(myBusiness.data);
-    return live.length > 0 ? live : copy.branches;
-  }, [myBusiness.data]);
-  const [selectedBranchId, setSelectedBranchId] = useState<string | null>(null);
-  const activeBranchId =
-    branches.find(branch => branch.id === selectedBranchId)?.id ??
-    branches[0]?.id ??
-    null;
-  const changeBranch = (branchId: string) => setSelectedBranchId(branchId);
+  // One persisted active branch shared by Overview, Orders and More; the hook
+  // falls back to the designed list while the business query is offline.
+  const { branches, activeBranchId, setActiveBranch } = useActiveBranch();
+  const changeBranch = setActiveBranch;
 
   // The dashboard/POS endpoints require a branchId, so they wait for the
   // business payload rather than firing a request the API will reject.
@@ -110,8 +105,14 @@ export function BusinessDashboardOverviewScreen({
     const value = pickStat(stats, keys);
     return value === undefined ? copy.emptyValue : format(value);
   };
-  /** Deltas are design copy; the API publishes no growth fields yet (§10). */
-  const metricDelta = (fallback: string) => (statsLive ? undefined : fallback);
+  /** Deltas are live when the payload publishes one; otherwise design copy. */
+  const deltaLabel = (value: unknown): string | undefined => {
+    const delta = toStatNumber(value);
+    if (delta === undefined) return undefined;
+    return `${delta > 0 ? '+' : ''}${delta}%`;
+  };
+  const metricDelta = (fallback: string, liveValue?: unknown): string | undefined =>
+    statsLive ? deltaLabel(liveValue) : fallback;
 
   const posRevenue = pos.isSuccess ? toStatNumber(pos.data?.revenue) : undefined;
   const posTxns = pos.isSuccess ? toStatNumber(pos.data?.transactionCount) : undefined;
@@ -132,6 +133,12 @@ export function BusinessDashboardOverviewScreen({
     ? countUnreadMessages(dashboard.data.messages)
     : undefined;
   const claimsCount = claims.data ? countPendingClaims(claims.data) : undefined;
+  /** Branch devices reporting anything other than `active` need a sync. */
+  const offlineDeviceCount = dashboard.isSuccess
+    ? (dashboard.data?.devices ?? []).filter(
+        device => String(device.status ?? '').toLowerCase() !== 'active',
+      ).length
+    : undefined;
   /** Rows whose live count is known and zero disappear instead of lying. */
   const activityRows = copy.activity.flatMap(row => {
     const count =
@@ -141,7 +148,9 @@ export function BusinessDashboardOverviewScreen({
           ? messagesCount
           : row.id === 'claims'
             ? claimsCount
-            : undefined;
+            : row.id === 'pos'
+              ? offlineDeviceCount
+              : undefined;
     if (count !== undefined && count <= 0) return [];
     const title =
       count === undefined
@@ -150,10 +159,14 @@ export function BusinessDashboardOverviewScreen({
           ? copy.activityOrdersTitle(count)
           : row.id === 'messages'
             ? copy.activityMessagesTitle(count)
-            : copy.activityClaimsTitle(count);
-    return [{ ...row, title }];
+            : row.id === 'claims'
+              ? copy.activityClaimsTitle(count)
+              : copy.activityDevicesTitle(count);
+    const body =
+      row.id === 'pos' && count !== undefined ? copy.activityDevicesBody : row.body;
+    return [{ ...row, title, body }];
   });
-  const knownCounts = [ordersCount, messagesCount, claimsCount];
+  const knownCounts = [ordersCount, messagesCount, claimsCount, offlineDeviceCount];
   const knownTotal = knownCounts.reduce<number>((sum, count) => sum + (count ?? 0), 0);
   const activityBadge =
     knownCounts.every(count => count !== undefined) && knownTotal === 0
@@ -162,15 +175,81 @@ export function BusinessDashboardOverviewScreen({
         ? copy.activityBadgeFor(knownTotal)
         : copy.activityBadge;
 
-  const dayValues = activityPercents(dashboard.data?.activityData) ?? [
-    ...copy.weekDayValues,
-  ];
+  const liveActivity = activityPercents(dashboard.data?.activityData);
+  const dayValues = liveActivity ?? [...copy.weekDayValues];
   const dayLabels = activityPointLabels(dashboard.data?.activityData) ?? [
     ...copy.weekDays,
   ];
   const peakIndex = dayValues.indexOf(Math.max(...dayValues));
+  const chartPeak = liveActivity
+    ? copy.weekChartPeakFor(dayLabels[peakIndex] ?? '')
+    : copy.weekChartPeak;
+
+  /** `weekly` carries the last 7 days of visits, claims and POS revenue. */
+  const weekly = dashboard.data?.weekly;
+  const weeklyStats = (() => {
+    if (!statsLive || !weekly) return copy.weekStats.map(stat => ({ ...stat }));
+    const visits = toStatNumber(weekly.visits);
+    const weeklyClaims = toStatNumber(weekly.claims);
+    const revenue = toStatNumber(weekly.revenue);
+    return copy.weekStats.map(stat => {
+      if (stat.id === 'views') {
+        return {
+          ...stat,
+          value: visits === undefined ? copy.emptyValue : visits.toLocaleString('en-US'),
+          delta: deltaLabel(stats?.visitorsDelta),
+        };
+      }
+      if (stat.id === 'claims') {
+        return {
+          ...stat,
+          value:
+            weeklyClaims === undefined
+              ? copy.emptyValue
+              : weeklyClaims.toLocaleString('en-US'),
+          delta: deltaLabel(stats?.claimsDelta),
+        };
+      }
+      return {
+        ...stat,
+        value: revenue === undefined ? copy.emptyValue : formatCompactNaira(revenue),
+        delta: deltaLabel(stats?.revenueDelta),
+      };
+    });
+  })();
+
+  /** Rules-based insights replace the designed recommendation cards. */
+  const liveInsights = (dashboard.data?.insights ?? [])
+    .filter(insight => insight.title && insight.message)
+    .map(insight => ({
+      id: insight.id || insight.title,
+      title: insight.title,
+      body: insight.message,
+      cta: copy.recommendationsCta,
+      badge: insight.priority === 'high' ? copy.recommendationsHighBadge : undefined,
+    }));
+  const recommendations = liveInsights.length > 0 ? liveInsights : copy.recommendations;
+
+  const updatedAgo = formatUpdatedAgo(dashboard.data?.generatedAt);
+  const overviewMeta = updatedAgo ? copy.overviewMetaFor(updatedAgo) : copy.overviewMeta;
+
+  /** Trial window / plan name for the status pill under the navbar. */
+  const subscription = useBusinessSubscription();
+  const trialLabel = (() => {
+    const sub = subscription.data;
+    if (!subscription.isSuccess || !sub) return copy.growthTrial;
+    if (sub.isTrial && sub.trialEndsAt) {
+      const end = Date.parse(sub.trialEndsAt);
+      if (Number.isFinite(end)) {
+        const days = Math.max(0, Math.ceil((end - Date.now()) / 86_400_000));
+        return copy.growthTrialFor(days);
+      }
+    }
+    return sub.plan?.name?.trim() ? sub.plan.name : copy.growthTrial;
+  })();
 
   const businessName = myBusiness.data?.name ?? copy.pageTitle;
+  const businessLogo = myBusiness.data?.logoUrl || undefined;
   const profileBranch = myBusiness.data?.branches?.find(
     branch => branch.id === activeBranchId,
   );
@@ -203,7 +282,13 @@ export function BusinessDashboardOverviewScreen({
               ) : null}
             </View>
             <View className="flex-row items-center gap-1">
-              <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
+              <VemtapText
+                variant="caption"
+                tone="secondary"
+                className="min-w-0 flex-1"
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
                 {locationLabel}
               </VemtapText>
               <Icon name="expandMore" size={14} color={colors.textSecondary} />
@@ -228,8 +313,16 @@ export function BusinessDashboardOverviewScreen({
                 </View>
               ) : null}
             </Pressable>
-            <View className="h-9 w-9 items-center justify-center rounded-full bg-primary">
-              <Icon name="person" size={18} color={colors.surface} />
+            <View className="h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-primary">
+              {businessLogo ? (
+                <BusinessProductImage
+                  source={{ uri: businessLogo }}
+                  alt={`${businessName} logo`}
+                  className="h-full w-full"
+                />
+              ) : (
+                <Icon name="person" size={18} color={colors.surface} />
+              )}
             </View>
           </View>
         </View>
@@ -254,7 +347,7 @@ export function BusinessDashboardOverviewScreen({
             <View className="flex-row items-center gap-1.5 rounded-full bg-surface-tint-blue px-2.5 py-1">
               <Icon name="schedule" size={14} color={colors.primary} />
               <VemtapText variant="caption" tone="brand" className="font-sans-semibold">
-                {copy.growthTrial}
+                {trialLabel}
               </VemtapText>
             </View>
           </View>
@@ -344,7 +437,7 @@ export function BusinessDashboardOverviewScreen({
                   {copy.overviewTitle}
                 </VemtapText>
                 <VemtapText variant="caption" tone="secondary">
-                  {copy.overviewMeta}
+                  {overviewMeta}
                 </VemtapText>
               </View>
               <BusinessInlineAction
@@ -360,16 +453,18 @@ export function BusinessDashboardOverviewScreen({
               icon="visibility"
               label={copy.metrics.views}
               value={metricValue(
-                ['views', 'profileViews', 'totalViews', 'impressions', 'dealViews'],
+                ['totalViews', 'views', 'profileViews', 'impressions', 'dealViews'],
                 copy.metrics.viewsValue,
               )}
-              delta={metricDelta(copy.metrics.viewsDelta)}
+              delta={metricDelta(copy.metrics.viewsDelta, stats?.visitorsDelta)}
             />
             <MetricTile
               icon="groupAdd"
               label={copy.metrics.customers}
               value={metricValue(
                 [
+                  'newVisitors',
+                  'totalVisitors',
                   'customers',
                   'newCustomers',
                   'totalCustomers',
@@ -379,7 +474,7 @@ export function BusinessDashboardOverviewScreen({
                 ],
                 copy.metrics.customersValue,
               )}
-              delta={metricDelta(copy.metrics.customersDelta)}
+              delta={metricDelta(copy.metrics.customersDelta, stats?.visitorsDelta)}
             />
           </View>
           <View className="flex-row gap-3">
@@ -397,7 +492,7 @@ export function BusinessDashboardOverviewScreen({
                 ],
                 copy.metrics.dealsClaimedValue,
               )}
-              delta={metricDelta(copy.metrics.dealsClaimedDelta)}
+              delta={metricDelta(copy.metrics.dealsClaimedDelta, stats?.claimsDelta)}
             />
             <MetricTile
               icon="shoppingBag"
@@ -562,7 +657,7 @@ export function BusinessDashboardOverviewScreen({
               <BusinessInlineAction label={copy.weekCta} onPress={onOpenReport} />
             </View>
             <View className="flex-row gap-2">
-              {copy.weekStats.map(stat => (
+              {weeklyStats.map(stat => (
                 <View key={stat.id} className="min-w-0 flex-1 gap-0.5">
                   <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
                     {stat.label}
@@ -574,12 +669,14 @@ export function BusinessDashboardOverviewScreen({
                   >
                     {stat.value}
                   </VemtapText>
-                  <View className="flex-row items-center gap-0.5">
-                    <Icon name="trendingUp" size={12} color={colors.success} />
-                    <VemtapText variant="micro" className="text-success">
-                      {stat.delta}
-                    </VemtapText>
-                  </View>
+                  {stat.delta ? (
+                    <View className="flex-row items-center gap-0.5">
+                      <Icon name="trendingUp" size={12} color={colors.success} />
+                      <VemtapText variant="micro" className="text-success">
+                        {stat.delta}
+                      </VemtapText>
+                    </View>
+                  ) : null}
                 </View>
               ))}
             </View>
@@ -589,7 +686,7 @@ export function BusinessDashboardOverviewScreen({
                   {copy.weekChartTitle}
                 </VemtapText>
                 <VemtapText variant="micro" tone="brand" numberOfLines={1}>
-                  {copy.weekChartPeak}
+                  {chartPeak}
                 </VemtapText>
               </View>
               <View className="h-24 flex-row items-end gap-1.5">
@@ -637,7 +734,7 @@ export function BusinessDashboardOverviewScreen({
                 </VemtapText>
               </View>
             </View>
-            {copy.recommendations.map(item => (
+            {recommendations.map(item => (
               <SetupCard key={item.id} className="gap-2">
                 <View className="flex-row items-start gap-2.5">
                   <View className="h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-surface-tint">

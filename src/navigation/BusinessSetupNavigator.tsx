@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -12,6 +12,8 @@ import {
   AddServiceAvailabilityRulesScreen,
   AddServiceBasicsMediaScreen,
   AddServiceDurationPricingScreen,
+  BusinessAccountCredentialsScreen,
+  BusinessAccountOtpScreen,
   BusinessIntroductionScreen,
   BusinessLocationsMultiBranchScreen,
   BusinessPlanTrialOverviewScreen,
@@ -50,9 +52,16 @@ import {
   YouReVerifiedScreen,
   YourVemtapBusinessQrIsReadyScreen,
 } from '@features/business';
+import { useSubmitOwnerRegistration } from '@features/business/hooks/useSubmitOwnerRegistration';
+import { useUpgradeOwnerRegistration } from '@features/business/hooks/useUpgradeOwnerRegistration';
+import { ForgotPinScreen } from '@features/auth/screens/ForgotPinScreen';
 import { TypeDensityProvider } from '@theme/TypeDensityProvider';
 import { useBusinessOnboardingStore } from '@store/businessOnboardingStore';
+import { useAuthStore, selectIsAuthenticated } from '@store/authStore';
+import { businessDashboardApi } from '@api/businessDashboardApi';
 import { mapLocationDraft } from '@features/business/utils/locationDraftMapper';
+import { businessProfileCopy } from '@features/business/businessCopy';
+import { logger } from '@utils/logger';
 import type { BusinessSetupStackParamList, RootStackParamList } from '@navigation/types';
 
 const Stack = createNativeStackNavigator<BusinessSetupStackParamList>();
@@ -130,10 +139,18 @@ function BusinessProfileBasicInfoRoute() {
 
 function BusinessProfileBrandingRoute() {
   const navigation = useFlowNavigation();
+  const basic = useBusinessOnboardingStore(state => state.profile.basic);
+  const branding = useBusinessOnboardingStore(state => state.profile.branding);
   const setBranding = useBusinessOnboardingStore(state => state.setBranding);
   return (
     <BusinessProfileBrandingScreen
       onBack={navigation.goBack}
+      // The live preview mirrors the draft: name/category from Basic Info and
+      // any media already picked when the step is revisited.
+      businessName={basic.name}
+      categoryName={basic.category}
+      specialties={basic.specialties}
+      initialValue={branding}
       onContinue={value => {
         setBranding(value);
         navigation.navigate('BusinessProfileContactChannels');
@@ -154,10 +171,179 @@ function BusinessProfileContactChannelsRoute() {
       onBack={navigation.goBack}
       onComplete={value => {
         setContactChannels(value);
-        navigation.navigate('BusinessLocation');
+        navigation.navigate('BusinessAccountCredentials');
       }}
       onSaveDraft={setContactChannels}
       initialValue={contact}
+    />
+  );
+}
+
+/**
+ * Persists the profile screens' draft for an owner who has no business yet.
+ * `PATCH /businesses/my-business` auto-creates the business server-side, so
+ * without this the Basic Info / Branding / Contact fields collected in this
+ * wizard would be silently dropped when the account step is skipped.
+ */
+function syncOwnerDraftToBusiness(draft: {
+  basic: {
+    name: string;
+    categoryId?: string;
+    subcategoryId?: string;
+    otherSubcategoryName?: string;
+    description: string;
+  };
+  branding: { logoUrl?: string };
+  contact: { email: string; website: string; whatsappNumber?: string; phone: string };
+}): void {
+  const updates: Record<string, unknown> = {};
+  const { basic, branding, contact } = draft;
+
+  if (basic.name?.trim()) updates.name = basic.name.trim();
+  if (basic.categoryId) updates.categoryId = basic.categoryId;
+  if (basic.subcategoryId) updates.subcategoryId = basic.subcategoryId;
+  if (basic.otherSubcategoryName?.trim()) {
+    updates.otherSubcategoryName = basic.otherSubcategoryName.trim();
+  }
+  if (basic.description?.trim()) updates.about = basic.description.trim();
+  if (branding.logoUrl) updates.logoUrl = branding.logoUrl;
+
+  if (contact.email?.trim()) updates.officialEmail = contact.email.trim();
+
+  const whatsapp = (contact.whatsappNumber ?? contact.phone ?? '').replace(/\D/g, '');
+  if (whatsapp) updates.whatsappNumber = whatsapp;
+
+  const website = contact.website?.trim();
+  if (website) {
+    updates.website = /^https?:\/\//i.test(website) ? website : `https://${website}`;
+  }
+
+  if (Object.keys(updates).length === 0) return;
+
+  businessDashboardApi.updateMyBusiness(updates).catch(error =>
+    logger.warn('business', 'Failed to sync owner draft before location', {
+      message: error instanceof Error ? error.message : String(error),
+    }),
+  );
+}
+
+/**
+ * Credentials step. A signed-out user creates an account here (email +
+ * password, then OTP). An authenticated customer confirms their password and
+ * the same account gains an owner side, keeping the customer profile intact.
+ */
+function BusinessAccountCredentialsRoute() {
+  const navigation = useFlowNavigation();
+  const isAuthenticated = useAuthStore(selectIsAuthenticated);
+  const user = useAuthStore(state => state.user);
+  const contact = useBusinessOnboardingStore(state => state.profile.contact);
+  const setCredentials = useBusinessOnboardingStore(state => state.setCredentials);
+  const upgrade = useUpgradeOwnerRegistration();
+  const syncedOwnerDraft = useRef(false);
+
+  const role = user?.role?.toLowerCase();
+  const ownerRegistered = role === 'owner' && Boolean(user?.businessId);
+  // An owner without a business (e.g. registered elsewhere) already has the
+  // credentials this step would collect; sync the draft and continue.
+  const ownerWithoutBusiness = isAuthenticated && role === 'owner' && !user?.businessId;
+  const skipCredentials = ownerRegistered || ownerWithoutBusiness;
+
+  const isGoogleAccount =
+    String(user?.authProvider ?? '').toUpperCase() === 'GOOGLE' ||
+    Boolean(user?.googleId);
+
+  // Re-entering after registering (e.g. back from Location) — nothing to
+  // collect, so skip straight back to where the wizard continues.
+  useEffect(() => {
+    if (!skipCredentials) return;
+
+    if (ownerWithoutBusiness && !syncedOwnerDraft.current) {
+      syncedOwnerDraft.current = true;
+      const store = useBusinessOnboardingStore.getState();
+      syncOwnerDraftToBusiness({
+        basic: store.profile.basic,
+        branding: store.profile.branding,
+        contact: store.profile.contact,
+      });
+    }
+
+    navigation.navigate('BusinessLocation');
+  }, [ownerWithoutBusiness, skipCredentials, navigation]);
+
+  if (skipCredentials) {
+    return null;
+  }
+
+  if (isAuthenticated && role === 'customer') {
+    return (
+      <BusinessAccountCredentialsScreen
+        mode="confirm"
+        initialEmail={user?.email ?? ''}
+        passwordlessAccount={isGoogleAccount}
+        onBack={navigation.goBack}
+        loading={upgrade.isPending}
+        error={upgrade.error?.message ?? null}
+        onForgotPassword={() => navigation.navigate('BusinessAccountResetPin')}
+        onContinue={({ password }) =>
+          upgrade.mutate(
+            { password },
+            { onSuccess: () => navigation.navigate('BusinessLocation') },
+          )
+        }
+      />
+    );
+  }
+
+  return (
+    <BusinessAccountCredentialsScreen
+      mode="create"
+      initialEmail={contact.email}
+      onBack={navigation.goBack}
+      onContinue={({ email, password }) => {
+        setCredentials({ email, password });
+        navigation.navigate('BusinessAccountOtp');
+      }}
+    />
+  );
+}
+
+/** Signed-in PIN/password reset, reached from the confirm step's forgot link. */
+function BusinessAccountResetPinRoute() {
+  const navigation = useFlowNavigation();
+  const user = useAuthStore(state => state.user);
+  return (
+    <ForgotPinScreen
+      initialEmail={user?.email}
+      doneLabel={businessProfileCopy.accountSetup.confirm.resetDone}
+      onDone={() => navigation.navigate('BusinessAccountCredentials')}
+    />
+  );
+}
+
+function BusinessAccountOtpRoute() {
+  const navigation = useFlowNavigation();
+  const credentials = useBusinessOnboardingStore(state => state.credentials);
+  const submit = useSubmitOwnerRegistration();
+
+  const handleVerified = useCallback(async () => {
+    if (!credentials.email || !credentials.password) {
+      throw new Error(
+        'Your account details are missing. Go back and re-enter your email and password.',
+      );
+    }
+    await submit.register({
+      email: credentials.email,
+      password: credentials.password,
+    });
+    navigation.navigate('BusinessLocation');
+  }, [credentials.email, credentials.password, navigation, submit]);
+
+  return (
+    <BusinessAccountOtpScreen
+      email={credentials.email ?? ''}
+      onBack={navigation.goBack}
+      onEditEmail={navigation.goBack}
+      onVerified={handleVerified}
     />
   );
 }
@@ -170,7 +356,21 @@ function BusinessLocationRoute() {
     <WhereIsYourBusinessLocatedScreen
       onBack={navigation.goBack}
       onContinue={draft => {
-        setLocation(mapLocationDraft(draft));
+        const mapped = mapLocationDraft(draft);
+        setLocation(mapped);
+        // Registration ran earlier in the wizard, so a session exists and the
+        // address can finally be persisted (it is not part of the payload sent
+        // to register/owner; the location screens come after). Best-effort: a
+        // failed PATCH must not block the rest of setup.
+        if (mapped.address) {
+          businessDashboardApi
+            .updateMyBusiness({ address: mapped.address })
+            .catch(error =>
+              logger.warn('business', 'Failed to save business address', {
+                message: error instanceof Error ? error.message : String(error),
+              }),
+            );
+        }
         navigation.navigate('BusinessLocations');
       }}
       onSaveDraft={draft => setLocation(mapLocationDraft(draft))}
@@ -429,6 +629,13 @@ function BusinessQrReadyRoute() {
   // The referral perk belongs to the business app, so it crosses to that shell
   // the same way the dashboard hand-off does.
   const openBusinessNetwork = useBusinessNetworkEntry();
+  const handleContinue = useCallback(() => {
+    // The setup wizard is done: promote the session out of `onboarding` and
+    // make sure later launches restore the business side.
+    useAuthStore.getState().setActiveMode('business');
+    useAuthStore.getState().completeOnboarding();
+    openBusinessDashboard();
+  }, [openBusinessDashboard]);
   return (
     <YourVemtapBusinessQrIsReadyScreen
       onBack={navigation.goBack}
@@ -439,7 +646,7 @@ function BusinessQrReadyRoute() {
       onDownloadKit={() => undefined}
       onCopyLink={() => undefined}
       onOpenReferrals={openBusinessNetwork}
-      onContinue={openBusinessDashboard}
+      onContinue={handleContinue}
     />
   );
 }
@@ -703,6 +910,15 @@ export function BusinessSetupNavigator() {
         <Stack.Screen
           name="BusinessProfileContactChannels"
           component={BusinessProfileContactChannelsRoute}
+        />
+        <Stack.Screen
+          name="BusinessAccountCredentials"
+          component={BusinessAccountCredentialsRoute}
+        />
+        <Stack.Screen name="BusinessAccountOtp" component={BusinessAccountOtpRoute} />
+        <Stack.Screen
+          name="BusinessAccountResetPin"
+          component={BusinessAccountResetPinRoute}
         />
         <Stack.Screen name="BusinessLocation" component={BusinessLocationRoute} />
         <Stack.Screen name="BusinessLocations" component={BusinessLocationsRoute} />

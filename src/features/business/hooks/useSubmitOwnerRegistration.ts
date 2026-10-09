@@ -6,6 +6,9 @@ import {
   UnresolvableCategoryError,
   mapDraftToOwnerRegistration,
 } from '@features/business/utils/ownerRegistrationMapper';
+import { pruneRegistrationPayload } from '@features/business/utils/registrationPayload';
+import { uploadBrandingMedia } from '@features/business/utils/uploadBusinessMedia';
+import { businessDashboardApi } from '@api/businessDashboardApi';
 import { registerLocationGap } from '@features/business/utils/locationDraftMapper';
 import {
   selectRegistrationDraft,
@@ -93,10 +96,28 @@ export function useSubmitOwnerRegistration(
       const payload: OwnerRegistration = {
         email,
         password,
-        ...mapped.payload,
+        ...pruneRegistrationPayload(mapped.payload),
       };
 
       const session = await registerMutation.mutateAsync(payload);
+
+      // Apply what registration cannot carry: the deferred description and the
+      // picked branding media (uploaded now that the owner has a session).
+      // Best-effort — never mask a successful signup.
+      const description = mapped.deferred.description?.trim();
+      const media = await uploadBrandingMedia(store.profile.branding);
+      const updates: Record<string, unknown> = { ...media };
+      if (description) updates.description = description;
+
+      if (Object.keys(updates).length > 0) {
+        try {
+          await businessDashboardApi.updateMyBusiness(updates);
+        } catch (error) {
+          logger.warn('business', 'Failed to apply deferred business fields', {
+            message: error instanceof Error ? error.message : String(error),
+          });
+        }
+      }
 
       if (gaps.length) {
         logger.warn('business', 'Registered with location fields outstanding', {

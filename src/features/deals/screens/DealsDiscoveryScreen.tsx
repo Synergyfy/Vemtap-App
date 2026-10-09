@@ -8,6 +8,7 @@ import { FeaturedDealOfDayCard } from '@components/deals/FeaturedDealOfDayCard';
 import { DealsResultsRow } from '@components/deals/DealsResultsRow';
 import { HomeSearchBar } from '@components/home/HomeSearchBar';
 import { TwoColumnGrid } from '@components/shared/TwoColumnGrid';
+import { Button } from '@components/ui/Button';
 import type { DealsViewMode } from '@components/home/ViewToggle';
 import { VemtapText } from '@components/ui/Text';
 import { Icon } from '@components/ui/Icon';
@@ -128,6 +129,9 @@ export function DealsDiscoveryScreen({
     feed: { featured: featuredDealOfDay, list: dealsList, grid: dealsGrid },
     isLoading,
     isError,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
   } = usePublicOffersFeed();
   const [commentsDealId, setCommentsDealId] = useState<string | null>(null);
 
@@ -258,6 +262,19 @@ export function DealsDiscoveryScreen({
                   )}
                 />
               )}
+
+              {hasNextPage ? (
+                <Button
+                  label={
+                    isFetchingNextPage
+                      ? strings.deals.loadingMore
+                      : strings.deals.loadMore
+                  }
+                  variant="secondary"
+                  loading={isFetchingNextPage}
+                  onPress={() => fetchNextPage()}
+                />
+              ) : null}
             </View>
           </>
         )}

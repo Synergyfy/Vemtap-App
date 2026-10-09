@@ -77,6 +77,18 @@ export const orderBranchSchema = z.object({
   phone: z.string().nullable().optional(),
 });
 
+/** The customer joined onto business-side order queries. */
+export const orderCustomerSchema = z
+  .object({
+    id: z.string().optional(),
+    firstName: z.string().nullish(),
+    lastName: z.string().nullish(),
+    phone: z.string().nullish(),
+    email: z.string().nullish(),
+    avatar: z.string().nullish(),
+  })
+  .nullish();
+
 export const catalogueOrderSchema = z.object({
   id: z.string(),
   createdAt: z.string().nullish(),
@@ -86,6 +98,9 @@ export const catalogueOrderSchema = z.object({
   branchId: z.string().nullish(),
   branch: orderBranchSchema.nullish(),
   customerId: z.string().nullish(),
+  customer: orderCustomerSchema,
+  attendedByUser: orderCustomerSchema,
+  deviceId: z.string().nullish(),
   status: z.string().nullish().default('new'),
   notes: z.string().nullable().optional(),
   tableNumber: z.string().nullable().optional(),

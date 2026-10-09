@@ -129,6 +129,22 @@ export function BusinessProfileBasicInfoScreen({
       ? specialties.join(' • ')
       : copy.basicInfo.previewEmptySubtitle;
 
+  // `register/owner` requires the name, and the mapper needs a real taxonomy id
+  // (a drafted category name cannot be turned into one). Name the first unmet
+  // requirement so a disabled CTA never reads as a broken tap.
+  const blockingReason =
+    name.trim().length === 0
+      ? copy.basicInfo.nameRequired
+      : !categoryId
+        ? copy.basicInfo.categoryRequired
+        : null;
+  const canContinue = blockingReason === null;
+
+  const handleContinue = useCallback(() => {
+    if (!canContinue) return;
+    onContinue?.(value);
+  }, [canContinue, onContinue, value]);
+
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top', 'bottom']}>
       <RegistrationHeader title={copy.basicInfo.header} onBack={handleBack} />
@@ -285,9 +301,19 @@ export function BusinessProfileBasicInfoScreen({
       </ScrollView>
 
       <View className="gap-4 px-6 pb-6 pt-0">
+        {blockingReason ? (
+          <VemtapText
+            tone="secondary"
+            accessibilityRole="alert"
+            className="text-center text-caption"
+          >
+            {blockingReason}
+          </VemtapText>
+        ) : null}
         <PrimaryActionButton
           label={copy.basicInfo.continue}
-          onPress={() => onContinue?.(value)}
+          disabled={!canContinue}
+          onPress={handleContinue}
         />
         <View className="items-center gap-3">
           <TextActionButton

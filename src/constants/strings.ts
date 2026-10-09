@@ -337,6 +337,8 @@ export const strings = {
      * word; only the business heading had no existing equivalent.
      */
     businesses: 'Businesses',
+    /** Group heading for the search results' `products` group (catalogue items). */
+    products: 'Products',
     emptyTitle: 'No results found',
     emptyBody: 'Try a different search term, or pick one of the categories above.',
     /**
@@ -443,6 +445,9 @@ export const strings = {
     distanceAway: (label: string) => `${label} away`,
     claimDeal: 'Claim Deal',
     claim: 'Claim',
+    /** Cursor pagination footer on the Deals feed. */
+    loadMore: 'Load more deals',
+    loadingMore: 'Loading more…',
     dealsInTitle: (area: string) => `Deals in ${area}`,
     dealsInCount: (n: number) => `(${n})`,
     dealsInFound: (n: number) => `(${n} found)`,
@@ -3063,6 +3068,8 @@ export const strings = {
     terms: 'Terms & Privacy Policy',
     ownBusiness: 'Own a business in Nigeria?',
     setUpBusiness: 'Set up your business on VEMTAP',
+    /** Dual-role owners: flip back to the merchant side. */
+    switchToBusiness: 'Switch to Business Mode',
     signOut: 'Sign Out',
     version: 'VEMTAP Consumer v2.4.0 • Made with pride in Abuja',
   },
@@ -3178,6 +3185,12 @@ export const strings = {
     ] as const,
     alertTitle: '3 Actions Required',
     alertBody: '2 online orders \u00b7 1 POS awaiting kitchen',
+    /** Live copies once the order counts answer. */
+    alertTitleFor: (n: number) => `${n} Action${n === 1 ? '' : 's'} Required`,
+    alertBodyFor: (online: number, kitchen: number) =>
+      `${online} online order${online === 1 ? '' : 's'} \u00b7 ${kitchen} POS awaiting kitchen`,
+    emptyTitle: 'No orders yet',
+    emptyBody: 'New orders appear here in real time as customers check out.',
     orders: [
       {
         id: 'vg-94021',
@@ -3398,6 +3411,20 @@ export const strings = {
     markReady: 'Mark Ready',
     confirmPayment: 'Confirm Payment & Complete',
     adjustRefund: 'Adjust / Refund',
+    /** Live copies: catalogue orders have no payment state, only `completed`. */
+    completeOrder: 'Complete Order',
+    refundOrder: 'Refund Order',
+    itemsStatusFor: (status: string) =>
+      status === 'ready' || status === 'completed'
+        ? 'Kitchen Ready'
+        : status === 'new'
+          ? 'Awaiting kitchen'
+          : 'In Kitchen',
+    loyaltyAwardedHint: 'Loyalty points were awarded for this order',
+    refundConfirmTitle: 'Refund this order?',
+    refundConfirmBody: 'The full amount is refunded and any deducted stock is restored.',
+    refundConfirmCancel: 'Cancel',
+    refundConfirmAction: 'Refund',
     refundIssued: 'Refund flagged for review',
     orderDeclined: 'Order declined',
   },
@@ -3421,6 +3448,9 @@ export const strings = {
       { label: 'Cancelled', count: '(2)' },
     ] as const,
     summaryTitle: '5 Bookings Scheduled Today',
+    summaryTitleFor: (n: number) => `${n} Booking${n === 1 ? '' : 's'} Scheduled Today`,
+    emptyTitle: 'No bookings here yet',
+    emptyBody: 'Appointments your customers book will appear on this timeline.',
     summaryMetaLabel: 'Next appointment starts in',
     summaryMeta: '35 mins',
     summaryMetaHint: '(Room 2)',
@@ -3589,12 +3619,24 @@ export const strings = {
     connected: 'Connected',
     connectedMeta: 'Instant customer sync active',
     hubBranch: 'Victoria Island Hub',
+    customerFallback: 'Customer',
+    emptyTitle: 'No conversations yet',
+    emptyBody: 'When a customer messages your branch, the conversation lands here.',
+    emptyFilteredTitle: 'No matching conversations',
+    emptyFilteredBody: 'Try another filter or search term.',
+    context: {
+      general: 'In-app chat',
+      deal: 'Deal',
+      claim: 'Claim',
+      order: 'Order',
+      booking: 'Booking',
+    },
     filters: [
-      { label: 'All', count: '(18)', icon: undefined, dot: false },
-      { label: 'Unread', count: '(4)', icon: undefined, dot: true },
-      { label: 'Orders', count: '(6)', icon: 'receipt', dot: false },
-      { label: 'Deals', count: '(5)', icon: 'localOffer', dot: false },
-      { label: 'Bookings', count: '(3)', icon: 'calendar', dot: false },
+      { label: 'All', icon: undefined, dot: false },
+      { label: 'Unread', icon: undefined, dot: true },
+      { label: 'Orders', icon: 'receipt', dot: false },
+      { label: 'Deals', icon: 'localOffer', dot: false },
+      { label: 'Bookings', icon: 'calendar', dot: false },
     ] as const,
     conversation: {
       transcriptLabel: 'Conversation transcript',
@@ -3610,222 +3652,7 @@ export const strings = {
         'Your voucher is ready to use.',
         'We can hold that for 30 minutes.',
       ] as const,
-      transcripts: {
-        sarah: {
-          intro: 'Thread opened from your Deals enquiry',
-          messages: [
-            {
-              id: 'sarah-1',
-              sender: 'customer' as const,
-              time: '10:32 AM',
-              text: 'Hi, is the 20% lunch combo still available for 4 people today?',
-            },
-            {
-              id: 'sarah-2',
-              sender: 'merchant' as const,
-              time: '10:35 AM',
-              text: 'It is! Four vouchers are still unclaimed for today\u2019s service.',
-            },
-            {
-              id: 'sarah-3',
-              sender: 'customer' as const,
-              time: '10:39 AM',
-              text: 'Perfect. Can I claim two now and two when my sister arrives at 2pm?',
-            },
-            {
-              id: 'sarah-4',
-              sender: 'merchant' as const,
-              time: '10:42 AM',
-              text: 'Absolutely. Claim whenever you like \u2014 each voucher is valid until 4pm today.',
-            },
-          ],
-        },
-        michael: {
-          intro: 'Thread opened from your Orders inbox',
-          messages: [
-            {
-              id: 'michael-1',
-              sender: 'customer' as const,
-              time: '9:18 AM',
-              text: 'My ribeye order shows confirmed but I have not received the table confirmation.',
-            },
-            {
-              id: 'michael-2',
-              sender: 'merchant' as const,
-              time: '9:21 AM',
-              text: 'Let me check that for you \u2014 one moment.',
-            },
-            {
-              id: 'michael-3',
-              sender: 'merchant' as const,
-              time: '9:24 AM',
-              text: 'Found it: your table is held under the name James. Confirmation re-sent just now.',
-            },
-          ],
-        },
-        amaka: {
-          intro: 'Thread opened from your Products inbox',
-          messages: [
-            {
-              id: 'amaka-1',
-              sender: 'customer' as const,
-              time: 'Yesterday',
-              text: 'Do you restock the Glow Radiance Serum this month?',
-            },
-            {
-              id: 'amaka-2',
-              sender: 'merchant' as const,
-              time: 'Yesterday',
-              text: 'We do \u2014 a new batch lands on Thursday. I can reserve one for you.',
-            },
-            {
-              id: 'amaka-3',
-              sender: 'customer' as const,
-              time: 'Yesterday',
-              text: 'Yes please, reserve one for pickup.',
-            },
-          ],
-        },
-        chidi: {
-          intro: 'Thread opened from your Bookings inbox',
-          messages: [
-            {
-              id: 'chidi-1',
-              sender: 'customer' as const,
-              time: 'Yesterday',
-              text: 'I booked table for 4 on Saturday at 7:30pm \u2014 can I move it to 8pm?',
-            },
-            {
-              id: 'chidi-2',
-              sender: 'merchant' as const,
-              time: 'Yesterday',
-              text: '8pm is free. I have moved the booking and re-sent the confirmation.',
-            },
-          ],
-        },
-        tunde: {
-          intro: 'General enquiry from your storefront',
-          messages: [
-            {
-              id: 'tunde-1',
-              sender: 'customer' as const,
-              time: 'Mon',
-              text: 'What are your opening hours on public holidays?',
-            },
-            {
-              id: 'tunde-2',
-              sender: 'merchant' as const,
-              time: 'Mon',
-              text: 'We open 11am\u201310pm on public holidays, same as weekends.',
-            },
-          ],
-        },
-        halima: {
-          intro: 'Thread opened from your Bookings inbox',
-          messages: [
-            {
-              id: 'halima-1',
-              sender: 'customer' as const,
-              time: 'Oct 14',
-              text: 'I need to reschedule my Swedish massage to Thursday at 5:15pm.',
-            },
-            {
-              id: 'halima-2',
-              sender: 'merchant' as const,
-              time: 'Oct 14',
-              text: 'Done \u2014 you are booked for Thursday 5:15pm with Amina.',
-            },
-            {
-              id: 'halima-3',
-              sender: 'customer' as const,
-              time: 'Oct 14',
-              text: 'Thank you, see you then.',
-            },
-          ],
-        },
-      } as const,
     },
-    threads: [
-      {
-        id: 'sarah',
-        name: 'Sarah Adams',
-        time: '10:42 AM',
-        contextIcon: 'localOffer',
-        contextTone: 'discount',
-        context: 'Deal \u00b7 20% Lunch Combo',
-        preview:
-          'Hi, is the 20% lunch combo discount still available for 4 people today?',
-        outbound: false,
-        unread: 2,
-        online: true,
-        avatarAlt: 'Warm smiling businesswoman in a navy blazer in an upscale office',
-      },
-      {
-        id: 'michael',
-        name: 'Michael James',
-        time: '9:24 AM',
-        contextIcon: 'receipt',
-        contextTone: 'brand',
-        context: 'Order #VG-94021 \u00b7 Ribeye Steak',
-        preview: 'Your order is packed and ready for counter pickup!',
-        outbound: true,
-        unread: 0,
-        online: false,
-        avatarAlt: 'Young male professional in a smart casual outfit',
-      },
-      {
-        id: 'amaka',
-        name: 'Amaka Beauty & Wellness',
-        time: 'Yesterday',
-        contextIcon: 'inventory',
-        contextTone: 'brand',
-        context: 'Product \u00b7 Glow Radiance Serum',
-        preview: 'Do you have the 100ml bottle available in your Wuse II store?',
-        outbound: false,
-        unread: 1,
-        online: true,
-        avatarAlt: 'Stylish woman in a light blazer outside a storefront',
-      },
-      {
-        id: 'chidi',
-        name: 'Dr. Chidi Okafor',
-        time: 'Yesterday',
-        contextIcon: 'eventAvailable',
-        contextTone: 'neutral',
-        context: 'Booking \u00b7 Table Reservation (Sat 7:30 PM)',
-        preview: 'I would like to confirm our anniversary table booking for Saturday.',
-        outbound: true,
-        unread: 0,
-        online: false,
-        avatarAlt: 'Man in a blue suit smiling at the camera',
-      },
-      {
-        id: 'tunde',
-        name: 'Tunde Bakare',
-        time: 'Mon',
-        contextIcon: 'help',
-        contextTone: 'neutral',
-        context: 'General Inquiry',
-        preview: 'Yes, we accept direct bank transfers at the counter.',
-        outbound: true,
-        unread: 0,
-        online: false,
-        avatarAlt: 'Man in a light blue shirt outdoors',
-      },
-      {
-        id: 'halima',
-        name: 'Halima Yusuf',
-        time: 'Oct 14',
-        contextIcon: 'spa',
-        contextTone: 'neutral',
-        context: 'Booking \u00b7 Swedish Massage',
-        preview: 'Can I reschedule my 5:15 PM appointment to Thursday?',
-        outbound: false,
-        unread: 1,
-        online: false,
-        avatarAlt: 'Woman in a pink top receiving a wellness treatment',
-      },
-    ] as const,
   },
   businessHub: {
     title: 'Business Hub',
@@ -4800,6 +4627,15 @@ export const strings = {
     activityBadgeFor: (n: number) => `${n} require action`,
     posTxnsFor: (n: number) => `${n} txns`,
     ordersVolumeSuffix: ' vol',
+    /** Live copies for values that come from the dashboard payload. */
+    overviewMetaFor: (age: string) => `Updated ${age} · Real-time sync`,
+    weekChartPeakFor: (label: string) => `Peak: ${label}`,
+    activityDevicesTitle: (n: number) => `${n} Device${n === 1 ? '' : 's'} Need Sync`,
+    activityDevicesBody: 'Changes waiting to sync from a branch device',
+    recommendationsCta: 'Boost Deal Now',
+    recommendationsHighBadge: 'High priority',
+    growthTrialFor: (days: number) =>
+      `Growth Trial \u00b7 ${days} day${days === 1 ? '' : 's'} left`,
     /** Metric tile value when the backend answered without that stat. */
     emptyValue: '—',
     activity: [

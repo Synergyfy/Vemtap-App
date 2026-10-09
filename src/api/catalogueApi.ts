@@ -169,6 +169,22 @@ export type CatalogueItemQuery = {
   sortBy?: string;
 };
 
+export const businessOfferAdminSchema = z.looseObject({
+  id: z.string(),
+  name: z.string().nullish(),
+  status: z.string().nullish(),
+  branchId: z.string().nullish(),
+});
+export type BusinessOfferAdmin = z.infer<typeof businessOfferAdminSchema>;
+
+/** The admin list answers as a bare array or a `{ data }` envelope. */
+export const businessOffersAdminSchema = z.union([
+  z.array(businessOfferAdminSchema),
+  z
+    .object({ data: z.array(businessOfferAdminSchema) })
+    .transform(response => response.data),
+]);
+
 export const catalogueApi = {
   /** Active items for one branch. Public. */
   async listBranchItems(
@@ -265,6 +281,25 @@ export const catalogueApi = {
     return requestValidated(
       { method: 'GET', url: '/products/types', ...options },
       z.array(productTypeSchema),
+    );
+  },
+
+  /**
+   * Every offer for the business (any status), optionally branch-filtered.
+   * Powers the Business hub's Deals module counts.
+   */
+  async listBusinessOffers(
+    branchId?: string | null,
+    options: ApiRequestOptions = {},
+  ): Promise<BusinessOfferAdmin[]> {
+    return requestValidated<BusinessOfferAdmin[]>(
+      {
+        method: 'GET',
+        url: '/catalogue/offers/admin',
+        params: branchId ? { branchId } : {},
+        ...options,
+      },
+      businessOffersAdminSchema,
     );
   },
 };

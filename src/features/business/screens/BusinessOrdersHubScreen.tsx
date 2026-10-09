@@ -7,12 +7,19 @@ import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
 import { TypeDensityProvider } from '@theme/TypeDensityProvider';
 import { colors } from '@theme/colors';
-import { BusinessBranchSwitcher } from '@features/business/components/BusinessBranchSwitcher';
+import {
+  BusinessBranchSwitcher,
+  type BusinessBranch,
+} from '@features/business/components/BusinessBranchSwitcher';
 import {
   BusinessModeMark,
   BusinessScreenLayout,
   BusinessSelectionChip,
 } from '@features/business/components/BusinessPrimitives';
+import type {
+  BusinessOrderCounts,
+  PresentedOrder,
+} from '@features/business/hooks/useBusinessOrders';
 import { StatusPillTabs } from '@features/accountHub/components/HubPrimitives';
 import { cn } from '@utils/cn';
 
@@ -127,10 +134,29 @@ export interface BusinessOrdersHubScreenProps {
   onOpenOrder?: (id: string) => void;
   onAcceptOrder?: (id: string) => void;
   onSendToKitchen?: (id: string) => void;
-  onSearchOrders?: () => void;
+  /** Live status change (Accept/Mark Ready/Handover) from the order card. */
+  onUpdateOrderStatus?: (id: string, status: string) => void;
   onFilterOrders?: () => void;
+  /** Status filter selected from the chip row (undefined = All). */
+  onSelectStatus?: (status?: string) => void;
   onOpenNotifications?: () => void;
+  /** Live data from the route; omitted renders the designed fallback copy. */
+  orders?: readonly PresentedOrder[];
+  orderCounts?: BusinessOrderCounts['counts'];
+  orderTotal?: number;
+  bookingTotal?: number;
+  branches?: readonly BusinessBranch[];
+  activeBranchId?: string;
 }
+
+const FILTER_STATUSES: readonly (string | undefined)[] = [
+  undefined,
+  'new',
+  'processing',
+  'ready',
+  'completed',
+  'cancelled',
+];
 
 export function BusinessOrdersHubScreen({
   onChangeBranch,
@@ -140,15 +166,76 @@ export function BusinessOrdersHubScreen({
   onOpenOrder,
   onAcceptOrder,
   onSendToKitchen,
-  onSearchOrders,
+  onUpdateOrderStatus,
   onFilterOrders,
+  onSelectStatus,
   onOpenNotifications,
+  orders,
+  orderCounts,
+  orderTotal,
+  bookingTotal,
+  branches,
+  activeBranchId,
 }: BusinessOrdersHubScreenProps) {
   const [surface, setSurface] = useState(0);
   const [filter, setFilter] = useState(0);
 
-  // Dense hub: many rows read at a glance, so the subtree (navbar included)
-  // uses the compact type density rather than per-row size overrides.
+  /** Design copy, normalised to the live order shape for one render path. */
+  const fallbackOrders: PresentedOrder[] = copy.orders.map(order => ({
+    id: order.id,
+    reference: order.reference,
+    status: order.channel.toLowerCase(),
+    channel: order.channel,
+    channelTone: order.channelTone,
+    fulfilment: order.fulfilment,
+    time: order.time,
+    urgent: order.urgent,
+    customer: order.customer,
+    items: order.items,
+    amount: order.amount,
+    payment: order.payment,
+    cta: order.cta,
+    ctaStyle: order.ctaStyle,
+    nextStatus: undefined,
+    muted: order.muted,
+  }));
+  const list = orders ?? fallbackOrders;
+
+  const countFor = (index: number): string => {
+    if (!orderCounts) return copy.filters[index]?.count ?? '0';
+    const status = FILTER_STATUSES[index];
+    if (!status) return String(orderTotal ?? 0);
+    return String(orderCounts[status as keyof typeof orderCounts] ?? 0);
+  };
+  const chipCounts = copy.filters.map((chip, index) => ({
+    ...chip,
+    count: countFor(index),
+  }));
+
+  const switcherCounts: [string, string] = orderCounts
+    ? [String(orderTotal ?? 0), String(bookingTotal ?? 0)]
+    : [...copy.switcherCounts];
+
+  const requiresAction = orderCounts ? orderCounts.new + orderCounts.processing : null;
+  const alertTitle =
+    requiresAction === null ? copy.alertTitle : copy.alertTitleFor(requiresAction);
+  const alertBody =
+    requiresAction === null || !orderCounts
+      ? copy.alertBody
+      : copy.alertBodyFor(orderCounts.new, orderCounts.processing);
+
+  const handleCta = (order: PresentedOrder) => {
+    if (onUpdateOrderStatus && order.nextStatus) {
+      onUpdateOrderStatus(order.id, order.nextStatus);
+      return;
+    }
+    if (order.channel === 'POS') {
+      onSendToKitchen?.(order.id);
+    } else {
+      onAcceptOrder?.(order.id);
+    }
+  };
+
   return (
     <TypeDensityProvider density="compact">
       <BusinessScreenLayout
@@ -170,36 +257,31 @@ export function BusinessOrdersHubScreen({
       >
         <View className="flex-row items-center justify-between gap-2">
           <BusinessBranchSwitcher
-            branches={strings.businessBranchSwitcher.branches}
+            branches={branches ?? strings.businessBranchSwitcher.branches}
+            activeBranchId={activeBranchId}
             className="flex-1"
             onChangeBranch={onChangeBranch}
             onAddBranch={onAddBranch}
           />
           <View className="flex-row items-center gap-2">
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={copy.searchLabel}
-              onPress={onSearchOrders}
-              className="h-10 w-10 items-center justify-center rounded-full bg-surface-container-low active:scale-95"
-            >
-              <Icon name="search" size={20} color={colors.surfaceDark} />
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={copy.filterLabel}
-              onPress={onFilterOrders}
-              className="h-10 w-10 items-center justify-center rounded-full bg-surface-container-low active:scale-95"
-            >
-              <Icon name="tune" size={20} color={colors.surfaceDark} />
-              <View className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary-container" />
-            </Pressable>
+            {onFilterOrders ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={copy.filterLabel}
+                onPress={onFilterOrders}
+                className="h-10 w-10 items-center justify-center rounded-full bg-surface-container-low active:scale-95"
+              >
+                <Icon name="tune" size={20} color={colors.surfaceDark} />
+                <View className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary-container" />
+              </Pressable>
+            ) : null}
           </View>
         </View>
 
         <StatusPillTabs
           variant="switcher"
           labels={copy.switcher}
-          counts={copy.switcherCounts}
+          counts={switcherCounts}
           selected={surface}
           disabledTabs={onOpenBookings ? [] : [1]}
           onSelect={index => {
@@ -214,12 +296,15 @@ export function BusinessOrdersHubScreen({
             showsHorizontalScrollIndicator={false}
             contentContainerClassName="gap-2 px-6 py-1"
           >
-            {copy.filters.map((chip, index) => (
+            {chipCounts.map((chip, index) => (
               <BusinessSelectionChip
                 key={chip.label}
                 label={`${chip.label} (${chip.count})`}
                 selected={index === filter}
-                onPress={() => setFilter(index)}
+                onPress={() => {
+                  setFilter(index);
+                  onSelectStatus?.(FILTER_STATUSES[index]);
+                }}
                 tone="brand"
                 leading={
                   chip.dot ? (
@@ -233,7 +318,7 @@ export function BusinessOrdersHubScreen({
 
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={copy.alertTitle}
+          accessibilityLabel={alertTitle}
           onPress={onOpenPosOrders}
           className="mb-3 mt-4 overflow-hidden rounded-card shadow-sm active:scale-[0.99]"
         >
@@ -257,10 +342,10 @@ export function BusinessOrdersHubScreen({
                   className="font-sans-semibold"
                   numberOfLines={1}
                 >
-                  {copy.alertTitle}
+                  {alertTitle}
                 </VemtapText>
                 <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-                  {copy.alertBody}
+                  {alertBody}
                 </VemtapText>
               </View>
             </View>
@@ -268,8 +353,20 @@ export function BusinessOrdersHubScreen({
           </LinearGradient>
         </Pressable>
 
+        {orders && orders.length === 0 ? (
+          <View className="items-center gap-1 rounded-card bg-surface-container-lowest p-6 shadow-sm">
+            <Icon name="receipt" size={26} color={colors.textTertiary} />
+            <VemtapText variant="labelMd" className="font-sans-semibold">
+              {copy.emptyTitle}
+            </VemtapText>
+            <VemtapText variant="caption" tone="secondary" className="text-center">
+              {copy.emptyBody}
+            </VemtapText>
+          </View>
+        ) : null}
+
         <View className="gap-3">
-          {copy.orders.map(order => {
+          {list.map(order => {
             const channel = channelStyles[order.channelTone];
             const payment = paymentStyles[order.id] ?? defaultPaymentStyle;
             const cta = order.cta && order.ctaStyle ? ctaStyles[order.ctaStyle] : null;
@@ -403,11 +500,7 @@ export function BusinessOrdersHubScreen({
                       <Pressable
                         accessibilityRole="button"
                         accessibilityLabel={order.cta}
-                        onPress={() =>
-                          order.channel === 'POS'
-                            ? onSendToKitchen?.(order.id)
-                            : onAcceptOrder?.(order.id)
-                        }
+                        onPress={() => handleCta(order)}
                         className={cn(
                           'h-8 shrink-0 flex-row items-center gap-1 rounded-field px-2.5',
                           cta.chip,

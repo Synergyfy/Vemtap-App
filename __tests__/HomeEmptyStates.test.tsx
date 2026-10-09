@@ -2,7 +2,7 @@ import React from 'react';
 import { render, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { HomeScreen } from '@features/home/screens/HomeScreen';
-import { toPopularProduct } from '@features/home/hooks/useNearbyProducts';
+import { toPopularProduct } from '@features/home/utils/productMapper';
 import { strings } from '@constants/strings';
 
 /**

@@ -51,6 +51,8 @@ export interface BusinessHeaderProps {
   titleAccessory?: ReactNode;
   stepBadge?: string;
   showAvatar?: boolean;
+  /** Business logo shown in the avatar slot; falls back to the person icon. */
+  avatarUri?: string;
   centerTitle?: boolean;
   /** Navbar title token; defaults to `headingSm`, drop to `labelMd` on crowded bars. */
   titleVariant?: TextVariant;
@@ -69,6 +71,7 @@ export function BusinessHeader({
   titleAccessory,
   stepBadge,
   showAvatar = true,
+  avatarUri,
   centerTitle = true,
   titleVariant = 'headingSm',
 }: BusinessHeaderProps) {
@@ -171,8 +174,17 @@ export function BusinessHeader({
           </View>
         ) : null}
         {showAvatar ? (
-          <View className="h-8 w-8 items-center justify-center rounded-full bg-primary shadow-sm">
-            <Icon name="person" size={18} color={colors.surface} />
+          <View className="h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary shadow-sm">
+            {avatarUri ? (
+              <Image
+                source={{ uri: avatarUri }}
+                accessibilityLabel="Business logo"
+                className="h-full w-full"
+                resizeMode="cover"
+              />
+            ) : (
+              <Icon name="person" size={18} color={colors.surface} />
+            )}
           </View>
         ) : null}
       </View>
@@ -1205,6 +1217,8 @@ export interface BusinessNumberInputProps {
   leadingIcon?: ReactNode;
   trailingText?: string;
   trailingIcon?: ReactNode;
+  /** Masks the input for password fields. */
+  secureTextEntry?: boolean;
   /** Inline token variant (no label block, fixed 64x36 field) for step configurators. */
   compact?: boolean;
   className?: string;
@@ -1225,6 +1239,7 @@ export function BusinessNumberInput({
   leadingIcon,
   trailingText,
   trailingIcon,
+  secureTextEntry = false,
   compact = false,
   className,
 }: BusinessNumberInputProps) {
@@ -1263,6 +1278,7 @@ export function BusinessNumberInput({
           autoCapitalize={autoCapitalize}
           maxLength={maxLength}
           multiline={multiline}
+          secureTextEntry={secureTextEntry}
           textAlignVertical={multiline ? 'top' : 'center'}
           className={cn(
             'bg-transparent',

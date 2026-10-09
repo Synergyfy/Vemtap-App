@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Image, Pressable, View } from 'react-native';
+import { Alert, Image, Pressable, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { Icon, type IconName } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
@@ -14,6 +14,7 @@ import {
   SetupCard,
 } from '@features/business/components/BusinessPrimitives';
 import { InfoHint } from '@features/business/components/BusinessSetupPrimitives';
+import type { OrderDetailView } from '@features/business/hooks/useBusinessOrders';
 import { cn } from '@utils/cn';
 
 cssInterop(Pressable, { className: 'style' });
@@ -50,6 +51,19 @@ export interface OrderDetailScreenProps {
   onCallCustomer?: () => void;
   onOpenChat?: () => void;
   onOpenBranchSwitcher?: () => void;
+  /** Live detail from `GET /catalogue/orders/:id`; omitted keeps design copy. */
+  detail?: OrderDetailView;
+}
+
+interface DetailItem {
+  id: string;
+  name: string;
+  price: string;
+  note?: string;
+  quantity: string;
+  each?: string;
+  imageUri?: string;
+  imageAlt: string;
 }
 
 export function OrderDetailScreen({
@@ -63,19 +77,140 @@ export function OrderDetailScreen({
   onCallCustomer,
   onOpenChat,
   onOpenBranchSwitcher,
+  detail,
 }: OrderDetailScreenProps) {
   const [accepted, setAccepted] = useState(false);
+  const isLive = Boolean(detail);
+
+  const reference = detail?.reference ?? copy.reference;
+  const branchLabel = detail?.branchName ?? copy.branch;
+  const statusLabel = detail?.statusLabel ?? copy.statusLabel;
+  const statusTitle = detail?.statusTitle ?? copy.statusTitle;
+  const statusTime = detail?.statusTime || copy.statusTime;
+  const showTriage = !detail || detail.showTriage;
+  const kitchenAccepted = accepted || detail?.kitchenAccepted === true;
+
+  const items: DetailItem[] = detail
+    ? detail.items.map(line => ({
+        id: line.id,
+        name: line.name,
+        price: line.lineTotalLabel,
+        quantity: `Qty: ${line.quantity}`,
+        each: `${line.unitPriceLabel} each`,
+        imageUri: line.image,
+        imageAlt: line.name,
+      }))
+    : copy.items.map(item => ({
+        ...item,
+        imageUri: itemImages[item.id],
+        imageAlt: item.imageAlt,
+      }));
+
+  const timeline = detail?.timeline ?? copy.timeline;
+
+  const confirmRefund = () => {
+    if (!isLive) {
+      onAdjustRefund?.();
+      return;
+    }
+    Alert.alert(copy.refundConfirmTitle, copy.refundConfirmBody, [
+      { text: copy.refundConfirmCancel, style: 'cancel' },
+      {
+        text: copy.refundConfirmAction,
+        style: 'destructive',
+        onPress: () => onAdjustRefund?.(),
+      },
+    ]);
+  };
+
+  const liveActionTiles: {
+    id: string;
+    label: string;
+    icon: IconName;
+    onPress?: () => void;
+    tone?: 'error';
+  }[] = detail
+    ? [
+        ...(detail.canMarkProcessing
+          ? [
+              {
+                id: 'processing',
+                label: copy.markProcessing,
+                icon: 'sync' as IconName,
+                onPress: onMarkProcessing,
+              },
+            ]
+          : []),
+        ...(detail.canMarkReady
+          ? [
+              {
+                id: 'ready',
+                label: copy.markReady,
+                icon: 'inventory' as IconName,
+                onPress: onMarkReady,
+              },
+            ]
+          : []),
+        ...(detail.canComplete
+          ? [
+              {
+                id: 'complete',
+                label: copy.completeOrder,
+                icon: 'checkCircle' as IconName,
+                onPress: onConfirmPayment,
+              },
+            ]
+          : []),
+        ...(detail.canRefund
+          ? [
+              {
+                id: 'refund',
+                label: copy.refundOrder,
+                icon: 'autorenew' as IconName,
+                onPress: confirmRefund,
+                tone: 'error' as const,
+              },
+            ]
+          : []),
+      ]
+    : [
+        {
+          id: 'processing',
+          label: copy.markProcessing,
+          icon: 'sync' as IconName,
+          onPress: onMarkProcessing,
+        },
+        {
+          id: 'ready',
+          label: copy.markReady,
+          icon: 'inventory' as IconName,
+          onPress: onMarkReady,
+        },
+        {
+          id: 'payment',
+          label: copy.confirmPayment,
+          icon: 'payments' as IconName,
+          onPress: onConfirmPayment,
+        },
+        {
+          id: 'refund',
+          label: copy.adjustRefund,
+          icon: 'autorenew' as IconName,
+          onPress: confirmRefund,
+          tone: 'error' as const,
+        },
+      ];
 
   return (
     <BusinessScreenLayout
       header={{
-        title: copy.reference,
+        title: reference,
         titleVariant: 'labelMd',
         onBack,
         showAvatar: true,
         accessory: (
           <BusinessInlineAction
-            label={copy.branch}
+            label={branchLabel}
             icon="storefront"
             onPress={onOpenBranchSwitcher}
           />
@@ -91,64 +226,68 @@ export function OrderDetailScreen({
               variant="labelSm"
               className="font-sans-semibold uppercase text-tertiary-container"
             >
-              {copy.statusLabel}
+              {statusLabel}
             </VemtapText>
           </View>
           <View className="flex-row items-center gap-1 rounded-full bg-surface-container px-2 py-0.5">
             <Icon name="hourglass" size={13} color={colors.textSecondary} />
             <VemtapText variant="micro" tone="secondary">
-              {copy.statusTime}
+              {statusTime}
             </VemtapText>
           </View>
         </View>
         <VemtapText variant="labelMd" className="mt-2 font-sans-semibold">
-          {copy.statusTitle}
+          {statusTitle}
         </VemtapText>
-        <View className="mt-1 flex-row flex-wrap items-center gap-1.5">
-          <Icon name="timer" size={16} color={colors.primary} />
-          <VemtapText variant="bodyMd" tone="secondary" className="min-w-0 flex-1">
-            {copy.statusEstimate}
-          </VemtapText>
-          <VemtapText variant="bodyMd" className="font-sans-semibold">
-            {copy.statusEstimateValue}
-          </VemtapText>
-        </View>
+        {!isLive ? (
+          <View className="mt-1 flex-row flex-wrap items-center gap-1.5">
+            <Icon name="timer" size={16} color={colors.primary} />
+            <VemtapText variant="bodyMd" tone="secondary" className="min-w-0 flex-1">
+              {copy.statusEstimate}
+            </VemtapText>
+            <VemtapText variant="bodyMd" className="font-sans-semibold">
+              {copy.statusEstimateValue}
+            </VemtapText>
+          </View>
+        ) : null}
       </View>
 
-      <TwoColumnGrid
-        className="mt-4"
-        items={[
-          {
-            id: 'decline',
-            label: copy.triageDecline,
-            icon: 'close' as IconName,
-            tone: 'error' as const,
-            action: () => onDeclineOrder?.(),
-          },
-          {
-            id: 'accept',
-            label: copy.triageAccept,
-            icon: 'restaurant' as IconName,
-            tone: 'brand' as const,
-            action: () => {
-              setAccepted(true);
-              onAcceptOrder?.();
+      {showTriage ? (
+        <TwoColumnGrid
+          className="mt-4"
+          items={[
+            {
+              id: 'decline',
+              label: copy.triageDecline,
+              icon: 'close' as IconName,
+              tone: 'error' as const,
+              action: () => onDeclineOrder?.(),
             },
-          },
-        ]}
-        keyExtractor={item => item.id}
-        renderItem={item => (
-          <BusinessActionTile
-            label={item.label}
-            icon={item.icon}
-            size="lg"
-            tone={item.tone === 'error' ? 'errorContainer' : 'primary'}
-            onPress={item.action}
-          />
-        )}
-      />
+            {
+              id: 'accept',
+              label: copy.triageAccept,
+              icon: 'restaurant' as IconName,
+              tone: 'brand' as const,
+              action: () => {
+                setAccepted(true);
+                onAcceptOrder?.();
+              },
+            },
+          ]}
+          keyExtractor={item => item.id}
+          renderItem={item => (
+            <BusinessActionTile
+              label={item.label}
+              icon={item.icon}
+              size="lg"
+              tone={item.tone === 'error' ? 'errorContainer' : 'primary'}
+              onPress={item.action}
+            />
+          )}
+        />
+      ) : null}
 
-      {accepted ? (
+      {kitchenAccepted ? (
         <View className="mt-3 flex-row items-center justify-center gap-1.5 rounded-lg bg-badge-discount-bg px-3 py-2">
           <Icon name="checkCircle" size={18} color={colors.badgeDiscountText} />
           <VemtapText variant="labelMd" className="text-badge-discount-text">
@@ -165,8 +304,8 @@ export function OrderDetailScreen({
         />
         <View className="flex-row items-center gap-3">
           <Image
-            source={{ uri: customerAvatar }}
-            accessibilityLabel={`${copy.customerName} portrait`}
+            source={{ uri: detail?.customer.avatar ?? customerAvatar }}
+            accessibilityLabel={`${detail?.customer.name ?? copy.customerName} portrait`}
             className="h-12 w-12 rounded-full bg-surface-container"
             resizeMode="cover"
           />
@@ -177,18 +316,20 @@ export function OrderDetailScreen({
                 className="font-sans-semibold"
                 numberOfLines={1}
               >
-                {copy.customerName}
+                {detail?.customer.name ?? copy.customerName}
               </VemtapText>
               <Icon name="verified" size={16} color={colors.primary} />
             </View>
             <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-              {copy.customerPhone}
+              {detail?.customer.phone || (isLive ? '—' : copy.customerPhone)}
             </VemtapText>
           </View>
         </View>
-        <VemtapText variant="caption" tone="tertiary">
-          {copy.customerMeta}
-        </VemtapText>
+        {!isLive ? (
+          <VemtapText variant="caption" tone="tertiary">
+            {copy.customerMeta}
+          </VemtapText>
+        ) : null}
         <TwoColumnGrid
           items={[
             {
@@ -215,19 +356,21 @@ export function OrderDetailScreen({
             />
           )}
         />
-        <View className="flex-row items-start gap-2 rounded-lg bg-surface-container-low p-3">
-          <View className="pt-0.5">
-            <Icon name="directionsCar" size={16} color={colors.primary} />
+        {!isLive ? (
+          <View className="flex-row items-start gap-2 rounded-lg bg-surface-container-low p-3">
+            <View className="pt-0.5">
+              <Icon name="directionsCar" size={16} color={colors.primary} />
+            </View>
+            <View className="min-w-0 flex-1">
+              <VemtapText variant="labelSm" className="font-sans-semibold">
+                {copy.arrivalNote}
+              </VemtapText>
+              <VemtapText variant="caption" tone="secondary">
+                {copy.arrivalBody}
+              </VemtapText>
+            </View>
           </View>
-          <View className="min-w-0 flex-1">
-            <VemtapText variant="labelSm" className="font-sans-semibold">
-              {copy.arrivalNote}
-            </VemtapText>
-            <VemtapText variant="caption" tone="secondary">
-              {copy.arrivalBody}
-            </VemtapText>
-          </View>
-        </View>
+        ) : null}
       </SetupCard>
 
       <SetupCard className="mt-4 gap-3">
@@ -242,7 +385,7 @@ export function OrderDetailScreen({
                   variant="micro"
                   className="font-sans-medium text-text-secondary"
                 >
-                  {copy.itemsCount}
+                  {detail?.itemsCountLabel ?? copy.itemsCount}
                 </VemtapText>
               </View>
             }
@@ -250,14 +393,14 @@ export function OrderDetailScreen({
         </View>
         <View className="self-start rounded-full bg-surface-container px-2 py-0.5">
           <VemtapText variant="caption" className="font-sans-medium text-text-secondary">
-            {copy.itemsStatus}
+            {detail ? copy.itemsStatusFor(detail.status) : copy.itemsStatus}
           </VemtapText>
         </View>
 
-        {copy.items.map(item => (
+        {items.map(item => (
           <View key={item.id} className="flex-row items-start gap-3 py-2">
             <Image
-              source={{ uri: itemImages[item.id] }}
+              source={{ uri: item.imageUri }}
               accessibilityLabel={item.imageAlt}
               className="h-14 w-14 shrink-0 rounded-lg bg-surface-container"
               resizeMode="cover"
@@ -275,14 +418,16 @@ export function OrderDetailScreen({
                   {item.price}
                 </VemtapText>
               </View>
-              <VemtapText
-                variant="caption"
-                tone="secondary"
-                className="mt-0.5"
-                numberOfLines={1}
-              >
-                {item.note}
-              </VemtapText>
+              {item.note ? (
+                <VemtapText
+                  variant="caption"
+                  tone="secondary"
+                  className="mt-0.5"
+                  numberOfLines={1}
+                >
+                  {item.note}
+                </VemtapText>
+              ) : null}
               <View className="mt-1 flex-row flex-wrap items-center gap-1.5">
                 <View className="rounded bg-surface-container px-1.5 py-0.5">
                   <VemtapText
@@ -308,39 +453,46 @@ export function OrderDetailScreen({
               {copy.subtotal}
             </VemtapText>
             <VemtapText variant="labelMd" tone="secondary" className="shrink-0">
-              {copy.subtotalValue}
+              {detail?.subtotalLabel ?? copy.subtotalValue}
             </VemtapText>
           </View>
-          <View className="flex-row items-center justify-between gap-2">
-            <View className="min-w-0 flex-1 flex-row items-center gap-1">
-              <Icon name="localOffer" size={15} color={colors.badgeDiscountText} />
-              <VemtapText
-                variant="labelSm"
-                className="min-w-0 text-badge-discount-text"
-                numberOfLines={1}
-              >
-                {copy.memberPerk}
+          {!isLive ? (
+            <View className="flex-row items-center justify-between gap-2">
+              <View className="min-w-0 flex-1 flex-row items-center gap-1">
+                <Icon name="localOffer" size={15} color={colors.badgeDiscountText} />
+                <VemtapText
+                  variant="labelSm"
+                  className="min-w-0 text-badge-discount-text"
+                  numberOfLines={1}
+                >
+                  {copy.memberPerk}
+                </VemtapText>
+              </View>
+              <VemtapText variant="labelMd" className="shrink-0 text-badge-discount-text">
+                {copy.memberPerkValue}
               </VemtapText>
             </View>
-            <VemtapText variant="labelMd" className="shrink-0 text-badge-discount-text">
-              {copy.memberPerkValue}
-            </VemtapText>
-          </View>
-          <View className="flex-row items-center justify-between gap-2">
-            <View className="min-w-0 flex-1 flex-row items-center gap-1">
-              <Icon name="loyalty" size={15} color={colors.badgeDiscountText} />
-              <VemtapText
-                variant="labelSm"
-                className="min-w-0 text-badge-discount-text"
-                numberOfLines={1}
-              >
-                {copy.pointsRedeemed}
+          ) : null}
+          {!isLive ? (
+            <View className="flex-row items-center justify-between gap-2">
+              <View className="min-w-0 flex-1 flex-row items-center gap-1">
+                <Icon name="loyalty" size={15} color={colors.badgeDiscountText} />
+                <VemtapText
+                  variant="labelSm"
+                  className="min-w-0 text-badge-discount-text"
+                  numberOfLines={1}
+                >
+                  {copy.pointsRedeemed}
+                </VemtapText>
+              </View>
+              <VemtapText variant="labelMd" className="shrink-0 text-badge-discount-text">
+                {copy.pointsRedeemedValue}
               </VemtapText>
             </View>
-            <VemtapText variant="labelMd" className="shrink-0 text-badge-discount-text">
-              {copy.pointsRedeemedValue}
-            </VemtapText>
-          </View>
+          ) : null}
+          {detail?.loyaltyAwarded ? (
+            <InfoHint text={copy.loyaltyAwardedHint} icon="loyalty" />
+          ) : null}
           <View className="mt-2 flex-row items-center justify-between gap-2 border-t border-border pt-2">
             <VemtapText variant="labelSm" className="min-w-0 flex-1 font-sans-bold">
               {copy.totalLabel}
@@ -349,27 +501,29 @@ export function OrderDetailScreen({
               variant="labelMd"
               className="shrink-0 font-sans-bold text-primary"
             >
-              {copy.totalValue}
+              {detail?.totalLabel ?? copy.totalValue}
             </VemtapText>
           </View>
         </View>
 
-        <View className="rounded-lg border border-border bg-surface p-3">
-          <View className="flex-row items-center justify-between gap-2">
-            <VemtapText
-              variant="labelSm"
-              tone="secondary"
-              className="min-w-0 flex-1 font-sans-semibold uppercase"
-              numberOfLines={1}
-            >
-              {copy.settlementLabel}
-            </VemtapText>
-            <VemtapText variant="labelSm" className="shrink-0 font-sans-semibold">
-              {copy.settlementMethod}
-            </VemtapText>
+        {!isLive ? (
+          <View className="rounded-lg border border-border bg-surface p-3">
+            <View className="flex-row items-center justify-between gap-2">
+              <VemtapText
+                variant="labelSm"
+                tone="secondary"
+                className="min-w-0 flex-1 font-sans-semibold uppercase"
+                numberOfLines={1}
+              >
+                {copy.settlementLabel}
+              </VemtapText>
+              <VemtapText variant="labelSm" className="shrink-0 font-sans-semibold">
+                {copy.settlementMethod}
+              </VemtapText>
+            </View>
+            <InfoHint text={copy.settlementNote} icon="info" className="mt-2" />
           </View>
-          <InfoHint text={copy.settlementNote} icon="info" className="mt-2" />
-        </View>
+        ) : null}
       </SetupCard>
 
       <SetupCard className="mt-4 gap-3">
@@ -383,7 +537,7 @@ export function OrderDetailScreen({
             {copy.timelineLive}
           </VemtapText>
         </View>
-        {copy.timeline.map((step, index) => (
+        {timeline.map((step, index) => (
           <View key={step.id} className="flex-row items-start gap-3">
             <View className="flex-col items-center">
               <View
@@ -408,7 +562,7 @@ export function OrderDetailScreen({
                   }
                 />
               </View>
-              {index < copy.timeline.length - 1 ? (
+              {index < timeline.length - 1 ? (
                 <View className="my-0.5 w-0.5 flex-1 bg-border" />
               ) : null}
             </View>
@@ -447,8 +601,16 @@ export function OrderDetailScreen({
         />
         <TwoColumnGrid
           items={[
-            { id: 'branch', label: copy.branchLabel, value: copy.branchValue },
-            { id: 'station', label: copy.stationLabel, value: copy.stationValue },
+            {
+              id: 'branch',
+              label: copy.branchLabel,
+              value: detail?.fulfilment.branch ?? copy.branchValue,
+            },
+            {
+              id: 'station',
+              label: copy.stationLabel,
+              value: detail?.fulfilment.station ?? copy.stationValue,
+            },
           ]}
           keyExtractor={item => item.id}
           renderItem={item => (
@@ -467,7 +629,7 @@ export function OrderDetailScreen({
           )}
         />
         <VemtapText variant="caption" tone="secondary">
-          {copy.fulfilmentNote}
+          {detail?.fulfilment.note ?? copy.fulfilmentNote}
         </VemtapText>
       </SetupCard>
 
@@ -480,33 +642,7 @@ export function OrderDetailScreen({
           {copy.modifiersTitle}
         </VemtapText>
         <TwoColumnGrid
-          items={[
-            {
-              id: 'processing',
-              label: copy.markProcessing,
-              icon: 'sync' as IconName,
-              onPress: onMarkProcessing,
-            },
-            {
-              id: 'ready',
-              label: copy.markReady,
-              icon: 'inventory' as IconName,
-              onPress: onMarkReady,
-            },
-            {
-              id: 'payment',
-              label: copy.confirmPayment,
-              icon: 'payments' as IconName,
-              onPress: onConfirmPayment,
-            },
-            {
-              id: 'refund',
-              label: copy.adjustRefund,
-              icon: 'autorenew' as IconName,
-              onPress: onAdjustRefund,
-              tone: 'error' as const,
-            },
-          ]}
+          items={liveActionTiles}
           keyExtractor={item => item.id}
           renderItem={item => (
             <BusinessActionTile

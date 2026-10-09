@@ -5,10 +5,14 @@ import type { ApiRequestOptions } from '@app-types/api';
 export const threadParticipantSchema = z.object({
   id: z.string().optional(),
   name: z.string().nullish(),
+  firstName: z.string().nullish(),
+  lastName: z.string().nullish(),
   logoUrl: z.string().nullable().optional(),
   avatarUrl: z.string().nullable().optional(),
+  avatar: z.string().nullable().optional(),
   address: z.string().nullable().optional(),
   phone: z.string().nullable().optional(),
+  email: z.string().nullable().optional(),
 });
 
 export const conversationThreadSchema = z.object({
@@ -27,6 +31,8 @@ export const conversationThreadSchema = z.object({
   lastMessageContent: z.string().nullish().default(''),
   branchUnreadCount: z.number().nullish().default(0),
   customerUnreadCount: z.number().nullish().default(0),
+  /** GENERAL | DEAL | CLAIM | ORDER | BOOKING — latest conversation context. */
+  subjectType: z.string().nullish(),
 });
 export type ConversationThread = z.infer<typeof conversationThreadSchema>;
 

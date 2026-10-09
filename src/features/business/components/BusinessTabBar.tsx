@@ -41,12 +41,11 @@ export const businessTabMeta: Record<string, BusinessTabMeta> = {
   BusinessOrders: {
     icon: 'receipt',
     label: strings.businessShell.tabs.orders,
-    badge: { count: strings.businessShell.ordersBadge, tone: 'brand' },
+    // Badges are live (`BusinessTabBarWithLiveBadges`); never bake fake counts.
   },
   BusinessMessages: {
     icon: 'message',
     label: strings.businessShell.tabs.messages,
-    badge: { count: strings.businessShell.messagesBadge, tone: 'error' },
   },
   BusinessHub: {
     icon: 'storefront',
