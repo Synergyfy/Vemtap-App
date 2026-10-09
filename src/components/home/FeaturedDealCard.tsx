@@ -39,16 +39,18 @@ export function FeaturedDealCard({
     >
       <View className="relative aspect-video w-full overflow-hidden bg-surface-container">
         <Image source={deal.image} className="h-full w-full" resizeMode="cover" />
-        <View className="absolute left-3 top-3 rounded-full bg-badge-discount-bg px-2.5 py-1 shadow-sm">
-          <VemtapText className="font-sans-bold text-label-sm text-badge-discount-text">
-            {deal.badge}
-          </VemtapText>
-        </View>
-        <View className="absolute right-3 top-3 flex-row items-center gap-1 rounded-full bg-surface-canvas/90 px-2.5 py-1 shadow-sm">
-          <Icon name="schedule" size={15} color={colors.tertiary} />
-          <VemtapText className="font-sans-medium text-label-sm text-text-tertiary">
-            {deal.endsLabel}
-          </VemtapText>
+        <View className="absolute inset-x-3 top-3 flex-row items-center justify-between gap-2">
+          <View className="max-w-[60%] rounded-full bg-badge-discount-bg px-2.5 py-1 shadow-sm">
+            <VemtapText className="font-sans-bold text-label-sm text-badge-discount-text">
+              {deal.badge}
+            </VemtapText>
+          </View>
+          <View className="max-w-[38%] flex-row items-center gap-1 rounded-full bg-surface-canvas/90 px-2.5 py-1 shadow-sm">
+            <Icon name="schedule" size={15} color={colors.tertiary} />
+            <VemtapText className="font-sans-medium text-label-sm text-text-tertiary">
+              {deal.endsLabel}
+            </VemtapText>
+          </View>
         </View>
       </View>
       <View className="flex-col gap-2.5 p-4">

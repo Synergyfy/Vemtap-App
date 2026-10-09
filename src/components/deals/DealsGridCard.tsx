@@ -106,10 +106,13 @@ export function DealsGridCard({ deal, onClaim, onOpenDetail }: DealsGridCardProp
             </VemtapText>
           </View>
         </View>
-        <View className="mt-1 flex-row items-center justify-between border-t border-border pt-1">
-          <View className="flex-row items-center gap-0.5">
+        <View className="mt-1 w-full flex-row items-center gap-2 border-t border-border pt-1">
+          <View className="min-w-0 flex-1 flex-row items-center gap-0.5">
             <Icon name="locationOn" size={13} color={colors.textTertiary} />
-            <VemtapText className="font-sans text-caption text-text-secondary">
+            <VemtapText
+              className="font-sans text-caption text-text-secondary"
+              numberOfLines={1}
+            >
               {deal.distance}
             </VemtapText>
           </View>
@@ -117,7 +120,7 @@ export function DealsGridCard({ deal, onClaim, onOpenDetail }: DealsGridCardProp
             accessibilityRole="button"
             accessibilityLabel={deal.claimLabel}
             onPress={() => onClaim?.(deal.id)}
-            className="h-7 items-center justify-center rounded-lg bg-primary px-2 shadow-xs active:scale-95"
+            className="ml-auto h-7 shrink-0 items-center justify-center rounded-lg bg-primary px-2 shadow-xs active:scale-95"
           >
             <VemtapText className="font-sans-semibold text-caption text-primary-foreground">
               {deal.claimLabel}

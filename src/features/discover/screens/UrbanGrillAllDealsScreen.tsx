@@ -93,7 +93,7 @@ function StandardDealCard({
             label={strings.urbanDeals.claim}
             size="sm"
             fullWidth={false}
-            className="shrink-0"
+            className="ml-auto shrink-0"
             rightIcon={<Icon name="arrowForward" size={16} color={colors.surface} />}
             onPress={() => onOpen(deal.id)}
           />

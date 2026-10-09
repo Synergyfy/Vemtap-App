@@ -68,6 +68,29 @@ test('Account tab opens the account hub and links to the customer dashboard', as
   expect(screen.queryByLabelText('Discover')).toBeNull();
 });
 
+test('personal hub orders tab mounts inside a real navigation root without navigation-context errors', async () => {
+  const consoleError = jest.spyOn(console, 'error');
+
+  const screen = await render(
+    <NavigationContainer>
+      <Root.Navigator screenOptions={{ headerShown: false }}>
+        <Root.Screen name="PersonalHub" component={PersonalHubNavigator} />
+      </Root.Navigator>
+    </NavigationContainer>,
+  );
+
+  await fireEvent.press(screen.getByText('Orders'));
+
+  expect(screen.getByText('Orders And Bookings')).toBeTruthy();
+  expect(
+    consoleError.mock.calls.filter(call =>
+      String(call[0]).includes('navigation context'),
+    ),
+  ).toEqual([]);
+
+  consoleError.mockRestore();
+});
+
 test('the personal navigation stays visible across the personal flow', async () => {
   const screen = await renderDashboard();
 

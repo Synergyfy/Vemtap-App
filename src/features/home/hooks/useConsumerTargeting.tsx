@@ -147,7 +147,7 @@ export function useConsumerTargeting({
     (content: ReactNode) => (
       <View className="flex-1 bg-background">
         {/* Status bar + navbar share solid white so the iPhone inset blends with the header. */}
-        <SafeAreaView edges={['top']} className="bg-surface">
+        <SafeAreaView edges={[]} className="bg-surface">
           {!isOnline ? <OfflineBanner /> : null}
           <HomeHeader {...headerProps} />
         </SafeAreaView>

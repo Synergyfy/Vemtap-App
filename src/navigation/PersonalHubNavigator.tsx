@@ -302,21 +302,31 @@ export function PersonalHubNavigator() {
         screenOptions={{ headerShown: false }}
         tabBar={props => <PersonalHubTabBar {...props} />}
       >
-        <Tab.Screen name="PersonalHome" options={{ title: 'Home' }}>
-          {HomeFlowStack}
-        </Tab.Screen>
-        <Tab.Screen name="PersonalMyDeals" options={{ title: 'My Deals' }}>
-          {DealsFlowStack}
-        </Tab.Screen>
-        <Tab.Screen name="PersonalMessages" options={{ title: 'Messages' }}>
-          {MessagesFlowStack}
-        </Tab.Screen>
-        <Tab.Screen name="PersonalOrders" options={{ title: 'Orders' }}>
-          {OrdersFlowStack}
-        </Tab.Screen>
-        <Tab.Screen name="PersonalMore" options={{ title: 'More' }}>
-          {MoreFlowStack}
-        </Tab.Screen>
+        <Tab.Screen
+          name="PersonalHome"
+          component={HomeFlowStack}
+          options={{ title: 'Home' }}
+        />
+        <Tab.Screen
+          name="PersonalMyDeals"
+          component={DealsFlowStack}
+          options={{ title: 'My Deals' }}
+        />
+        <Tab.Screen
+          name="PersonalMessages"
+          component={MessagesFlowStack}
+          options={{ title: 'Messages' }}
+        />
+        <Tab.Screen
+          name="PersonalOrders"
+          component={OrdersFlowStack}
+          options={{ title: 'Orders' }}
+        />
+        <Tab.Screen
+          name="PersonalMore"
+          component={MoreFlowStack}
+          options={{ title: 'More' }}
+        />
       </Tab.Navigator>
     </TypeDensityProvider>
   );

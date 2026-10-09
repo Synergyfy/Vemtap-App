@@ -6,6 +6,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Text,
+  Platform,
 } from 'react-native';
 import './global.css';
 import { useFonts } from 'expo-font';
@@ -76,6 +77,10 @@ LogBox.ignoreLogs([
 function StatusBarBackdrop() {
   const insets = useSafeAreaInsets();
   const topInset = Math.max(insets.top, StatusBar.currentHeight ?? 0);
+
+  if (Platform.OS !== 'ios') {
+    return <StatusBar barStyle="dark-content" backgroundColor={colors.surface} />;
+  }
 
   return (
     <>

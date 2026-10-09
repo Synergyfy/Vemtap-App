@@ -52,8 +52,8 @@ export function CompactDealCard({ deal, onOpen }: CompactDealCardProps) {
             {deal.title}
           </VemtapText>
         </View>
-        <View className="mt-2 flex-row items-end justify-between gap-2">
-          <View>
+        <View className="mt-2 w-full flex-row items-center gap-2">
+          <View className="min-w-0 flex-1">
             <VemtapText variant="headingSm" className="text-text">
               {formatNaira(deal.price)}
             </VemtapText>
@@ -61,13 +61,15 @@ export function CompactDealCard({ deal, onOpen }: CompactDealCardProps) {
               {formatNaira(deal.originalPrice)}
             </VemtapText>
           </View>
-          <Button
-            label={strings.urbanProfile.claim}
-            size="sm"
-            fullWidth={false}
-            className="min-h-8 rounded-xl px-4 shadow-sm"
-            onPress={() => onOpen(deal.id)}
-          />
+          <View className="ml-auto shrink-0">
+            <Button
+              label={strings.urbanProfile.claim}
+              size="sm"
+              fullWidth={false}
+              className="min-h-8 rounded-xl px-4 shadow-sm"
+              onPress={() => onOpen(deal.id)}
+            />
+          </View>
         </View>
       </View>
     </Pressable>

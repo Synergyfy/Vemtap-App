@@ -49,7 +49,7 @@ export function HomeHeader({
   onPressAvatar,
 }: HomeHeaderProps = {}) {
   return (
-    <View style={navbarBottomShadow} className="bg-surface px-6 py-3">
+    <View style={navbarBottomShadow} className="bg-surface px-6 py-1">
       <View className="flex-row items-center justify-between">
         <View className="min-w-0 flex-1 flex-col">
           <View className="flex-row items-center gap-1">

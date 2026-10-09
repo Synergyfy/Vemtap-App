@@ -38,24 +38,26 @@ export function FeaturedDealOfDayCard({
     >
       <View className="relative aspect-video w-full overflow-hidden bg-surface-container">
         <Image source={deal.image} className="h-full w-full" resizeMode="cover" />
-        <View className="absolute left-2.5 top-2.5 flex-row items-center gap-1.5">
-          <View className="flex-row items-center gap-1 rounded-full bg-primary px-2 py-0.5 shadow-xs">
-            <Icon name="star" size={13} color="#FFFFFF" />
-            <VemtapText className="font-sans-bold text-caption text-primary-foreground">
-              {deal.topPick}
-            </VemtapText>
+        <View className="absolute inset-x-2.5 top-2.5 flex-row items-center justify-between gap-2">
+          <View className="max-w-[62%] flex-row flex-wrap items-center gap-1.5">
+            <View className="flex-row items-center gap-1 rounded-full bg-primary px-2 py-0.5 shadow-xs">
+              <Icon name="star" size={13} color="#FFFFFF" />
+              <VemtapText className="font-sans-bold text-caption text-primary-foreground">
+                {deal.topPick}
+              </VemtapText>
+            </View>
+            <View className="rounded-full bg-inverse-surface/85 px-2 py-0.5">
+              <VemtapText className="font-sans-medium text-caption text-inverse-on-surface">
+                {deal.specialPromo}
+              </VemtapText>
+            </View>
           </View>
-          <View className="rounded-full bg-inverse-surface/85 px-2 py-0.5">
+          <View className="max-w-[38%] flex-row items-center gap-1 rounded-full bg-inverse-surface/85 px-2 py-0.5">
+            <Icon name="hourglass" size={13} color={colors.tertiaryFixed} />
             <VemtapText className="font-sans-medium text-caption text-inverse-on-surface">
-              {deal.specialPromo}
+              {deal.endsLabel}
             </VemtapText>
           </View>
-        </View>
-        <View className="absolute right-2.5 top-2.5 flex-row items-center gap-1 rounded-full bg-inverse-surface/85 px-2 py-0.5">
-          <Icon name="hourglass" size={13} color={colors.tertiaryFixed} />
-          <VemtapText className="font-sans-medium text-caption text-inverse-on-surface">
-            {deal.endsLabel}
-          </VemtapText>
         </View>
       </View>
       <View className="flex-col p-4">
@@ -119,7 +121,7 @@ export function FeaturedDealOfDayCard({
             accessibilityRole="button"
             accessibilityLabel={deal.claimLabel}
             onPress={() => onClaim?.(deal.id)}
-            className="h-9 flex-row items-center gap-1.5 rounded-xl bg-primary px-4 shadow-xs active:scale-95"
+            className="ml-auto h-9 shrink-0 flex-row items-center gap-1.5 rounded-xl bg-primary px-4 shadow-xs active:scale-95"
           >
             <VemtapText className="font-sans-semibold text-label-md text-primary-foreground">
               {deal.claimLabel}
