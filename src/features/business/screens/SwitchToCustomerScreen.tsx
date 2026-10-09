@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { Button } from '@components/ui/Button';
+import { Avatar } from '@components/ui/Avatar';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
+import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
 import { colors } from '@theme/colors';
 import {
   BusinessActionDock,
@@ -51,6 +53,7 @@ export function SwitchToCustomerScreen({
   customerName: customerNameProp,
   customerMeta: customerMetaProp,
 }: SwitchToCustomerScreenProps) {
+  const display = useCurrentUserDisplay();
   const [askEveryTime, setAskEveryTime] = useState(true);
 
   const merchantName = merchantNameProp?.trim() || copy.fromName;
@@ -129,9 +132,7 @@ export function SwitchToCustomerScreen({
 
       <View className="mt-2 gap-2 rounded-card border border-border bg-surface p-3 shadow-sm">
         <View className="flex-row items-center gap-2.5">
-          <View className="h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-tint">
-            <Icon name="person" size={18} color={colors.primary} />
-          </View>
+          <Avatar name={display.fullName} size="sm" tone="brand" />
           <View className="min-w-0 flex-1">
             <VemtapText variant="caption" tone="tertiary" numberOfLines={1}>
               {copy.toLabel}

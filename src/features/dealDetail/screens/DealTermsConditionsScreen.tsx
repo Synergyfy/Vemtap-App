@@ -3,6 +3,7 @@ import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { Avatar } from '@components/ui/Avatar';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { Button } from '@components/ui/Button';
@@ -69,9 +70,7 @@ export function DealTermsConditionsScreen({ route, navigation }: Props) {
             >
               <Icon name="share" size={22} color={colors.textSecondary} />
             </Pressable>
-            <View className="h-8 w-8 items-center justify-center rounded-full bg-primary shadow-sm">
-              <Icon name="person" size={18} color={colors.surface} />
-            </View>
+            <Avatar name={strings.dealTerms.merchant} size="sm" tone="brand" />
           </View>
         </View>
       </SafeAreaView>

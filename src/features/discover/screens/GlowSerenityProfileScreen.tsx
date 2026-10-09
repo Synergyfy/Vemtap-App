@@ -11,6 +11,7 @@ import { ReviewCard } from '@components/discover/ReviewCard';
 import { ServiceCard } from '@components/discover/ServiceCard';
 import { LocationMapView } from '@components/shared/LocationMapView';
 import { Button } from '@components/ui/Button';
+import { Avatar } from '@components/ui/Avatar';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
@@ -55,11 +56,7 @@ export function GlowSerenityProfileScreen({
       <ProfilePageHeader
         title={strings.glowProfile.businessProfile}
         onBack={onBack}
-        right={
-          <View className="h-8 w-8 items-center justify-center rounded-full bg-primary">
-            <Icon name="person" size={18} color={colors.surface} />
-          </View>
-        }
+        right={<Avatar name={strings.glowProfile.name} size="sm" tone="brand" />}
       />
       <ScrollView
         showsVerticalScrollIndicator={false}

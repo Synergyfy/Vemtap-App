@@ -2,10 +2,12 @@ import React from 'react';
 import { Image, Pressable, TextInput, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { Button } from '@components/ui/Button';
+import { Avatar } from '@components/ui/Avatar';
 import { Icon, type IconName } from '@components/ui/Icon';
 import { SearchClearButton } from '@components/ui/SearchClearButton';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
+import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
 import { colors } from '@theme/colors';
 import { navbarBottomShadow } from '@theme/shadows';
 import { cn } from '@utils/cn';
@@ -28,6 +30,7 @@ export function HubHeader({
   actionLabels = [],
   onActions = [],
   accountAction,
+  accountName,
   onBack,
 }: {
   title: string;
@@ -37,9 +40,13 @@ export function HubHeader({
   actionLabels?: string[];
   onActions?: Array<(() => void) | undefined>;
   accountAction?: () => void;
+  /** Name the account avatar shows; defaults to the signed-in customer. */
+  accountName?: string;
   /** Renders the standard leading back control when the screen was pushed. */
   onBack?: () => void;
 }) {
+  const me = useCurrentUserDisplay();
+
   return (
     <View
       className="flex-row items-center justify-between bg-surface px-4 py-2"
@@ -87,7 +94,7 @@ export function HubHeader({
           onPress={accountAction}
           className="h-8 w-8 items-center justify-center rounded-full bg-primary"
         >
-          <Icon name="person" size={18} color={colors.surface} />
+          <Avatar name={accountName ?? me.fullName} size="sm" tone="brand" />
         </Pressable>
       </View>
     </View>

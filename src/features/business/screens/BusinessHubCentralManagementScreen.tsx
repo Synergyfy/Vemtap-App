@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { cssInterop } from 'nativewind';
+import { Avatar } from '@components/ui/Avatar';
 import { Icon, type IconName } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
@@ -152,6 +153,7 @@ export function BusinessHubCentralManagementScreen({
           centerTitle: false,
           showAvatar: true,
           avatarUri: hub?.logoUrl,
+          avatarName: hub?.name ?? copy.name,
           titleAccessory:
             !hub || hub.isVerified ? (
               <Icon name="verified" size={18} color={colors.primaryContainer} />
@@ -271,10 +273,13 @@ export function BusinessHubCentralManagementScreen({
           <View className="relative gap-1 p-4 pt-0">
             <View className="-mt-9 mb-1 flex-row items-end justify-between gap-3">
               <View className="h-[68px] w-[68px] overflow-hidden rounded-card-lg bg-surface-container-lowest p-1 shadow-lg">
-                <BusinessProductImage
-                  source={{ uri: hub?.logoUrl ?? businessHubMedia.logo.uri }}
-                  alt={businessHubMedia.logo.alt}
-                  className="h-full w-full rounded-xl"
+                <Avatar
+                  uri={hub?.logoUrl}
+                  name={hub?.name ?? copy.name}
+                  size="lg"
+                  tone="brand"
+                  className="rounded-xl"
+                  accessibilityLabel={`${hub?.name ?? copy.name} logo`}
                 />
               </View>
               <Pressable

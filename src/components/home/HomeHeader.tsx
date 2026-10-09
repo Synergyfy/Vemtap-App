@@ -1,12 +1,13 @@
 import React from 'react';
-import { Image, Pressable, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { Icon } from '@components/ui/Icon';
+import { Avatar } from '@components/ui/Avatar';
+import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
 import { VemtapText } from '@components/ui/Text';
 import { navbarBottomShadow } from '@theme/shadows';
 import { colors } from '@theme/colors';
 import { strings } from '@constants/strings';
-import { homeAvatar } from '@features/home/data/homeFeed';
 import { LocationTargetingControls } from '@components/home/LocationTargetingControls';
 
 cssInterop(View, { className: 'style' });
@@ -28,6 +29,9 @@ export interface HomeHeaderProps {
   radius?: string;
   onPressNotifications?: () => void;
   onPressAvatar?: () => void;
+  /** Overrides for callers outside the consumer navbar (e.g. owner preview). */
+  avatarName?: string;
+  avatarUri?: string | null;
 }
 
 /**
@@ -47,7 +51,11 @@ export function HomeHeader({
   radius = strings.home.radius,
   onPressNotifications,
   onPressAvatar,
+  avatarName,
+  avatarUri,
 }: HomeHeaderProps = {}) {
+  const display = useCurrentUserDisplay();
+
   return (
     <View style={navbarBottomShadow} className="bg-surface px-6 py-3">
       <View className="flex-row items-center justify-between">
@@ -81,9 +89,15 @@ export function HomeHeader({
             onPress={onPressAvatar}
             className="h-10 w-10 items-center justify-center rounded-full bg-primary-fixed p-0.5"
           >
-            <View className="h-full w-full overflow-hidden rounded-full bg-secondary-fixed">
-              <Image source={homeAvatar} className="h-full w-full" resizeMode="cover" />
-            </View>
+            {/* Initials of the signed-in customer; a portrait only exists once
+                the account actually has one. */}
+            <Avatar
+              uri={avatarUri}
+              name={avatarName ?? display.fullName}
+              size="md"
+              className="h-full w-full"
+              tone="brand"
+            />
           </Pressable>
         </View>
       </View>

@@ -7,11 +7,13 @@ import { CategoryChips } from '@components/home/CategoryChips';
 import { LocationTargetingControls } from '@components/home/LocationTargetingControls';
 import { HomeSearchBar } from '@components/home/HomeSearchBar';
 import { EmptyState } from '@components/shared/EmptyState';
+import { Avatar } from '@components/ui/Avatar';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { colors } from '@theme/colors';
 import { navbarBottomShadow } from '@theme/shadows';
 import { strings } from '@constants/strings';
+import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
 import {
   mapDiscoverCategory,
   useDiscoverBusinesses,
@@ -47,6 +49,7 @@ export interface DiscoverScreenProps {
 export function DiscoverScreen(props: DiscoverScreenProps): React.JSX.Element;
 export function DiscoverScreen(): React.JSX.Element;
 export function DiscoverScreen(props: Partial<DiscoverScreenProps> = {}) {
+  const display = useCurrentUserDisplay();
   const search = useSearch();
   const targeting = useConsumerTargeting({
     onOpenLocationSelect: props.onOpenLocationSelect ?? (() => undefined),
@@ -162,7 +165,7 @@ export function DiscoverScreen(props: Partial<DiscoverScreenProps> = {}) {
             onPress={props.onOpenAccount}
             className="h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary active:opacity-80"
           >
-            <Icon name="person" size={18} color={colors.surface} />
+            <Avatar name={display.fullName} size="sm" tone="brand" />
           </Pressable>
         </View>
       </View>

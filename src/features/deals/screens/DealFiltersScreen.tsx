@@ -8,6 +8,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { FilterChip } from '@components/filters/FilterChip';
 import { FilterSection } from '@components/filters/FilterSection';
 import { AvailabilityRow } from '@components/filters/AvailabilityRow';
+import { Avatar } from '@components/ui/Avatar';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { Button } from '@components/ui/Button';
@@ -15,6 +16,7 @@ import { LoadingState } from '@components/shared/LoadingState';
 import { colors } from '@theme/colors';
 import { navbarBottomShadow } from '@theme/shadows';
 import { strings } from '@constants/strings';
+import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
 import type { AppStackParamList } from '@navigation/types';
 import { DEFAULT_RADIUS_KM, useLocationStore } from '@store/locationStore';
 import { useDealsFilterStore } from '@store/dealsFilterStore';
@@ -157,6 +159,7 @@ interface Draft {
  * navbar pill and the feed already read it from there.
  */
 export function DealFiltersScreen() {
+  const display = useCurrentUserDisplay();
   const navigation = useNavigation<Nav>();
   const filters = useDealsFilterStore();
   const radiusKm = useLocationStore(state => state.radiusKm);
@@ -291,9 +294,7 @@ export function DealFiltersScreen() {
               {strings.filters.reset}
             </VemtapText>
           </Pressable>
-          <View className="h-8 w-8 items-center justify-center rounded-full bg-primary">
-            <Icon name="person" size={18} color="#FFFFFF" />
-          </View>
+          <Avatar name={display.fullName} size="sm" tone="brand" />
         </View>
       </View>
 

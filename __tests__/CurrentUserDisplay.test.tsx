@@ -35,7 +35,8 @@ test('the dashboard navbar greets the signed-in customer by first name', async (
 test('the More hub prints the real name, initials, email and phone', async () => {
   const screen = await render(<MoreHubScreen />);
 
-  expect(screen.getByText('AO')).toBeTruthy();
+  // "AO" shows twice: the identity card and the navbar avatar.
+  expect(screen.getAllByText('AO').length).toBeGreaterThanOrEqual(1);
   expect(screen.getByText('Ada Okon')).toBeTruthy();
   expect(screen.getByText('ada.okon@example.com')).toBeTruthy();
   expect(screen.getByText('0801 111 2222')).toBeTruthy();
@@ -48,7 +49,7 @@ test('edit profile starts from the signup values', async () => {
   expect(screen.getByLabelText('Last Name').props.value).toBe('Okon');
   expect(screen.getByLabelText('Email Address').props.value).toBe('ada.okon@example.com');
   expect(screen.getByLabelText('Phone Number').props.value).toBe('0801 111 2222');
-  expect(screen.getByText('AO')).toBeTruthy();
+  expect(screen.getAllByText('AO').length).toBeGreaterThanOrEqual(1);
 });
 
 test('settings composes its account, SMS and email lines from the user', async () => {
@@ -62,7 +63,8 @@ test('settings composes its account, SMS and email lines from the user', async (
 test('the marketplace account hub prints the real name, initials, email and phone', async () => {
   const screen = await render(<AccountHomeScreen />);
 
-  expect(screen.getByText('AO')).toBeTruthy();
+  // "AO" shows twice: the identity card and the navbar avatar.
+  expect(screen.getAllByText('AO').length).toBeGreaterThanOrEqual(1);
   expect(screen.getByText('Ada Okon')).toBeTruthy();
   expect(screen.getByText('ada.okon@example.com')).toBeTruthy();
   expect(screen.getByText('0801 111 2222')).toBeTruthy();
@@ -75,13 +77,15 @@ test('with no stored user the design placeholder still fills every slot', async 
   expect(dashboard.getByText('Hello, Zainab 👋')).toBeTruthy();
 
   const more = await render(<MoreHubScreen />);
-  expect(more.getByText('ZA')).toBeTruthy();
+  // Card + navbar avatar both render the initials.
+  expect(more.getAllByText('ZA').length).toBeGreaterThanOrEqual(1);
   expect(more.getByText('Zainab Ahmed')).toBeTruthy();
   expect(more.getByText('zainab.ahmed@example.com')).toBeTruthy();
   expect(more.getByText('+234 803 555 0192')).toBeTruthy();
 
   const account = await render(<AccountHomeScreen />);
-  expect(account.getByText('ZA')).toBeTruthy();
+  // Card + navbar avatar both render the initials.
+  expect(account.getAllByText('ZA').length).toBeGreaterThanOrEqual(1);
   expect(account.getByText('Zainab Ahmed')).toBeTruthy();
   expect(account.getByText('zainab.ahmed@example.com')).toBeTruthy();
   expect(account.getByText('+234 803 555 0192')).toBeTruthy();

@@ -7,6 +7,7 @@ import { ProductGridCard } from '@components/discover/ProductGridCard';
 import { ProfilePageHeader } from '@components/discover/ProfilePageHeader';
 import { CategoryChips } from '@components/home/CategoryChips';
 import { HomeSearchBar } from '@components/home/HomeSearchBar';
+import { Avatar } from '@components/ui/Avatar';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { TwoColumnGrid } from '@components/shared/TwoColumnGrid';
@@ -84,9 +85,7 @@ export function UrbanGrillProductsCatalogueScreen({
             >
               <Icon name="share" size={21} color={colors.textSecondary} />
             </Pressable>
-            <View className="h-8 w-8 items-center justify-center rounded-full bg-primary">
-              <Icon name="person" size={18} color={colors.surface} />
-            </View>
+            <Avatar name={strings.urbanProfile.name} size="sm" tone="brand" />
           </>
         }
       />

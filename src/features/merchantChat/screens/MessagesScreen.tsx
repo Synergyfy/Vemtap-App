@@ -12,9 +12,11 @@ import { useCustomerThreads } from '@features/merchantChat/hooks/useCustomerMess
 import type { ConversationThread } from '@api/messagingApi';
 import { LoadingState } from '@components/shared/LoadingState';
 import { EmptyState } from '@components/shared/EmptyState';
+import { Avatar } from '@components/ui/Avatar';
 import { Icon, type IconName } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
+import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
 import { colors } from '@theme/colors';
 import { navbarBottomShadow } from '@theme/shadows';
 import { formatWhen } from '@utils/formatters';
@@ -112,6 +114,7 @@ export function MessagesScreen({
   onSearch,
   onFilter,
 }: MessagesScreenProps) {
+  const display = useCurrentUserDisplay();
   const insets = useSafeAreaInsets();
   const [query, setQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState(0);
@@ -186,9 +189,7 @@ export function MessagesScreen({
           >
             <Icon name="tune" size={21} color={colors.textSecondary} />
           </Pressable>
-          <View className="ml-1 h-8 w-8 items-center justify-center rounded-full bg-primary">
-            <Icon name="person" size={17} color={colors.surface} />
-          </View>
+          <Avatar name={display.fullName} size="sm" tone="brand" />
         </View>
       </View>
 

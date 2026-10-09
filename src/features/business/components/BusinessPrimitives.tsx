@@ -14,6 +14,8 @@ import { cssInterop } from 'nativewind';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Card } from '@components/ui/Card';
 import { Icon, type IconName } from '@components/ui/Icon';
+import { Avatar } from '@components/ui/Avatar';
+import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
 import { VemtapText } from '@components/ui/Text';
 import { RangeSlider } from '@components/ui/RangeSlider';
 import { colors } from '@theme/colors';
@@ -51,8 +53,11 @@ export interface BusinessHeaderProps {
   titleAccessory?: ReactNode;
   stepBadge?: string;
   showAvatar?: boolean;
-  /** Business logo shown in the avatar slot; falls back to the person icon. */
+  /** Business logo shown in the avatar slot; falls back to the business's
+   * initials, then to the person icon when there is no name either. */
   avatarUri?: string;
+  /** Business (or owner) name the initials are derived from. */
+  avatarName?: string;
   centerTitle?: boolean;
   /** Navbar title token; defaults to `headingSm`, drop to `labelMd` on crowded bars. */
   titleVariant?: TextVariant;
@@ -72,9 +77,16 @@ export function BusinessHeader({
   stepBadge,
   showAvatar = true,
   avatarUri,
+  avatarName,
   centerTitle = true,
   titleVariant = 'headingSm',
 }: BusinessHeaderProps) {
+  // Business surfaces that know their own name pass `avatarName`; the rest fall
+  // back to the signed-in owner's name, so the slot always shows initials
+  // instead of a generic person glyph.
+  const owner = useCurrentUserDisplay();
+  const ownerName = owner.fullName;
+
   return (
     <View
       className="h-16 w-full max-w-screen flex-row items-center gap-1 self-center bg-surface px-6"
@@ -174,18 +186,14 @@ export function BusinessHeader({
           </View>
         ) : null}
         {showAvatar ? (
-          <View className="h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary shadow-sm">
-            {avatarUri ? (
-              <Image
-                source={{ uri: avatarUri }}
-                accessibilityLabel="Business logo"
-                className="h-full w-full"
-                resizeMode="cover"
-              />
-            ) : (
-              <Icon name="person" size={18} color={colors.surface} />
-            )}
-          </View>
+          <Avatar
+            uri={avatarUri}
+            name={avatarName ?? ownerName}
+            size="sm"
+            tone="brand"
+            className="shadow-sm"
+            accessibilityLabel={`${avatarName ?? ownerName} logo`}
+          />
         ) : null}
       </View>
     </View>

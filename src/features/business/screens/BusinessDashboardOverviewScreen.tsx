@@ -3,6 +3,7 @@ import { Pressable, ScrollView, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Avatar } from '@components/ui/Avatar';
 import { Icon, type IconName } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { TwoColumnGrid } from '@components/shared/TwoColumnGrid';
@@ -11,7 +12,6 @@ import { TypeDensityProvider } from '@theme/TypeDensityProvider';
 import { colors } from '@theme/colors';
 import {
   BusinessInlineAction,
-  BusinessProductImage,
   BusinessSectionHeading,
   SetupCard,
 } from '@features/business/components/BusinessPrimitives';
@@ -313,17 +313,13 @@ export function BusinessDashboardOverviewScreen({
                 </View>
               ) : null}
             </Pressable>
-            <View className="h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-primary">
-              {businessLogo ? (
-                <BusinessProductImage
-                  source={{ uri: businessLogo }}
-                  alt={`${businessName} logo`}
-                  className="h-full w-full"
-                />
-              ) : (
-                <Icon name="person" size={18} color={colors.surface} />
-              )}
-            </View>
+            <Avatar
+              uri={businessLogo}
+              name={businessName}
+              size="sm"
+              tone="brand"
+              accessibilityLabel={`${businessName} logo`}
+            />
           </View>
         </View>
 

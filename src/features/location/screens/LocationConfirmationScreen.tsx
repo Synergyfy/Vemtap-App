@@ -6,11 +6,13 @@ import { useNavigation, useRoute, type RouteProp } from '@react-navigation/nativ
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { VemtapText } from '@components/ui/Text';
 import { Button } from '@components/ui/Button';
+import { Avatar } from '@components/ui/Avatar';
 import { Icon } from '@components/ui/Icon';
 import { LocationMapView } from '@components/shared/LocationMapView';
 import { colors } from '@theme/colors';
 import { navbarBottomShadow } from '@theme/shadows';
 import { strings } from '@constants/strings';
+import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
 import {
   AREA_NAMES,
   DEFAULT_AREA,
@@ -67,6 +69,7 @@ function MapChip({
  * Conversion of stitch_vemtap_design_system/6._location_confirmation/code.html
  */
 export function LocationConfirmationScreen() {
+  const display = useCurrentUserDisplay();
   const navigation = useNavigation<Nav>();
   const { params } = useRoute<Rt>();
   const area = params.area ?? DEFAULT_AREA;
@@ -133,9 +136,7 @@ export function LocationConfirmationScreen() {
         >
           {strings.auth.confirmHeader}
         </VemtapText>
-        <View className="h-8 w-8 items-center justify-center rounded-full bg-primary">
-          <Icon name="person" size={18} color="#FFFFFF" />
-        </View>
+        <Avatar name={display.fullName} size="sm" tone="brand" />
       </View>
 
       <ScrollView contentContainerClassName="flex-grow px-6 pb-6 pt-2">

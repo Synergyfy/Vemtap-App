@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { cssInterop } from 'nativewind';
 import { ProfilePageHeader } from '@components/discover/ProfilePageHeader';
 import { Button } from '@components/ui/Button';
+import { Avatar } from '@components/ui/Avatar';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
@@ -195,9 +196,7 @@ export function UrbanGrillAllDealsScreen({
             >
               <Icon name="share" size={21} color={colors.textSecondary} />
             </Pressable>
-            <View className="h-8 w-8 items-center justify-center rounded-full bg-primary">
-              <Icon name="person" size={18} color={colors.surface} />
-            </View>
+            <Avatar name={strings.urbanProfile.name} size="sm" tone="brand" />
           </>
         }
       />

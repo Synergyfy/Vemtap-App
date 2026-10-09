@@ -7,12 +7,14 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { VemtapText } from '@components/ui/Text';
 import { Button } from '@components/ui/Button';
+import { Avatar } from '@components/ui/Avatar';
 import { Icon } from '@components/ui/Icon';
 import { SearchClearButton } from '@components/ui/SearchClearButton';
 import { LocationMapView } from '@components/shared/LocationMapView';
 import { colors } from '@theme/colors';
 import { navbarBottomShadow } from '@theme/shadows';
 import { strings } from '@constants/strings';
+import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
 import { AREA_OPTIONS, areaCoords, type GeoCoords } from '@constants/locations';
 import { nearestArea } from '@utils/geo';
 import { requestCurrentLocation } from '@features/location/utils/currentLocation';
@@ -54,6 +56,7 @@ export function ManualLocationSearchScreen({
   onBack,
   initialArea = 'Apo',
 }: ManualLocationSearchScreenProps = {}) {
+  const display = useCurrentUserDisplay();
   const navigation = useNavigation<Nav>();
   const [query, setQuery] = useState(initialArea);
   const [selected, setSelected] = useState(initialArea);
@@ -121,9 +124,7 @@ export function ManualLocationSearchScreen({
         >
           {strings.auth.manualHeader}
         </VemtapText>
-        <View className="h-8 w-8 items-center justify-center rounded-full bg-primary">
-          <Icon name="person" size={18} color="#FFFFFF" />
-        </View>
+        <Avatar name={display.fullName} size="sm" tone="brand" />
       </View>
 
       <ScrollView

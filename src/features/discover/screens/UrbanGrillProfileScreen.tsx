@@ -17,6 +17,7 @@ import { HoursList } from '@components/discover/HoursList';
 import { ProfilePageHeader } from '@components/discover/ProfilePageHeader';
 import { ReviewCard } from '@components/discover/ReviewCard';
 import { Button } from '@components/ui/Button';
+import { Avatar } from '@components/ui/Avatar';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { LocationMapView } from '@components/shared/LocationMapView';
@@ -93,9 +94,7 @@ export function UrbanGrillProfileScreen({
             >
               <Icon name="share" size={22} color={colors.text} />
             </Pressable>
-            <View className="h-8 w-8 items-center justify-center rounded-full bg-primary">
-              <Icon name="person" size={18} color={colors.surface} />
-            </View>
+            <Avatar name={strings.urbanProfile.name} size="sm" tone="brand" />
           </>
         }
       />

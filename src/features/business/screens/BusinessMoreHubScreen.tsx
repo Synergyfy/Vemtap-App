@@ -2,19 +2,18 @@ import React from 'react';
 import { Pressable, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { Button } from '@components/ui/Button';
+import { Avatar } from '@components/ui/Avatar';
 import { Icon, type IconName } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
 import { TypeDensityProvider } from '@theme/TypeDensityProvider';
 import { colors } from '@theme/colors';
-import { businessHubMedia } from '@features/business/data/businessHubImages';
 import {
   BusinessBranchSwitcher,
   type BusinessBranch,
 } from '@features/business/components/BusinessBranchSwitcher';
 import type { BusinessHubView } from '@features/business/hooks/useBusinessHubData';
 import {
-  BusinessProductImage,
   BusinessScreenLayout,
   SetupCard,
 } from '@features/business/components/BusinessPrimitives';
@@ -84,6 +83,7 @@ export function BusinessMoreHubScreen({
           centerTitle: false,
           showAvatar: true,
           avatarUri: hub?.logoUrl,
+          avatarName: hub?.name ?? copy.name,
           titleAccessory: (
             <BusinessBranchSwitcher
               size="sm"
@@ -110,13 +110,14 @@ export function BusinessMoreHubScreen({
             onPress={onOpenProfileDeck}
             className="flex-row items-center gap-3 p-3.5"
           >
-            <View className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl bg-surface-container">
-              <BusinessProductImage
-                source={{ uri: hub?.logoUrl ?? businessHubMedia.logo.uri }}
-                alt={businessHubMedia.logo.alt}
-                className="h-full w-full"
-              />
-            </View>
+            <Avatar
+              uri={hub?.logoUrl}
+              name={hub?.name ?? copy.name}
+              size="lg"
+              tone="brand"
+              className="rounded-2xl"
+              accessibilityLabel={`${hub?.name ?? copy.name} logo`}
+            />
             <View className="min-w-0 flex-1 gap-0.5">
               <View className="min-w-0 flex-row items-center gap-1.5">
                 <VemtapText

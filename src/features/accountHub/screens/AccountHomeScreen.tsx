@@ -3,6 +3,7 @@ import { Pressable, ScrollView, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@components/ui/Button';
+import { Avatar } from '@components/ui/Avatar';
 import { Icon, type IconName } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
@@ -232,7 +233,7 @@ export function AccountHomeScreen({
             onPress={onOpenAccountMenu}
             className="h-9 w-9 items-center justify-center rounded-full bg-primary"
           >
-            <Icon name="person" size={18} color={colors.surface} />
+            <Avatar name={me.fullName} size="sm" tone="brand" />
           </Pressable>
         </View>
       </View>

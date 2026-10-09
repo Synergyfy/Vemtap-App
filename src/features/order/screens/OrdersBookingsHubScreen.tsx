@@ -4,9 +4,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EmptyState } from '@components/shared/EmptyState';
 import { ErrorState } from '@components/shared/ErrorState';
 import { LoadingState } from '@components/shared/LoadingState';
+import { Avatar } from '@components/ui/Avatar';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
+import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
 import { OrderHubCard } from '@features/order/components/OrderHubComponents';
 import { useCustomerOrders } from '@features/order/hooks/useCustomerOrders';
 import { useMyBookings } from '@features/booking/hooks/useBookings';
@@ -59,6 +61,8 @@ function bookingStatusLabel(status: string | null | undefined): string {
 export interface OrdersBookingsHubScreenProps {
   onBack?: () => void;
   onSearch?: () => void;
+  /** Optional portrait; absent, the navbar falls back to customer initials. */
+  avatarUri?: string | null;
   onOpenOrder?: (orderId: string) => void;
   onOpenBooking?: (bookingNumber: string) => void;
   onContactKitchen?: () => void;
@@ -74,8 +78,10 @@ export function OrdersBookingsHubScreen({
   onContactKitchen,
   onTrackOrder,
   onNavigate,
+  avatarUri,
 }: OrdersBookingsHubScreenProps) {
   const insets = useSafeAreaInsets();
+  const display = useCurrentUserDisplay();
   const [mode, setMode] = useState<'orders' | 'bookings'>('orders');
   const [filter, setFilter] = useState(0);
   const noop = () => undefined;
@@ -141,9 +147,7 @@ export function OrdersBookingsHubScreen({
           >
             <Icon name="search" size={22} color={colors.textSecondary} />
           </Pressable>
-          <View className="h-8 w-8 items-center justify-center rounded-full bg-primary">
-            <Icon name="person" size={17} color={colors.surface} />
-          </View>
+          <Avatar uri={avatarUri} name={display.fullName} size="sm" tone="brand" />
         </View>
       </View>
 
