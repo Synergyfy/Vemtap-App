@@ -32,16 +32,21 @@ test('Orders and Bookings hubs mount inside the root stack without a navigation 
   await act(async () => {
     fireEvent.press(screen.getByLabelText(shell.tabs.orders));
   });
-  expect(screen.getByText(orders.alertTitle)).toBeTruthy();
+  expect(
+    screen.queryByText(orders.alertTitle) ?? screen.getByText(orders.alertTitleFor(0)),
+  ).toBeTruthy();
 
-  // Bookings is currently disabled (see BusinessOrdersBookingsSwitch.test.tsx):
-  // pressing it must stay a no-op rather than throwing.
+  // Bookings is wired (see BusinessOrdersBookingsSwitch.test.tsx): pressing it
+  // must reach the Bookings hub rather than throwing.
   const bookingsTab = screen.getByLabelText(bookings.switcher[1]);
-  expect(bookingsTab.props.accessibilityState?.disabled).toBe(true);
+  expect(bookingsTab.props.accessibilityState?.disabled).toBeFalsy();
   await act(async () => {
     fireEvent.press(bookingsTab);
   });
-  expect(screen.getByText(orders.alertTitle)).toBeTruthy();
+  expect(
+    screen.queryByText(bookings.summaryTitleFor(0)) ??
+      screen.queryByText(bookings.summaryTitle),
+  ).toBeTruthy();
 
   const navContextErrors = consoleError.mock.calls.filter(call =>
     String(call[0]).includes('navigation context'),

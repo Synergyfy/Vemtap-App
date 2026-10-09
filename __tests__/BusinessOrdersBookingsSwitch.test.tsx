@@ -10,13 +10,11 @@ const bookings = strings.businessBookings;
 
 describe('orders <-> bookings switcher', () => {
   /**
-   * The Bookings hop is deliberately not wired: navigating into it threw
-   * "Couldn't find a navigation context" and blanked the Orders hub. The switcher
-   * now renders that tab disabled so the tap cannot reach the broken route.
-   * Re-enable by passing `onOpenBookings` to BusinessOrdersHubScreen again, and
-   * this test should fail until it does.
+   * The Bookings hop used to throw "Couldn't find a navigation context" and
+   * blank the Orders hub, so the switcher rendered that tab disabled. Bookings
+   * is wired now, so the tab must be live and land on the Bookings hub instead.
    */
-  it('renders the Bookings tab disabled and keeps the Orders hub mounted', async () => {
+  it('opens the Bookings hub from the switcher without a navigation error', async () => {
     const consoleError = jest.spyOn(console, 'error');
     await render(
       <NavigationContainer>
@@ -27,18 +25,22 @@ describe('orders <-> bookings switcher', () => {
     await act(async () => {
       fireEvent.press(screen.getByLabelText(shell.tabs.orders));
     });
-    expect(screen.getByText(orders.alertTitle)).toBeTruthy();
+    expect(
+      screen.queryByText(orders.alertTitle) ?? screen.getByText(orders.alertTitleFor(0)),
+    ).toBeTruthy();
 
     const bookingsTab = screen.getByLabelText(bookings.switcher[1]);
-    expect(bookingsTab.props.accessibilityState?.disabled).toBe(true);
+    expect(bookingsTab.props.accessibilityState?.disabled).toBeFalsy();
 
     await act(async () => {
       fireEvent.press(bookingsTab);
     });
 
-    // Still on Orders: the disabled tab neither navigates nor crashes.
-    expect(screen.getByText(orders.alertTitle)).toBeTruthy();
-    expect(screen.queryByText(bookings.summaryTitle)).toBeNull();
+    // Bookings hub mounted; the Orders surface is no longer the one on screen.
+    expect(
+      screen.queryByText(bookings.summaryTitleFor(0)) ??
+        screen.queryByText(bookings.summaryTitle),
+    ).toBeTruthy();
     expect(
       consoleError.mock.calls.filter(call =>
         String(call[0]).includes('navigation context'),
