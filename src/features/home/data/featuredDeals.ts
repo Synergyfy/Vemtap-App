@@ -14,14 +14,23 @@ export type FeaturedListing = {
   image: ImageSourcePropType;
   /** Discount badge, e.g. `20% OFF`. */
   discount: string;
-  /** Sponsorship label, e.g. `Promoted` / `Sponsored`. */
-  promotion: string;
+  /**
+   * Sponsorship label, e.g. `Promoted` / `Sponsored`. The offers API publishes
+   * no sponsorship flag, so live listings leave this undefined and the card
+   * hides the badge rather than inventing a claim.
+   */
+  promotion?: string;
   distance: string;
+  /** Raw metres for sorting/range-filtering; undefined when unknown. */
+  distanceMeters?: number | null;
   place: string;
   urgency: string;
-  urgencyIcon: FeaturedUrgencyIcon;
+  /** Only a live countdown earns a badge; see `mapOfferToFeaturedListing`. */
+  urgencyIcon?: FeaturedUrgencyIcon;
   merchant: string;
-  rating: string;
+  /** Offers carry no rating, so live listings leave both undefined. */
+  rating?: string;
+  ratingCount?: number;
   title: string;
   body: string;
   priceWas: string;

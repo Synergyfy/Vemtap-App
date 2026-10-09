@@ -14,6 +14,7 @@ import type {
   NearbyDeal,
   TrendingDeal,
 } from '@features/home/data/homeFeed';
+import type { FeaturedListing } from '@features/home/data/featuredDeals';
 import { strings } from '@constants/strings';
 
 /**
@@ -116,5 +117,55 @@ export function mapOfferToHomeTrending(offer: Offer, origin: GeoCoords): Trendin
     distance: distance(offer, origin),
     likes: 0,
     comments: 0,
+  };
+}
+
+/**
+ * Live offers onto the Featured Deals page's listing view model.
+ *
+ * That page used to render a hardcoded array, so its bookmark could never work:
+ * `listing.id` was a slug, not an offer uuid. Everything below is derived from
+ * the shared offer mappers so the design's card composition survives the move
+ * to real data.
+ *
+ * Three design fields have no server-side signal and are deliberately left
+ * `undefined` rather than invented — the card hides them:
+ *  - `promotion` ("Promoted"/"Sponsored"): the API publishes no sponsorship
+ *    flag on a public offer.
+ *  - `rating` / `ratingCount`: offers carry no rating (same reasoning as
+ *    `statusPill` above — a number we cannot stand behind is worse than none).
+ *  - `urgencyIcon`: only a live countdown earns the schedule badge, matching
+ *    `NearbyDeal.metaBadge`.
+ */
+export function mapOfferToFeaturedListing(
+  offer: Offer,
+  origin: GeoCoords,
+): FeaturedListing {
+  const prices = priceLabels(offer);
+  const meters = offerDistanceMeters(offer, origin);
+  const countdown = offerCountdown(offer.endDate);
+  const merchant = merchantLabel(offer);
+  const [merchantName] = merchant.split(' • ');
+
+  return {
+    id: offer.id,
+    image: { uri: offerImage(offer) },
+    discount: discountLabel(offer),
+    distance: formatDistanceLabel(meters),
+    // Kept numeric so the screen can sort and range-filter without re-parsing
+    // the formatted label. Null = unknown, which sorts last.
+    distanceMeters: meters,
+    place: offer.branchName ?? offer.business?.name ?? merchantName,
+    urgency: countdown ?? '',
+    urgencyIcon: countdown ? 'schedule' : undefined,
+    merchant: merchantName,
+    rating: undefined,
+    ratingCount: undefined,
+    promotion: undefined,
+    title: offer.name,
+    body: offer.description ?? '',
+    priceWas: prices.priceWas,
+    price: prices.price,
+    save: prices.save,
   };
 }

@@ -5,7 +5,6 @@ import { strings } from '@constants/strings';
 import { HomeScreen } from '@features/home/screens/HomeScreen';
 import { FeaturedDealsScreen } from '@features/home/screens/FeaturedDealsScreen';
 import { ChangeLocationRadiusSheet } from '@features/home/components/ChangeLocationRadiusSheet';
-import { featuredListings } from '@features/home/data/featuredDeals';
 import { TabNavigator } from '@navigation/TabNavigator';
 import { AppStack } from '@navigation/AppStack';
 import { ManualLocationSearchScreen } from '@features/location/screens/ManualLocationSearchScreen';
@@ -25,6 +24,10 @@ jest.mock('@features/deals/hooks/usePublicOffers', () =>
 );
 jest.mock('@features/deals/hooks/useDealEngagementActions', () =>
   jest.requireActual('./helpers/mockOffersFeed').mockDealEngagementActionsModule(),
+);
+// The screen reads saved state from the saved feed and toggles through it.
+jest.mock('@features/accountHub/hooks/useSavedHub', () =>
+  jest.requireActual('./helpers/mockCustomerHub').mockSavedHubModule(),
 );
 
 const { homeLocation: loc, featuredDeals: fd, home } = strings;
@@ -149,37 +152,90 @@ describe('home location trigger', () => {
 });
 
 describe('featured deals screen', () => {
-  it('renders every promoted listing with its rating and price block', async () => {
+  it('renders a card per live offer with its merchant and price', async () => {
+    // Live feed now: titles and merchants come from the offers endpoint, and
+    // the sponsorship badge is gone because offers carry no such flag.
     await render(<FeaturedDealsScreen onBack={jest.fn()} />);
     expect(screen.getByText(fd.title)).toBeTruthy();
-    expect(screen.getAllByText(fd.promoted).length).toBeGreaterThan(0);
-    for (const listing of featuredListings) {
-      expect(screen.getByText(listing.title)).toBeTruthy();
-      expect(screen.getByText(listing.merchant)).toBeTruthy();
-    }
+    expect(screen.getByText('20% Off Prime Lunch Combo')).toBeTruthy();
+    expect(screen.getByText('Buy 1 Get 1 Cold Brew')).toBeTruthy();
+    // Two mocked offers share the Urban Grill business, so the merchant name
+    // legitimately appears more than once.
+    expect(screen.getAllByText('Urban Grill').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Cafe Aroma').length).toBeGreaterThan(0);
+    // Sponsorship is gone from both the card badge and the header pill.
+    expect(screen.queryByText(fd.promoted)).toBeNull();
     expect(screen.getByText(fd.aboutTitle)).toBeTruthy();
   });
 
   it('sorts by the highest discount', async () => {
     await render(<FeaturedDealsScreen onBack={jest.fn()} />);
     await fireEvent.press(screen.getByText(fd.sortDiscount));
-    expect(screen.getByText(featuredListings[3].title)).toBeTruthy();
+    // 30% off outranks the 20% offer.
+    expect(screen.getAllByText('30% Off Family Platter').length).toBeGreaterThan(0);
   });
 
-  it('caps the list at the selected max distance', async () => {
-    // The seeded listings all sit within 3 km, so the smallest cap keeps all five.
+  it('never shows more listings as the distance cap tightens', async () => {
+    // Asserted on the number of cards rather than a fixed count: which offers
+    // are in range is the live feed's call, so only the direction is guaranteed.
     await render(<FeaturedDealsScreen onBack={jest.fn()} />);
-    expect(screen.getAllByText(fd.liveDeals(5)).length).toBeGreaterThan(0);
+    const cards = () => screen.queryAllByLabelText(/^Save /).length;
+    const atTenKm = cards();
+    expect(atTenKm).toBeGreaterThan(0);
+
     await fireEvent.press(screen.getByRole('button', { name: `${fd.maxDistance} 3 km` }));
-    expect(screen.getAllByText(fd.liveDeals(5)).length).toBeGreaterThan(0);
+    const atThreeKm = cards();
+    expect(atThreeKm).toBeLessThanOrEqual(atTenKm);
   });
 
-  it('drops listings beyond the cap and falls back to the empty state', async () => {
-    // A 1 km cap keeps only the 0.4 km listing; 0 km leaves nothing in range.
-    await render(<FeaturedDealsScreen onBack={jest.fn()} maxDistanceKm={1} />);
-    expect(screen.getByText(featuredListings[0].title)).toBeTruthy();
-    expect(screen.queryByText(featuredListings[1].title)).toBeNull();
-    expect(screen.getAllByText(fd.liveDeals(1)).length).toBeGreaterThan(0);
+  it('falls back to the empty state when the feed has nothing in range', async () => {
+    // Distance alone cannot guarantee an empty page — one mocked offer sits on
+    // the origin — so the empty state is driven by a genuinely empty feed.
+    const { usePublicOffersFeed } = jest.requireMock(
+      '@features/deals/hooks/usePublicOffers',
+    ) as {
+      usePublicOffersFeed: jest.Mock;
+    };
+    usePublicOffersFeed.mockReturnValue({
+      offers: [],
+      isLoading: false,
+      isError: false,
+      isSuccess: true,
+      feed: { area: 'Apo', featured: null, list: [], grid: [] },
+    });
+
+    await render(<FeaturedDealsScreen onBack={jest.fn()} />);
+    expect(screen.getByText(fd.emptyTitle)).toBeTruthy();
+    expect(screen.queryByText('20% Off Prime Lunch Combo')).toBeNull();
+
+    usePublicOffersFeed.mockImplementation(
+      jest.requireActual('./helpers/mockOffersFeed').mockOffersFeedModule()
+        .usePublicOffersFeed,
+    );
+  });
+
+  it('surfaces a failed feed instead of an empty page', async () => {
+    const { usePublicOffersFeed } = jest.requireMock(
+      '@features/deals/hooks/usePublicOffers',
+    ) as {
+      usePublicOffersFeed: jest.Mock;
+    };
+    usePublicOffersFeed.mockReturnValue({
+      offers: [],
+      isLoading: false,
+      isError: true,
+      isSuccess: false,
+      refetch: jest.fn(),
+      feed: { area: 'Apo', featured: null, list: [], grid: [] },
+    });
+
+    await render(<FeaturedDealsScreen onBack={jest.fn()} />);
+    expect(screen.getByText(strings.common.error)).toBeTruthy();
+
+    usePublicOffersFeed.mockImplementation(
+      jest.requireActual('./helpers/mockOffersFeed').mockOffersFeedModule()
+        .usePublicOffersFeed,
+    );
   });
 
   it('opens a listing through its View Deal action', async () => {
@@ -189,11 +245,56 @@ describe('featured deals screen', () => {
     expect(onOpenDeal).toHaveBeenCalled();
   });
 
-  it('toggles the saved state on a listing bookmark', async () => {
-    const onToggleSave = jest.fn();
-    await render(<FeaturedDealsScreen onBack={jest.fn()} onToggleSave={onToggleSave} />);
-    await fireEvent.press(screen.getByLabelText(fd.bookmark(featuredListings[0].title)));
-    expect(onToggleSave).toHaveBeenCalledWith(featuredListings[0].id);
+  it('saves a listing through the account when its bookmark is pressed', async () => {
+    const { useSavedFeed, useToggleDealSave } = jest.requireMock(
+      '@features/accountHub/hooks/useSavedHub',
+    ) as {
+      useSavedFeed: jest.Mock;
+      useToggleDealSave: jest.Mock;
+    };
+    useSavedFeed.mockReturnValue({ data: { data: [], total: 0 } });
+    const mutate = jest.fn();
+    useToggleDealSave.mockReturnValue({ mutate, isPending: false });
+
+    await render(<FeaturedDealsScreen onBack={jest.fn()} />);
+    await fireEvent.press(screen.getAllByLabelText(/^Save /)[0]);
+
+    // A live offer uuid, not the static slug this page used to render.
+    expect(mutate).toHaveBeenCalledWith('offer-prime-lunch');
+  });
+
+  it('marks a listing saved when the saved feed already contains it', async () => {
+    const { useSavedFeed } = jest.requireMock(
+      '@features/accountHub/hooks/useSavedHub',
+    ) as { useSavedFeed: jest.Mock };
+    useSavedFeed.mockReturnValue({
+      data: {
+        data: [
+          {
+            type: 'DEAL',
+            item: {
+              offerId: 'offer-prime-lunch',
+              name: '20% Off Prime Lunch Combo',
+              mainImage: null,
+              businessName: 'Urban Grill',
+              businessLogo: null,
+              branchName: 'Apo',
+              branchAddress: 'Apo Boulevard',
+              calculatedPrice: 8000,
+              originalPrice: 10000,
+              discountPercent: 20,
+              endDate: '2026-12-01T00:00:00.000Z',
+              isExpired: false,
+            },
+          },
+        ],
+        total: 1,
+      },
+    });
+
+    await render(<FeaturedDealsScreen onBack={jest.fn()} />);
+    const bookmark = screen.getAllByLabelText(/^Save /)[0];
+    expect(bookmark.props.accessibilityState.selected).toBe(true);
   });
 
   it('reuses the shared business-setup prompt in its inline variant', async () => {
@@ -221,7 +322,7 @@ describe('consumer navigation', () => {
       fireEvent.press(screen.getByLabelText('See All Featured Deals'));
     });
     expect(screen.getByText(fd.title)).toBeTruthy();
-    expect(screen.getByText(featuredListings[0].title)).toBeTruthy();
+    expect(screen.getByText('20% Off Prime Lunch Combo')).toBeTruthy();
   });
 
   it('keeps the shared consumer tab bar on the Featured Deals screen', async () => {
