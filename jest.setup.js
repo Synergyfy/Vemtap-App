@@ -459,3 +459,74 @@ jest.mock('socket.io-client', () => ({
     auth: undefined,
   })),
 }));
+
+/**
+ * Unit tests must never reach the network. Screens query the API on mount, and
+ * the HTTP client is axios over XMLHttpRequest, so a real request to the dev
+ * host is both slow and retried with exponential backoff. This XHR stub answers
+ * every request with a 404 envelope: calls settle on the next microtask, and the
+ * query client's retry rule treats 4xx as final, so screens land on their
+ * designed fallback copy. Live contract tests opt back in via LIVE_API_TESTS=1.
+ */
+if (process.env.LIVE_API_TESTS !== '1') {
+  const notFoundBody = JSON.stringify({
+    statusCode: 404,
+    message: 'Not Found',
+    error: 'NOT_FOUND',
+  });
+
+  class MockXmlHttpRequest {
+    constructor() {
+      this.readyState = 0;
+      this.status = 0;
+      this.statusText = '';
+      this.responseText = '';
+      this.response = '';
+      this.responseType = '';
+      this.upload = { addEventListener() {}, removeEventListener() {} };
+      this.onloadend = null;
+      this.onreadystatechange = null;
+      this.onerror = null;
+      this.ontimeout = null;
+      this.onabort = null;
+      this.aborted = false;
+    }
+
+    open() {
+      this.readyState = 1;
+    }
+
+    setRequestHeader() {}
+
+    getAllResponseHeaders() {
+      return '';
+    }
+
+    getResponseHeader() {
+      return null;
+    }
+
+    addEventListener() {}
+
+    removeEventListener() {}
+
+    abort() {
+      this.aborted = true;
+    }
+
+    send() {
+      this.readyState = 4;
+      this.status = 404;
+      this.statusText = 'Not Found';
+      this.responseText = notFoundBody;
+      this.response =
+        this.responseType === 'json' ? JSON.parse(notFoundBody) : notFoundBody;
+      queueMicrotask(() => {
+        this.onloadend?.();
+        this.onreadystatechange?.();
+      });
+    }
+  }
+
+  global.XMLHttpRequest = MockXmlHttpRequest;
+}
