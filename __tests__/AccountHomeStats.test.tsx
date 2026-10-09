@@ -31,7 +31,12 @@ jest.mock('@features/myDeals/hooks/useMyClaims', () =>
 jest.mock('@store/authStore', () => ({
   useAuthStore: Object.assign(
     (selector: (state: Record<string, unknown>) => unknown) =>
-      selector({ user: null, status: 'authenticated', markUnauthenticated: jest.fn() }),
+      selector({
+        user: null,
+        status: 'authenticated',
+        tokenRole: null,
+        markUnauthenticated: jest.fn(),
+      }),
     { getState: () => ({ markUnauthenticated: jest.fn() }) },
   ),
 }));

@@ -32,6 +32,7 @@ import { useUiStore } from '@store/uiStore';
 import { registerAuthBridge } from '@api/client';
 import { useAuthStore } from '@store/authStore';
 import { useAuthBootstrap } from '@features/auth/hooks/useAuthBootstrap';
+import { useCustomerTokenSync } from '@features/auth/hooks/useCustomerTokenSync';
 import { startOfflineReplay } from '@services/offlineReplay';
 import { refreshFeatureFlags } from '@services/featureFlags';
 import { initPushNotifications } from '@services/pushNotifications';
@@ -102,6 +103,16 @@ function Shell({ children }: { children: React.ReactNode }) {
   );
 }
 
+/**
+ * The token repair is a React Query mutation, so the query client has to sit
+ * above it. Calling `useCustomerTokenSync()` inside `App()` itself put it
+ * outside every provider and the app threw "No QueryClient set" on boot.
+ */
+function CustomerTokenSync() {
+  useCustomerTokenSync();
+  return null;
+}
+
 export default function App() {
   const [bootReady, setBootReady] = useState(false);
   const [fontsLoaded, fontError] = useFonts({
@@ -143,19 +154,7 @@ export default function App() {
     logger.error('app', 'Font loading failed', fontError);
   }
 
-  if (!bootReady || (!fontsLoaded && !fontTimeout)) {
-    return (
-      <SafeAreaProvider>
-        <View className="flex-1 items-center justify-center bg-surface">
-          <View className="flex-row items-center gap-3">
-            <ActivityIndicator size="large" color="#066CF4" />
-            <Text style={loadingTextStyle.loadingText}>Loading VEMTAP...</Text>
-          </View>
-          <StatusBarBackdrop />
-        </View>
-      </SafeAreaProvider>
-    );
-  }
+  const booted = bootReady && (fontsLoaded || fontTimeout);
 
   return (
     <ErrorBoundary>
@@ -171,9 +170,22 @@ export default function App() {
               }}
             >
               <QueryClientProvider client={queryClient}>
-                <Shell>
-                  <RootNavigator />
-                </Shell>
+                {/* Under the client, above the shell: a mis-signed token is
+                    repaired before the first screen's fetches run. */}
+                <CustomerTokenSync />
+                {booted ? (
+                  <Shell>
+                    <RootNavigator />
+                  </Shell>
+                ) : (
+                  <View className="flex-1 items-center justify-center bg-surface">
+                    <View className="flex-row items-center gap-3">
+                      <ActivityIndicator size="large" color="#066CF4" />
+                      <Text style={loadingTextStyle.loadingText}>Loading VEMTAP...</Text>
+                    </View>
+                    <StatusBarBackdrop />
+                  </View>
+                )}
               </QueryClientProvider>
             </PersistQueryClientProvider>
           </ThemeProvider>

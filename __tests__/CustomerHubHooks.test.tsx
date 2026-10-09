@@ -14,11 +14,15 @@ import { useMyClaims } from '@features/myDeals/hooks/useMyClaims';
  * contract (params the backend documents) and the disabled state.
  */
 
-let mockRole: string | null = 'Customer';
+let mockTokenRole: string | null = 'Customer';
 
 jest.mock('@store/authStore', () => ({
   useAuthStore: (selector: (state: unknown) => unknown) =>
-    selector({ user: mockRole ? { role: mockRole } : null }),
+    selector({
+      user: mockTokenRole ? { role: mockTokenRole, uniqueCode: 'ABC123XYZ' } : null,
+      // Gating now reads the token's role — that is what the API authorises on.
+      tokenRole: mockTokenRole,
+    }),
 }));
 
 const mockListSaved = jest.fn(async () => ({ data: [], total: 0, page: 1, limit: 50 }));
@@ -66,7 +70,7 @@ function wrapper({ children }: { children: React.ReactNode }) {
 
 beforeEach(() => {
   jest.clearAllMocks();
-  mockRole = 'Customer';
+  mockTokenRole = 'Customer';
 });
 
 test('useSavedFeed asks the unified feed for the requested store', async () => {
@@ -100,7 +104,7 @@ test('useSavedTotals reads the breakdown from one unfiltered request', async () 
 });
 
 test('useSavedTotals stays idle for a non-customer session', async () => {
-  mockRole = null;
+  mockTokenRole = null;
   const { result } = await renderHook(() => useSavedTotals(), { wrapper });
 
   expect(result.current.isSuccess).toBe(false);
@@ -109,7 +113,7 @@ test('useSavedTotals stays idle for a non-customer session', async () => {
 });
 
 test('useSavedFeed stays idle for a non-customer session', async () => {
-  mockRole = null;
+  mockTokenRole = null;
   const { result } = await renderHook(() => useSavedFeed(), { wrapper });
 
   expect(result.current.fetchStatus).toBe('idle');

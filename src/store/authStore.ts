@@ -36,6 +36,16 @@ interface AuthState {
    * the main branch.
    */
   activeBranchId: string | null;
+  /**
+   * Role the stored access token actually carries. The API authorises on the
+   * token, so this — not `user.role` — decides whether a CUSTOMER-scoped call
+   * will succeed. `user.role` can drift ahead of the token (an interrupted
+   * switch leaves customer mode with an owner token), which is exactly how a
+   * Discover bookmark ended up firing `POST /businesses/:id/save` against a
+   * 403. Kept in step by `useLogin`/`useSwitchRole` alongside every token
+   * write, and read back by `useCustomerTokenSync` to repair a bad one.
+   */
+  tokenRole: string | null;
   setSession: (session: Session) => void;
   /** Registered + session stored, but location onboarding is still owed. */
   beginOnboarding: (session: Session) => void;
@@ -46,6 +56,8 @@ interface AuthState {
   applyRoleSwitch: (user: Session['user'], mode: ActiveMode) => void;
   setActiveMode: (mode: ActiveMode) => void;
   setActiveBranch: (branchId: string | null) => void;
+  /** Record the role carried by the token just written to secure store. */
+  setTokenRole: (role: string | null) => void;
   clearSession: () => void;
   markUnauthenticated: () => void;
 }
@@ -65,6 +77,7 @@ export const useAuthStore = create<AuthState>()(
         activeMode: 'business',
         ownerAccount: false,
         activeBranchId: null,
+        tokenRole: null,
         // Sign-in and password registration authenticate immediately. Only the
         // customer OTP/PIN signup defers, via `beginOnboarding` — keying this off
         // `isNewUser` would strand a returning user who signed in.
@@ -79,6 +92,8 @@ export const useAuthStore = create<AuthState>()(
               // Preserve the last-used side only while the account actually has
               // an owner side; customers can never be in business mode.
               activeMode: ownerAccount ? state.activeMode : 'customer',
+              // The login response's role is the token's role.
+              tokenRole: session.user.role ?? null,
             };
           }),
         beginOnboarding: session =>
@@ -88,14 +103,22 @@ export const useAuthStore = create<AuthState>()(
             pendingOnboarding: true,
             ownerAccount: true,
             activeMode: 'business',
+            tokenRole: session.user.role ?? null,
           }),
         completeOnboarding: () =>
           set({ status: 'authenticated', pendingOnboarding: false }),
         setUser: user => set({ user }),
         applyRoleSwitch: (user, mode) =>
-          set({ user, activeMode: mode, ownerAccount: true }),
+          set({
+            user,
+            activeMode: mode,
+            ownerAccount: true,
+            // The switch always reissues the token for `mode`.
+            tokenRole: mode === 'customer' ? 'Customer' : 'Owner',
+          }),
         setActiveMode: mode => set({ activeMode: mode }),
         setActiveBranch: branchId => set({ activeBranchId: branchId }),
+        setTokenRole: role => set({ tokenRole: role }),
         clearSession: () =>
           set({
             user: null,
@@ -104,6 +127,7 @@ export const useAuthStore = create<AuthState>()(
             ownerAccount: false,
             activeMode: 'business',
             activeBranchId: null,
+            tokenRole: null,
           }),
         markUnauthenticated: () =>
           set({ status: 'unauthenticated', pendingOnboarding: false }),
@@ -118,6 +142,7 @@ export const useAuthStore = create<AuthState>()(
           activeMode: state.activeMode,
           ownerAccount: state.ownerAccount,
           activeBranchId: state.activeBranchId,
+          tokenRole: state.tokenRole,
         }),
       },
     ),

@@ -22,6 +22,7 @@ export function useSwitchRole() {
         role: mode === 'business' ? 'Owner' : 'Customer',
       });
       await setTokenPair({ accessToken: session.access_token });
+      useAuthStore.getState().setTokenRole(session.user.role ?? null);
       return session;
     },
     onSuccess: (session, mode) => {

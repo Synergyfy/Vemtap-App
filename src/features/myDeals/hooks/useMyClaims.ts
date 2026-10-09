@@ -30,13 +30,20 @@ export const myClaimKeys = {
   count: (status: MyClaimStatus) => [...myClaimKeys.all, 'count', status] as const,
 };
 
-const isCustomerSession = (role: string | undefined | null) => role === 'Customer';
+/**
+ * Gate on the token's role — the API authorises on the token, so a profile that
+ * has drifted ahead of it (`user.role === 'Customer'` with an owner token) would
+ * otherwise fire a request that can only 403. Kept in step by
+ * `useCustomerTokenSync`.
+ */
+const isCustomerToken = (tokenRole: string | undefined | null) =>
+  tokenRole === 'Customer';
 
 /** The result shape of a claims list query, for consumers that hold the query. */
 export type MyClaimsQueryResult = UseQueryResult<MyClaimsPage, Error>;
 
 export function useMyClaims(status?: MyClaimStatus) {
-  const isCustomer = useAuthStore(state => isCustomerSession(state.user?.role));
+  const isCustomer = useAuthStore(state => isCustomerToken(state.tokenRole));
   return useQuery<MyClaimsPage>({
     queryKey: myClaimKeys.list(status ?? 'ALL'),
     queryFn: () => claimApi.listMyClaims({ status, limit: LIST_PAGE_SIZE }),
@@ -47,7 +54,7 @@ export function useMyClaims(status?: MyClaimStatus) {
 
 /** The active-pass count that drives the dashboard tile and My Deals badge. */
 export function useActiveClaimsCount() {
-  const isCustomer = useAuthStore(state => isCustomerSession(state.user?.role));
+  const isCustomer = useAuthStore(state => isCustomerToken(state.tokenRole));
   return useQuery<number>({
     queryKey: myClaimKeys.count('ACTIVE'),
     queryFn: async () =>
@@ -59,7 +66,7 @@ export function useActiveClaimsCount() {
 
 /** Per-status totals for the My Deals tab labels. */
 export function useClaimsCount(status: MyClaimStatus) {
-  const isCustomer = useAuthStore(state => isCustomerSession(state.user?.role));
+  const isCustomer = useAuthStore(state => isCustomerToken(state.tokenRole));
   return useQuery<number>({
     queryKey: myClaimKeys.count(status),
     queryFn: async () => (await claimApi.listMyClaims({ status, limit: 1 })).total,

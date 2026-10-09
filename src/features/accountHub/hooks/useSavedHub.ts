@@ -19,17 +19,46 @@ import { useAuthStore } from '@store/authStore';
  * namespace at once — the stores overlap across those views.
  */
 
-const isCustomerSession = (role: string | undefined | null) => role === 'Customer';
+/**
+ * Gate on the *token's* role, not the profile's. `useCustomerTokenSync` keeps
+ * them in step, but until it has run — or if it fails — `user.role` can claim
+ * 'Customer' while the stored token authorises nothing. The API decides, so the
+ * token decides.
+ */
+const isCustomerToken = (tokenRole: string | undefined | null) =>
+  tokenRole === 'Customer';
 
+/**
+ * Scoped by account. A shared key would let one account's saved rows serve
+ * another's from cache after a sign-out/sign-in — the Saved Hub showing
+ * "mock data" was exactly this, plus a stale owner-side fetch surviving into a
+ * customer-mode session.
+ */
 export const savedHubKeys = {
   all: ['me', 'saved'] as const,
-  feed: (type: SavedItemType | 'ALL', page: number) =>
-    [...savedHubKeys.all, 'feed', type, page] as const,
-  dealStatus: (offerId: string) => ['deals', 'saved', 'status', offerId] as const,
-  businessStatus: (businessId: string) =>
-    [...savedHubKeys.all, 'status', 'business', businessId] as const,
-  serviceStatus: (serviceId: string) =>
-    [...savedHubKeys.all, 'status', 'service', serviceId] as const,
+  feed: (
+    accountKey: string | null | undefined,
+    type: SavedItemType | 'ALL',
+    page: number,
+  ) => [...savedHubKeys.all, accountKey ?? 'anonymous', 'feed', type, page] as const,
+  dealStatus: (accountKey: string | null | undefined, offerId: string) =>
+    ['deals', 'saved', accountKey ?? 'anonymous', 'status', offerId] as const,
+  businessStatus: (accountKey: string | null | undefined, businessId: string) =>
+    [
+      ...savedHubKeys.all,
+      accountKey ?? 'anonymous',
+      'status',
+      'business',
+      businessId,
+    ] as const,
+  serviceStatus: (accountKey: string | null | undefined, serviceId: string) =>
+    [
+      ...savedHubKeys.all,
+      accountKey ?? 'anonymous',
+      'status',
+      'service',
+      serviceId,
+    ] as const,
 };
 
 /**
@@ -42,9 +71,10 @@ const COUNT_STALE_MS = 5 * 60_000;
 
 /** A page of the unified saved feed, optionally filtered to one store. */
 export function useSavedFeed(type?: SavedItemType, page = 1) {
-  const isCustomer = useAuthStore(state => isCustomerSession(state.user?.role));
+  const isCustomer = useAuthStore(state => isCustomerToken(state.tokenRole));
+  const userId = useAuthStore(state => state.user?.uniqueCode);
   return useQuery<SavedPage>({
-    queryKey: savedHubKeys.feed(type ?? 'ALL', page),
+    queryKey: savedHubKeys.feed(userId, type ?? 'ALL', page),
     queryFn: () => savedApi.listSaved({ type, page, limit: FEED_PAGE_SIZE }),
     enabled: isCustomer,
     staleTime: STALE_MS,
@@ -61,9 +91,12 @@ export function useSavedFeed(type?: SavedItemType, page = 1) {
  * whether to show a badge at all.
  */
 export function useSavedTotals() {
-  const isCustomer = useAuthStore(state => isCustomerSession(state.user?.role));
+  const isCustomer = useAuthStore(state => isCustomerToken(state.tokenRole));
+  const accountKey = useAuthStore(state => state.user?.uniqueCode);
   const query = useQuery<SavedPage>({
-    queryKey: [...savedHubKeys.all, 'totals'],
+    // Scoped per account like every other key here: the totals are the same
+    // data the feed is, so they must not outlive the account they belong to.
+    queryKey: [...savedHubKeys.all, accountKey ?? 'anonymous', 'totals'],
     queryFn: () => savedApi.listSaved({ limit: 1 }),
     enabled: isCustomer,
     staleTime: COUNT_STALE_MS,
@@ -86,9 +119,10 @@ export function useSavedTotals() {
 
 /** Save status for one deal. Note the server answers `{ isSaved }`. */
 export function useDealSaveStatus(offerId: string | null) {
-  const isCustomer = useAuthStore(state => isCustomerSession(state.user?.role));
+  const isCustomer = useAuthStore(state => isCustomerToken(state.tokenRole));
+  const userId = useAuthStore(state => state.user?.uniqueCode);
   return useQuery<{ isSaved: boolean }>({
-    queryKey: savedHubKeys.dealStatus(offerId ?? 'none'),
+    queryKey: savedHubKeys.dealStatus(userId, offerId ?? 'none'),
     queryFn: () => dealsApi.getSaveStatus(offerId as string),
     enabled: isCustomer && Boolean(offerId),
     staleTime: STALE_MS,
@@ -97,11 +131,14 @@ export function useDealSaveStatus(offerId: string | null) {
 
 export function useToggleDealSave() {
   const queryClient = useQueryClient();
+  const userId = useAuthStore(state => state.user?.uniqueCode);
   return useMutation({
     mutationFn: (offerId: string) => dealsApi.toggleSave(offerId),
     onSuccess: (_result, offerId) => {
       queryClient.invalidateQueries({ queryKey: savedHubKeys.all });
-      queryClient.invalidateQueries({ queryKey: savedHubKeys.dealStatus(offerId) });
+      queryClient.invalidateQueries({
+        queryKey: savedHubKeys.dealStatus(userId, offerId),
+      });
       // The offer's counts and the engagement badge can change with the save.
       queryClient.invalidateQueries({ queryKey: ['offers', 'detail', offerId] });
       queryClient.invalidateQueries({ queryKey: ['offers', 'engagement', offerId] });
@@ -114,9 +151,10 @@ export function useToggleDealSave() {
 // ---------------------------------------------------------------------------
 
 export function useBusinessSaveStatus(businessId: string | null) {
-  const isCustomer = useAuthStore(state => isCustomerSession(state.user?.role));
+  const isCustomer = useAuthStore(state => isCustomerToken(state.tokenRole));
+  const userId = useAuthStore(state => state.user?.uniqueCode);
   return useQuery<{ isSaved: boolean }>({
-    queryKey: savedHubKeys.businessStatus(businessId ?? 'none'),
+    queryKey: savedHubKeys.businessStatus(userId, businessId ?? 'none'),
     queryFn: () => savedApi.getBusinessSaveStatus(businessId as string),
     enabled: isCustomer && Boolean(businessId),
     staleTime: STALE_MS,
@@ -125,12 +163,13 @@ export function useBusinessSaveStatus(businessId: string | null) {
 
 export function useToggleBusinessSave() {
   const queryClient = useQueryClient();
+  const userId = useAuthStore(state => state.user?.uniqueCode);
   return useMutation({
     mutationFn: (businessId: string) => savedApi.toggleBusinessSave(businessId),
     onSuccess: (_result, businessId) => {
       queryClient.invalidateQueries({ queryKey: savedHubKeys.all });
       queryClient.invalidateQueries({
-        queryKey: savedHubKeys.businessStatus(businessId),
+        queryKey: savedHubKeys.businessStatus(userId, businessId),
       });
     },
   });
@@ -141,9 +180,10 @@ export function useToggleBusinessSave() {
 // ---------------------------------------------------------------------------
 
 export function useServiceSaveStatus(serviceId: string | null) {
-  const isCustomer = useAuthStore(state => isCustomerSession(state.user?.role));
+  const isCustomer = useAuthStore(state => isCustomerToken(state.tokenRole));
+  const userId = useAuthStore(state => state.user?.uniqueCode);
   return useQuery<{ isSaved: boolean }>({
-    queryKey: savedHubKeys.serviceStatus(serviceId ?? 'none'),
+    queryKey: savedHubKeys.serviceStatus(userId, serviceId ?? 'none'),
     queryFn: () => savedApi.getServiceSaveStatus(serviceId as string),
     enabled: isCustomer && Boolean(serviceId),
     staleTime: STALE_MS,
@@ -152,12 +192,13 @@ export function useServiceSaveStatus(serviceId: string | null) {
 
 export function useToggleServiceSave() {
   const queryClient = useQueryClient();
+  const userId = useAuthStore(state => state.user?.uniqueCode);
   return useMutation({
     mutationFn: (serviceId: string) => savedApi.toggleServiceSave(serviceId),
     onSuccess: (_result, serviceId) => {
       queryClient.invalidateQueries({ queryKey: savedHubKeys.all });
       queryClient.invalidateQueries({
-        queryKey: savedHubKeys.serviceStatus(serviceId),
+        queryKey: savedHubKeys.serviceStatus(userId, serviceId),
       });
     },
   });

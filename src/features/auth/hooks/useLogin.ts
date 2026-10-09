@@ -44,6 +44,8 @@ export function useLogin() {
     mutationFn: async input => {
       const session = await authApi.login(input);
       await setTokenPair({ accessToken: session.access_token });
+      // The login token carries the DB role, which is what the API will accept.
+      useAuthStore.getState().setTokenRole(session.user.role ?? null);
       return session;
     },
     onSuccess: session => {
