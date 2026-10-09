@@ -1,10 +1,14 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Image, Pressable, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { colors } from '@theme/colors';
 import { strings } from '@constants/strings';
+import {
+  useBusinessSaveStatus,
+  useToggleBusinessSave,
+} from '@features/accountHub/hooks/useSavedHub';
 import type { BusinessProfileSummary } from '@features/discover/data/discoverData';
 
 cssInterop(View, { className: 'style' });
@@ -16,7 +20,14 @@ export interface BusinessDiscoveryCardProps {
 }
 
 export function BusinessDiscoveryCard({ business, onOpen }: BusinessDiscoveryCardProps) {
-  const [bookmarked, setBookmarked] = useState(false);
+  // Saves to the account via `POST /businesses/:id/save`. `business.id` is the
+  // live business uuid (mapped in `toDiscoverBusiness`), and both hooks no-op
+  // for anonymous visitors and non-customers, so tapping can never 403.
+  const saveStatus = useBusinessSaveStatus(business.id);
+  const toggleSave = useToggleBusinessSave();
+  // Never show a business as saved until the status query answers — an
+  // optimistic "unsaved" on a business the customer did save is just as wrong.
+  const bookmarked = saveStatus.data?.isSaved ?? false;
   const StatusIcon = business.status.icon === 'exclusive' ? 'checkCircle' : 'verified';
 
   return (
@@ -45,7 +56,7 @@ export function BusinessDiscoveryCard({ business, onOpen }: BusinessDiscoveryCar
           accessibilityLabel={strings.discoverFeed.bookmarkBusiness(business.name)}
           accessibilityState={{ selected: bookmarked }}
           hitSlop={6}
-          onPress={() => setBookmarked(value => !value)}
+          onPress={() => toggleSave.mutate(business.id)}
           className="absolute right-3 top-3 h-8 w-8 items-center justify-center rounded-full bg-surface-dark/70 active:scale-90"
         >
           <Icon
