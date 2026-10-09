@@ -6,6 +6,7 @@ import { AppStack } from '@navigation/AppStack';
 import { BusinessSetupNavigator } from '@navigation/BusinessSetupNavigator';
 import { BusinessTabNavigator } from '@navigation/BusinessTabNavigator';
 import { navigationRef } from '@navigation/navigationRef';
+import { NavigationHistoryTracker } from '@navigation/useHistoryBack';
 import type { RootStackParamList } from '@navigation/types';
 import { useAuthStore, selectIsAuthenticated } from '@store/authStore';
 
@@ -95,6 +96,9 @@ export function RootNavigator() {
         */}
         <Stack.Screen name="BusinessTabs" component={BusinessTabNavigator} />
       </Stack.Navigator>
+      {/* Cross-tab back history. Sits outside the stack so it observes every
+          navigation in the app, including tab switches. */}
+      <NavigationHistoryTracker />
     </NavigationContainer>
   );
 }

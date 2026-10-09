@@ -10,6 +10,7 @@ import { colors } from '@theme/colors';
 import { tabBarTopShadow } from '@theme/shadows';
 import { typeMetrics } from '@theme/typography';
 import { cn } from '@utils/cn';
+import { resetTabStackToRoot } from '@navigation/navigationHistory';
 
 cssInterop(Pressable, { className: 'style' });
 cssInterop(View, { className: 'style' });
@@ -90,9 +91,16 @@ export function BusinessTabBar({ state, navigation, badges }: BusinessTabBarProp
               target: route.key,
               canPreventDefault: true,
             });
-            if (!focused && !event.defaultPrevented) {
-              navigation.navigate(route.name, route.params);
+            if (event.defaultPrevented) return;
+
+            if (focused) {
+              // Asking for the tab you are already on means "take me to its
+              // base screen": the tab keeps whatever nested screen it had while
+              // you were away, but a second tap unwinds it.
+              resetTabStackToRoot(navigation.dispatch, state.routes[index]);
+              return;
             }
+            navigation.navigate(route.name, route.params);
           };
 
           return (

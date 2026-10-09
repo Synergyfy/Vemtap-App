@@ -1,3 +1,4 @@
+import { useHistoryBack } from '@navigation/useHistoryBack';
 import React, { useEffect } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import {
@@ -60,6 +61,8 @@ type HubNavigation = CompositeNavigationProp<
 
 /** The overview accepts a deep link so deal/booking details land in this stack. */
 function PersonalHomeRoute() {
+  const goBack = useHistoryBack();
+
   const navigation = useNavigation<HubNavigation>();
   const route = useRoute<RouteProp<PersonalHubParamList, 'PersonalHome'>>();
   const deepLink = route.params?.deepLink;
@@ -78,7 +81,7 @@ function PersonalHomeRoute() {
 
   return (
     <CustomerDashboardScreen
-      onBack={navigation.goBack}
+      onBack={goBack}
       onNotifications={() => navigation.navigate('PersonalNotifications')}
       onOpenAccount={() => navigation.navigate('PersonalMore')}
       onOpenRewards={() => navigation.navigate('PersonalRewards')}
@@ -96,10 +99,12 @@ function PersonalHomeRoute() {
 }
 
 function PersonalMyDealsRoute() {
+  const goBack = useHistoryBack();
+
   const navigation = useNavigation<HubNavigation>();
   return (
     <MyDealsHubScreen
-      onBack={navigation.goBack}
+      onBack={goBack}
       onAccount={() => navigation.navigate('PersonalMore')}
       onOpenClaim={claimId => navigation.navigate('PersonalClaimedDealPass', { claimId })}
     />
@@ -107,10 +112,12 @@ function PersonalMyDealsRoute() {
 }
 
 function PersonalMessagesRoute() {
+  const goBack = useHistoryBack();
+
   const navigation = useNavigation<HubNavigation>();
   return (
     <MessagesScreen
-      onBack={navigation.goBack}
+      onBack={goBack}
       onOpenConversation={threadId =>
         navigation.navigate('PersonalConversation', { threadId })
       }
@@ -119,21 +126,19 @@ function PersonalMessagesRoute() {
 }
 
 function PersonalConversationRoute() {
-  const navigation = useNavigation<HubNavigation>();
+  const goBack = useHistoryBack();
+
   const route = useRoute<RouteProp<PersonalHubParamList, 'PersonalConversation'>>();
-  return (
-    <UrbanConversationScreen
-      threadId={route.params?.threadId}
-      onBack={navigation.goBack}
-    />
-  );
+  return <UrbanConversationScreen threadId={route.params?.threadId} onBack={goBack} />;
 }
 
 function PersonalOrdersRoute() {
+  const goBack = useHistoryBack();
+
   const navigation = useNavigation<HubNavigation>();
   return (
     <OrdersBookingsHubScreen
-      onBack={navigation.goBack}
+      onBack={goBack}
       onOpenOrder={orderId => navigation.navigate('PersonalOrderDetail', { orderId })}
       onOpenBooking={bookingNumber =>
         navigation.navigate('PersonalBookingDetail', { bookingNumber })
@@ -143,23 +148,25 @@ function PersonalOrdersRoute() {
 }
 
 function PersonalOrderDetailRoute() {
-  const navigation = useNavigation<HubNavigation>();
+  const goBack = useHistoryBack();
+
   const route = useRoute<RouteProp<PersonalHubParamList, 'PersonalOrderDetail'>>();
-  return (
-    <UrbanOrderDetailScreen orderId={route.params?.orderId} onBack={navigation.goBack} />
-  );
+  return <UrbanOrderDetailScreen orderId={route.params?.orderId} onBack={goBack} />;
 }
 
 function PersonalBookingDetailRoute() {
-  const navigation = useNavigation<HubNavigation>();
-  return <BookingDetailScreen onBack={navigation.goBack} />;
+  const goBack = useHistoryBack();
+
+  return <BookingDetailScreen onBack={goBack} />;
 }
 
 function PersonalMoreRoute() {
+  const goBack = useHistoryBack();
+
   const navigation = useNavigation<HubNavigation>();
   return (
     <MoreHubScreen
-      onBack={navigation.goBack}
+      onBack={goBack}
       onOpenSaved={() => undefined}
       onOpenOrders={() => navigation.navigate('PersonalOrders')}
       onOpenRewards={() => navigation.navigate('PersonalRewards')}
@@ -175,30 +182,35 @@ function PersonalMoreRoute() {
 }
 
 function PersonalRewardsRoute() {
-  const navigation = useNavigation<HubNavigation>();
+  const goBack = useHistoryBack();
+
   // Rewards is a dense hub: keep the same density it has in the Account stack.
   return (
     <TypeDensityProvider density="dense">
-      <RewardsScreen onBack={navigation.goBack} />
+      <RewardsScreen onBack={goBack} />
     </TypeDensityProvider>
   );
 }
 
 function PersonalActivityRoute() {
-  const navigation = useNavigation<HubNavigation>();
-  return <MyActivityScreen onBack={navigation.goBack} />;
+  const goBack = useHistoryBack();
+
+  return <MyActivityScreen onBack={goBack} />;
 }
 
 function PersonalSavingsRoute() {
-  const navigation = useNavigation<HubNavigation>();
-  return <SavingsHistoryScreen onBack={navigation.goBack} />;
+  const goBack = useHistoryBack();
+
+  return <SavingsHistoryScreen onBack={goBack} />;
 }
 
 function PersonalSavedRoute() {
+  const goBack = useHistoryBack();
+
   const navigation = useNavigation<HubNavigation>();
   return (
     <SavedHubScreen
-      onBack={navigation.goBack}
+      onBack={goBack}
       onNotifications={() => navigation.navigate('PersonalNotifications')}
       onOpenDeal={offerId => navigation.navigate('DealDetail', { dealId: offerId })}
       onOpenBusiness={code =>
@@ -214,33 +226,38 @@ function PersonalSavedRoute() {
 }
 
 function PersonalNotificationsRoute() {
-  const navigation = useNavigation<HubNavigation>();
-  return <NotificationsCenterScreen onBack={navigation.goBack} />;
+  const goBack = useHistoryBack();
+
+  return <NotificationsCenterScreen onBack={goBack} />;
 }
 
 function PersonalSettingsRoute() {
-  const navigation = useNavigation<HubNavigation>();
-  return <AccountSettingsSecurityScreen onBack={navigation.goBack} />;
+  const goBack = useHistoryBack();
+
+  return <AccountSettingsSecurityScreen onBack={goBack} />;
 }
 
 function PersonalEditProfileRoute() {
-  const navigation = useNavigation<HubNavigation>();
-  return <EditProfileScreen onBack={navigation.goBack} />;
+  const goBack = useHistoryBack();
+
+  return <EditProfileScreen onBack={goBack} />;
 }
 
 function PersonalHelpCentreRoute() {
-  const navigation = useNavigation<HubNavigation>();
-  return <HelpCentreScreen onBack={navigation.goBack} />;
+  const goBack = useHistoryBack();
+
+  return <HelpCentreScreen onBack={goBack} />;
 }
 
 function PersonalClaimedDealPassRoute() {
-  const navigation = useNavigation<HubNavigation>();
+  const goBack = useHistoryBack();
+
   const route = useRoute<RouteProp<PersonalHubParamList, 'PersonalClaimedDealPass'>>();
   const pass = useClaimPass({
     claimId: route.params?.claimId,
     offerId: route.params?.dealId,
   });
-  return <ClaimedDealDetailPassScreen claim={pass.claim} onBack={navigation.goBack} />;
+  return <ClaimedDealDetailPassScreen claim={pass.claim} onBack={goBack} />;
 }
 
 /**

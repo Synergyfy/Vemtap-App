@@ -1,4 +1,5 @@
 import { useCallback, useMemo } from 'react';
+import { historyBack } from '@navigation/useHistoryBack';
 import {
   useNavigation,
   useNavigationState,
@@ -297,7 +298,13 @@ export function useBusinessNavigation(): BusinessNavigationHelpers {
       push,
       replace,
       currentTab,
-      goBack: () => navigation.goBack(),
+      // Cross-tab aware: returns to the screen the user actually navigated
+      // from, even when that lives in another tab. Falls back to the navigator's
+      // own goBack() when nothing is recorded (no history, or a unit test that
+      // mounts the shell without the tracker).
+      goBack: () => {
+        if (!historyBack(navigation as never)) navigation.goBack();
+      },
       setParams: params => navigation.setParams(params as never),
       canGoBack: () => navigation.canGoBack(),
       reset: state => navigation.reset(state as never),
