@@ -2,6 +2,7 @@ import React from 'react';
 import { fireEvent, render } from '@testing-library/react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { TabNavigator } from '@navigation/TabNavigator';
+import { navigationRef } from '@navigation/navigationRef';
 import {
   compactTypeScale,
   comfortableTypeScale,
@@ -52,11 +53,61 @@ async function renderAccountStack() {
       <TabNavigator />
     </NavigationContainer>,
   );
+  await pressAccountTab(screen);
+  return screen;
+}
+
+/** Presses the consumer bar's Account tab, wherever its label lives. */
+async function pressAccountTab(screen: Awaited<ReturnType<typeof render>>) {
   const accountTab =
     screen.queryAllByLabelText('Account').slice(-1)[0] ??
     screen.queryAllByText('Account').slice(-1)[0];
   await fireEvent.press(accountTab);
-  return screen;
+}
+
+/**
+ * The consumer shell with a handle on its state, so what a tab press actually
+ * did — remounted a screen or left it alone — is observable.
+ *
+ * The app's own container ref is attached rather than a local one, because the
+ * re-press rule reads the tree through it: it is the only handle that carries a
+ * tab's nested stack, and standing the ref in would test a different wiring than
+ * the app ships.
+ */
+async function renderAccountTabShell() {
+  const screen = await render(
+    <NavigationContainer ref={navigationRef}>
+      <TabNavigator />
+    </NavigationContainer>,
+  );
+  await pressAccountTab(screen);
+  return { screen, navigationRef };
+}
+
+/** Enough of the navigation tree to walk to a named route's own stack. */
+type NavState = {
+  index?: number;
+  key?: string;
+  name?: string;
+  routes?: NavState[];
+  state?: NavState;
+};
+
+function findRoute(state: NavState | undefined, name: string): NavState | undefined {
+  const match = state?.routes?.find(route => route.name === name);
+  if (match) return match;
+  for (const route of state?.routes ?? []) {
+    const nested = findRoute(route.state, name);
+    if (nested) return nested;
+  }
+  return undefined;
+}
+
+/** The screen the Account tab is showing, with the key proving its identity. */
+function accountStackTop(ref: typeof navigationRef) {
+  const stack = findRoute(ref?.getRootState() as NavState | undefined, 'Account')?.state;
+  const top = stack?.routes?.[stack?.index ?? 0];
+  return { name: top?.name, key: top?.key };
 }
 
 /** The consumer shell's tab labels. `Account` is omitted — it collides with the
@@ -265,5 +316,45 @@ test('the Activity & Deals Messages row opens the personal inbox', async () => {
 
   // Back returns to the Account hub, not the personal overview.
   await fireEvent.press(screen.getByLabelText('Go back'));
+  expect(screen.getByText('Activity & Deals')).toBeTruthy();
+});
+
+test('re-tapping the focused Account tab on its hub does not reload it', async () => {
+  const { screen } = await renderAccountTabShell();
+
+  // The tab opens on the account hub, the base of its own stack.
+  expect(screen.getByText('Activity & Deals')).toBeTruthy();
+  const before = accountStackTop(navigationRef);
+  expect(before.name).toBe('AccountHome');
+
+  await pressAccountTab(screen);
+
+  // Same route key, so the screen was left mounted rather than rebuilt.
+  const after = accountStackTop(navigationRef);
+  expect(after.name).toBe('AccountHome');
+  expect(after.key).toBe(before.key);
+});
+
+test('re-tapping the Account tab from a nested screen unwinds to its hub', async () => {
+  const { screen } = await renderAccountTabShell();
+
+  await fireEvent.press(screen.getByText('Dashboard'));
+  expect(accountStackTop(navigationRef).name).toBe('PersonalHub');
+
+  await pressAccountTab(screen);
+
+  expect(accountStackTop(navigationRef).name).toBe('AccountHome');
+});
+
+test('re-tapping a first-time tab still switches onto it', async () => {
+  const screen = await render(
+    <NavigationContainer>
+      <TabNavigator />
+    </NavigationContainer>,
+  );
+
+  // Home is the initial tab, so Account has not been opened yet.
+  expect(screen.queryByText('Activity & Deals')).toBeNull();
+  await pressAccountTab(screen);
   expect(screen.getByText('Activity & Deals')).toBeTruthy();
 });

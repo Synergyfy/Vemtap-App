@@ -48,6 +48,19 @@ const pressLabel = async (label: string) => {
   });
 };
 
+/**
+ * Presses a business tab in the bar itself. Hubs reuse a tab's label in their
+ * own controls — the Orders hub has an Orders/Bookings switcher, also a tab —
+ * so the bar item is the last one: the bar is rendered after the screen it
+ * shows, which is the same convention the consumer harness relies on.
+ */
+const pressTab = async (label: string) => {
+  const barItem = screen.getAllByRole('tab', { name: label }).slice(-1)[0];
+  await act(async () => {
+    fireEvent.press(barItem);
+  });
+};
+
 async function openOrdersNested() {
   await pressLabel(shell.tabs.orders);
   // The alert card is the Orders tab's entry into the POS register: a real
@@ -58,6 +71,35 @@ async function openOrdersNested() {
         screen.getByLabelText(strings.businessOrders.alertTitleFor(0)),
     );
   });
+}
+
+/**
+ * The screen a business tab is showing, with the route key that proves whether
+ * it is the same screen or a rebuilt one. A re-tap that rebuilds its tab leaves
+ * a different key behind even though the screen looks identical.
+ */
+function tabBase(tab: string) {
+  const walk = (state: unknown): { name: string; key: string } | undefined => {
+    const node = state as
+      { routes?: { name?: string; key?: string; state?: unknown }[] } | undefined;
+    const match = node?.routes?.find(route => route.name === tab);
+    if (match) {
+      // The screen on top of the tab's own stack is what the user sees.
+      const stack = match.state as
+        { index?: number; routes?: { name?: string; key?: string }[] } | undefined;
+      const top = stack?.routes?.[stack?.index ?? 0];
+      return top as { name: string; key: string } | undefined;
+    }
+    for (const route of node?.routes ?? []) {
+      const nested = walk(route.state);
+      if (nested) return nested;
+    }
+    return undefined;
+  };
+  const { getRootState } = navigationRef as {
+    getRootState: () => unknown;
+  };
+  return walk(getRootState());
 }
 
 describe('business tab navigation', () => {
@@ -90,6 +132,22 @@ describe('business tab navigation', () => {
           : strings.businessOrders.alertTitleFor(0),
       ),
     ).toBeTruthy();
+  });
+
+  it('does nothing when a focused tab is re-tapped on its base screen', async () => {
+    // A re-tap normally unwinds the tab, but on a tab that already rests on its
+    // base screen there is nothing to unwind. Rebuilding it anyway would remount
+    // a screen the merchant is already looking at, which reads as a reload.
+    await renderShell();
+    await pressTab(shell.tabs.orders);
+    const before = tabBase('BusinessOrders');
+    expect(before?.name).toBe('BusinessOrdersHome');
+
+    await pressTab(shell.tabs.orders);
+
+    // Same route key, so the hub was left mounted rather than torn down.
+    expect(tabBase('BusinessOrders')?.key).toBe(before?.key);
+    expect(screen.getAllByText(shell.tabs.orders).length).toBeGreaterThan(0);
   });
 
   it('leaves other tabs alone when one is re-tapped', async () => {

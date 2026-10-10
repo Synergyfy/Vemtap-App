@@ -106,12 +106,11 @@ export function BusinessTabBar({ state, navigation, badges }: BusinessTabBarProp
               // you were away, but a second tap unwinds it. The nested screen
               // may itself have arrived through a cross-tab hop, in which case
               // the stack was built straight onto it and only a rebuild gets
-              // back to the base screen.
-              if (
-                businessTabBarRePress(navigation.dispatch, state, route, meta.baseScreen)
-              ) {
-                return;
-              }
+              // back to the base screen. When the tab already rests on its
+              // base there is nothing to unwind, so the press does nothing
+              // rather than falling through to a redundant navigate.
+              businessTabBarRePress(navigation.dispatch, state, route, meta.baseScreen);
+              return;
             }
             navigation.navigate(route.name, route.params);
           };

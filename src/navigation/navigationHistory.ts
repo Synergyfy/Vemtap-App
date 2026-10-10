@@ -328,29 +328,26 @@ export function takeHistoryEntryForBack(
 }
 
 /**
- * Listeners that unwind a tab's stack when it is asked for a second time.
+ * Unwinds a tab when it is asked for a second time.
  *
  * React Navigation's stock tab bar does nothing on a re-tap of the focused tab:
  * it just stays on whatever nested screen was showing. Both shells instead treat
  * that press as "take me to this tab's base screen" — the business shell emits
  * the same event from its custom tab bar, so the rule lives here once.
- */
-/**
- * Unwinds a tab when it is asked for a second time.
  *
- * React Navigation's own stack navigator pops to top on a re-tap, but only in a
- * frame, only when the pressed tab is focused, and only when nothing prevented
- * the event — and none of that helps against a tab whose nested screen was
- * reached through a cross-tab hop, because that hop carries the screen as
- * *params on the tab route*, the stack is built straight onto it and the tab's
- * base screen never even sits underneath it. Popping "to top" therefore lands on
- * the nested screen itself, and the params put it back for as long as they stay
- * there — which is exactly the "re-tap does nothing" the shells reported.
+ * Popping "to top" is not enough for the case that made this explicit: a screen
+ * reached through a cross-tab hop arrives as *params on the tab route*, so the
+ * stack is built straight onto it and the tab's base screen never sits
+ * underneath it. Popping lands on the nested screen itself, and the params put
+ * it back for as long as they stay there — which is the "re-tap does nothing"
+ * the shells reported. So the params are dropped and the stack is rebuilt on the
+ * base screen in one action, with no window where either is half-done.
  *
- * So a re-tap is handled explicitly: the params that carried the hop are
- * dropped and the tab's own stack is rebuilt on its base screen, in one action
- * so there is no window where either is half-done. {@link businessTabBarRePress}
- * shares this for the business shell's custom tab bar.
+ * The exception is a tab that already *rests* on its base screen. Rebuilding it
+ * with a fresh base-screen route unmounts and remounts a screen the user is
+ * already looking at, which reads as a pointless reload, so that press does
+ * nothing at all — matching what React Navigation's own tab bar does for the
+ * tab it is already on.
  */
 export function tabRePressListenersFor(baseScreen: string) {
   return function tabRePressListeners({
@@ -371,6 +368,8 @@ export function tabRePressListenersFor(baseScreen: string) {
         if (!event.target || event.target !== route.key) return;
         if (!navigation.isFocused()) return;
 
+        if (restsOnTabBaseScreen(route.key, baseScreen)) return;
+
         unwindTabToBase(
           navigation.dispatch as unknown as (action: NavigationAction) => void,
           navigation.getState() as TabStateLike,
@@ -384,7 +383,8 @@ export function tabRePressListenersFor(baseScreen: string) {
 
 /**
  * The same re-tap rule for a tab bar that owns its press handler, as the
- * business shell's does. Returns false when there is no tab state to reset.
+ * business shell's does. Returns false when there is nothing to unwind — either
+ * no tab state at all, or the tab already sits on its base screen.
  */
 export function businessTabBarRePress(
   dispatch: (action: NavigationAction) => void,
@@ -393,7 +393,43 @@ export function businessTabBarRePress(
   baseScreen: string | undefined,
 ): boolean {
   if (!tabRoute?.key || !baseScreen) return false;
+  if (restsOnTabBaseScreen(tabRoute.key, baseScreen)) return false;
   return unwindTabToBase(dispatch, tabState, tabRoute.key, baseScreen);
+}
+
+/**
+ * True when a tab already rests on the base screen of its own stack, so a
+ * re-tap has no unwinding to do.
+ *
+ * The stack under a tab is not carried on the tab navigator's live state — its
+ * routes name their children but hold no `state` — so the serialized root tree
+ * is walked for the route with this key and the stack below it is read there.
+ * That tree is also the only place the params of a cross-tab hop are visible, so
+ * a tab landed on through such a hop is never mistaken for a resting one.
+ */
+function restsOnTabBaseScreen(tabKey: string, baseScreen: string): boolean {
+  if (typeof navigationRef?.isReady !== 'function' || !navigationRef.isReady()) {
+    return false;
+  }
+  const tabRoute = findRouteByKey(navigationRef.getRootState() as RouteNode, tabKey);
+  // The first entry of a tab's own stack is its base screen, and length one
+  // means nothing has been pushed on top of it.
+  return (
+    !tabRoute?.params &&
+    tabRoute?.state?.index === 0 &&
+    tabRoute?.state?.routes?.length === 1 &&
+    tabRoute?.state?.routes?.[0]?.name === baseScreen
+  );
+}
+
+/** The route with this key, wherever it sits in the tree, with its own stack. */
+function findRouteByKey(node: RouteNode | undefined, key: string): RouteNode | undefined {
+  for (const route of node?.routes ?? []) {
+    if (route.key === key) return route;
+    const nested = findRouteByKey(route.state, key);
+    if (nested) return nested;
+  }
+  return undefined;
 }
 
 /**
@@ -401,6 +437,9 @@ export function businessTabBarRePress(
  * cross-tab hop are dropped, and the tab's own stack is rebuilt on its base
  * screen. The tab keeps its identity and focus, and its siblings keep their
  * stacks untouched.
+ *
+ * Callers screen out a tab that already rests on its base screen, so this only
+ * ever runs for a tab that really does have something to unwind.
  */
 function unwindTabToBase(
   dispatch: (action: NavigationAction) => void,
@@ -408,6 +447,11 @@ function unwindTabToBase(
   tabKey: string,
   baseScreen: string,
 ): boolean {
+  // No such route here: rebuilding the whole tab state would re-key every tab
+  // and tear down screens nobody asked to move.
+  const target = tabState?.routes?.find(entry => entry.key === tabKey);
+  if (!target) return false;
+
   const routes = tabState?.routes?.map(entry =>
     entry.key === tabKey
       ? {
