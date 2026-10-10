@@ -5,6 +5,7 @@ import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   Pressable,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { cssInterop } from 'nativewind';
@@ -18,6 +19,12 @@ cssInterop(Pressable, { className: 'style' });
 
 /** Autoplay cadence. Slow enough to read a card, quick enough to feel alive. */
 const AUTOPLAY_INTERVAL_MS = 4500;
+
+/**
+ * Home's ScrollView insets its content by this much on each side, which is the
+ * widest the card gets while sitting inside the gutters.
+ */
+const HOME_CONTENT_INSET = 24;
 
 export interface FeaturedDealsRailProps {
   deals: FeaturedDeal[];
@@ -84,25 +91,34 @@ export function FeaturedDealsRail({
   className,
 }: FeaturedDealsRailProps) {
   const listRef = useRef<FlatList<FeaturedDeal>>(null);
-  const [width, setWidth] = useState(0);
+  const { width: windowWidth } = useWindowDimensions();
+  /**
+   * Seeded off the window so the first frame already lays the cards out at
+   * their real width; onLayout then corrects this against whatever the rail
+   * actually ends up being, which keeps it honest if the rail is reused
+   * somewhere with different insets.
+   */
+  const [pageWidth, setPageWidth] = useState(() =>
+    Math.max(0, windowWidth - HOME_CONTENT_INSET * 2),
+  );
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
 
   const count = deals.length;
 
-  /** Each page is exactly one rail wide, so offsets are index * width. */
+  /** Each page is exactly one card wide, so offsets are index * pageWidth. */
   const scrollToPage = useCallback(
     (page: number) => {
-      // Before the first layout pass there is nothing to scroll; the index still
-      // advances so the dots stay honest.
-      if (width <= 0) return;
+      // Before the first layout pass there is nothing to scroll; the index
+      // still advances so the dots stay honest.
+      if (pageWidth <= 0) return;
       listRef.current?.scrollToOffset({
-        offset: page * width,
+        offset: page * pageWidth,
         animated: true,
       });
     },
-    [width],
+    [pageWidth],
   );
 
   useEffect(() => {
@@ -130,11 +146,11 @@ export function FeaturedDealsRail({
   const handleMomentumEnd = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
       const offset = event.nativeEvent.contentOffset.x;
-      const next = width > 0 ? Math.round(offset / width) : 0;
+      const next = pageWidth > 0 ? Math.round(offset / pageWidth) : 0;
       setIndex(Math.max(0, Math.min(next, count - 1)));
       setPaused(false);
     },
-    [width, count],
+    [pageWidth, count],
   );
 
   // A drag released without enough travel to fling fires no momentum event, so
@@ -142,35 +158,41 @@ export function FeaturedDealsRail({
   const handleScrollEndDrag = useCallback(() => setPaused(false), []);
 
   return (
-    <View className={className}>
-      {/* Bleeds past the screen's gutters so a card sits flush to the edge —
-          the rail is the one part of Home that is wider than its section. */}
-      <View className="-mx-6">
-        <FlatList
-          ref={listRef}
-          testID="featured-deals-rail"
-          data={deals}
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          decelerationRate="fast"
-          snapToInterval={width > 0 ? width : undefined}
-          snapToAlignment="start"
-          onLayout={event => setWidth(event.nativeEvent.layout.width)}
-          keyExtractor={item => item.id}
-          onScrollBeginDrag={() => setPaused(true)}
-          onScrollEndDrag={handleScrollEndDrag}
-          onMomentumScrollEnd={handleMomentumEnd}
-          renderItem={({ item }) => (
+    // Measured on the root rather than the list: the root spans exactly the
+    // width the card should take, whatever insets its parent applies.
+    <View
+      testID="featured-deals-rail-root"
+      className={className}
+      onLayout={event => setPageWidth(event.nativeEvent.layout.width)}
+    >
+      <FlatList
+        ref={listRef}
+        testID="featured-deals-rail"
+        data={deals}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        decelerationRate="fast"
+        snapToInterval={pageWidth > 0 ? pageWidth : undefined}
+        snapToAlignment="start"
+        keyExtractor={item => item.id}
+        onScrollBeginDrag={() => setPaused(true)}
+        onScrollEndDrag={handleScrollEndDrag}
+        onMomentumScrollEnd={handleMomentumEnd}
+        renderItem={({ item }) => (
+          // The card is `w-full`, which only resolves against a definite width.
+          // A horizontal list's cell has none, so the width is pinned here
+          // rather than left to percentage resolution.
+          <View testID="featured-deals-page" style={{ width: pageWidth }}>
             <LiveFeaturedRailItem
               deal={item}
               onOpenComments={onOpenComments}
               onShare={onShare}
               onOpenDetail={onOpenDetail}
             />
-          )}
-        />
-      </View>
+          </View>
+        )}
+      />
 
       {count > 1 ? (
         <View className="mt-4 flex-row items-center justify-center gap-1.5">

@@ -30,6 +30,19 @@ function featuredDeal(index: number): FeaturedDeal {
 
 const DEALS = [featuredDeal(1), featuredDeal(2), featuredDeal(3)];
 
+/**
+ * Fires the root's onLayout so the rail has a definite page width, the way a
+ * real device reports it after mount.
+ */
+async function measureRail(width: number) {
+  await act(async () => {
+    screen.getByTestId('featured-deals-rail-root').props.onLayout({
+      nativeEvent: { layout: { width, height: 400, x: 0, y: 0 } },
+    });
+  });
+  await act(async () => {});
+}
+
 function activePill() {
   return screen
     .getAllByRole('button', { name: /^Go to deal / })
@@ -60,6 +73,25 @@ describe('FeaturedDealsRail', () => {
     const pills = screen.getAllByRole('button', { name: /^Go to deal / });
     expect(pills).toHaveLength(DEALS.length);
     expect(activePill()?.props.accessibilityLabel).toBe('Go to deal 1');
+  });
+
+  it('pins every card to a definite width rather than the list content', async () => {
+    // The regression this guards: the card is `w-full`, and inside a horizontal
+    // list a percentage width resolves against the content flow, so the card
+    // used to take its max-content width and drag its aspect-video image (and
+    // therefore its height) far past the screen.
+    await act(async () => {
+      render(<FeaturedDealsRail deals={DEALS} />);
+    });
+    await measureRail(342);
+
+    const cardWidths = screen
+      .getAllByTestId('featured-deals-page')
+      .map(page => (page.props.style as { width: number }).width);
+
+    expect(cardWidths).toHaveLength(DEALS.length);
+    expect(cardWidths.every(width => width === 342)).toBe(true);
+    expect(cardWidths.every(width => width <= 390)).toBe(true);
   });
 
   it('hides the dots for a single deal', async () => {
@@ -101,6 +133,7 @@ describe('FeaturedDealsRail', () => {
     });
     await act(async () => {});
 
+    await measureRail(342);
     // Fired from a card, which bubbles to the list that owns the handlers.
     const card = screen.getByLabelText('View Deal number 2');
 
@@ -113,14 +146,11 @@ describe('FeaturedDealsRail', () => {
     });
     expect(activePill()?.props.accessibilityLabel).toBe('Go to deal 1');
 
-    // Scroll settles, and a fresh full interval starts before the next slide.
+    // Scroll settles on page two — exactly one card width across.
     await act(async () => {
       fireEvent(card, 'momentumScrollEnd', {
-        nativeEvent: { contentOffset: { x: 390, y: 0 } },
+        nativeEvent: { contentOffset: { x: 342, y: 0 } },
       });
-    });
-    await act(async () => {
-      jest.advanceTimersByTime(4500);
     });
     expect(activePill()?.props.accessibilityLabel).toBe('Go to deal 2');
   });
