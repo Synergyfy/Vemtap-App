@@ -28,8 +28,14 @@ jest.mock('@react-navigation/native', () => ({
   useRoute: () => ({ params: mockParams }),
 }));
 
+/** Captures every region the screen passes to the (renderless) map. */
+const mockMapRegions: Array<Record<string, number>> = [];
+
 jest.mock('@components/shared/LocationMapView', () => ({
-  LocationMapView: () => null,
+  LocationMapView: (props: { region: Record<string, number> }) => {
+    mockMapRegions.push(props.region);
+    return null;
+  },
 }));
 
 let mockParams: { dealId: string };
@@ -270,6 +276,118 @@ describe('DealDetailScreen', () => {
 
     // The merchant row opens the public business profile for this code.
     view.getByLabelText(`Open business page for ${DETAIL.business!.name}`);
+  });
+});
+
+/**
+ * The Location & Hours card used to be a fixed demo: the same Apo map for
+ * every deal and an "Open Now" badge that asserted hours nobody had fetched.
+ * Both now follow the merchant's own data — and neither is invented when the
+ * data is missing.
+ */
+describe('DealDetailScreen location and hours', () => {
+  /** Every weekday, around the clock, so "open" holds at any run time. */
+  const alwaysOpen = Object.fromEntries(
+    ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map(
+      day => [day, { from: '00:00', to: '23:59', isClosed: false }],
+    ),
+  );
+  const alwaysClosed = Object.fromEntries(
+    ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map(
+      day => [day, { from: '09:00', to: '17:00', isClosed: true }],
+    ),
+  );
+
+  beforeEach(() => {
+    mockMapRegions.length = 0;
+  });
+
+  test('centres the map on the merchant it is actually showing', async () => {
+    const view = await renderScreen(LIVE_ID);
+
+    await waitFor(() => expect(view.getByText(DETAIL.name)).toBeTruthy());
+    await waitFor(() => expect(mockMapRegions.length).toBeGreaterThan(0));
+
+    const region = mockMapRegions[mockMapRegions.length - 1];
+    expect(region.latitude).toBe(DETAIL.business!.latitude);
+    expect(region.longitude).toBe(DETAIL.business!.longitude);
+  });
+
+  test('a bundled deal keeps the demo region it was designed with', async () => {
+    const view = await renderScreen('urban-grill-lunch');
+
+    await waitFor(() =>
+      expect(view.getByText(resolveDeal('urban-grill-lunch')!.title)).toBeTruthy(),
+    );
+    await waitFor(() => expect(mockMapRegions.length).toBeGreaterThan(0));
+
+    const region = mockMapRegions[mockMapRegions.length - 1];
+    expect(region.latitude).toBeCloseTo(9.0765);
+    expect(region.longitude).toBeCloseTo(7.3986);
+  });
+
+  test('shows "Open Now" when the profile hours are open', async () => {
+    mockGetBusinessByCode.mockResolvedValue({
+      uniqueCode: BUSINESS_CODE,
+      name: 'Test store',
+      openingHours: alwaysOpen,
+    });
+
+    const view = await renderScreen(LIVE_ID);
+
+    await waitFor(() => expect(view.getByText('Open Now')).toBeTruthy());
+  });
+
+  test('shows "Closed" when the profile hours say so', async () => {
+    mockGetBusinessByCode.mockResolvedValue({
+      uniqueCode: BUSINESS_CODE,
+      name: 'Test store',
+      openingHours: alwaysClosed,
+    });
+
+    const view = await renderScreen(LIVE_ID);
+
+    await waitFor(() => expect(view.getByText('Closed')).toBeTruthy());
+    expect(view.queryByText('Open Now')).toBeNull();
+  });
+
+  test('shows no badge at all while the hours are unknown', async () => {
+    const view = await renderScreen(LIVE_ID);
+
+    await waitFor(() => expect(view.getByText(DETAIL.name)).toBeTruthy());
+    // The default mock profile carries no hours — guessing either way would be
+    // a claim the API never made.
+    expect(view.queryByText('Open Now')).toBeNull();
+    expect(view.queryByText('Closed')).toBeNull();
+  });
+
+  test('the terms row shows the merchant’s own first term when there is one', async () => {
+    mockGetOfferDetails.mockResolvedValue({
+      ...DETAIL,
+      terms: ['Valid for dine-in only before 4 PM.'],
+    });
+
+    const view = await renderScreen(LIVE_ID);
+
+    await waitFor(() =>
+      expect(view.getByText('Valid for dine-in only before 4 PM.')).toBeTruthy(),
+    );
+  });
+
+  test('a live offer with no terms keeps no invented subtitle', async () => {
+    const view = await renderScreen(LIVE_ID);
+
+    await waitFor(() => expect(view.getByText(DETAIL.name)).toBeTruthy());
+    expect(view.queryByText('Valid 12 PM - 4 PM weekdays only')).toBeNull();
+  });
+
+  test('a bundled deal keeps its designed terms subtitle', async () => {
+    const view = await renderScreen('urban-grill-lunch');
+
+    await waitFor(() =>
+      expect(view.getByText(resolveDeal('urban-grill-lunch')!.title)).toBeTruthy(),
+    );
+    expect(view.getByText('Valid 12 PM - 4 PM weekdays only')).toBeTruthy();
   });
 });
 

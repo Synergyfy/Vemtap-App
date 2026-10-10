@@ -35,6 +35,8 @@ import { LoadingState } from '@components/shared/LoadingState';
 import { EmptyState } from '@components/shared/EmptyState';
 import { useAuthStore, selectIsAuthenticated } from '@store/authStore';
 import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
+import { usePublicBusinessProfile } from '@features/discover/hooks/usePublicBusinessProfile';
+import { isOpenNow } from '@features/dealDetail/utils/openingHours';
 import { businesses } from '@features/discover/data/discoverData';
 
 cssInterop(View, { className: 'style' });
@@ -127,6 +129,25 @@ export function DealDetailScreen({ route, navigation }: Props) {
   // presenting invented prices as if they were the merchant's.
   const detail = useDealDetail(route.params.dealId);
   const deal = detail.status === 'resolved' ? detail.deal : undefined;
+
+  /**
+   * The weekly hours live on the merchant's public profile — one query, shared
+   * with the profile screen. A fictional deal carries no code, so the query
+   * stays disabled and the badge reads as unknown rather than inventing hours.
+   */
+  const profile = usePublicBusinessProfile(deal?.businessCode);
+  const openNow = isOpenNow(
+    profile.status === 'resolved' ? profile.business.openingHours : undefined,
+  );
+
+  /**
+   * The merchant's own first term when they wrote one. The platform phrasing is
+   * only for the bundled deals: claiming "12 PM – 4 PM weekdays" for an offer
+   * whose merchant said nothing would be inventing the merchant's hours.
+   */
+  const termsSubtitle =
+    deal?.terms?.[0] ??
+    (deal?.businessCode ? undefined : 'Valid 12 PM - 4 PM weekdays only');
 
   /**
    * Only a real offer can be claimed: the claim endpoints are keyed by offer UUID
@@ -535,14 +556,32 @@ export function DealDetailScreen({ route, navigation }: Props) {
               <VemtapText variant="labelMd" className="font-sans-semibold text-text">
                 Location & Hours
               </VemtapText>
-              <View style={styles.openBadge}>
-                <VemtapText className="font-sans-medium text-caption text-badge-discount-text">
-                  Open Now
-                </VemtapText>
-              </View>
+              {/* No badge while the hours are unknown — "Open Now" is a claim. */}
+              {openNow === null ? null : (
+                <View style={openNow ? styles.openBadge : styles.closedBadge}>
+                  <VemtapText
+                    className={
+                      openNow
+                        ? 'font-sans-medium text-caption text-badge-discount-text'
+                        : 'font-sans-medium text-caption text-text-secondary'
+                    }
+                  >
+                    {openNow ? 'Open Now' : 'Closed'}
+                  </VemtapText>
+                </View>
+              )}
             </View>
             <LocationMapView
-              region={apoRegion}
+              region={
+                deal?.coordinates
+                  ? {
+                      latitude: deal.coordinates.latitude,
+                      longitude: deal.coordinates.longitude,
+                      latitudeDelta: apoRegion.latitudeDelta,
+                      longitudeDelta: apoRegion.longitudeDelta,
+                    }
+                  : apoRegion
+              }
               style={styles.mapPanel}
               scrollEnabled={false}
               zoomEnabled={false}
@@ -573,7 +612,7 @@ export function DealDetailScreen({ route, navigation }: Props) {
               icon="info"
               iconBackground="bg-surface-container"
               title="Terms & Conditions"
-              subtitle="Valid 12 PM - 4 PM weekdays only"
+              subtitle={termsSubtitle}
               onPress={() =>
                 navigation.navigate('DealTermsConditions', { dealId: deal.id })
               }
@@ -785,7 +824,8 @@ function InfoRow({
   icon: 'verifiedUser' | 'info';
   iconBackground: 'bg-surface-tint' | 'bg-surface-container';
   title: string;
-  subtitle: string;
+  /** Absent when there is nothing true to say — the row keeps its title. */
+  subtitle?: string;
   onPress: () => void;
 }) {
   return (
@@ -808,9 +848,11 @@ function InfoRow({
           <VemtapText variant="labelMd" className="font-sans-semibold text-text">
             {title}
           </VemtapText>
-          <VemtapText variant="caption" tone="secondary">
-            {subtitle}
-          </VemtapText>
+          {subtitle ? (
+            <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
+              {subtitle}
+            </VemtapText>
+          ) : null}
         </View>
       </View>
       <Icon name="forward" size={20} color={colors.outline} />
@@ -950,6 +992,12 @@ const styles = StyleSheet.create({
   openBadge: {
     borderRadius: 999,
     backgroundColor: colors.badgeDiscountBg,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  closedBadge: {
+    borderRadius: 999,
+    backgroundColor: colors.surfaceContainerHighest,
     paddingHorizontal: 8,
     paddingVertical: 2,
   },

@@ -76,5 +76,14 @@ export function mapOfferDetailToResolved(
     // than sending the user to a 404.
     businessCode: business?.uniqueCode ?? undefined,
     isVerifiedBusiness: business?.isVerified ?? undefined,
+    // Both present only when the API reports them: the map falls back to its
+    // demo region without coordinates, and no terms section appears without
+    // merchant terms.
+    coordinates:
+      business?.latitude != null && business?.longitude != null
+        ? { latitude: business.latitude, longitude: business.longitude }
+        : undefined,
+    terms: detail.terms.length > 0 ? detail.terms : undefined,
+    endDate: detail.endDate ?? undefined,
   };
 }

@@ -36,6 +36,19 @@ export type ResolvedDeal = {
   businessCode?: string;
   /** Whether the API reports the merchant verified. Undefined = not reported. */
   isVerifiedBusiness?: boolean;
+  /**
+   * The merchant's coordinates, when the payload reports them. Drives the
+   * Location & Hours map; absent means the screen keeps its demo region
+   * instead of placing a pin it cannot justify.
+   */
+  coordinates?: { latitude: number; longitude: number };
+  /**
+   * The merchant-authored terms (`offer.terms`). Absent when the offer has
+   * none — never an empty claim rendered as content.
+   */
+  terms?: string[];
+  /** The raw ISO end date, for screens that word their own validity copy. */
+  endDate?: string;
 };
 
 const fallbackAddress = 'Plot 422, Cadastral Zone, Apo';

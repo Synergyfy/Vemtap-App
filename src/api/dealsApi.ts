@@ -123,7 +123,7 @@ export const offerSchema = z.object({
   isExpired: nullableFlag(false),
   maxClaimsPerCustomer: z.number().nullable().optional(),
   audienceTarget: z.string().nullable().optional(),
-  terms: nullableArray(z.unknown()),
+  terms: nullableArray(z.string()),
   claimCodePrefix: z.string().nullable().optional(),
 });
 export type Offer = z.infer<typeof offerSchema>;
@@ -198,7 +198,7 @@ export const publicOfferDetailSchema = z.object({
   isTrending: nullableFlag(false),
 
   items: nullableArray(offerItemSchema),
-  terms: nullableArray(z.unknown()),
+  terms: nullableArray(z.string()),
 
   claimedCount: nullableNumber(),
   maxClaims: nullableNumber(),

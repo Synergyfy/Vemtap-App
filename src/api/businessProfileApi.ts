@@ -23,12 +23,30 @@ export const namedCategorySchema = z.object({
 });
 export type NamedCategory = z.infer<typeof namedCategorySchema>;
 
-/** One day of opening hours; `isClosed` wins over the from/to pair. */
-export const openingHoursDaySchema = z.object({
-  from: z.string().nullish(),
-  to: z.string().nullish(),
-  isClosed: nullableFlag(false),
-});
+/**
+ * One day of opening hours; the closed flag wins over the time pair.
+ *
+ * Two shapes are live in the column: the seeds/catalogue write
+ * `{ from, to, isClosed }`, while the merchant profile form sends
+ * `{ open, close, closed }` — `updateBusiness` copies `businessHours` into
+ * `openingHours` verbatim. Both are accepted and normalized to one shape here,
+ * otherwise hours from an onboarding-updated merchant parse as null times and
+ * an "open now" check could never be true for them.
+ */
+export const openingHoursDaySchema = z
+  .object({
+    from: z.string().nullish(),
+    to: z.string().nullish(),
+    open: z.string().nullish(),
+    close: z.string().nullish(),
+    isClosed: nullableFlag(false),
+    closed: nullableFlag(false),
+  })
+  .transform(day => ({
+    from: day.from ?? day.open ?? null,
+    to: day.to ?? day.close ?? null,
+    isClosed: day.isClosed || day.closed,
+  }));
 export type OpeningHoursDay = z.infer<typeof openingHoursDaySchema>;
 
 export const openingHoursSchema = z.record(z.string(), openingHoursDaySchema);
