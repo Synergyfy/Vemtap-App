@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { BottomSheet } from '@components/shared/BottomSheet';
@@ -9,6 +9,7 @@ import { Button } from '@components/ui/Button';
 import { colors } from '@theme/colors';
 import { typeMetrics } from '@theme/typography';
 import { strings } from '@constants/strings';
+import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
 
 cssInterop(View, { className: 'style' });
 cssInterop(Pressable, { className: 'style' });
@@ -271,6 +272,7 @@ export function ClaimIdentitySheet({
   onRecipient: () => void;
   deal: ClaimDealData;
 }) {
+  const claimant = useCurrentUserDisplay();
   return (
     <BottomSheet
       visible={visible}
@@ -303,18 +305,25 @@ export function ClaimIdentitySheet({
         <View style={styles.identityCard}>
           <View style={styles.identityAvatar}>
             <VemtapText className="font-sans-semibold text-heading-sm text-secondary">
-              JD
+              {claimant.initials}
             </VemtapText>
-            <View style={styles.verifiedDot}>
-              <Icon name="verified" size={12} color={colors.surface} />
-            </View>
+            {/* The badge is a claim about this session's account, so it is
+                drawn only when the session says the email is verified. */}
+            {claimant.emailVerified ? (
+              <View
+                style={styles.verifiedDot}
+                accessibilityLabel={strings.deals.claimFlow.emailVerified}
+              >
+                <Icon name="verified" size={12} color={colors.surface} />
+              </View>
+            ) : null}
           </View>
           <View style={styles.flexCopy}>
             <VemtapText variant="bodyMd" className="font-sans-semibold text-text">
-              John Doe
+              {claimant.fullName}
             </VemtapText>
             <VemtapText variant="bodyMd" tone="secondary">
-              john@email.com
+              {claimant.email}
             </VemtapText>
             <View style={styles.activePill}>
               <View style={styles.dot} />
@@ -364,6 +373,7 @@ export function RecipientDetailsSheet({
   onContinue,
   onBack,
   title,
+  initialValues,
 }: {
   visible: boolean;
   onClose: () => void;
@@ -375,15 +385,37 @@ export function RecipientDetailsSheet({
    * reused with its own wording rather than forked into a near-duplicate.
    */
   title?: string;
+  /**
+   * Seeds the form for a claim made under the caller's own identity, so nobody
+   * retypes what the session already knows. Absent for the claim-for-someone-
+   * else flow, which starts blank on purpose.
+   */
+  initialValues?: RecipientData;
 }) {
-  const [data, setData] = useState<RecipientData>({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-  });
-  const update = (key: keyof RecipientData, value: string) =>
+  const blank: RecipientData = { firstName: '', lastName: '', email: '', phone: '' };
+  const [data, setData] = useState<RecipientData>({ ...blank, ...initialValues });
+  const [touched, setTouched] = useState(false);
+  const update = (key: keyof RecipientData, value: string) => {
+    setTouched(true);
     setData(current => ({ ...current, [key]: value }));
+  };
+
+  /**
+   * The sheet stays mounted while hidden — `visible` only toggles it — so a
+   * mount-time seed would freeze whatever the session held when the screen
+   * opened. Re-seeding on each open, while the form is still untouched, keeps
+   * a fresh open in sync with the session and never clobbers values the user
+   * typed and then stepped back from.
+   */
+  useEffect(() => {
+    if (!visible || touched) return;
+    if (initialValues && initialValues !== data) {
+      setData({ ...blank, ...initialValues });
+    }
+    // `data` is read only to skip a no-op re-seed; the caller passes a stable
+    // seed (see `useMemo` in the screen) so this settles after one open.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, touched, initialValues]);
   return (
     <BottomSheet
       visible={visible}
@@ -1365,6 +1397,9 @@ function Field({
           onChangeText={onChangeText}
           placeholder={placeholder}
           placeholderTextColor={colors.textTertiary}
+          // The visible label is a separate line, so announce it on the input
+          // itself — screen readers attach to the field, not the caption.
+          accessibilityLabel={label}
           style={[styles.input, icon ? styles.inputWithIcon : null]}
         />
       </View>

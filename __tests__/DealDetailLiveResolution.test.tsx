@@ -1,12 +1,14 @@
 import React from 'react';
 import { Text } from 'react-native';
-import { render, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { DealDetailScreen } from '@features/dealDetail/screens/DealDetailScreen';
 import { useDealDetail } from '@features/dealDetail/hooks/useDealDetail';
 import type { PublicOfferDetail } from '@api/dealsApi';
 import { resolveDeal } from '@features/dealDetail/data/dealResolver';
 import { useLocationStore } from '@store/locationStore';
+import { userSchema } from '@api/authApi';
+import { useAuthStore } from '@store/authStore';
 import { strings } from '@constants/strings';
 
 /**
@@ -151,6 +153,22 @@ beforeEach(() => {
 
 afterEach(() => clients.forEach(client => client.clear()));
 
+async function renderScreen(dealId: string) {
+  mockParams = { dealId };
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  clients.push(client);
+  return render(
+    <QueryClientProvider client={client}>
+      <DealDetailScreen
+        route={{ params: { dealId } } as never}
+        navigation={{ navigate: mockNavigate, goBack: mockGoBack } as never}
+      />
+    </QueryClientProvider>,
+  );
+}
+
 describe('resolveDeal', () => {
   test('still resolves the bundled fictional deals', () => {
     const seed = resolveDeal('urban-grill-lunch');
@@ -228,22 +246,6 @@ describe('useDealDetail', () => {
 });
 
 describe('DealDetailScreen', () => {
-  const renderScreen = async (dealId: string) => {
-    mockParams = { dealId };
-    const client = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-    });
-    clients.push(client);
-    return render(
-      <QueryClientProvider client={client}>
-        <DealDetailScreen
-          route={{ params: { dealId } } as never}
-          navigation={{ navigate: mockNavigate, goBack: mockGoBack } as never}
-        />
-      </QueryClientProvider>,
-    );
-  };
-
   test('shows the real offer, never a stand-in', async () => {
     const view = await renderScreen(LIVE_ID);
 
@@ -268,5 +270,112 @@ describe('DealDetailScreen', () => {
 
     // The merchant row opens the public business profile for this code.
     view.getByLabelText(`Open business page for ${DETAIL.business!.name}`);
+  });
+});
+
+/**
+ * Who the claim flow says is claiming.
+ *
+ * The identity card used to be a hardcoded profile — "JD", "John Doe",
+ * "john@email.com" with a verified badge that made no claim about anything —
+ * and the terms sheet addressed the claim to that same fixed address. Both
+ * now come from the session, and only the signed-in customer can see any of it
+ * (the flow is gated on `isAuthenticated`).
+ */
+describe('DealDetailScreen claim identity', () => {
+  /** Same shape the signup flow stores: `emailVerified` drives the badge. */
+  const ada = userSchema.parse({
+    email: 'ada.okon@example.com',
+    firstName: 'Ada',
+    lastName: 'Okon',
+    phone: '0801 111 2222',
+    emailVerified: true,
+  });
+
+  const openIdentitySheet = async (dealId: string) => {
+    const view = await renderScreen(dealId);
+    await waitFor(() => expect(view.getByText('Claim Deal')).toBeTruthy());
+    await fireEvent.press(view.getByText('Claim Deal'));
+    await waitFor(() =>
+      expect(view.getByText(strings.deals.claimFlow.confirmClaim)).toBeTruthy(),
+    );
+    await fireEvent.press(view.getByText(strings.deals.claimFlow.confirmClaim));
+    await waitFor(() =>
+      expect(view.getByText(strings.deals.claimFlow.claimForMe)).toBeTruthy(),
+    );
+    return view;
+  };
+
+  beforeEach(() => {
+    useAuthStore.setState({ user: ada, status: 'authenticated' });
+  });
+
+  afterEach(() => {
+    useAuthStore.setState({ user: null, status: 'unauthenticated' });
+  });
+
+  test('the identity card shows the signed-in customer, not a scripted profile', async () => {
+    const view = await openIdentitySheet('urban-grill-lunch');
+
+    expect(view.getByText('Ada Okon')).toBeTruthy();
+    expect(view.getByText('ada.okon@example.com')).toBeTruthy();
+    expect(view.getByText('AO')).toBeTruthy();
+    expect(view.queryByText('John Doe')).toBeNull();
+    expect(view.queryByText('john@email.com')).toBeNull();
+  });
+
+  test('the verified badge follows the session flag', async () => {
+    const view = await openIdentitySheet('urban-grill-lunch');
+
+    expect(view.getByLabelText(strings.deals.claimFlow.emailVerified)).toBeTruthy();
+  });
+
+  test('an unverified session shows no verified badge', async () => {
+    useAuthStore.setState({
+      user: { ...ada, emailVerified: false },
+      status: 'authenticated',
+    });
+
+    const view = await openIdentitySheet('urban-grill-lunch');
+
+    expect(view.getByText('ada.okon@example.com')).toBeTruthy();
+    expect(view.queryByLabelText(strings.deals.claimFlow.emailVerified)).toBeNull();
+  });
+
+  test('the claim copy is addressed to the signed-in email', async () => {
+    const view = await openIdentitySheet('urban-grill-lunch');
+
+    // Fictional deals keep the local walkthrough: "claim for me" lands on the
+    // terms sheet, which names who would be claiming.
+    await fireEvent.press(view.getByText(strings.deals.claimFlow.claimForMe));
+    await waitFor(() =>
+      expect(view.getByText(strings.deals.claimFlow.claimingAs)).toBeTruthy(),
+    );
+
+    expect(view.getByText('ada.okon@example.com')).toBeTruthy();
+    expect(view.queryByText('john@email.com')).toBeNull();
+  });
+
+  test('the self-claim form opens prefilled from the session', async () => {
+    const view = await openIdentitySheet(LIVE_ID);
+
+    // A real offer verifies the claimant by emailed code first, so the details
+    // sheet opens already holding the session's identity.
+    await fireEvent.press(view.getByText(strings.deals.claimFlow.claimForMe));
+
+    await waitFor(() => {
+      expect(view.getByLabelText(strings.deals.claimFlow.firstName).props.value).toBe(
+        'Ada',
+      );
+    });
+    expect(view.getByLabelText(strings.deals.claimFlow.lastName).props.value).toBe(
+      'Okon',
+    );
+    expect(view.getByLabelText(strings.deals.claimFlow.email).props.value).toBe(
+      'ada.okon@example.com',
+    );
+    expect(view.getByLabelText(strings.deals.claimFlow.phone).props.value).toBe(
+      '0801 111 2222',
+    );
   });
 });

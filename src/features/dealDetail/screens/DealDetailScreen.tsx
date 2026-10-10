@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -34,6 +34,7 @@ import { useDealEngagement } from '@features/deals/hooks/usePublicOffers';
 import { LoadingState } from '@components/shared/LoadingState';
 import { EmptyState } from '@components/shared/EmptyState';
 import { useAuthStore, selectIsAuthenticated } from '@store/authStore';
+import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
 import { businesses } from '@features/discover/data/discoverData';
 
 cssInterop(View, { className: 'style' });
@@ -90,7 +91,21 @@ export function DealDetailScreen({ route, navigation }: Props) {
   const [shareVisible, setShareVisible] = useState(false);
   const [claimStep, setClaimStep] = useState<ClaimFlowStep>(null);
   const isAuthenticated = useAuthStore(selectIsAuthenticated);
-  const [claimingAs, setClaimingAs] = useState('john@email.com');
+  // The claim copy addresses the claim to whoever the session says the user
+  // is — never a fixed name or address.
+  const claimant = useCurrentUserDisplay();
+  const [claimingAs, setClaimingAs] = useState(claimant.email);
+  // Stable seed for the self-claim form: a fresh identity on every render
+  // would re-trigger the sheet's re-seed effect on every keystroke.
+  const selfClaimDefaults = useMemo<RecipientData>(
+    () => ({
+      firstName: claimant.firstName,
+      lastName: claimant.lastName,
+      email: claimant.email,
+      phone: claimant.phone,
+    }),
+    [claimant.firstName, claimant.lastName, claimant.email, claimant.phone],
+  );
   const [recipient, setRecipient] = useState<RecipientData>({
     firstName: '',
     lastName: '',
@@ -618,13 +633,14 @@ export function DealDetailScreen({ route, navigation }: Props) {
         onForMe={() => {
           // A real offer goes through the real OTP flow: the API only issues a
           // claim once an emailed code is verified. Fictional deals have no server
-          // record to claim, so they keep the local walkthrough.
+          // record to claim, so they keep the local walkthrough — addressed to
+          // whoever is signed in.
           if (isLiveOffer) {
             claim.reset();
             setClaimStep('selfIdentity');
             return;
           }
-          setClaimingAs('john@email.com');
+          setClaimingAs(claimant.email);
           setClaimStep('terms');
         }}
         onGift={() => setClaimStep('gift')}
@@ -646,6 +662,9 @@ export function DealDetailScreen({ route, navigation }: Props) {
         onClose={() => setClaimStep(null)}
         onBack={() => setClaimStep('identity')}
         title={strings.deals.claimFlow.selfClaimIdentityTitle}
+        // Claiming as yourself: open the form already holding the session's
+        // identity instead of asking the user to retype it.
+        initialValues={selfClaimDefaults}
         onContinue={async data => {
           setRecipient(data);
           setClaimingAs(data.email);

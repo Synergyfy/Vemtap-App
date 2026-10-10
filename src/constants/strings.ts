@@ -597,6 +597,8 @@ export const strings = {
       reservationSubtitle:
         'Review the claim conditions before your one-time voucher is generated.',
       claimingAs: 'Claiming as',
+      /** Accessibility label for the identity card's verified badge. */
+      emailVerified: 'Email verified',
       understandConditions: 'I have read and understand the reservation conditions:',
       howToClaim: 'How to Claim',
       dealTerms: 'Deal Terms & Conditions',
