@@ -68,7 +68,11 @@ export type ClaimVerified = z.infer<typeof claimVerifiedResponseSchema>;
  *
  * The optional `offer.discountValue`/`pricingType` are not rendered by the
  * cards, but are kept because the same payload feeds the pass screen.
+ * `discountValue` reuses the `money` union like every other offer price: the
+ * server reads it straight off a TypeORM `numeric` column, so it arrives as a
+ * string ("1500.00") as often as a number.
  */
+const money = z.union([z.string(), z.number()]).nullish();
 export const myClaimStatusSchema = z.enum(['ACTIVE', 'REDEEMED', 'EXPIRED']);
 export type MyClaimStatus = z.infer<typeof myClaimStatusSchema>;
 
@@ -80,7 +84,7 @@ export const myClaimOfferSchema = z.object({
   originalPrice: z.number(),
   discountPercent: z.number(),
   pricingType: z.string().nullable().optional(),
-  discountValue: z.number().nullable().optional(),
+  discountValue: money,
   businessId: z.string(),
   businessName: z.string(),
   businessLogo: z.string().nullable().optional(),
