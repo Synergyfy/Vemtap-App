@@ -1,4 +1,4 @@
-import { resolveApiBaseUrl } from '@constants/apiConfig';
+import { normalizeWebsocketOrigin, resolveApiBaseUrl } from '@constants/apiConfig';
 
 /**
  * Guards the failure that produced a bare "Network request failed" on an
@@ -81,5 +81,47 @@ describe('api client guard', () => {
     const clientModule = require('@api/client') as typeof import('@api/client');
 
     expect(clientModule.apiClient.defaults.baseURL).toBe('https://testapi.vemtap.com/v1');
+  });
+});
+
+/**
+ * WebSocket gateways are registered by NestJS at the server root — the global
+ * prefix applies to HTTP routes only. A base URL that carries a path prefix
+ * (a deployment mounting the API under `/api`) would therefore dial a namespace
+ * that does not exist, which Socket.IO reports as "Invalid namespace".
+ */
+describe('websocket origin', () => {
+  it('drops a path prefix so gateways are reached at the server root', () => {
+    expect(normalizeWebsocketOrigin('https://testapi.vemtap.com/api')).toBe(
+      'https://testapi.vemtap.com',
+    );
+    expect(normalizeWebsocketOrigin('http://localhost:3002/api')).toBe(
+      'http://localhost:3002',
+    );
+  });
+
+  it('still exposes a websocket origin from resolveApiBaseUrl', () => {
+    const resolved = resolveApiBaseUrl(
+      'http://192.168.1.67:3002/api',
+      'v1',
+      'development',
+    );
+
+    expect(resolved.baseUrl).toBe('http://192.168.1.67:3002/api/v1');
+    expect(resolved.websocketOrigin).toBe('http://192.168.1.67:3002');
+  });
+
+  it('leaves a bare host untouched', () => {
+    expect(normalizeWebsocketOrigin('https://api.vemtap.com')).toBe(
+      'https://api.vemtap.com',
+    );
+    expect(normalizeWebsocketOrigin('http://localhost:3002/api/')).toBe(
+      'http://localhost:3002',
+    );
+  });
+
+  it('is empty when nothing was configured', () => {
+    expect(normalizeWebsocketOrigin('')).toBe('');
+    expect(resolveApiBaseUrl(undefined, 'v1', 'production').websocketOrigin).toBe('');
   });
 });

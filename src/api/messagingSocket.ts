@@ -1,6 +1,10 @@
 /**
  * Socket.io client for the backend `/messaging` namespace.
  *
+ * The namespace lives at the server root: NestJS applies its global prefix to
+ * HTTP routes only, so a base URL that carries a path prefix must not be reused
+ * here — hence `API_WEBSOCKET_ORIGIN`, which strips it.
+ *
  * One process-wide connection: the business tab mounts a single realtime hook
  * that owns it, and screens interact through the module-level helpers (join,
  * leave, typing, read receipts) so no screen can spawn a duplicate socket.
@@ -10,7 +14,7 @@
  */
 
 import { io, type Socket } from 'socket.io-client';
-import { API_BASE_URL_ORIGIN, IS_API_CONFIGURED } from '@constants/config';
+import { API_WEBSOCKET_ORIGIN, IS_API_CONFIGURED } from '@constants/config';
 import { getSecureItem } from '@utils/secureStorage';
 import { logger } from '@utils/logger';
 
@@ -22,7 +26,7 @@ let connecting: Promise<Socket | null> | null = null;
 let activeThreadId: string | null = null;
 
 export function isMessagingSocketConfigured(): boolean {
-  return IS_API_CONFIGURED && API_BASE_URL_ORIGIN.length > 0;
+  return IS_API_CONFIGURED && API_WEBSOCKET_ORIGIN.length > 0;
 }
 
 export function getMessagingSocket(): Socket | null {
@@ -64,7 +68,7 @@ export async function connectMessagingSocket(): Promise<Socket | null> {
     const token = await getSecureItem('accessToken');
     if (!token) return null;
 
-    const next = io(`${API_BASE_URL_ORIGIN}${MESSAGING_NAMESPACE}`, {
+    const next = io(`${API_WEBSOCKET_ORIGIN}${MESSAGING_NAMESPACE}`, {
       transports: ['websocket'],
       autoConnect: true,
       reconnection: true,

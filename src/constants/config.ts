@@ -20,6 +20,12 @@ const api = resolveApiBaseUrl(
 );
 
 export const API_BASE_URL_ORIGIN = api.origin;
+/**
+ * Where WebSocket gateways live. Deliberately not `API_BASE_URL_ORIGIN`: a base
+ * URL built under a path prefix (e.g. `/api`) would dial that prefix too, and
+ * NestJS registers gateways at the server root — `Invalid namespace`.
+ */
+export const API_WEBSOCKET_ORIGIN = api.websocketOrigin;
 export const API_VERSION = api.version;
 export const IS_API_CONFIGURED = api.configured;
 export const API_BASE_URL = api.baseUrl;

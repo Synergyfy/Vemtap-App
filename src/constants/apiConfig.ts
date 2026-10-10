@@ -22,10 +22,31 @@ export interface ResolvedApiBaseUrl {
   configured: boolean;
   /** User-facing explanation when `configured` is false. */
   hint?: string;
+  /**
+   * `scheme://host:port` with every path dropped — where WebSocket gateways
+   * live. `origin` may carry a path (a deployment that mounts the API under
+   * `/api`), but NestJS applies the global prefix to HTTP routes only, so a
+   * gateway is always at the server root. Using `origin` for a socket URL is
+   * what produced `Invalid namespace`: the client dialled `/api/messaging`
+   * while the server only registered `/messaging`.
+   */
+  websocketOrigin: string;
 }
 
 export function normalizeApiOrigin(raw: string): string {
   return raw.trim().replace(/\/+$/, '');
+}
+
+/**
+ * Strips any path, query and fragment, leaving `scheme://host[:port]`.
+ * Falls back to `origin` for a value too malformed to parse, so a socket URL
+ * is never silently left empty.
+ */
+export function normalizeWebsocketOrigin(rawBaseUrl: string): string {
+  const trimmed = rawBaseUrl.trim();
+  if (!trimmed) return '';
+  const match = /^([a-z][a-z0-9+.-]*:\/\/[^/?#]+)/i.exec(trimmed);
+  return (match ? match[1] : trimmed).replace(/\/+$/, '');
 }
 
 export function resolveApiBaseUrl(
@@ -43,8 +64,15 @@ export function resolveApiBaseUrl(
       version,
       configured: false,
       hint: `API base URL is not configured. Rebuild with EXPO_PUBLIC_API_BASE_URL set (current EXPO_PUBLIC_APP_ENV: ${appEnv}).`,
+      websocketOrigin: '',
     };
   }
 
-  return { origin, baseUrl: `${origin}/${version}`, version, configured: true };
+  return {
+    origin,
+    baseUrl: `${origin}/${version}`,
+    version,
+    configured: true,
+    websocketOrigin: normalizeWebsocketOrigin(origin),
+  };
 }
