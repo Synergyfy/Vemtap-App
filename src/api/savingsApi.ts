@@ -48,7 +48,7 @@ export const savingsPageSchema = z.object({
   page: z.number().nullish().default(1),
   limit: z.number().nullish().default(10),
   /** Naira saved across every matching redemption, not just this page. */
-  totalSavedAmount: z.number().nullish().default(0),
+  totalSavedAmount: amountSchema,
 });
 export type SavingsPage = z.infer<typeof savingsPageSchema>;
 
@@ -63,7 +63,7 @@ export type SavingsCategory = z.infer<typeof savingsCategorySchema>;
 
 export const savingsBreakdownSchema = z.object({
   data: z.array(savingsCategorySchema).nullish().default([]),
-  totalSavedAmount: z.number().nullish().default(0),
+  totalSavedAmount: amountSchema,
   totalRedemptions: z.number().nullish().default(0),
 });
 export type SavingsBreakdown = z.infer<typeof savingsBreakdownSchema>;
