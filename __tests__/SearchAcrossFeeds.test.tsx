@@ -107,7 +107,7 @@ const BUSINESS = {
 };
 
 const emptyDeals = {
-  featured: null,
+  featured: [],
   nearby: [],
   trending: [],
   isLoading: false,

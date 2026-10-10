@@ -14,17 +14,24 @@ import type {
 } from '@features/home/data/homeFeed';
 
 /**
+ * How many deals the Featured Deals rail rotates through. The rail shows one
+ * card at a time, so this is the size of the rotation rather than a count of
+ * cards on screen.
+ */
+const FEATURED_COUNT = 3;
+
+/**
  * Home's three deal sections, from the same live feed the Deals tab reads.
  *
- * One offer can only sit in one section, so the featured card takes the first
- * offer and the rest are shared between "deals near you" and "trending". Trending
- * is ordered by how many times an offer has been claimed — the only popularity
- * signal the API actually exposes — rather than being a second copy of the same
- * list in a different order.
+ * One offer can only sit in one section, so the featured rail takes the first
+ * FEATURED_COUNT offers and the rest are shared between "deals near you" and
+ * "trending". Trending is ordered by how many times an offer has been claimed —
+ * the only popularity signal the API actually exposes — rather than being a
+ * second copy of the same list in a different order.
  *
  * Sections come back empty rather than padded: with a narrow radius the API can
- * legitimately return one offer, and a section showing the same offer twice
- * would be worse than a section that is not there.
+ * legitimately return fewer than FEATURED_COUNT offers, and a section showing
+ * the same offer twice would be worse than a section that is not there.
  */
 export function useHomeDeals(limit = 20) {
   const area = useLocationStore(state => state.area);
@@ -34,7 +41,8 @@ export function useHomeDeals(limit = 20) {
   const { offers, isLoading, isError, refetch } = usePublicOffersFeed(limit);
 
   return useMemo(() => {
-    const [first, ...rest] = offers;
+    const featuredOffers = offers.slice(0, FEATURED_COUNT);
+    const rest = offers.slice(FEATURED_COUNT);
 
     const trending = [...rest]
       .sort((a, b) => b.claimedCount - a.claimedCount)
@@ -42,14 +50,14 @@ export function useHomeDeals(limit = 20) {
       .map(offer => mapOfferToHomeTrending(offer, origin));
 
     return {
-      featured: first ? mapOfferToHomeFeatured(first, origin) : null,
+      featured: featuredOffers.map(offer => mapOfferToHomeFeatured(offer, origin)),
       nearby: rest.map(offer => mapOfferToHomeNearby(offer, origin)),
       trending,
       isLoading,
       isError,
       refetch,
     } satisfies {
-      featured: FeaturedDeal | null;
+      featured: FeaturedDeal[];
       nearby: NearbyDeal[];
       trending: TrendingDeal[];
       isLoading: boolean;

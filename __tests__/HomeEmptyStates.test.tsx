@@ -56,7 +56,7 @@ jest.mock('@hooks/useNetworkStatus', () => ({
 }));
 
 const emptyDeals = {
-  featured: null,
+  featured: [],
   nearby: [],
   trending: [],
   isLoading: false,

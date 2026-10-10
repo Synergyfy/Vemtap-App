@@ -10,7 +10,7 @@
  * Two live-shaped offers, so screens that read the raw feed (Home) and screens
  * that read the mapped view models (Deals) can both be exercised from one double.
  */
-const MOCK_OFFERS = [
+export const MOCK_OFFERS = [
   {
     id: 'offer-prime-lunch',
     name: '20% Off Prime Lunch Combo',

@@ -4,6 +4,7 @@ export { CategoryChips, type CategoryChipsProps } from './CategoryChips';
 export { SectionHeader, type SectionHeaderProps } from './SectionHeader';
 export { ViewToggle, type ViewToggleProps, type DealsViewMode } from './ViewToggle';
 export { FeaturedDealCard, type FeaturedDealCardProps } from './FeaturedDealCard';
+export { FeaturedDealsRail, type FeaturedDealsRailProps } from './FeaturedDealsRail';
 export { NearbyDealListCard, type NearbyDealListCardProps } from './NearbyDealListCard';
 export { NearbyDealGridCard, type NearbyDealGridCardProps } from './NearbyDealGridCard';
 export { TrendingDealCard } from './TrendingDealCard';

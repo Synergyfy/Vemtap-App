@@ -5,7 +5,7 @@ import { HomeSearchBar } from '@components/home/HomeSearchBar';
 import { LiveNearbyListCard, useEnriched } from '@components/home/LiveNearbyListCard';
 import { CategoryChips } from '@components/home/CategoryChips';
 import { SectionHeader } from '@components/home/SectionHeader';
-import { FeaturedDealCard } from '@components/home/FeaturedDealCard';
+import { FeaturedDealsRail } from '@components/home/FeaturedDealsRail';
 import { NearbyDealGridCard } from '@components/home/NearbyDealGridCard';
 import { TrendingDealCard } from '@components/home/TrendingDealCard';
 import { BusinessRow } from '@components/home/BusinessRow';
@@ -23,11 +23,7 @@ import { useNearbyBusinesses } from '@features/home/hooks/useNearbyBusinesses';
 import { useNearbyProducts } from '@features/home/hooks/useNearbyProducts';
 import { useSearch, chipSearchTerm } from '@features/search/hooks/usePublicSearch';
 import { SearchResults } from '@features/search/components/SearchResults';
-import type {
-  FeaturedDeal,
-  NearbyDeal,
-  TrendingDeal,
-} from '@features/home/data/homeFeed';
+import type { NearbyDeal, TrendingDeal } from '@features/home/data/homeFeed';
 import { LoadingState } from '@components/shared/LoadingState';
 import { EmptyState } from '@components/shared/EmptyState';
 
@@ -59,30 +55,6 @@ export interface HomeScreenProps {
   onSearchArea?: () => void;
   /** Device-location request behind the sheet's auto-detect row. */
   onUseCurrentLocation?: () => void;
-}
-
-function LiveFeaturedCard({
-  deal,
-  onOpenComments,
-  onShare,
-  onOpenDetail,
-}: {
-  deal: FeaturedDeal;
-  onOpenComments: (id: string) => void;
-  onShare: (id: string) => void;
-  onOpenDetail: (id: string) => void;
-}) {
-  const { deal: enriched, liked, toggleLike } = useEnriched(deal);
-
-  return (
-    <FeaturedDealCard
-      deal={{ ...enriched, liked }}
-      onToggleLike={toggleLike}
-      onOpenComments={onOpenComments}
-      onShare={onShare}
-      onOpenDetail={onOpenDetail}
-    />
-  );
 }
 
 /**
@@ -210,10 +182,7 @@ export function HomeScreen({
 
   const openShare = useCallback((dealId: string) => setShareDealId(dealId), []);
 
-  const allDeals = useMemo(
-    () => (featured ? [featured, ...nearbyDeals] : nearbyDeals),
-    [featured, nearbyDeals],
-  );
+  const allDeals = useMemo(() => [...featured, ...nearbyDeals], [featured, nearbyDeals]);
 
   const shareDeal = useMemo(
     () => [...allDeals, ...trending].find(deal => deal.id === shareDealId) ?? null,
@@ -271,12 +240,12 @@ export function HomeScreen({
                 seeAllLabel={strings.home.seeAll}
                 onSeeAll={onOpenFeaturedDeals}
               />
-              {isLoading && !featured ? (
+              {isLoading && featured.length === 0 ? (
                 <LoadingState label={strings.common.loading} />
               ) : null}
-              {featured ? (
-                <LiveFeaturedCard
-                  deal={featured}
+              {featured.length > 0 ? (
+                <FeaturedDealsRail
+                  deals={featured}
                   onOpenComments={openComments}
                   onShare={openShare}
                   onOpenDetail={openDeal}

@@ -18,6 +18,9 @@ jest.mock('@features/home/hooks/useNearbyProducts', () =>
 
 /** Lets one test drive a specific feed result. */
 const feedDouble = jest.requireMock('@features/deals/hooks/usePublicOffers');
+const { MOCK_OFFERS } = jest.requireActual('./helpers/mockOffersFeed') as {
+  MOCK_OFFERS: unknown[];
+};
 
 jest.mock('@hooks/useNetworkStatus', () => ({
   useIsOnline: () => true,
@@ -88,7 +91,7 @@ describe('useHomeDeals', () => {
     // One offer cannot be featured *and* nearby: the previous shape had all
     // three sections reading the same list, so a card appeared three times.
     const ids = [
-      ...(result.current?.featured ? [result.current.featured.id] : []),
+      ...(result.current?.featured.map(deal => deal.id) ?? []),
       ...(result.current?.nearby.map(deal => deal.id) ?? []),
     ];
     expect(ids.length).toBeGreaterThan(0);
@@ -96,9 +99,25 @@ describe('useHomeDeals', () => {
   });
 
   it('orders trending by claims, the only popularity signal available', async () => {
+    // The featured rail takes the first three offers, so trending is only
+    // exercised by a feed that has something left over after featured.
+    const extra = {
+      ...(MOCK_OFFERS[0] as Record<string, unknown>),
+      id: 'offer-extra-most-claimed',
+      claimedCount: 99,
+    };
+    feedDouble.usePublicOffersFeed.mockReturnValueOnce({
+      offers: [...MOCK_OFFERS, extra],
+      isLoading: false,
+      isError: false,
+      isSuccess: true,
+    });
+
     const result = await renderHomeDeals();
 
-    expect(result.current?.trending.length ?? 0).toBeGreaterThan(0);
+    const trending = result.current?.trending ?? [];
+    expect(trending.length).toBeGreaterThan(0);
+    expect(trending[0].id).toBe('offer-extra-most-claimed');
   });
 
   it('reports an empty feed instead of padding with seed data', async () => {
@@ -114,7 +133,7 @@ describe('useHomeDeals', () => {
 
     const result = await renderHomeDeals();
 
-    expect(result.current?.featured).toBeNull();
+    expect(result.current?.featured).toEqual([]);
     expect(result.current?.nearby).toEqual([]);
     expect(result.current?.trending).toEqual([]);
   });
