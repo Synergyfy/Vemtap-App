@@ -109,12 +109,7 @@ export function useCustomerMessagingRealtime(enabled = true): void {
   });
 
   useEffect(() => {
-    // Disabled (signed out, or the business side is showing): tear the socket
-    // down so the business bridge can own it.
-    if (!enabled) {
-      disposeMessagingSocket();
-      return;
-    }
+    if (!enabled) return;
 
     let disposed = false;
     let bound: Socket | null = null;
@@ -239,6 +234,14 @@ export function useCustomerMessagingRealtime(enabled = true): void {
       // rooms it belonged to need re-entering.
       invalidateLists(true);
       joinOpenThread();
+      // The list prefix above also matches messages, but an open conversation is
+      // the one the customer is staring at, so refresh it unconditionally.
+      const active = getActiveMessagingThread();
+      if (active) {
+        queryClient.invalidateQueries({
+          queryKey: customerMessagingKeys.messages(accountKey.current, active),
+        });
+      }
     };
 
     const bind = (socket: Socket) => {

@@ -150,21 +150,10 @@ export function BusinessProfileScreen({
       <ProfilePageHeader
         title={strings.urbanProfile.businessProfile}
         onBack={onBack}
-        right={
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={strings.discoverFeed.bookmarkBusiness(business.name)}
-            accessibilityState={{ selected: bookmarked }}
-            onPress={toggleBookmark}
-            className="h-10 w-10 items-center justify-center rounded-full bg-surface-canvas shadow-sm"
-          >
-            <Icon
-              name="bookmark"
-              size={20}
-              color={bookmarked ? colors.primary : colors.text}
-            />
-          </Pressable>
-        }
+        // No `right` action: the save/bookmark lives on the banner image, where
+        // it doubles as the design's primary action. Having it in both places
+        // made the navbar one look like a different control, and it was the one
+        // that silently did nothing for signed-out visitors.
       />
       <ScrollView
         showsVerticalScrollIndicator={false}

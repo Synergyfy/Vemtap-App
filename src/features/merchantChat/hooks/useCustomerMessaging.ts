@@ -46,7 +46,9 @@ export function useCustomerThreadMessages(threadId?: string | null) {
     queryFn: () => messagingApi.getCustomerThreadMessages(threadId!),
     enabled: Boolean(threadId),
     staleTime: 10_000,
-    refetchInterval: 15_000,
+    // No polling interval: `useCustomerMessagingRealtime` pushes new messages
+    // and edits, and refreshes this query on reconnect. A `refetchInterval` here
+    // would re-fetch every open conversation every 15s for nothing.
   });
 }
 
