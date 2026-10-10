@@ -114,6 +114,30 @@ export function offerCountdown(
   return countdownLabel(endDate, now, DEAL_COUNTDOWN_LABELS);
 }
 
+/**
+ * The absolute end date for screens that word their own copy, e.g.
+ * `14 Feb 2027`. Null when the payload has no usable date, so the caller can
+ * drop the clause instead of inventing one.
+ *
+ * Formatted in UTC: the column stores the merchant's calendar day at midnight,
+ * and a device west of UTC would otherwise render the day before it ends.
+ */
+export function formatOfferEndDate(endDate: string | null | undefined): string | null {
+  if (!endDate) {
+    return null;
+  }
+  const date = new Date(endDate);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+  return date.toLocaleDateString('en-NG', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
+}
+
 /** Exported for the Home cards, which render the same badge in their own layout. */
 export function discountLabel(offer: Offer): string {
   if (typeof offer.discountPercent === 'number' && offer.discountPercent > 0) {

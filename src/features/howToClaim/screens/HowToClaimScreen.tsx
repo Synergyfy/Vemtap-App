@@ -7,9 +7,13 @@ import { RegistrationHeader } from '@components/auth/RegistrationHeader';
 import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
+import { LoadingState } from '@components/shared/LoadingState';
+import { EmptyState } from '@components/shared/EmptyState';
 import { strings } from '@constants/strings';
 import { colors } from '@theme/colors';
-import { dealsGrid } from '@features/deals/data/dealsFeed';
+import { useDealDetail } from '@features/dealDetail/hooks/useDealDetail';
+import { resolveDeal } from '@features/dealDetail/data/dealResolver';
+import { formatOfferEndDate } from '@features/deals/utils/offerMapper';
 import type { AppStackParamList } from '@navigation/types';
 import { HowToClaimStepCard } from '../components/HowToClaimStepCard';
 
@@ -25,19 +29,66 @@ type Props = NativeStackScreenProps<AppStackParamList, 'HowToClaim'>;
 
 export function HowToClaimScreen({ route, navigation }: Props) {
   const insets = useSafeAreaInsets();
-  const deal = dealsGrid.find(item => item.id === route.params.dealId) ?? dealsGrid[0];
-  const merchant = deal.merchant.split(' • ')[0];
-  const area = deal.merchant.split(' • ')[1] ?? strings.deals.location;
+  const detail = useDealDetail(route.params.dealId);
+  const deal = detail.status === 'resolved' ? detail.deal : undefined;
+  /**
+   * The bundled walkthrough keeps its scripted success screen; a real offer
+   * sends the reader back to the deal, where claiming actually happens —
+   * this button used to fake a claim that never reached any endpoint.
+   */
+  const isSeed = resolveDeal(route.params.dealId) !== undefined;
 
   const handleClaim = useCallback(() => {
-    navigation.navigate('DealClaimedSuccess', { dealId: deal.id });
-  }, [deal.id, navigation]);
+    if (!deal) return;
+    if (isSeed) {
+      navigation.navigate('DealClaimedSuccess', { dealId: deal.id });
+      return;
+    }
+    navigation.navigate('DealDetail', { dealId: deal.id });
+  }, [deal, isSeed, navigation]);
 
   const handleShare = useCallback(() => {
+    if (!deal) return;
     Share.share({
       message: `https://vemtap.com/deals/${deal.id}`,
     }).catch(() => undefined);
-  }, [deal.id]);
+  }, [deal]);
+
+  // Unknown or missing deal: say so instead of filling the steps with some
+  // other offer's merchant and address. Hooks all run before this branch.
+  if (!deal) {
+    return (
+      <View className="flex-1 bg-surface">
+        <SafeAreaView edges={['top']} className="bg-surface">
+          <RegistrationHeader
+            title={strings.howToClaim.headerTitle}
+            onBack={navigation.goBack}
+          />
+        </SafeAreaView>
+        {detail.status === 'loading' ? (
+          <LoadingState label={strings.common.loading} />
+        ) : (
+          <EmptyState
+            icon="search"
+            title={
+              detail.status === 'notFound'
+                ? strings.errors.notFound
+                : strings.errors.server
+            }
+            description={strings.dealDetail.unavailableBody}
+            actionLabel={detail.status === 'notFound' ? undefined : strings.common.retry}
+            onAction={detail.status === 'notFound' ? undefined : detail.retry}
+            className="mt-16"
+          />
+        )}
+      </View>
+    );
+  }
+
+  const { merchant, location: area } = deal;
+  const deadline = isSeed
+    ? strings.howToClaim.seedDeadline
+    : (formatOfferEndDate(deal.endDate) ?? undefined);
 
   return (
     <View className="flex-1 bg-surface">
@@ -96,7 +147,7 @@ export function HowToClaimScreen({ route, navigation }: Props) {
           <HowToClaimStepCard
             step={2}
             title={strings.howToClaim.stepTwoTitle}
-            description={strings.howToClaim.stepTwoBody(merchant, area)}
+            description={strings.howToClaim.stepTwoBody(merchant, area, deadline)}
             icon="nearMe"
           >
             <View className="flex-row items-center justify-between gap-2 rounded-lg bg-surface-container-low p-2">
@@ -106,7 +157,7 @@ export function HowToClaimScreen({ route, navigation }: Props) {
                   variant="caption"
                   className="min-w-0 flex-1 truncate text-text"
                 >
-                  {strings.howToClaim.address}
+                  {deal.address}
                 </VemtapText>
               </View>
               <VemtapText

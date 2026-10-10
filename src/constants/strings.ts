@@ -666,7 +666,7 @@ export const strings = {
     claimed: 'Claim Secured!',
   },
   howToClaim: {
-    headerTitle: 'Deal Terms & Conditions',
+    headerTitle: 'How to Claim',
     badge: 'Instant Guarantee',
     title: 'Claim your deal in 3 simple steps',
     subtitle: 'Fast, seamless local savings with zero upfront commitment.',
@@ -675,8 +675,11 @@ export const strings = {
       'Tap ‘Claim Deal’ to instantly reserve your offer in VEMTAP. No upfront payment required.',
     reservation: 'Reserved for 48 hours',
     stepTwoTitle: 'Visit the Business',
-    stepTwoBody: (merchant: string, area: string) =>
-      `Head to ${merchant} in ${area}, Abuja anytime before the deal expires on 20 Sep.`,
+    // The deadline is passed in: a real offer's own end date, and the bundled
+    // deals' scripted one. Unknown dates drop the clause instead of guessing.
+    stepTwoBody: (merchant: string, area: string, deadline?: string) =>
+      `Head to ${merchant} in ${area} anytime before the deal expires${deadline ? ` on ${deadline}` : ''}.`,
+    seedDeadline: '20 Sep',
     address: 'Plot 412, Apo Resettlement',
     stepThreeTitle: 'Show Your Claim',
     stepThreeBody:
