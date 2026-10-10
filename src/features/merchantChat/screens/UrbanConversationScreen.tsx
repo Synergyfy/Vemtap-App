@@ -16,6 +16,11 @@ import { ErrorState } from '@components/shared/ErrorState';
 import { LoadingState } from '@components/shared/LoadingState';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
+import {
+  joinMessagingThread,
+  leaveMessagingThread,
+  setActiveMessagingThread,
+} from '@api/messagingSocket';
 import { strings } from '@constants/strings';
 import { orderImages } from '@features/order/orderData';
 import {
@@ -71,6 +76,19 @@ export function UrbanConversationScreen({
     : undefined;
   const messagesQuery = useCustomerThreadMessages(threadId);
   const sendReply = useSendCustomerReply();
+
+  // Tell the socket bridge which thread is on screen: it joins that thread's
+  // room (so live messages arrive while it is open), marks inbound messages
+  // read rather than delivered, and leaves the room on exit.
+  useEffect(() => {
+    if (!threadId) return;
+    setActiveMessagingThread(threadId);
+    joinMessagingThread(threadId);
+    return () => {
+      setActiveMessagingThread(null);
+      leaveMessagingThread(threadId);
+    };
+  }, [threadId]);
 
   useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';

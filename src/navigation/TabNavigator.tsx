@@ -1,6 +1,6 @@
 import { useHistoryBack } from '@navigation/useHistoryBack';
 import { tabRePressListenersFor } from '@navigation/navigationHistory';
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   createBottomTabNavigator,
   type BottomTabNavigationProp,
@@ -27,6 +27,7 @@ import { OrdersBookingsHubScreen } from '@features/order/screens/OrdersBookingsH
 import { PersonalHubNavigator } from '@navigation/PersonalHubNavigator';
 import { UrbanOrderDetailScreen } from '@features/order/screens/UrbanOrderDetailScreen';
 import { MessagesScreen } from '@features/merchantChat/screens/MessagesScreen';
+import { ComposeMessageSheet } from '@features/merchantChat/components/ComposeMessageSheet';
 import { UrbanConversationScreen } from '@features/merchantChat/screens/UrbanConversationScreen';
 import { HelpCentreScreen } from '@features/accountHub/screens/HelpCentreScreen';
 import { MoreHubScreen } from '@features/accountHub/screens/MoreHubScreen';
@@ -648,13 +649,18 @@ function OrdersBookingsRoute() {
 
 function MessagesRoute() {
   const goBack = useHistoryBack();
+  const [composing, setComposing] = useState(false);
 
   const navigation = useNavigation<AccountStackNavigation>();
   return (
-    <MessagesScreen
-      onBack={goBack}
-      onOpenConversation={threadId => navigation.navigate('Conversation', { threadId })}
-    />
+    <>
+      <MessagesScreen
+        onBack={goBack}
+        onOpenConversation={threadId => navigation.navigate('Conversation', { threadId })}
+        onCompose={() => setComposing(true)}
+      />
+      <ComposeMessageSheet visible={composing} onClose={() => setComposing(false)} />
+    </>
   );
 }
 

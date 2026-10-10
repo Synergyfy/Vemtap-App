@@ -81,6 +81,9 @@ export const messageListSchema = z.union([
     .transform(res => res.data),
 ]);
 
+/** The subject a new conversation is opened under. */
+export type StartConversationSubject = 'GENERAL' | 'DEAL' | 'CLAIM' | 'ORDER' | 'BOOKING';
+
 export interface StartConversationPayload {
   branchId: string;
   content: string;

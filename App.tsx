@@ -33,6 +33,7 @@ import { registerAuthBridge } from '@api/client';
 import { useAuthStore } from '@store/authStore';
 import { useAuthBootstrap } from '@features/auth/hooks/useAuthBootstrap';
 import { useCustomerTokenSync } from '@features/auth/hooks/useCustomerTokenSync';
+import { useCustomerMessagingRealtime } from '@features/merchantChat/hooks/useCustomerMessagingRealtime';
 import { startOfflineReplay } from '@services/offlineReplay';
 import { refreshFeatureFlags } from '@services/featureFlags';
 import { initPushNotifications } from '@services/pushNotifications';
@@ -113,6 +114,17 @@ function CustomerTokenSync() {
   return null;
 }
 
+/**
+ * Lives only while the consumer side is the active one — the business shell
+ * mounts its own bridge, and the two must never both hold the socket.
+ */
+function CustomerMessagingRealtime() {
+  const activeMode = useAuthStore(state => state.activeMode);
+  const status = useAuthStore(state => state.status);
+  useCustomerMessagingRealtime(status === 'authenticated' && activeMode === 'customer');
+  return null;
+}
+
 export default function App() {
   const [bootReady, setBootReady] = useState(false);
   const [fontsLoaded, fontError] = useFonts({
@@ -173,6 +185,7 @@ export default function App() {
                 {/* Under the client, above the shell: a mis-signed token is
                     repaired before the first screen's fetches run. */}
                 <CustomerTokenSync />
+                <CustomerMessagingRealtime />
                 {booted ? (
                   <Shell>
                     <RootNavigator />

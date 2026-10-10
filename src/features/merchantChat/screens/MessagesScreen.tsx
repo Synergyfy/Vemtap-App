@@ -1,10 +1,12 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
   Pressable,
   ScrollView,
   TextInput,
   View,
   type ImageSourcePropType,
+  type ScrollView as RNScrollView,
+  type TextInput as RNTextInput,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ConversationListCard } from '@features/merchantChat/components/ConversationListCard';
@@ -42,8 +44,11 @@ const images = [
 export interface MessagesScreenProps {
   onBack?: () => void;
   onOpenConversation?: (threadId: string) => void;
+  /** Opens the compose sheet; starts a thread with a subject when provided. */
   onCompose?: () => void;
+  /** Focuses the search field (the header icon drives the field in the body). */
   onSearch?: () => void;
+  /** Brings the filter chips into view. */
   onFilter?: () => void;
 }
 
@@ -118,7 +123,14 @@ export function MessagesScreen({
   const insets = useSafeAreaInsets();
   const [query, setQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState(0);
+  const searchRef = useRef<RNTextInput | null>(null);
+  const scrollRef = useRef<RNScrollView | null>(null);
   const threadsQuery = useCustomerThreads();
+
+  // The header's search icon focuses the field; its filter icon scrolls to the
+  // chip row. Both are no-ops when the navigator does not pass them.
+  const focusSearch = () => searchRef.current?.focus();
+  const focusFilters = () => scrollRef.current?.scrollTo({ y: 140, animated: true });
   const threads = threadsQuery.data;
 
   const unreadConversations = useMemo(
@@ -176,7 +188,7 @@ export function MessagesScreen({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={strings.messagesHub.search}
-            onPress={onSearch}
+            onPress={onSearch ?? focusSearch}
             className="h-11 w-11 items-center justify-center rounded-full active:bg-surface-container-low"
           >
             <Icon name="search" size={23} color={colors.textSecondary} />
@@ -184,7 +196,7 @@ export function MessagesScreen({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={strings.messagesHub.filter}
-            onPress={onFilter}
+            onPress={onFilter ?? focusFilters}
             className="h-11 w-11 items-center justify-center rounded-full active:bg-surface-container-low"
           >
             <Icon name="tune" size={21} color={colors.textSecondary} />
@@ -194,6 +206,7 @@ export function MessagesScreen({
       </View>
 
       <ScrollView
+        ref={scrollRef}
         className="flex-1"
         contentContainerClassName="gap-3 px-6 pb-6 pt-4"
         showsVerticalScrollIndicator={false}
@@ -229,6 +242,7 @@ export function MessagesScreen({
         <View className="h-11 flex-row items-center rounded-xl bg-surface-container-low px-4 shadow-sm">
           <Icon name="search" size={20} color={colors.textTertiary} />
           <TextInput
+            ref={searchRef}
             accessibilityLabel={strings.messagesHub.searchPlaceholder}
             value={query}
             onChangeText={setQuery}
