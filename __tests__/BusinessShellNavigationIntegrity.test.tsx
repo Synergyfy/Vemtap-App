@@ -2,6 +2,8 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react-native';
+import { userSchema } from '@api/authApi';
+import { useAuthStore } from '@store/authStore';
 import { BusinessTabNavigator } from '@navigation/BusinessTabNavigator';
 import { businessTabForRoute } from '@navigation/useBusinessNavigation';
 import { strings } from '@constants/strings';
@@ -124,6 +126,45 @@ describe('business shell cross-stack navigation', () => {
       expect(warnings).toEqual([]);
     } finally {
       restore();
+    }
+  });
+
+  it('clears the session when the More hub signs the owner out', async () => {
+    const owner = userSchema.parse({
+      email: 'ada.okon@example.com',
+      firstName: 'Ada',
+      lastName: 'Okon',
+      phone: '0801 111 2222',
+      role: 'Owner',
+    });
+    useAuthStore.setState({
+      user: owner,
+      status: 'authenticated',
+      activeMode: 'business',
+      ownerAccount: true,
+      tokenRole: 'Owner',
+    });
+
+    const { restore } = await mountShell();
+    try {
+      await openTab(strings.businessShell.tabs.more);
+      await act(async () => {
+        fireEvent.press(screen.getByLabelText(strings.businessMore.signOut));
+      });
+
+      // The button used to be wired to a no-op; it must clear the session the
+      // same way the customer-side sign out does.
+      expect(useAuthStore.getState().status).toBe('unauthenticated');
+      expect(useAuthStore.getState().user).toBeNull();
+    } finally {
+      restore();
+      useAuthStore.setState({
+        user: null,
+        status: 'unauthenticated',
+        activeMode: 'business',
+        ownerAccount: false,
+        tokenRole: null,
+      });
     }
   });
 });

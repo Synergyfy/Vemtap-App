@@ -92,6 +92,8 @@ import {
   useUpdateBookingStatus,
 } from '@features/business/hooks/useBusinessBookings';
 import { useAuthStore } from '@store/authStore';
+import { queryClient } from '@store/queryClient';
+import { clearSecureStorage } from '@utils/secureStorage';
 import { navigationRef } from '@navigation/navigationRef';
 import { CampaignsHubScreen } from '@features/business/screens/CampaignsHubScreen';
 import { CustomerSegmentsScreen } from '@features/business/screens/CustomerSegmentsScreen';
@@ -1817,6 +1819,40 @@ function BusinessNetworkDashboardRoute() {
  * resolves inside the *current* stack, so every cross-stack target is addressed
  * through its owning tab rather than by screen name.
  */
+/**
+ * "Sign Out of Business" — same local clear as the customer-side sign out
+ * (secure storage, query cache, auth store), then leave the shell.
+ *
+ * BusinessTabs is a root sibling of AppStack/AuthStack, so flipping the
+ * session only swaps the stack *underneath* the shell; without a root reset
+ * the user would sit in a signed-out business dashboard, and back would
+ * reopen it. The reset waits a frame so RootNavigator has re-rendered
+ * AuthStack into the root before we target it.
+ */
+const signOut = () => {
+  const store = useAuthStore.getState();
+  const leaveBusinessShell = () => {
+    requestAnimationFrame(() => {
+      if (navigationRef?.isReady()) {
+        navigationRef.resetRoot({ index: 0, routes: [{ name: 'AuthStack' }] });
+      }
+    });
+  };
+
+  if (store.status === 'authenticated') {
+    queryClient.clear();
+    clearSecureStorage()
+      .catch(() => undefined)
+      .finally(() => {
+        store.clearSession();
+        leaveBusinessShell();
+      });
+  } else {
+    store.markUnauthenticated();
+    leaveBusinessShell();
+  }
+};
+
 function BusinessMoreHubOperationsRoute() {
   const navigation = useBusinessNavigation();
 
@@ -1932,7 +1968,7 @@ function BusinessMoreHubOperationsRoute() {
       onOpenPosTile={goToPosTile}
       onOpenRow={goToRow}
       onSwitchToCustomer={() => navigation.navigate('SwitchToCustomer')}
-      onSignOut={() => undefined}
+      onSignOut={signOut}
     />
   );
 }
@@ -2560,6 +2596,7 @@ function BusinessMoreRoute() {
         }
       }}
       onSwitchToCustomer={() => navigation.navigate('SwitchToCustomer')}
+      onSignOut={signOut}
     />
   );
 }
