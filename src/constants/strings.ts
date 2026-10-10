@@ -757,6 +757,8 @@ export const strings = {
       description:
         "Choose how you'd like to reach out to inquire, make reservations, or coordinate redemption.",
       inAppChat: 'In-App Chat',
+      openerFor: (dealTitle: string) =>
+        `Hi, I'd like to ask about my voucher for ${dealTitle}.`,
       recommended: 'Recommended',
       chatReplyTime: 'Typical reply in under 5 mins',
       whatsapp: 'Chat on WhatsApp',
@@ -2401,6 +2403,7 @@ export const strings = {
     dealPrice: '₦9,600',
     regularPrice: '₦12,000',
     save: 'Save ₦2,400',
+    saveAmountFor: (amount: string) => `Save ${amount}`,
     codeLabel: 'Code:',
     code: 'VT-48F261',
     viewPass: 'View Pass',

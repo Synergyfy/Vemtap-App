@@ -1,4 +1,6 @@
 import { useHistoryBack } from '@navigation/useHistoryBack';
+import { useHideTabBarOnFocus } from '@navigation/useHideTabBarOnFocus';
+import { useOpenClaimChat } from '@features/merchantChat/hooks/useOpenClaimChat';
 import React, { useEffect, useState } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import {
@@ -29,6 +31,7 @@ import { OrdersBookingsHubScreen } from '@features/order/screens/OrdersBookingsH
 import { UrbanOrderDetailScreen } from '@features/order/screens/UrbanOrderDetailScreen';
 import { BookingDetailScreen } from '@features/accountHub/screens/BookingDetailScreen';
 import { TypeDensityProvider } from '@theme/TypeDensityProvider';
+import { strings } from '@constants/strings';
 import type {
   AccountStackParamList,
   AppStackParamList,
@@ -84,6 +87,8 @@ function PersonalHomeRoute() {
     <CustomerDashboardScreen
       onBack={goBack}
       onNotifications={() => navigation.navigate('PersonalNotifications')}
+      onShop={() => navigation.navigate('PersonalOrders')}
+      shopLabel={strings.accountScreens.moreHub.ordersTitle}
       onOpenAccount={() => navigation.navigate('PersonalMore')}
       onOpenRewards={() => navigation.navigate('PersonalRewards')}
       onOpenActivity={() => navigation.navigate('PersonalActivity')}
@@ -134,9 +139,18 @@ function PersonalMessagesRoute() {
 
 function PersonalConversationRoute() {
   const goBack = useHistoryBack();
+  useHideTabBarOnFocus();
 
+  const navigation = useNavigation<HubNavigation>();
   const route = useRoute<RouteProp<PersonalHubParamList, 'PersonalConversation'>>();
-  return <UrbanConversationScreen threadId={route.params?.threadId} onBack={goBack} />;
+  return (
+    <UrbanConversationScreen
+      threadId={route.params?.threadId}
+      claimId={route.params?.claimId}
+      onBack={goBack}
+      onViewPass={claimId => navigation.navigate('PersonalClaimedDealPass', { claimId })}
+    />
+  );
 }
 
 function PersonalOrdersRoute() {
@@ -259,12 +273,22 @@ function PersonalHelpCentreRoute() {
 function PersonalClaimedDealPassRoute() {
   const goBack = useHistoryBack();
 
+  const navigation = useNavigation<HubNavigation>();
   const route = useRoute<RouteProp<PersonalHubParamList, 'PersonalClaimedDealPass'>>();
   const pass = useClaimPass({
     claimId: route.params?.claimId,
     offerId: route.params?.dealId,
   });
-  return <ClaimedDealDetailPassScreen claim={pass.claim} onBack={goBack} />;
+  const openChat = useOpenClaimChat(pass.claim, params =>
+    navigation.navigate('PersonalConversation', params),
+  );
+  return (
+    <ClaimedDealDetailPassScreen
+      claim={pass.claim}
+      onBack={goBack}
+      onOpenChat={openChat}
+    />
+  );
 }
 
 /**

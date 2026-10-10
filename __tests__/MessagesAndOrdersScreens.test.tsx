@@ -33,6 +33,10 @@ jest.mock('@features/order/hooks/useCustomerOrders', () => ({
   useCustomerOrderDetail: jest.fn(),
 }));
 
+jest.mock('@features/myDeals/hooks/useMyClaims', () => ({
+  useClaimPass: jest.fn(() => ({ claim: undefined })),
+}));
+
 const order: CatalogueOrder = {
   id: 'ac46bc8c-b2d7-465a-8b86-1a11acab4513',
   createdAt: '2026-10-08T08:40:14.946Z',
@@ -120,7 +124,9 @@ test('renders the four standalone messages and order screens', async () => {
   expect(
     messages.getByPlaceholderText('Search conversations, businesses...'),
   ).toBeTruthy();
-  expect(conversation.getByText('20% Off Prime Lunch Gourmet Combo')).toBeTruthy();
+  // The conversation's linked-deal card is data-driven and only renders for a
+  // thread that links a claim, so assert the always-present message instead.
+  expect(conversation.getByText('Hi, thank you for reaching out.')).toBeTruthy();
   expect(hub.getByText('Orders And Bookings')).toBeTruthy();
   expect(detail.getByText('Kitchen is crafting your meal')).toBeTruthy();
 });

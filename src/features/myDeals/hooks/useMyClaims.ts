@@ -58,9 +58,13 @@ const isCustomerToken = (tokenRole: string | undefined | null) =>
 /** The result shape of a claims list query, for consumers that hold the query. */
 export type MyClaimsQueryResult = UseQueryResult<MyClaimsPage, Error>;
 
-export function useMyClaims(status?: MyClaimStatus, q = '') {
+export function useMyClaims(
+  status?: MyClaimStatus,
+  q?: string,
+  options?: { enabled?: boolean },
+) {
   const isCustomer = useAuthStore(state => isCustomerToken(state.tokenRole));
-  const search = q.trim();
+  const search = (q ?? '').trim();
   return useQuery<MyClaimsPage>({
     queryKey: myClaimKeys.list(status ?? 'ALL', search),
     queryFn: () =>
@@ -69,7 +73,7 @@ export function useMyClaims(status?: MyClaimStatus, q = '') {
         limit: LIST_PAGE_SIZE,
         q: search || undefined,
       }),
-    enabled: isCustomer,
+    enabled: isCustomer && options?.enabled !== false,
     staleTime: STALE_MS,
   });
 }
@@ -104,9 +108,17 @@ export function useClaimsCount(status: MyClaimStatus) {
  * returns everything a pass renders. Deep links may carry either a claim id or
  * an offer id, so both are matched. Mirrors `useCustomerOrderDetail`:
  * `isNotFound` distinguishes "still loading" from "not one of yours".
+ *
+ * `enabled` lets a caller that only sometimes needs the pass — the conversation
+ * screen, which reads it only when the thread links one — skip the list request
+ * entirely instead of paying for 50 rows it will not use.
  */
-export function useClaimPass(params: { claimId?: string; offerId?: string }) {
-  const list = useMyClaims();
+export function useClaimPass(params: {
+  claimId?: string;
+  offerId?: string;
+  enabled?: boolean;
+}) {
+  const list = useMyClaims(undefined, '', { enabled: params.enabled });
   const claim: MyClaim | undefined = (list.data?.data ?? []).find(candidate =>
     params.claimId
       ? candidate.id === params.claimId

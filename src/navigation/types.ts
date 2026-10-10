@@ -37,7 +37,7 @@ export type PersonalHubParamList = {
   PersonalClaimedDealPass: { claimId?: string; dealId?: string } | undefined;
   PersonalOrderDetail: { orderId?: string } | undefined;
   PersonalBookingDetail: { bookingNumber?: string } | undefined;
-  PersonalConversation: { threadId?: string } | undefined;
+  PersonalConversation: { threadId?: string; claimId?: string } | undefined;
 };
 
 /**
@@ -450,7 +450,7 @@ export type AccountStackParamList = {
   ClaimedDealPass: { claimId?: string; dealId?: string } | undefined;
   OrderDetail: { orderId?: string } | undefined;
   BookingDetail: { bookingNumber?: string } | undefined;
-  Conversation: { threadId?: string } | undefined;
+  Conversation: { threadId?: string; claimId?: string } | undefined;
 };
 
 export type MainTabParamList = {

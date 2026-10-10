@@ -1,4 +1,8 @@
 import { useHistoryBack } from '@navigation/useHistoryBack';
+import { useHideTabBarOnFocus } from '@navigation/useHideTabBarOnFocus';
+import { useOpenClaimChat } from '@features/merchantChat/hooks/useOpenClaimChat';
+import { useClaimPass } from '@features/myDeals/hooks/useMyClaims';
+import { useTabBarStore } from '@store/tabBarStore';
 import { tabRePressListenersFor } from '@navigation/navigationHistory';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
@@ -750,10 +754,19 @@ function ClaimedDealPassRoute() {
   const goBack = useHistoryBack();
 
   const navigation = useNavigation<AccountStackNavigation>();
+  const route = useRoute<RouteProp<AccountStackParamList, 'ClaimedDealPass'>>();
+  const pass = useClaimPass({
+    claimId: route.params?.claimId,
+    offerId: route.params?.dealId,
+  });
+  const openChat = useOpenClaimChat(pass.claim, params =>
+    navigation.navigate('Conversation', params),
+  );
   return (
     <ClaimedDealDetailPassScreen
+      claim={pass.claim}
       onBack={goBack}
-      onOpenChat={() => navigation.navigate('Conversation', {})}
+      onOpenChat={openChat}
     />
   );
 }
@@ -786,14 +799,16 @@ function BookingDetailRoute() {
 
 function ConversationRoute() {
   const goBack = useHistoryBack();
+  useHideTabBarOnFocus();
 
   const navigation = useNavigation<AccountStackNavigation>();
   const route = useRoute<RouteProp<AccountStackParamList, 'Conversation'>>();
   return (
     <UrbanConversationScreen
       threadId={route.params?.threadId}
+      claimId={route.params?.claimId}
       onBack={goBack}
-      onViewPass={() => navigation.navigate('ClaimedDealPass', {})}
+      onViewPass={claimId => navigation.navigate('ClaimedDealPass', { claimId })}
     />
   );
 }
@@ -831,6 +846,7 @@ export function AccountStackNavigator() {
 
 export function TabNavigator() {
   const insets = useSafeAreaInsets();
+  const isTabBarHidden = useTabBarStore(state => state.isTabBarHidden);
 
   const screenOptions = useMemo(
     () => ({
@@ -844,16 +860,20 @@ export function TabNavigator() {
         marginTop: 2,
       },
       tabBarButton: CenteredTabButton,
-      tabBarStyle: {
-        height: TAB_BAR_CONTENT_HEIGHT + insets.bottom,
-        paddingTop: 0,
-        paddingBottom: insets.bottom,
-        backgroundColor: '#FFFFFF',
-        borderTopWidth: 0,
-        ...tabBarTopShadow,
-      },
+      // The conversation view is a full-height canvas, so it asks for the bar
+      // to be hidden while it is focused (`useHideTabBarOnFocus`).
+      tabBarStyle: isTabBarHidden
+        ? { display: 'none' as const }
+        : {
+            height: TAB_BAR_CONTENT_HEIGHT + insets.bottom,
+            paddingTop: 0,
+            paddingBottom: insets.bottom,
+            backgroundColor: '#FFFFFF',
+            borderTopWidth: 0,
+            ...tabBarTopShadow,
+          },
     }),
-    [insets.bottom],
+    [insets.bottom, isTabBarHidden],
   );
 
   return (

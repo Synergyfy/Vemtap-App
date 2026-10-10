@@ -28,8 +28,9 @@ import {
   useCustomerThreads,
   useSendCustomerReply,
 } from '@features/merchantChat/hooks/useCustomerMessaging';
-import { formatWhen } from '@utils/formatters';
+import { formatCurrency, formatWhen } from '@utils/formatters';
 import { ConversationBubble } from '@features/merchantChat/components/ConversationBubble';
+import { useClaimPass } from '@features/myDeals/hooks/useMyClaims';
 import { colors } from '@theme/colors';
 import { navbarBottomShadow } from '@theme/shadows';
 
@@ -39,11 +40,18 @@ export interface UrbanConversationScreenProps {
    * `GET /customer/messaging/threads/{threadId}` and replies go to its `/reply`.
    */
   threadId?: string;
+  /**
+   * The linked deal pass, when the chat was opened straight from one. The thread
+   * itself carries `claimId`, but a just-started thread may not be in the cached
+   * list yet, so the route's claim wins when both are present.
+   */
+  claimId?: string;
   onBack?: () => void;
   onCallMerchant?: () => void;
   onOpenDetails?: () => void;
   onMore?: () => void;
-  onViewPass?: () => void;
+  /** Opens the linked deal pass. Carries the claim so the pass route can resolve it. */
+  onViewPass?: (claimId: string) => void;
   onCloseDeal?: () => void;
   onAttachment?: () => void;
   onEmoji?: () => void;
@@ -53,6 +61,7 @@ export interface UrbanConversationScreenProps {
 
 export function UrbanConversationScreen({
   threadId,
+  claimId,
   onBack,
   onCallMerchant,
   onOpenDetails,
@@ -76,6 +85,23 @@ export function UrbanConversationScreen({
     : undefined;
   const messagesQuery = useCustomerThreadMessages(threadId);
   const sendReply = useSendCustomerReply();
+
+  /**
+   * The linked deal comes off the thread (`claimId` is set when the chat was
+   * started from a pass) and is resolved against `GET /me/claims`. A route
+   * param wins so a chat opened straight from a pass still renders the card
+   * before the thread list has caught up. Only asked for when a claim is known,
+   * so a general conversation does not download the whole pass wallet to render
+   * nothing.
+   */
+  const linkedClaimId = claimId ?? thread?.claimId ?? undefined;
+  const { claim: linkedClaim } = useClaimPass({
+    claimId: linkedClaimId,
+    enabled: linkedClaimId != null,
+  });
+  const linkedOffer = linkedClaim?.offer;
+  const savedAmount =
+    linkedOffer != null ? linkedOffer.originalPrice - linkedOffer.calculatedPrice : 0;
 
   // Tell the socket bridge which thread is on screen: it joins that thread's
   // room (so live messages arrive while it is open), marks inbound messages
@@ -185,7 +211,7 @@ export function UrbanConversationScreen({
         automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
         showsVerticalScrollIndicator={false}
       >
-        {showDeal ? (
+        {showDeal && linkedClaim && linkedOffer ? (
           <View className="rounded-xl bg-surface p-3 shadow-md">
             <View className="flex-row items-center justify-between">
               <View className="flex-row items-center gap-2">
@@ -209,7 +235,11 @@ export function UrbanConversationScreen({
             </View>
             <View className="mt-3 flex-row gap-3">
               <Image
-                source={{ uri: orderImages.burger }}
+                source={
+                  linkedOffer.mainImage
+                    ? { uri: linkedOffer.mainImage }
+                    : { uri: orderImages.burger }
+                }
                 className="h-16 w-16 shrink-0 rounded-lg bg-surface-container"
               />
               <View className="min-w-0 flex-1">
@@ -218,33 +248,38 @@ export function UrbanConversationScreen({
                   className="font-sans-semibold"
                   numberOfLines={2}
                 >
-                  {strings.urbanConversation.dealTitle}
+                  {linkedOffer.name}
                 </VemtapText>
                 <View className="mt-0.5 flex-row flex-wrap items-center gap-2">
                   <VemtapText variant="caption" className="font-sans-bold">
-                    {strings.urbanConversation.dealPrice}
+                    {formatCurrency(linkedOffer.calculatedPrice)}
                   </VemtapText>
                   <VemtapText variant="caption" tone="tertiary" className="line-through">
-                    {strings.urbanConversation.regularPrice}
+                    {formatCurrency(linkedOffer.originalPrice)}
                   </VemtapText>
-                  <VemtapText
-                    variant="caption"
-                    tone="success"
-                    className="rounded-full bg-success-container px-1.5 py-0.5"
-                  >
-                    {strings.urbanConversation.save}
-                  </VemtapText>
+                  {savedAmount > 0 ? (
+                    <VemtapText
+                      variant="caption"
+                      tone="success"
+                      className="rounded-full bg-success-container px-1.5 py-0.5"
+                    >
+                      {strings.urbanConversation.saveAmountFor(
+                        formatCurrency(savedAmount),
+                      )}
+                    </VemtapText>
+                  ) : null}
                 </View>
                 <View className="mt-1 flex-row items-center justify-between gap-2">
                   <VemtapText variant="caption" tone="secondary">
                     {strings.urbanConversation.codeLabel}{' '}
                     <VemtapText className="font-sans-semibold text-text">
-                      {strings.urbanConversation.code}
+                      {linkedClaim.claimCode}
                     </VemtapText>
                   </VemtapText>
                   <Pressable
                     accessibilityRole="button"
-                    onPress={onViewPass}
+                    accessibilityLabel={strings.urbanConversation.viewPass}
+                    onPress={() => onViewPass?.(linkedClaim.id)}
                     className="flex-row items-center"
                   >
                     <VemtapText

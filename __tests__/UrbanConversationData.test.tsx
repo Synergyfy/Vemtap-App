@@ -6,8 +6,10 @@ import {
   useCustomerThreads,
   useSendCustomerReply,
 } from '@features/merchantChat/hooks/useCustomerMessaging';
+import { useClaimPass } from '@features/myDeals/hooks/useMyClaims';
 import { strings } from '@constants/strings';
 import type { ChatMessage, ConversationThread } from '@api/messagingApi';
+import type { MyClaim } from '@api/claimApi';
 
 jest.mock('@features/merchantChat/hooks/useCustomerMessaging', () => ({
   useCustomerThreads: jest.fn(),
@@ -15,7 +17,12 @@ jest.mock('@features/merchantChat/hooks/useCustomerMessaging', () => ({
   useSendCustomerReply: jest.fn(),
 }));
 
+jest.mock('@features/myDeals/hooks/useMyClaims', () => ({
+  useClaimPass: jest.fn(),
+}));
+
 const THREAD_ID = 'f7de9d67-6d7d-4701-9e84-e522131e8dbe';
+const CLAIM_ID = 'c1a2b3d4-0000-4000-8000-000000000001';
 
 const thread: ConversationThread = {
   id: THREAD_ID,
@@ -27,6 +34,45 @@ const thread: ConversationThread = {
   branchUnreadCount: 0,
   customerUnreadCount: 0,
 };
+
+const linkedThread: ConversationThread = {
+  ...thread,
+  subjectType: 'CLAIM',
+  claimId: CLAIM_ID,
+};
+
+const linkedClaim: MyClaim = {
+  id: CLAIM_ID,
+  claimCode: 'VT-48F261',
+  status: 'ACTIVE',
+  expiresAt: '2026-12-01T00:00:00.000Z',
+  claimedAt: '2026-10-01T00:00:00.000Z',
+  offer: {
+    id: 'offer-1',
+    name: '20% Off Prime Lunch Combo',
+    mainImage: 'https://example.test/lunch.jpg',
+    calculatedPrice: 9600,
+    originalPrice: 12000,
+    discountPercent: 20,
+    businessId: 'biz-1',
+    businessName: 'Urban Grill & Bistro',
+    branchId: 'de9abc24-fbe0-4b9b-8362-89663b6b4d1e',
+    endDate: '2026-12-01T00:00:00.000Z',
+  },
+};
+
+function setThread(value: ConversationThread) {
+  (useCustomerThreads as jest.Mock).mockReturnValue({
+    data: [value],
+    isLoading: false,
+    isError: false,
+    refetch: jest.fn(),
+  });
+}
+
+function setClaim(claim: MyClaim | undefined) {
+  (useClaimPass as jest.Mock).mockReturnValue({ claim });
+}
 
 const merchantMessage: ChatMessage = {
   id: 'msg-1',
@@ -56,12 +102,8 @@ function setMessages(state: Record<string, unknown>) {
 }
 
 beforeEach(() => {
-  (useCustomerThreads as jest.Mock).mockReturnValue({
-    data: [thread],
-    isLoading: false,
-    isError: false,
-    refetch: jest.fn(),
-  });
+  setThread(thread);
+  setClaim(undefined);
   (useSendCustomerReply as jest.Mock).mockReturnValue({
     mutate: jest.fn(),
     isPending: false,
@@ -141,4 +183,66 @@ test('does not send an empty draft', async () => {
   );
 
   expect(mutate).not.toHaveBeenCalled();
+});
+
+test('renders the linked deal card from the claim behind the thread', async () => {
+  setThread(linkedThread);
+  setClaim(linkedClaim);
+  setMessages({ isLoading: false, isError: false, data: [merchantMessage] });
+
+  const screen = await render(<UrbanConversationScreen threadId={THREAD_ID} />);
+
+  expect(screen.getByText(strings.urbanConversation.activeDeal)).toBeTruthy();
+  expect(screen.getByText('20% Off Prime Lunch Combo')).toBeTruthy();
+  expect(screen.getByText('₦9,600')).toBeTruthy();
+  expect(screen.getByText('₦12,000')).toBeTruthy();
+  expect(
+    screen.getByText(strings.urbanConversation.saveAmountFor('₦2,400')),
+  ).toBeTruthy();
+  expect(screen.getByText('VT-48F261')).toBeTruthy();
+});
+
+test('hides the deal card when the thread links no claim', async () => {
+  setThread(thread);
+  setClaim(undefined);
+  setMessages({ isLoading: false, isError: false, data: [merchantMessage] });
+
+  const screen = await render(<UrbanConversationScreen threadId={THREAD_ID} />);
+
+  expect(screen.queryByText(strings.urbanConversation.activeDeal)).toBeNull();
+});
+
+test('only asks for a claim pass when the thread links one', async () => {
+  setThread(thread);
+  setClaim(undefined);
+  setMessages({ isLoading: false, isError: false, data: [merchantMessage] });
+
+  await render(<UrbanConversationScreen threadId={THREAD_ID} />);
+
+  expect(useClaimPass).toHaveBeenCalledWith({ claimId: undefined, enabled: false });
+});
+
+test('the route claim is used before the cached thread catches up', async () => {
+  setThread(thread);
+  setClaim(linkedClaim);
+  setMessages({ isLoading: false, isError: false, data: [merchantMessage] });
+
+  await render(<UrbanConversationScreen threadId={THREAD_ID} claimId={CLAIM_ID} />);
+
+  expect(useClaimPass).toHaveBeenCalledWith({ claimId: CLAIM_ID, enabled: true });
+});
+
+test('hands the claim id to the pass when viewing it', async () => {
+  const onViewPass = jest.fn();
+  setThread(linkedThread);
+  setClaim(linkedClaim);
+  setMessages({ isLoading: false, isError: false, data: [merchantMessage] });
+
+  const screen = await render(
+    <UrbanConversationScreen threadId={THREAD_ID} onViewPass={onViewPass} />,
+  );
+
+  fireEvent.press(screen.getByText(strings.urbanConversation.viewPass));
+
+  expect(onViewPass).toHaveBeenCalledWith(CLAIM_ID);
 });

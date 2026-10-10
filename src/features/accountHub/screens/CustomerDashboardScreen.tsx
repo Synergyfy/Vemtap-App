@@ -102,6 +102,8 @@ export interface CustomerDashboardScreenProps {
   onLocation?: () => void;
   onNotifications?: () => void;
   onShop?: () => void;
+  /** Overrides the bag button's accessibility label, which defaults to `shop`. */
+  shopLabel?: string;
   onOpenAccount?: () => void;
   onOpenDeal?: (dealId: string) => void;
   /** Opens the claimed-pass detail for a claim row from `GET /me/claims`. */
@@ -116,6 +118,7 @@ export function CustomerDashboardScreen({
   onLocation,
   onNotifications,
   onShop,
+  shopLabel,
   onOpenAccount,
   onOpenDeal,
   onOpenClaim,
@@ -210,7 +213,11 @@ export function CustomerDashboardScreen({
           </Pressable>
         </View>
         <View className="shrink-0 flex-row items-center gap-2">
-          <HubIconButton icon="localMall" label={copy.shop} onPress={onShop} />
+          <HubIconButton
+            icon="localMall"
+            label={shopLabel ?? copy.shop}
+            onPress={onShop}
+          />
           <HubIconButton
             icon="notifications"
             label={copy.notifications}
