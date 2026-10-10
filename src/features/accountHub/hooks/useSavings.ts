@@ -19,16 +19,23 @@ export const SAVINGS_RANGE_DAYS: Record<SavingsRange, number | undefined> = {
 /**
  * Paginated redemption ledger. An empty `data` array is a valid state (nothing
  * redeemed yet), not an error.
+ *
+ * `totalSavedAmount` is summed over **every** entry in the window, not just the
+ * page — the server slices `data` but not the total — so a caller that only
+ * needs the figure can ask for `limit: 1` and still get the whole window.
+ * `enabled` lets a CUSTOMER-only consumer gate it the way `useMyClaims` does.
  */
 export function useSavingsLedger(
   days: number | undefined,
   page = 1,
   limit = 10,
+  enabled = true,
 ): ReturnType<typeof useQuery<SavingsPage>> {
   return useQuery<SavingsPage>({
     queryKey: savingsKeys.ledger(days, page),
     queryFn: () => savingsApi.getSavings({ days, page, limit }),
     staleTime: 120_000,
+    enabled,
   });
 }
 

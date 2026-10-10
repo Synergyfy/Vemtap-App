@@ -231,7 +231,13 @@ export const mockMyClaimsModule = () => ({
     list: jest.fn(),
     count: jest.fn(),
   },
+  myGiftKeys: {
+    all: ['me', 'gifts'],
+    list: jest.fn(),
+  },
   useMyClaims: jest.fn(() => idleQuery()),
+  useMyGifts: jest.fn(() => idleQuery()),
+  useMyDealsSavingsTotal: jest.fn(() => idleQuery()),
   useActiveClaimsCount: jest.fn(() => idleQuery()),
   useClaimsCount: jest.fn(() => idleQuery()),
   useClaimPass: jest.fn(() => ({ ...idleQuery(), claim: undefined, isNotFound: false })),

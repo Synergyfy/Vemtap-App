@@ -907,6 +907,8 @@ export function GiftConfirmSheet({
   onConfirm,
   recipient,
   deal,
+  sending = false,
+  errorMessage,
 }: {
   visible: boolean;
   onClose: () => void;
@@ -914,6 +916,10 @@ export function GiftConfirmSheet({
   onConfirm: () => void;
   recipient: RecipientData & { message: string };
   deal: ClaimDealData;
+  /** True while `POST /catalogue/offers/claim/gift` is in flight. */
+  sending?: boolean;
+  /** Set when that send failed; the sheet stays open so it can be retried. */
+  errorMessage?: string;
 }) {
   return (
     <BottomSheet
@@ -1014,8 +1020,24 @@ export function GiftConfirmSheet({
             Payment is made directly by recipient at the venue upon redemption.
           </VemtapText>
         </View>
+        {errorMessage ? (
+          <View
+            accessibilityRole="alert"
+            className="mt-3 flex-row items-start gap-2 rounded-field bg-error-container px-3 py-2"
+          >
+            <Icon name="alert" size={18} color={colors.error} />
+            <VemtapText variant="caption" tone="error" className="flex-1">
+              {errorMessage}
+            </VemtapText>
+          </View>
+        ) : null}
         <Button
-          label={strings.deals.claimFlow.confirmSendGift}
+          label={
+            sending
+              ? strings.deals.claimFlow.sendingGift
+              : strings.deals.claimFlow.confirmSendGift
+          }
+          disabled={sending}
           leftIcon={<Icon name="send" size={18} color={colors.surface} />}
           onPress={onConfirm}
         />

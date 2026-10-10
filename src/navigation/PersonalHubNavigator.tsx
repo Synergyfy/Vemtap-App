@@ -1,5 +1,5 @@
 import { useHistoryBack } from '@navigation/useHistoryBack';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import {
   useNavigation,
@@ -15,6 +15,7 @@ import { MyActivityScreen } from '@features/accountHub/screens/MyActivityScreen'
 import { RewardsScreen } from '@features/accountHub/screens/RewardsScreen';
 import { SavingsHistoryScreen } from '@features/accountHub/screens/SavingsHistoryScreen';
 import { SavedHubScreen } from '@features/accountHub/screens/SavedHubScreen';
+import { ComposeMessageSheet } from '@features/merchantChat/components/ComposeMessageSheet';
 import { NotificationsCenterScreen } from '@features/accountHub/screens/NotificationsCenterScreen';
 import { AccountSettingsSecurityScreen } from '@features/accountHub/screens/AccountSettingsSecurityScreen';
 import { EditProfileScreen } from '@features/accountHub/screens/EditProfileScreen';
@@ -107,21 +108,27 @@ function PersonalMyDealsRoute() {
       onBack={goBack}
       onAccount={() => navigation.navigate('PersonalMore')}
       onOpenClaim={claimId => navigation.navigate('PersonalClaimedDealPass', { claimId })}
+      onViewGuidelines={() => navigation.navigate('PersonalHelpCentre')}
     />
   );
 }
 
 function PersonalMessagesRoute() {
   const goBack = useHistoryBack();
+  const [composing, setComposing] = useState(false);
 
   const navigation = useNavigation<HubNavigation>();
   return (
-    <MessagesScreen
-      onBack={goBack}
-      onOpenConversation={threadId =>
-        navigation.navigate('PersonalConversation', { threadId })
-      }
-    />
+    <>
+      <MessagesScreen
+        onBack={goBack}
+        onOpenConversation={threadId =>
+          navigation.navigate('PersonalConversation', { threadId })
+        }
+        onCompose={() => setComposing(true)}
+      />
+      <ComposeMessageSheet visible={composing} onClose={() => setComposing(false)} />
+    </>
   );
 }
 

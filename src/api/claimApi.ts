@@ -114,6 +114,13 @@ type MyClaimsQuery = {
   page?: number;
   limit?: number;
   status?: MyClaimStatus;
+  /**
+   * Case-insensitive match on offer name, business name, branch name or claim
+   * code. Server-side, and it narrows `total` with the page — the alternative
+   * (filtering the page client-side) would silently hide matches past the
+   * 50-row limit.
+   */
+  q?: string;
 };
 
 export const claimApi = {
@@ -154,6 +161,10 @@ export const claimApi = {
   /**
    * The authenticated customer's claimed passes, newest first. `data: []` +
    * `total: 0` is a valid empty state.
+   *
+   * `limit` is capped at 50 by the API. Sending it (or `page`) is what switches
+   * the response from the legacy bare array to the `{ data, total }` envelope
+   * this client parses, so both are always sent.
    */
   async listMyClaims(
     query: MyClaimsQuery = {},
@@ -163,7 +174,12 @@ export const claimApi = {
       {
         method: 'GET',
         url: '/me/claims',
-        params: { page: query.page, limit: query.limit, status: query.status },
+        params: {
+          page: query.page,
+          limit: query.limit,
+          status: query.status,
+          q: query.q,
+        },
         ...options,
       },
       myClaimsPageSchema,

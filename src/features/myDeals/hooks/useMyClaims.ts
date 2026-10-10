@@ -5,7 +5,9 @@ import {
   type MyClaimStatus,
   type MyClaimsPage,
 } from '@api/claimApi';
+import { giftApi, type MyGiftsPage } from '@api/giftApi';
 import { useAuthStore } from '@store/authStore';
+import { useSavingsLedger } from '@features/accountHub/hooks/useSavings';
 
 /**
  * The customer's claimed deal passes (`GET /me/claims`).
@@ -19,6 +21,10 @@ import { useAuthStore } from '@store/authStore';
  * comparison. The list caps at the server's 50-row limit — enough for a
  * personal pass wallet — and one extra `limit: 1` read per status provides the
  * tab counts.
+ *
+ * `q` searches server-side over offer/business/branch name and the claim code,
+ * so a match past the 50-row page is still found. It is part of the query key,
+ * so typing a new term re-fetches rather than re-filtering stale rows.
  */
 
 const LIST_PAGE_SIZE = 50;
@@ -26,8 +32,18 @@ const STALE_MS = 60_000;
 
 export const myClaimKeys = {
   all: ['me', 'claims'] as const,
-  list: (status: MyClaimStatus | 'ALL') => [...myClaimKeys.all, 'list', status] as const,
+  /**
+   * Keyed by search as well as status: the search is server-side, so a row for
+   * one term must never be served to another.
+   */
+  list: (status: MyClaimStatus | 'ALL', q = '') =>
+    [...myClaimKeys.all, 'list', status, q] as const,
   count: (status: MyClaimStatus) => [...myClaimKeys.all, 'count', status] as const,
+};
+
+export const myGiftKeys = {
+  all: ['me', 'gifts'] as const,
+  list: (q = '') => [...myGiftKeys.all, 'list', q] as const,
 };
 
 /**
@@ -42,11 +58,17 @@ const isCustomerToken = (tokenRole: string | undefined | null) =>
 /** The result shape of a claims list query, for consumers that hold the query. */
 export type MyClaimsQueryResult = UseQueryResult<MyClaimsPage, Error>;
 
-export function useMyClaims(status?: MyClaimStatus) {
+export function useMyClaims(status?: MyClaimStatus, q = '') {
   const isCustomer = useAuthStore(state => isCustomerToken(state.tokenRole));
+  const search = q.trim();
   return useQuery<MyClaimsPage>({
-    queryKey: myClaimKeys.list(status ?? 'ALL'),
-    queryFn: () => claimApi.listMyClaims({ status, limit: LIST_PAGE_SIZE }),
+    queryKey: myClaimKeys.list(status ?? 'ALL', search),
+    queryFn: () =>
+      claimApi.listMyClaims({
+        status,
+        limit: LIST_PAGE_SIZE,
+        q: search || undefined,
+      }),
     enabled: isCustomer,
     staleTime: STALE_MS,
   });
@@ -98,4 +120,37 @@ export function useClaimPass(params: { claimId?: string; offerId?: string }) {
     claim,
     isNotFound: list.isSuccess && Boolean(params.claimId ?? params.offerId) && !claim,
   };
+}
+
+/**
+ * The deals the customer has gifted away (`GET /me/gifts`) — the sender side of
+ * the gift flow, and what the My Deals "Gifted" tab renders.
+ *
+ * Declined gifts are soft-removed on the server so the branch dashboard stops
+ * seeing the recipient; this endpoint opts them back in for the sender, so a
+ * `rejected` row is a real outcome to render (as "Declined"), not an anomaly.
+ */
+export function useMyGifts(q = '') {
+  const isCustomer = useAuthStore(state => isCustomerToken(state.tokenRole));
+  const search = q.trim();
+  return useQuery<MyGiftsPage>({
+    queryKey: myGiftKeys.list(search),
+    queryFn: () => giftApi.listMyGifts({ limit: LIST_PAGE_SIZE, q: search || undefined }),
+    enabled: isCustomer,
+    staleTime: STALE_MS,
+  });
+}
+
+/**
+ * The lifetime savings figure on the My Deals summary card.
+ *
+ * Read from `GET /me/savings` rather than summed from the redeemed rows on
+ * screen: the claims list is capped at the server's 50-row page, so adding it
+ * up locally under-reports anyone who has redeemed more than 50 deals, and the
+ * card is labelled "to date". The ledger's `totalSavedAmount` covers every
+ * redemption in the window, so one `limit: 1` read is enough.
+ */
+export function useMyDealsSavingsTotal() {
+  const isCustomer = useAuthStore(state => isCustomerToken(state.tokenRole));
+  return useSavingsLedger(undefined, 1, 1, isCustomer);
 }

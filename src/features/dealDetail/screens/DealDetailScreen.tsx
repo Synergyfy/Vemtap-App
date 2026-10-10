@@ -28,6 +28,7 @@ import { navbarBottomShadow } from '@theme/shadows';
 import type { AppStackParamList } from '@navigation/types';
 import { useDealDetail } from '@features/dealDetail/hooks/useDealDetail';
 import { useOfferClaim } from '@features/dealDetail/hooks/useOfferClaim';
+import { useSendGift } from '@features/dealDetail/hooks/useSendGift';
 import { useDealReaction } from '@features/deals/hooks/useDealEngagementActions';
 import { useDealEngagement } from '@features/deals/hooks/usePublicOffers';
 import { LoadingState } from '@components/shared/LoadingState';
@@ -121,6 +122,7 @@ export function DealDetailScreen({ route, navigation }: Props) {
     !deal.id.startsWith('urban-grill') &&
     !deal.id.startsWith('glow-');
   const claim = useOfferClaim(route.params.dealId);
+  const gift = useSendGift();
 
   /**
    * Real like toggle with optimistic updates and auth gating.
@@ -224,6 +226,35 @@ export function DealDetailScreen({ route, navigation }: Props) {
         verified && claim.status.phase === 'claimed' ? claim.status.claimCode : undefined,
     });
   }, [isLiveOffer, claim.status, route.params.dealId, navigation]);
+
+  /**
+   * Dispatches the gift, and only then shows the confirmation screen.
+   *
+   * The confirm sheet used to navigate straight to `GiftDealSentSuccess`
+   * without calling the API, so a user could be told their gift was sent when
+   * nothing had been dispatched. The endpoint deletes its row and throws when
+   * the email fails, so `send` returning false means nothing was recorded — the
+   * sheet stays open on the error rather than showing a success that did not
+   * happen.
+   */
+  const sendDealGift = useCallback(async () => {
+    const sent = await gift.send({
+      offerId: route.params.dealId,
+      recipientEmail: giftRecipient.email,
+      recipientName: [giftRecipient.firstName, giftRecipient.lastName]
+        .filter(Boolean)
+        .join(' ')
+        .trim(),
+      note: giftRecipient.message.trim() || undefined,
+    });
+    if (!sent) return;
+
+    setClaimStep(null);
+    navigation.navigate('GiftDealSentSuccess', {
+      dealId: route.params.dealId,
+      recipient: giftRecipient,
+    });
+  }, [gift, route.params.dealId, giftRecipient, navigation]);
 
   // A verified code is the success moment for a real claim; there is nothing
   // left for the user to confirm afterwards.
@@ -674,12 +705,12 @@ export function DealDetailScreen({ route, navigation }: Props) {
         onClose={() => setClaimStep(null)}
         onBack={() => setClaimStep('gift')}
         onConfirm={() => {
-          setClaimStep(null);
-          navigation.navigate('GiftDealSentSuccess', {
-            dealId: deal.id,
-            recipient: giftRecipient,
-          });
+          // A fictional deal's id is not an offer uuid, so the endpoint rejects
+          // it — the sheet shows that failure rather than a success screen.
+          void sendDealGift();
         }}
+        sending={gift.status.phase === 'sending'}
+        errorMessage={gift.status.phase === 'error' ? gift.status.message : undefined}
         recipient={giftRecipient}
         deal={claimData}
       />

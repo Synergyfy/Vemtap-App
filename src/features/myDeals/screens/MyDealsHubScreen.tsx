@@ -5,10 +5,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   HubHeader,
   HubSearchField,
-  SectionLink,
   StatusPillTabs,
 } from '@features/accountHub/components/HubPrimitives';
 import { ClaimedDealCard } from '@features/accountHub/components/ClaimedDealCard';
+import { GiftedDealCard } from '@features/myDeals/components/GiftedDealCard';
+import {
+  MyDealsFilterSheet,
+  sortMyDeals,
+  type MyDealsSort,
+} from '@features/myDeals/components/MyDealsFilterSheet';
 import { EmptyState } from '@components/shared/EmptyState';
 import { ErrorState } from '@components/shared/ErrorState';
 import { LoadingState } from '@components/shared/LoadingState';
@@ -18,8 +23,11 @@ import { strings } from '@constants/strings';
 import { colors } from '@theme/colors';
 import { useUiStore } from '@store/uiStore';
 import { formatCurrency } from '@utils/formatters';
+import { useDebounce } from '@hooks/useDebounce';
 import {
   useMyClaims,
+  useMyDealsSavingsTotal,
+  useMyGifts,
   type MyClaimsQueryResult,
 } from '@features/myDeals/hooks/useMyClaims';
 import type { MyClaim, MyClaimStatus } from '@api/claimApi';
@@ -34,7 +42,14 @@ cssInterop(SafeAreaView, { className: 'style' });
 
 const copy = strings.myDealsHub;
 
-/** Tab index → the status it lists; the last tab (Gifted) has no API. */
+/**
+ * Tab index → the status it lists.
+ *
+ * Every tab now has a real source: the first three are `status` values on
+ * `GET /me/claims`, and the fourth is `GET /me/gifts`. Nothing here is a
+ * placeholder — the Gifted tab used to be hardcoded, which is why this list
+ * exists as an explicit map rather than an offset.
+ */
 const TAB_STATUSES: readonly (MyClaimStatus | null)[] = [
   'ACTIVE',
   'REDEEMED',
@@ -42,43 +57,41 @@ const TAB_STATUSES: readonly (MyClaimStatus | null)[] = [
   null,
 ];
 
+/** The Gifted tab reads from `/me/gifts` instead of the claims list. */
 const GIFTED_TAB = 3;
 
 export interface MyDealsHubScreenProps {
   onBack?: () => void;
-  onSearch?: () => void;
-  onFilter?: () => void;
   onAccount?: () => void;
   /** Opens the claimed-pass detail for a claim id from `GET /me/claims`. */
   onOpenClaim?: (claimId: string) => void;
   onViewGuidelines?: () => void;
 }
 
-function savingsOf(claims: MyClaim[]): number {
-  return claims.reduce(
-    (total, claim) =>
-      total + Math.max(claim.offer.originalPrice - claim.offer.calculatedPrice, 0),
-    0,
-  );
-}
-
 export function MyDealsHubScreen({
   onBack,
-  onSearch,
-  onFilter,
   onAccount,
   onOpenClaim,
   onViewGuidelines,
 }: MyDealsHubScreenProps) {
   const [query, setQuery] = useState('');
   const [tab, setTab] = useState(0);
+  const [sort, setSort] = useState<MyDealsSort>('newest');
+  const [sheetOpen, setSheetOpen] = useState(false);
   const showToast = useUiStore(state => state.showToast);
 
-  // All three statuses are already needed: the two they are not viewing feed
-  // the tab counts and the savings summary.
-  const active = useMyClaims('ACTIVE');
-  const redeemed = useMyClaims('REDEEMED');
-  const expired = useMyClaims('EXPIRED');
+  // The search is server-side, so it is debounced before it reaches the API —
+  // otherwise one request per keystroke. The input itself stays synchronous.
+  const debouncedQuery = useDebounce(query, 300);
+  const search = debouncedQuery.trim();
+
+  // All three statuses are needed regardless of the open tab: the counts on
+  // the tab row come from their totals.
+  const active = useMyClaims('ACTIVE', search);
+  const redeemed = useMyClaims('REDEEMED', search);
+  const expired = useMyClaims('EXPIRED', search);
+  const gifts = useMyGifts(search);
+  const savingsQuery = useMyDealsSavingsTotal();
 
   const lists: Record<MyClaimStatus, MyClaimsQueryResult> = {
     ACTIVE: active,
@@ -88,17 +101,18 @@ export function MyDealsHubScreen({
 
   const selectedStatus = TAB_STATUSES[tab];
   const selected = selectedStatus ? lists[selectedStatus] : undefined;
+  const isGiftedTab = tab === GIFTED_TAB;
 
-  const normalizedQuery = query.trim().toLowerCase();
-  const visible = useMemo(() => {
-    const data = selected?.data?.data ?? [];
-    if (!normalizedQuery) return data;
-    return data.filter(claim =>
-      `${claim.offer.name} ${claim.offer.businessName}`
-        .toLowerCase()
-        .includes(normalizedQuery),
-    );
-  }, [selected?.data, normalizedQuery]);
+  // Split by source so each row list keeps its own type — the sorter runs the
+  // same way over both, but a claim row and a gift row render differently.
+  const claimRows = useMemo(
+    () => sortMyDeals(selected?.data?.data ?? [], sort, priceOfClaim, expiryOfClaim),
+    [selected?.data, sort],
+  );
+  const giftRows = useMemo(
+    () => sortMyDeals(gifts.data?.data ?? [], sort, priceOfGift, expiryOfGift),
+    [gifts.data, sort],
+  );
 
   const claimedTotal =
     active.isSuccess && redeemed.isSuccess && expired.isSuccess
@@ -106,14 +120,15 @@ export function MyDealsHubScreen({
         (redeemed.data?.total ?? 0) +
         (expired.data?.total ?? 0)
       : undefined;
-  const savings =
-    redeemed.isSuccess && redeemed.data ? savingsOf(redeemed.data.data) : undefined;
+
+  // `undefined` until the ledger settles — the schema guarantees a number after.
+  const savings = savingsQuery.data?.totalSavedAmount ?? null;
 
   const counts = [
     active.data?.total.toString() ?? '',
     redeemed.data?.total.toString() ?? '',
     expired.data?.total.toString() ?? '',
-    '',
+    gifts.data?.total.toString() ?? '',
   ];
 
   const copyCode = (claim: MyClaim) => {
@@ -122,25 +137,26 @@ export function MyDealsHubScreen({
   };
 
   const renderList = () => {
-    if (!selectedStatus || !selected) return null;
-    if (selected.isLoading) {
-      return <LoadingState label={strings.common.loading} />;
-    }
-    if (selected.isError) {
-      return <ErrorState onRetry={() => selected.refetch()} />;
-    }
-    if (visible.length === 0) {
+    if (isGiftedTab) {
+      if (gifts.isLoading) return <LoadingState label={strings.common.loading} />;
+      if (gifts.isError) return <ErrorState onRetry={() => gifts.refetch()} />;
+      if (giftRows.length === 0) return renderEmpty();
       return (
-        <EmptyState
-          icon="inventory"
-          title={copy.tabLabels[tab]}
-          description={copy.emptyFor(copy.tabLabels[tab])}
-        />
+        <View className="gap-4 px-4">
+          {giftRows.map(gift => (
+            <GiftedDealCard key={gift.id} gift={gift} />
+          ))}
+        </View>
       );
     }
+
+    if (!selected) return null;
+    if (selected.isLoading) return <LoadingState label={strings.common.loading} />;
+    if (selected.isError) return <ErrorState onRetry={() => selected.refetch()} />;
+    if (claimRows.length === 0) return renderEmpty();
     return (
       <View className="gap-4 px-4">
-        {visible.map(claim => (
+        {claimRows.map(claim => (
           <ClaimedDealCard
             key={claim.id}
             claim={claim}
@@ -152,14 +168,34 @@ export function MyDealsHubScreen({
     );
   };
 
+  const renderEmpty = () => {
+    if (search) {
+      return (
+        <EmptyState
+          icon="search"
+          title={copy.noSearchMatch(search)}
+          description={copy.noSearchMatchHint}
+        />
+      );
+    }
+    const label = copy.tabLabels[tab];
+    return (
+      <EmptyState
+        icon="inventory"
+        title={label}
+        description={isGiftedTab ? copy.giftedCard.emptyBody : copy.emptyFor(label)}
+      />
+    );
+  };
+
   return (
     <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-background">
       <HubHeader
         title={copy.title}
         onBack={onBack}
-        actionNames={['search', 'tune']}
-        actionLabels={[copy.searchAction, copy.filterAction]}
-        onActions={[onSearch, onFilter]}
+        actionNames={['tune']}
+        actionLabels={[copy.filterAction]}
+        onActions={[() => setSheetOpen(true)]}
         accountAction={onAccount}
       />
       <ScrollView
@@ -177,7 +213,7 @@ export function MyDealsHubScreen({
                 {copy.savings}
               </VemtapText>
               <VemtapText variant="headingSm">
-                {savings === undefined
+                {savings === null
                   ? strings.customerDashboard.metricUnavailable
                   : formatCurrency(savings)}
               </VemtapText>
@@ -200,8 +236,6 @@ export function MyDealsHubScreen({
             value={query}
             onChangeText={setQuery}
             placeholder={copy.search}
-            filterLabel={copy.filterAction}
-            onFilter={onFilter}
           />
         </View>
         <ScrollView
@@ -216,67 +250,7 @@ export function MyDealsHubScreen({
             onSelect={setTab}
           />
         </ScrollView>
-        {tab === GIFTED_TAB ? (
-          <View className="px-4">
-            <View className="items-center rounded-card bg-surface p-8 shadow-sm">
-              <Icon name="inventory" size={36} color={colors.textTertiary} />
-              <VemtapText variant="headingSm" className="mt-3">
-                {copy.tabLabels[tab]}
-              </VemtapText>
-              <VemtapText variant="caption" tone="secondary" className="mt-1">
-                {copy.emptyFor(copy.tabLabels[tab])}
-              </VemtapText>
-            </View>
-          </View>
-        ) : (
-          renderList()
-        )}
-        <View className="mt-7 gap-3 px-4">
-          <View className="flex-row items-center justify-between">
-            <View className="flex-row items-center gap-2">
-              <Icon name="badge" size={20} color={colors.primary} />
-              <VemtapText variant="headingSm">{copy.gifted}</VemtapText>
-              <View className="rounded-full bg-surface-container-high px-2 py-0.5">
-                <VemtapText variant="caption">1</VemtapText>
-              </View>
-            </View>
-            <SectionLink label={copy.viewAll} />
-          </View>
-          <View className="gap-2 rounded-card bg-surface p-4 shadow-sm">
-            <View className="flex-row items-center justify-between">
-              <View className="min-w-0 flex-row items-center gap-2">
-                <View className="h-9 w-9 items-center justify-center rounded-full bg-secondary-fixed">
-                  <VemtapText variant="labelMd">SA</VemtapText>
-                </View>
-                <View className="min-w-0">
-                  <VemtapText variant="labelMd" className="font-sans-semibold">
-                    Samuel Adeleke
-                  </VemtapText>
-                  <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-                    samuel.adeleke@example.com
-                  </VemtapText>
-                </View>
-              </View>
-              <View className="flex-row items-center gap-1 rounded-full bg-badge-discount-bg px-2 py-0.5">
-                <Icon name="doneAll" size={12} color={colors.badgeDiscountText} />
-                <VemtapText variant="micro" className="text-badge-discount-text">
-                  {copy.claimedBadge}
-                </VemtapText>
-              </View>
-            </View>
-            <View className="flex-row items-center justify-between rounded-lg bg-surface-subtle p-2">
-              <View className="min-w-0">
-                <VemtapText variant="labelSm" className="font-sans-medium">
-                  Urban Grill 20% Off Combo
-                </VemtapText>
-                <VemtapText variant="caption" tone="tertiary">
-                  Sent on Oct 14, 2024
-                </VemtapText>
-              </View>
-              <SectionLink label={copy.receipt} />
-            </View>
-          </View>
-        </View>
+        {renderList()}
         <Pressable
           accessibilityRole="button"
           onPress={onViewGuidelines}
@@ -297,6 +271,18 @@ export function MyDealsHubScreen({
           </View>
         </Pressable>
       </ScrollView>
+      <MyDealsFilterSheet
+        visible={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        sort={sort}
+        onApply={setSort}
+      />
     </SafeAreaView>
   );
 }
+
+const priceOfClaim = (claim: MyClaim) => claim.offer.calculatedPrice;
+const priceOfGift = (gift: { offer: { calculatedPrice: number } }) =>
+  gift.offer.calculatedPrice;
+const expiryOfClaim = (claim: MyClaim) => claim.expiresAt;
+const expiryOfGift = () => '';

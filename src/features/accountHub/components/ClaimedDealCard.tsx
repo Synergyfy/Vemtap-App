@@ -6,7 +6,6 @@ import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
 import { colors } from '@theme/colors';
-import { savedImages } from '@features/accountHub/data/accountHubImages';
 import { formatCurrency, formatWhen } from '@utils/formatters';
 import { countdownLabel } from '@features/deals/utils/offerMapper';
 import type { MyClaim } from '@api/claimApi';
@@ -32,6 +31,15 @@ export interface ClaimedDealCardProps {
   claim: MyClaim;
   onOpen?: () => void;
   onCopyCode?: () => void;
+}
+
+/** Up to two initials, for the tile shown when the deal has no image. */
+function initialsOf(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return '•';
+  const first = words[0][0] ?? '';
+  const second = words.length > 1 ? (words[words.length - 1][0] ?? '') : '';
+  return `${first}${second}`.toUpperCase();
 }
 
 function statusMeta(claim: MyClaim): {
@@ -79,6 +87,12 @@ export function ClaimedDealCard({ claim, onOpen, onCopyCode }: ClaimedDealCardPr
 
   const location = [offer.branchName, offer.branchAddress].filter(Boolean).join(' • ');
 
+  // A missing deal photo falls back to the merchant's logo, then to an initials
+  // tile. It used to fall back to a stock burger photo, which presented an
+  // image of food the merchant never supplied as if it were their deal.
+  const imageUri = offer.mainImage ?? offer.businessLogo ?? null;
+  const initials = initialsOf(offer.name || offer.businessName);
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -87,12 +101,20 @@ export function ClaimedDealCard({ claim, onOpen, onCopyCode }: ClaimedDealCardPr
     >
       <View className="flex-row items-start gap-3">
         <View className="relative h-24 w-24 shrink-0 overflow-hidden rounded-field bg-surface-container-high">
-          <Image
-            source={{ uri: offer.mainImage ?? savedImages.burger.uri }}
-            accessibilityLabel={offer.name}
-            className="h-full w-full"
-            resizeMode="cover"
-          />
+          {imageUri ? (
+            <Image
+              source={{ uri: imageUri }}
+              accessibilityLabel={offer.name}
+              className="h-full w-full"
+              resizeMode="cover"
+            />
+          ) : (
+            <View className="h-full w-full items-center justify-center">
+              <VemtapText variant="headingMd" tone="secondary" className="font-sans-bold">
+                {initials}
+              </VemtapText>
+            </View>
+          )}
           {(offer.discountPercent ?? 0) > 0 ? (
             <View className="absolute left-1 top-1 rounded bg-badge-discount-bg px-1.5 py-0.5">
               <VemtapText

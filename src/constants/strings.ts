@@ -561,6 +561,7 @@ export const strings = {
       giftConfirmSubtitle: 'Review recipient details before confirming.',
       verifiedContact: 'Verified Contact',
       confirmSendGift: 'Confirm & Send Gift',
+      sendingGift: 'Sending…',
       editRecipient: 'Edit Recipient Details',
       recipientVerification: 'Recipient Verification',
       verifyRecipient: "Verify recipient's email",
@@ -2141,25 +2142,23 @@ export const strings = {
   },
   myDealsHub: {
     title: 'My Deals',
-    searchAction: 'Search',
     filterAction: 'Filter',
-    account: 'Account',
     savings: 'Total Savings to Date',
-    savingsValue: '₦24,500',
     claimed: 'Claimed Deals',
-    claimedValue: '14 Total',
     /** Live summary for the server-backed hub. */
     claimedValueFor: (count: number) => `${count} Total`,
     search: 'Search your claimed deals, businesses...',
     /** Plain tab labels; live counts are supplied as badge props. */
     tabLabels: ['Active', 'Used', 'Expired', 'Gifted'] as const,
     emptyFor: (tab: string) => `${tab} deals appear here.`,
+    /** Search returned nothing — distinct from the tab being empty. */
+    noSearchMatch: (query: string) => `No deals match "${query}".`,
+    noSearchMatchHint: 'Try a deal, business or voucher code.',
     copy: 'Copy',
     code: 'Voucher:',
     showServer: 'Show QR code to your server prior to ordering.',
     useDeal: 'Use Deal',
     viewPass: 'View Pass',
-    viewBookingPass: 'View Booking Pass',
     /** Effective claim statuses, straight from `GET /me/claims`. */
     statusActive: 'READY TO REDEEM',
     statusRedeemed: 'REDEEMED',
@@ -2170,13 +2169,41 @@ export const strings = {
     expiresInHours: (hours: number) => `Expires in ${hours}h`,
     expiresInMinutes: (minutes: number) => `Expires in ${minutes}m`,
     redeemedOnValue: (date: string) => `Redeemed ${date}`,
-    gifted: 'Gifted to Others',
-    viewAll: 'View All',
     claimedBadge: 'Claimed',
-    receipt: 'Receipt',
     helpTitle: 'Need assistance redeeming?',
     helpBody:
       'Read our redemption guidelines or tap the business info on your pass to contact the manager directly.',
+    /**
+     * The Gifted tab's rows, from `GET /me/gifts`.
+     *
+     * `rejected` is a real outcome, not an error: the server keeps a declined
+     * gift for the sender's history while hiding it from the branch dashboard,
+     * so the row gets its own label rather than being dropped.
+     */
+    giftedCard: {
+      statusPending: 'Awaiting claim',
+      statusAccepted: 'Accepted',
+      statusRejected: 'Declined',
+      sentOn: (date: string) => `Sent ${date}`,
+      acceptedOn: (date: string) => `Accepted ${date}`,
+      note: (note: string) => `"${note}"`,
+      offerUnavailable: 'This deal is no longer available',
+      emptyTitle: 'Gifted to others',
+      emptyBody: 'Deals you gift to friends and family appear here.',
+    },
+    filterSheet: {
+      title: 'Sort deals',
+      sortSectionTitle: 'Sort by',
+      sortSectionSubtitle:
+        'Newest is how the list arrives. The other orders are applied to the tab you are viewing.',
+      sortNewest: 'Newest claimed',
+      sortExpiring: 'Expiring soonest',
+      sortPriceAsc: 'Price: low to high',
+      sortPriceDesc: 'Price: high to low',
+      reset: 'Reset',
+      apply: 'Apply',
+      statusNote: 'Status lives on the tabs above — this sheet only orders the list.',
+    },
   },
   claimedDealPass: {
     title: 'Claimed Deal Pass',
@@ -2270,7 +2297,26 @@ export const strings = {
       'Deals & Inquiries',
       'Bookings & Orders',
     ] as const,
-    compose: 'Compose new message',
+    compose: 'New Conversation',
+    composeSheet: {
+      title: 'New Conversation',
+      businessLabel: 'Business',
+      businessFallback: 'Business',
+      noBusinesses: 'No businesses to message yet.',
+      subjectLabel: 'What is this about?',
+      subjects: {
+        general: 'General',
+        deal: 'Deal',
+        booking: 'Booking',
+        claim: 'Claim',
+        order: 'Order',
+      },
+      messageLabel: 'Message',
+      messagePlaceholder: 'Write your first message…',
+      send: 'Start conversation',
+      subjectHint:
+        'The topic files this conversation under the matching filter on your Messages list.',
+    },
     account: 'Account',
     entries: [
       {
