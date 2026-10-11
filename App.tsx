@@ -32,6 +32,7 @@ import { useUiStore } from '@store/uiStore';
 import { registerAuthBridge } from '@api/client';
 import { useAuthStore } from '@store/authStore';
 import { useAuthBootstrap } from '@features/auth/hooks/useAuthBootstrap';
+import { endSession } from '@features/auth/endSession';
 import { useCustomerTokenSync } from '@features/auth/hooks/useCustomerTokenSync';
 import { useCustomerMessagingRealtime } from '@features/merchantChat/hooks/useCustomerMessagingRealtime';
 import { startOfflineReplay } from '@services/offlineReplay';
@@ -145,8 +146,11 @@ export default function App() {
   useEffect(() => {
     registerAuthBridge({
       onSessionExpired: () => {
-        logger.warn('auth', 'Session expired — clearing auth state');
-        useAuthStore.getState().markUnauthenticated();
+        // The API has no refresh endpoint, so a 401 is terminal. Log out
+        // rather than just flagging the status, which would leave the dead
+        // token in place and the last account's data in the cache.
+        logger.warn('auth', 'Session expired — logging out');
+        endSession().catch(() => undefined);
       },
     });
 
