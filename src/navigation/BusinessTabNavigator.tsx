@@ -204,21 +204,32 @@ function BusinessOverviewRoute() {
 }
 
 /**
- * Orders <-> Bookings switcher. Both surfaces live in the same stack, so the
- * switcher returns to the existing Orders screen instead of pushing a second
- * copy: `navigate` on a route already in the stack pops back to it.
+ * Orders <-> Bookings switcher. Both surfaces live in this screen: the
+ * Bookings tab renders the shared booking feed inline instead of pushing the
+ * standalone bookings screen.
  */
 function BusinessOrdersSurfaceRoute() {
   const navigation = useBusinessNavigation();
   const { branches, activeBranchId, setActiveBranch } = useActiveBranch();
   const [status, setStatus] = useState<string | undefined>(undefined);
+  const [bookingDay, setBookingDay] = useState<string | undefined>(undefined);
+  const [bookingFilter, setBookingFilter] = useState<{
+    status?: string;
+    date?: string;
+  }>({});
   const ordersQuery = useBusinessOrders({
     type: 'order',
     status,
     branchId: activeBranchId ?? undefined,
   });
+  const bookingsQuery = useBusinessBookings({
+    branchId: activeBranchId ?? undefined,
+    date: bookingDay,
+    status: bookingFilter.status,
+  });
   const counts = useBusinessOrderCounts(activeBranchId);
   const updateStatus = useUpdateOrderStatus();
+  const updateBookingStatus = useUpdateBookingStatus();
 
   return (
     <BusinessOrdersHubScreen
@@ -226,7 +237,6 @@ function BusinessOrdersSurfaceRoute() {
       activeBranchId={activeBranchId ?? undefined}
       onChangeBranch={setActiveBranch}
       onAddBranch={() => navigation.navigate('LocationsBranches')}
-      onOpenBookings={() => navigation.navigate('BusinessBookings')}
       onOpenPosOrders={() => navigation.navigate('BusinessPosOrders')}
       onOpenOrder={orderId => navigation.navigate('BusinessOrderDetail', { orderId })}
       onSelectStatus={setStatus}
@@ -237,6 +247,15 @@ function BusinessOrdersSurfaceRoute() {
       orderCounts={counts.counts}
       orderTotal={counts.orderTotal}
       bookingTotal={counts.bookingTotal}
+      bookings={
+        bookingsQuery.isSuccess ? bookingsQuery.data.data.map(presentBooking) : undefined
+      }
+      onSelectDay={setBookingDay}
+      onSelectFilter={setBookingFilter}
+      onOpenBooking={orderId => navigation.navigate('BusinessOrderDetail', { orderId })}
+      onCheckIn={bookingId =>
+        updateBookingStatus.mutate({ id: bookingId, status: 'completed' })
+      }
     />
   );
 }

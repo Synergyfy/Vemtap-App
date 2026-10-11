@@ -18,6 +18,7 @@ import {
 } from '@features/business/components/BusinessTabBar';
 import { useAuthStore } from '@store/authStore';
 import { strings } from '@constants/strings';
+import type { PresentedBooking } from '@features/business/hooks/useBusinessBookings';
 
 const shell = strings.businessShell;
 
@@ -303,6 +304,161 @@ describe('business orders hub', () => {
       fireEvent.press(view.getByLabelText(copy.orders[0].reference));
     });
     expect(onOpenOrder).toHaveBeenCalledWith(copy.orders[0].id);
+  });
+
+  it('switches to the bookings feed in place and back', async () => {
+    const view = await render(<BusinessOrdersHubScreen />);
+    const ordersCopy = strings.businessOrders;
+    const bookingsCopy = strings.businessBookings;
+
+    // Orders surface: the alert strip is up, the bookings feed is not.
+    expect(view.getByText(ordersCopy.alertTitle)).toBeTruthy();
+    expect(view.queryByText(bookingsCopy.summaryTitle)).toBeNull();
+
+    const tabs = view.getAllByRole('tab');
+    await act(async () => {
+      fireEvent.press(tabs[1]);
+    });
+
+    // Bookings surface: the feed took over and the orders content is gone.
+    expect(view.getByText(bookingsCopy.summaryTitle)).toBeTruthy();
+    bookingsCopy.bookings.forEach(booking => {
+      expect(view.getByText(booking.time)).toBeTruthy();
+    });
+    expect(view.queryByText(ordersCopy.alertTitle)).toBeNull();
+    expect(view.queryByText(ordersCopy.orders[0].reference)).toBeNull();
+
+    await act(async () => {
+      fireEvent.press(tabs[0]);
+    });
+    expect(view.getByText(ordersCopy.alertTitle)).toBeTruthy();
+    expect(view.queryByText(bookingsCopy.summaryTitle)).toBeNull();
+  });
+
+  it('reports opening a booking and checking one in from the bookings surface', async () => {
+    const onOpenBooking = jest.fn();
+    const onCheckIn = jest.fn();
+    const view = await render(
+      <BusinessOrdersHubScreen onOpenBooking={onOpenBooking} onCheckIn={onCheckIn} />,
+    );
+    const bookingsCopy = strings.businessBookings;
+    const booking = bookingsCopy.bookings[0];
+
+    await act(async () => {
+      fireEvent.press(view.getAllByRole('tab')[1]);
+    });
+
+    await act(async () => {
+      fireEvent.press(view.getByLabelText(`${booking.time} ${booking.customer}`));
+    });
+    expect(onOpenBooking).toHaveBeenCalledWith(booking.id);
+
+    await act(async () => {
+      fireEvent.press(view.getByLabelText(booking.cta));
+    });
+    expect(onCheckIn).toHaveBeenCalledWith(booking.id);
+  });
+
+  it('renders live bookings and reports day and filter picks', async () => {
+    const onSelectDay = jest.fn();
+    const onSelectFilter = jest.fn();
+    const liveBookings: PresentedBooking[] = [
+      {
+        id: 'bk-1',
+        time: '9:00 AM',
+        duration: '60m',
+        startsSoon: false,
+        tone: 'brand',
+        customer: 'Ada Obi',
+        badge: 'VIP',
+        service: 'Massage',
+        staff: 'Chidi',
+        note: 'First visit',
+        cta: 'Check-In',
+        nextStatus: 'completed',
+      },
+    ];
+    const view = await render(
+      <BusinessOrdersHubScreen
+        bookings={liveBookings}
+        onSelectDay={onSelectDay}
+        onSelectFilter={onSelectFilter}
+      />,
+    );
+    const bookingsCopy = strings.businessBookings;
+
+    await act(async () => {
+      fireEvent.press(view.getAllByRole('tab')[1]);
+    });
+
+    expect(view.getByText('Ada Obi')).toBeTruthy();
+    expect(view.getByText(bookingsCopy.summaryTitleFor(1))).toBeTruthy();
+    // Live bookings switch the day strip to the device clock.
+    expect(view.getByLabelText(/^Tomorrow /)).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.press(view.getByLabelText(/^Tomorrow /));
+    });
+    expect(onSelectDay).toHaveBeenCalled();
+
+    await act(async () => {
+      fireEvent.press(
+        view.getByText(
+          `${bookingsCopy.filters[1].label} ${bookingsCopy.filters[1].count}`,
+        ),
+      );
+    });
+    expect(onSelectFilter).toHaveBeenCalledWith({ date: 'today' });
+  });
+
+  it('shows the New chip dot only when the New count is above zero', async () => {
+    // The chip's leading dot shares its class with the tune button's dot, so
+    // the walk counts dots in the rendered tree (the tune button only renders
+    // when onFilterOrders is wired).
+    const DOT_CLASS = 'h-2 w-2 rounded-full bg-primary-container';
+    const countDots = (view: Awaited<ReturnType<typeof render>>) => {
+      const walk = (node: unknown): Record<string, unknown>[] => {
+        const n = node as { props?: Record<string, unknown>; children?: unknown[] };
+        const children = Array.isArray(n.children) ? n.children : [];
+        return [n.props ?? {}, ...children.flatMap(walk)];
+      };
+      const tree = view.toJSON();
+      if (!tree) return [];
+      return walk(tree).filter(
+        props =>
+          typeof props.className === 'string' && props.className.includes(DOT_CLASS),
+      );
+    };
+
+    // Fallback copy: New count is '3', so the dot renders.
+    const fallback = await render(<BusinessOrdersHubScreen />);
+    expect(countDots(fallback)).toHaveLength(1);
+    await fallback.unmount();
+
+    // Live counts with New at zero: no dot anywhere.
+    const zeroed = await render(
+      <BusinessOrdersHubScreen
+        orderCounts={{ new: 0, processing: 1, ready: 0, completed: 4, cancelled: 0 }}
+      />,
+    );
+    expect(countDots(zeroed)).toHaveLength(0);
+    await zeroed.unmount();
+
+    // The tune button keeps its own dot on the orders surface...
+    const withFilter = await render(
+      <BusinessOrdersHubScreen
+        onFilterOrders={jest.fn()}
+        orderCounts={{ new: 0, processing: 1, ready: 0, completed: 4, cancelled: 0 }}
+      />,
+    );
+    expect(countDots(withFilter)).toHaveLength(1);
+
+    // ...and leaves with the orders content on the bookings surface.
+    await act(async () => {
+      fireEvent.press(withFilter.getAllByRole('tab')[1]);
+    });
+    expect(withFilter.queryByLabelText(strings.businessOrders.filterLabel)).toBeNull();
+    expect(countDots(withFilter)).toHaveLength(0);
   });
 });
 
