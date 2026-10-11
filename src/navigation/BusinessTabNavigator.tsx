@@ -30,6 +30,10 @@ import { BusinessProfilePreviewScreen } from '@features/business/screens/Busines
 import { CentralDealsManagementScreen } from '@features/business/screens/CentralDealsManagementScreen';
 import { DealDetailsPerformanceScreen } from '@features/business/screens/DealDetailsPerformanceScreen';
 import { CreateDealLocationAssignmentScreen } from '@features/business/screens/CreateDealLocationAssignmentScreen';
+import { CreateDealStep1DiscountStrategyScreen } from '@features/business/screens/CreateDealStep1DiscountStrategyScreen';
+import { CreateDealStep2LimitsGiftingRulesScreen } from '@features/business/screens/CreateDealStep2LimitsGiftingRulesScreen';
+import { CreateDealStep3ParticipatingBranchesScheduleScreen } from '@features/business/screens/CreateDealStep3ParticipatingBranchesScheduleScreen';
+import { CreateDealStep4ReviewLaunchScreen } from '@features/business/screens/CreateDealStep4ReviewLaunchScreen';
 import { DealLocationAssignmentPricingScreen } from '@features/business/screens/DealLocationAssignmentPricingScreen';
 import { LocationAssignmentBranchPricingScreen } from '@features/business/screens/LocationAssignmentBranchPricingScreen';
 import { BranchAvailabilityLocationPricingScreen } from '@features/business/screens/BranchAvailabilityLocationPricingScreen';
@@ -588,7 +592,7 @@ function CentralDealsManagementRoute() {
     <CentralDealsManagementScreen
       layout={layout}
       onNotifications={() => undefined}
-      onCreateDeal={() => navigation.navigate('CreateDealLocationAssignment')}
+      onCreateDeal={() => navigation.navigate('CreateDealStep1')}
       onSearch={() => undefined}
       onFilter={() => undefined}
       onChangeScope={() => undefined}
@@ -714,6 +718,117 @@ function DealLocationAssignmentPricingRoute() {
       onMoreActions={() => undefined}
       onSave={() => submit('active')}
       onCancel={navigation.goBack}
+    />
+  );
+}
+
+/**
+ * The four-step create-deal wizard in the hub stack. Mirrors the
+ * `BusinessSetup` deal routes: each step merges its slice into the shared
+ * deal draft store, and step 4 publishes through
+ * `usePublishCatalogueOffer` (falling back to every live branch when the
+ * draft carries none). Publishing exits back to the hub home.
+ */
+function CreateDealStep1Route() {
+  const navigation = useBusinessNavigation();
+  const setDeal = useCatalogueDraftStore(state => state.setDeal);
+  return (
+    <CreateDealStep1DiscountStrategyScreen
+      onBack={navigation.goBack}
+      onChangeItem={() => navigation.goBack()}
+      onContinue={value => {
+        setDeal({ strategy: value.strategy, discountRate: value.discountRate });
+        navigation.navigate('CreateDealStep2');
+      }}
+      onSave={value => {
+        setDeal({ strategy: value.strategy, discountRate: value.discountRate });
+        navigation.navigate('CreateDealStep2');
+      }}
+    />
+  );
+}
+
+function CreateDealStep2Route() {
+  const navigation = useBusinessNavigation();
+  const setDeal = useCatalogueDraftStore(state => state.setDeal);
+  return (
+    <CreateDealStep2LimitsGiftingRulesScreen
+      onBack={navigation.goBack}
+      onContinue={value => {
+        setDeal({
+          totalVouchers: String(value.totalVouchers),
+          claimFrequency: value.claimFrequency,
+          maxClaimsPerMonth: value.maxClaimsPerMonth,
+          acceptGifting: value.acceptGifting,
+        });
+        navigation.navigate('CreateDealStep3');
+      }}
+      onSave={value => {
+        setDeal({
+          totalVouchers: String(value.totalVouchers),
+          claimFrequency: value.claimFrequency,
+          maxClaimsPerMonth: value.maxClaimsPerMonth,
+          acceptGifting: value.acceptGifting,
+        });
+        navigation.navigate('CreateDealStep3');
+      }}
+    />
+  );
+}
+
+function CreateDealStep3Route() {
+  const navigation = useBusinessNavigation();
+  const setDeal = useCatalogueDraftStore(state => state.setDeal);
+  return (
+    <CreateDealStep3ParticipatingBranchesScheduleScreen
+      onBack={navigation.goBack}
+      onSave={value => {
+        setDeal(value);
+        navigation.navigate('CreateDealStep4');
+      }}
+    />
+  );
+}
+
+function CreateDealStep4Route() {
+  const navigation = useBusinessNavigation();
+  const publish = usePublishCatalogueOffer();
+  const branches = useBusinessBranches();
+
+  const submit = (status: 'active' | 'inactive') => {
+    const { deal } = useCatalogueDraftStore.getState();
+    const all = (branches.data ?? []).map(branch => branch.id);
+    const branchId = deal.branchIds[0] ?? all[0];
+    if (!branchId) {
+      showError('No branches available for this deal.');
+      return;
+    }
+    publish.mutate(
+      { status, branchId },
+      {
+        onSuccess: () => {
+          showSuccess(
+            status === 'active' ? 'Deal launched.' : 'Deal saved as draft.',
+          );
+          navigation.navigate('BusinessHubHome');
+        },
+        onError: error =>
+          showError(
+            error instanceof Error ? error.message : 'Could not launch the deal',
+          ),
+      },
+    );
+  };
+
+  return (
+    <CreateDealStep4ReviewLaunchScreen
+      onBack={navigation.goBack}
+      onEditOffer={() => navigation.navigate('CreateDealStep1')}
+      onEditRules={() => navigation.navigate('CreateDealStep2')}
+      onEditBranches={() => navigation.navigate('CreateDealStep3')}
+      onLaunch={() => submit('active')}
+      onSaveDraft={() => submit('inactive')}
+      onSave={() => navigation.navigate('BusinessHubHome')}
     />
   );
 }
@@ -3047,6 +3162,10 @@ function BusinessHubTabNavigator() {
         name="DealLocationAssignmentPricing"
         component={DealLocationAssignmentPricingRoute}
       />
+      <HubStack.Screen name="CreateDealStep1" component={CreateDealStep1Route} />
+      <HubStack.Screen name="CreateDealStep2" component={CreateDealStep2Route} />
+      <HubStack.Screen name="CreateDealStep3" component={CreateDealStep3Route} />
+      <HubStack.Screen name="CreateDealStep4" component={CreateDealStep4Route} />
       <HubStack.Screen
         name="ProductLocationAssignment"
         component={ProductLocationAssignmentRoute}

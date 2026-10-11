@@ -76,6 +76,15 @@ export type BusinessStackParamList = {
   DealDetailsPerformance: undefined;
   CreateDealLocationAssignment: undefined;
   DealLocationAssignmentPricing: undefined;
+  /**
+   * The full create-deal wizard, reachable from the hub (Central Deals →
+   * Create Deal) so deals collect name/items/discount before launch. Shared
+   * with the onboarding `BusinessSetup` stack via the draft store.
+   */
+  CreateDealStep1: undefined;
+  CreateDealStep2: undefined;
+  CreateDealStep3: undefined;
+  CreateDealStep4: undefined;
   ProductLocationAssignment: undefined;
   BranchAvailabilityLocationPricing: undefined;
   CentralCatalogue: { layout?: 'directory' | 'businessHub' } | undefined;
