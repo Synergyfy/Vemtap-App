@@ -191,8 +191,8 @@ export function StatusPillTabs({
       : 'shrink-0 rounded-full bg-primary px-4 py-2 shadow-sm';
   const inactiveClass =
     variant === 'subtle'
-      ? 'shrink-0 rounded-full bg-surface-container-high px-4 py-2'
-      : 'shrink-0 rounded-full bg-surface-container-high px-4 py-2';
+      ? 'shrink-0 rounded-full bg-surface-container-high px-4 py-2 shadow-none'
+      : 'shrink-0 rounded-full bg-surface-container-high px-4 py-2 shadow-none';
   const activeTextClass =
     variant === 'subtle' ? 'text-primary' : 'text-primary-foreground';
   if (variant === 'switcher') {
@@ -210,10 +210,13 @@ export function StatusPillTabs({
               accessibilityHint={isDisabled ? `${label} is unavailable` : undefined}
               disabled={isDisabled}
               onPress={() => onSelect?.(index)}
+              // Both branches must always set shadow/opacity utilities: gaining one
+              // after first render makes css-interop remount the pill (and, pre-patch,
+              // crash the app via its upgrade-warning props serializer).
               className={cn(
                 'min-w-0 flex-1 flex-row items-center justify-center gap-2 rounded-lg py-2',
-                isSelected && 'bg-surface-container-lowest shadow-sm',
-                isDisabled && 'opacity-40',
+                isSelected ? 'bg-surface-container-lowest shadow-sm' : 'shadow-none',
+                isDisabled ? 'opacity-40' : 'opacity-100',
               )}
             >
               <VemtapText
@@ -263,7 +266,7 @@ export function StatusPillTabs({
             className={
               index === selected
                 ? 'flex-1 items-center rounded-full bg-primary py-1.5 shadow-sm'
-                : 'flex-1 items-center rounded-full py-1.5'
+                : 'flex-1 items-center rounded-full py-1.5 shadow-none'
             }
           >
             <VemtapText

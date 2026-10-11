@@ -1,11 +1,15 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { View } from 'react-native';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react-native';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { userSchema } from '@api/authApi';
 import { useAuthStore } from '@store/authStore';
 import { BusinessTabNavigator } from '@navigation/BusinessTabNavigator';
 import { businessTabForRoute } from '@navigation/useBusinessNavigation';
+import { NavigationHistoryTracker } from '@navigation/useHistoryBack';
+import { navigationRef } from '@navigation/navigationRef';
 import { strings } from '@constants/strings';
 
 afterEach(cleanup);
@@ -165,6 +169,74 @@ describe('business shell cross-stack navigation', () => {
         ownerAccount: false,
         tokenRole: null,
       });
+    }
+  });
+});
+
+describe('business orders/bookings switcher', () => {
+  /**
+   * The Orders hub renders both surfaces in place. This pins the wiring from
+   * the route down — the screen-level tests cover the feed itself, but only
+   * this shell mount proves the switcher keeps its navigation context inside
+   * the real root (a hot-reload artifact once threw "Couldn't find a
+   * navigation context" on the first press after the route gained hooks).
+   */
+  it('round-trips the switcher without losing the navigation context', async () => {
+    const errors: string[] = [];
+    const originalError = console.error;
+    console.error = (...args: unknown[]) => {
+      errors.push(args.map(a => (a instanceof Error ? a.message : String(a))).join(' '));
+      originalError(...args);
+    };
+    try {
+      // The ref is optional only so mocked test environments can import screens.
+      expect(navigationRef).toBeDefined();
+      const rootRef = navigationRef!;
+      const client = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      const Root = createNativeStackNavigator();
+      await render(
+        <QueryClientProvider client={client}>
+          <NavigationContainer ref={rootRef}>
+            <Root.Navigator screenOptions={{ headerShown: false }}>
+              <Root.Screen name="AppStack" component={() => <View />} />
+              <Root.Screen name="BusinessTabs" component={BusinessTabNavigator} />
+            </Root.Navigator>
+            <NavigationHistoryTracker />
+          </NavigationContainer>
+        </QueryClientProvider>,
+      );
+
+      await act(async () => {
+        rootRef.navigate('BusinessTabs' as never);
+      });
+      await openTab(strings.businessShell.tabs.orders);
+
+      const pill = (label: string) =>
+        screen
+          .getAllByRole('tab')
+          .filter(tab => String(tab.props.accessibilityLabel) === label);
+
+      const toBookingsAndBack = async () => {
+        await act(async () => {
+          fireEvent.press(pill('Bookings')[0]);
+        });
+        expect(screen.getByText(strings.businessBookings.summaryTitle)).toBeTruthy();
+
+        await act(async () => {
+          fireEvent.press(pill('Orders')[0]);
+        });
+        expect(screen.getByText(strings.businessOrders.orders[0].reference)).toBeTruthy();
+        expect(screen.queryByText(strings.businessBookings.summaryTitle)).toBeNull();
+      };
+
+      await toBookingsAndBack();
+      await toBookingsAndBack();
+
+      expect(errors.filter(text => text.includes('navigation context'))).toHaveLength(0);
+    } finally {
+      console.error = originalError;
     }
   });
 });
