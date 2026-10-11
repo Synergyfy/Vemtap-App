@@ -2,6 +2,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { catalogueApi } from '@api/catalogueApi';
 import type {
   BusinessCatalogueItem,
+  CatalogueCategory,
   CatalogueOfferDetail,
 } from '@api/catalogueApi';
 import { useCatalogueDraftStore } from '@store/catalogueDraftStore';
@@ -146,5 +147,14 @@ export function usePublishCatalogueOffer() {
     onSuccess: created => {
       setPublishedDeal(created.id);
     },
+  });
+}
+
+/** Fetches the business's own catalogue categories (not platform taxonomy). */
+export function useCatalogueCategories() {
+  return useQuery({
+    queryKey: ['business-catalogue-categories'],
+    queryFn: () => catalogueApi.listCatalogueCategories(),
+    staleTime: 60_000,
   });
 }

@@ -194,6 +194,7 @@ export type CatalogueItemQuery = {
 export const businessOfferAdminSchema = z.looseObject({
   id: z.string(),
   name: z.string().nullish(),
+  description: z.string().nullish(),
   status: z.string().nullish(),
   branchId: z.string().nullish(),
   pricingType: z.string().nullish(),

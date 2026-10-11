@@ -66,7 +66,10 @@ import {
   usePosDashboard,
 } from '@features/business/hooks/useBusinessDashboardData';
 import { useActiveBranch } from '@features/business/hooks/useActiveBranch';
-import { useBusinessHubData } from '@features/business/hooks/useBusinessHubData';
+import {
+  useBusinessHubData,
+  useBusinessOffers,
+} from '@features/business/hooks/useBusinessHubData';
 import {
   useBusinessThreadMessages,
   useBusinessThreads,
@@ -98,12 +101,20 @@ import { showError, showSuccess } from '@components/shared';
 import { useCatalogueDraftStore } from '@store/catalogueDraftStore';
 import {
   useBusinessBranches,
+  useCatalogueCategories,
   usePublishCatalogueItem,
   usePublishCatalogueOffer,
   useUpdateCatalogueItemStatus,
   useUpdateOfferStatus,
 } from '@features/business/hooks/useCatalogueMutations';
 import { catalogueApi } from '@api/catalogueApi';
+import { useBusinessCatalogue } from '@features/business/hooks/useBusinessCatalogue';
+import {
+  catalogueCategoryToRow,
+  catalogueItemToCentralRow,
+  catalogueItemToServiceRow,
+  offerToCentralDealRow,
+} from '@features/business/utils/catalogueHubRowMappers';
 import { endSession } from '@features/auth/endSession';
 import { navigationRef } from '@navigation/navigationRef';
 import { CampaignsHubScreen } from '@features/business/screens/CampaignsHubScreen';
@@ -572,6 +583,7 @@ function CentralDealsManagementRoute() {
   const route = useRoute<RouteProp<BusinessTabParamList, 'CentralDealsManagement'>>();
   const layout = route.params?.layout ?? 'hero';
   const updateOfferStatus = useUpdateOfferStatus();
+  const offers = useBusinessOffers(null);
   return (
     <CentralDealsManagementScreen
       layout={layout}
@@ -602,6 +614,7 @@ function CentralDealsManagementRoute() {
       }}
       onViewLedger={() => undefined}
       onOpenDeal={() => navigation.navigate('DealDetailsPerformance')}
+      deals={(offers.data ?? []).map(offerToCentralDealRow)}
     />
   );
 }
@@ -757,6 +770,7 @@ function CentralCatalogueRoute() {
   const route = useRoute<RouteProp<BusinessTabParamList, 'CentralCatalogue'>>();
   const layout = route.params?.layout ?? 'directory';
   const updateItemStatus = useUpdateCatalogueItemStatus();
+  const catalogue = useBusinessCatalogue();
   return (
     <CentralCatalogueScreen
       layout={layout}
@@ -794,12 +808,15 @@ function CentralCatalogueRoute() {
           showError('This item action is not yet available.');
         }
       }}
+      items={(catalogue.data?.data ?? []).map(catalogueItemToCentralRow)}
     />
   );
 }
 
 function ServicesCategoriesRoute() {
   const updateItemStatus = useUpdateCatalogueItemStatus();
+  const services = useBusinessCatalogue({ itemType: 'service' });
+  const categories = useCatalogueCategories();
   return (
     <ServicesCategoriesManagementScreen
       onNotifications={() => undefined}
@@ -845,6 +862,8 @@ function ServicesCategoriesRoute() {
       onReorderCategory={() => {
         showError('Category reordering is not yet available.');
       }}
+      services={(services.data?.data ?? []).map(catalogueItemToServiceRow)}
+      categories={(categories.data ?? []).map(catalogueCategoryToRow)}
     />
   );
 }

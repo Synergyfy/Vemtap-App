@@ -42,6 +42,27 @@ const categoryAccentIcon: Record<string, string> = {
   tertiary: colors.tertiaryContainer,
 };
 
+export interface ServicesManagementRow {
+  id: string;
+  name: string;
+  eyebrow: string;
+  tag: string;
+  price: string;
+  priceSuffix?: string;
+  duration: string;
+  status: string;
+  note: string;
+}
+
+export interface CategoryManagementRow {
+  id: string;
+  title: string;
+  count: string;
+  type: string;
+  accent: 'brand' | 'neutral' | 'tertiary';
+  icon: string;
+}
+
 export interface ServicesCategoriesManagementScreenProps {
   onNotifications?: () => void;
   onAddService?: () => void;
@@ -51,6 +72,10 @@ export interface ServicesCategoriesManagementScreenProps {
   onEditCategory?: (categoryId: string) => void;
   onArchiveCategory?: (categoryId: string) => void;
   onReorderCategory?: (categoryId: string) => void;
+  /** Optional live services. When provided, renders live data instead of prototype copy. */
+  services?: ServicesManagementRow[];
+  /** Optional live categories. When provided, renders live data instead of prototype copy. */
+  categories?: CategoryManagementRow[];
 }
 
 /**
@@ -67,10 +92,21 @@ export function ServicesCategoriesManagementScreen({
   onEditCategory,
   onArchiveCategory,
   onReorderCategory,
+  services,
+  categories,
 }: ServicesCategoriesManagementScreenProps) {
   const [tab, setTab] = useState('services');
   const [filter, setFilter] = useState('all');
   const [sheetService, setSheetService] = useState<string | null>(null);
+
+  // Fall back to prototype copy when the navigator feeds no live data. The
+  // copy arrays are `as const` (readonly), so map them into mutable rows.
+  const shownServices: ServicesManagementRow[] = services
+    ? [...services]
+    : copy.services.map(service => ({ ...service }));
+  const shownCategories: CategoryManagementRow[] = categories
+    ? [...categories]
+    : copy.categories.map(category => ({ ...category }));
 
   return (
     <BusinessScreenLayout
@@ -142,7 +178,7 @@ export function ServicesCategoriesManagementScreen({
       </View>
 
       <View className="mt-3 gap-3">
-        {copy.services.map(service => {
+        {shownServices.map(service => {
           const image = businessOpsImageById[service.id];
           return (
             <View
@@ -255,7 +291,7 @@ export function ServicesCategoriesManagementScreen({
       </View>
 
       <View className="mt-3 gap-2">
-        {copy.categories.map(category => (
+        {shownCategories.map(category => (
           <View
             key={category.id}
             className="flex-row items-center gap-3 rounded-card bg-surface p-3 shadow-sm"
