@@ -4,6 +4,8 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useRoute, type RouteProp } from '@react-navigation/native';
 import { strings } from '@constants/strings';
+import { useTabBarStore } from '@store/tabBarStore';
+import { useHideTabBarOnFocus } from '@navigation/useHideTabBarOnFocus';
 import {
   BusinessTabBar,
   type BusinessTabBadge,
@@ -92,8 +94,17 @@ import {
   useUpdateBookingStatus,
 } from '@features/business/hooks/useBusinessBookings';
 import { useAuthStore } from '@store/authStore';
-import { queryClient } from '@store/queryClient';
-import { clearSecureStorage } from '@utils/secureStorage';
+import { showError, showSuccess } from '@components/shared';
+import { useCatalogueDraftStore } from '@store/catalogueDraftStore';
+import {
+  useBusinessBranches,
+  usePublishCatalogueItem,
+  usePublishCatalogueOffer,
+  useUpdateCatalogueItemStatus,
+  useUpdateOfferStatus,
+} from '@features/business/hooks/useCatalogueMutations';
+import { catalogueApi } from '@api/catalogueApi';
+import { endSession } from '@features/auth/endSession';
 import { navigationRef } from '@navigation/navigationRef';
 import { CampaignsHubScreen } from '@features/business/screens/CampaignsHubScreen';
 import { CustomerSegmentsScreen } from '@features/business/screens/CustomerSegmentsScreen';
@@ -376,6 +387,10 @@ function BusinessMessagesRoute() {
 }
 
 function BusinessConversationRoute() {
+  // The chat is a full-height canvas: the footer would otherwise sit between the
+  // composer and the keyboard once the window shrinks on Android.
+  useHideTabBarOnFocus();
+
   const navigation = useBusinessNavigation();
   const route = useRoute<RouteProp<BusinessTabParamList, 'BusinessConversation'>>();
   const threadId = route.params?.threadId;
@@ -432,6 +447,14 @@ function BusinessConversationRoute() {
           threadId,
           branchId: activeBranchId,
           payload: { content },
+        });
+      }}
+      onSendMedia={(content, mediaUrl) => {
+        if (!activeBranchId) return;
+        sendReply.mutate({
+          threadId,
+          branchId: activeBranchId,
+          payload: { content, mediaUrl },
         });
       }}
     />
@@ -522,8 +545,12 @@ function BusinessManagementHubRoute() {
 
 function BusinessProfilePreviewRoute() {
   const navigation = useBusinessNavigation();
+  // Read live so the amenity toggles reflect what is actually saved; a save
+  // built from the design defaults would overwrite them.
+  const myBusiness = useMyBusiness();
   return (
     <BusinessProfilePreviewScreen
+      initialAmenities={myBusiness.data?.amenities ?? undefined}
       onBack={navigation.goBack}
       onMoreActions={() => undefined}
       onChangeCover={() => undefined}
@@ -544,6 +571,7 @@ function CentralDealsManagementRoute() {
   const navigation = useBusinessNavigation();
   const route = useRoute<RouteProp<BusinessTabParamList, 'CentralDealsManagement'>>();
   const layout = route.params?.layout ?? 'hero';
+  const updateOfferStatus = useUpdateOfferStatus();
   return (
     <CentralDealsManagementScreen
       layout={layout}
@@ -554,8 +582,24 @@ function CentralDealsManagementRoute() {
       onChangeScope={() => undefined}
       onBoostDeal={() => undefined}
       onEditDeal={() => navigation.navigate('DealLocationAssignmentPricing')}
-      onPauseDeal={() => undefined}
-      onDealActions={() => undefined}
+      onPauseDeal={dealId => {
+        updateOfferStatus.mutate(
+          { offerId: dealId, status: 'inactive' },
+          {
+            onSuccess: () => showSuccess('Deal paused.'),
+            onError: () => showError('Could not pause the deal.'),
+          },
+        );
+      }}
+      onDealActions={dealId => {
+        updateOfferStatus.mutate(
+          { offerId: dealId, status: 'inactive' },
+          {
+            onSuccess: () => showSuccess('Deal paused.'),
+            onError: () => showError('Could not pause the deal.'),
+          },
+        );
+      }}
       onViewLedger={() => undefined}
       onOpenDeal={() => navigation.navigate('DealDetailsPerformance')}
     />
@@ -582,12 +626,40 @@ function DealDetailsPerformanceRoute() {
 
 function CreateDealLocationAssignmentRoute() {
   const navigation = useBusinessNavigation();
+  const setDeal = useCatalogueDraftStore(state => state.setDeal);
+  const publish = usePublishCatalogueOffer();
+  const branches = useBusinessBranches();
+
+  const submit = (status: 'active' | 'inactive') => {
+    const all = (branches.data ?? []).map(branch => branch.id);
+    if (!all.length) {
+      showError('No branches available for this deal.');
+      return;
+    }
+    setDeal({ branchIds: all });
+    publish.mutate(
+      { status, branchId: all[0] },
+      {
+        onSuccess: () => {
+          showSuccess(
+            status === 'active' ? 'Deal launched.' : 'Deal saved as draft.',
+          );
+          navigation.goBack();
+        },
+        onError: error =>
+          showError(
+            error instanceof Error ? error.message : 'Could not launch the deal',
+          ),
+      },
+    );
+  };
+
   return (
     <CreateDealLocationAssignmentScreen
       onBack={navigation.goBack}
       onMoreActions={() => undefined}
-      onReviewLaunch={navigation.goBack}
-      onSaveDraft={navigation.goBack}
+      onReviewLaunch={() => submit('active')}
+      onSaveDraft={() => submit('inactive')}
       onManageMerchantTier={() => undefined}
     />
   );
@@ -595,11 +667,39 @@ function CreateDealLocationAssignmentRoute() {
 
 function DealLocationAssignmentPricingRoute() {
   const navigation = useBusinessNavigation();
+  const setDeal = useCatalogueDraftStore(state => state.setDeal);
+  const publish = usePublishCatalogueOffer();
+  const branches = useBusinessBranches();
+
+  const submit = (status: 'active' | 'inactive') => {
+    const all = (branches.data ?? []).map(branch => branch.id);
+    if (!all.length) {
+      showError('No branches available for this deal.');
+      return;
+    }
+    setDeal({ branchIds: all });
+    publish.mutate(
+      { status, branchId: all[0] },
+      {
+        onSuccess: () => {
+          showSuccess(
+            status === 'active' ? 'Deal launched.' : 'Deal saved as draft.',
+          );
+          navigation.goBack();
+        },
+        onError: error =>
+          showError(
+            error instanceof Error ? error.message : 'Could not launch the deal',
+          ),
+      },
+    );
+  };
+
   return (
     <DealLocationAssignmentPricingScreen
       onBack={navigation.goBack}
       onMoreActions={() => undefined}
-      onSave={navigation.goBack}
+      onSave={() => submit('active')}
       onCancel={navigation.goBack}
     />
   );
@@ -618,11 +718,36 @@ function ProductLocationAssignmentRoute() {
 
 function BranchAvailabilityLocationPricingRoute() {
   const navigation = useBusinessNavigation();
+  const branches = useBusinessBranches();
+  const publish = usePublishCatalogueItem();
   return (
     <BranchAvailabilityLocationPricingScreen
       onBack={navigation.goBack}
       onMoreActions={() => undefined}
-      onSaveContinue={navigation.goBack}
+      onSaveContinue={() => {
+        const store = useCatalogueDraftStore.getState();
+        if (!store.product.branchIds.length) {
+          const all = (branches.data ?? []).map(branch => branch.id);
+          if (!all.length) {
+            showError('No branches available to stock this product.');
+            return;
+          }
+          store.setProduct({ branchIds: all });
+        }
+        publish.mutate(
+          { kind: 'product', status: 'active' },
+          {
+            onSuccess: () => {
+              showSuccess('Product published to your branches.');
+              navigation.goBack();
+            },
+            onError: error =>
+              showError(
+                error instanceof Error ? error.message : 'Failed to publish product.',
+              ),
+          },
+        );
+      }}
     />
   );
 }
@@ -631,6 +756,7 @@ function CentralCatalogueRoute() {
   const navigation = useBusinessNavigation();
   const route = useRoute<RouteProp<BusinessTabParamList, 'CentralCatalogue'>>();
   const layout = route.params?.layout ?? 'directory';
+  const updateItemStatus = useUpdateCatalogueItemStatus();
   return (
     <CentralCatalogueScreen
       layout={layout}
@@ -640,37 +766,137 @@ function CentralCatalogueRoute() {
       onChangeScope={() => undefined}
       onAddProduct={() => navigation.navigate('AddProductBasicsMedia')}
       onAddService={() => navigation.navigate('ServicesCategories')}
-      onEditItem={() => undefined}
-      onToggleStock={() => undefined}
-      onSheetAction={() => undefined}
+      onEditItem={() => {
+        showError('Item editing is not yet available from the hub.');
+      }}
+      onToggleStock={(itemId, value) => {
+        updateItemStatus.mutate(
+          { itemId, status: value ? 'active' : 'inactive' },
+          {
+            onSuccess: () =>
+              showSuccess(value ? 'Item is live.' : 'Item paused.'),
+            onError: () => showError('Could not update the item.'),
+          },
+        );
+      }}
+      onSheetAction={(actionId, itemId) => {
+        if (actionId === 'archive' || actionId === 'pause') {
+          updateItemStatus.mutate(
+            { itemId, status: 'inactive' },
+            {
+              onSuccess: () => showSuccess('Item archived.'),
+              onError: () => showError('Could not archive the item.'),
+            },
+          );
+        } else if (actionId === 'delete') {
+          showError('Item deletion is not yet available.');
+        } else {
+          showError('This item action is not yet available.');
+        }
+      }}
     />
   );
 }
 
 function ServicesCategoriesRoute() {
+  const updateItemStatus = useUpdateCatalogueItemStatus();
   return (
     <ServicesCategoriesManagementScreen
       onNotifications={() => undefined}
-      onAddService={() => undefined}
-      onAddCategory={() => undefined}
-      onEditService={() => undefined}
-      onServiceAction={() => undefined}
-      onEditCategory={() => undefined}
-      onArchiveCategory={() => undefined}
-      onReorderCategory={() => undefined}
+      onAddService={() => {
+        showError('Service creation from the hub is coming soon.');
+      }}
+      onAddCategory={async () => {
+        try {
+          await catalogueApi.createCatalogueCategory('New Category');
+          showSuccess('Category created.');
+        } catch {
+          showError('Could not create the category.');
+        }
+      }}
+      onEditService={serviceId => {
+        updateItemStatus.mutate(
+          { itemId: serviceId, status: 'active' },
+          {
+            onSuccess: () => showSuccess('Service updated.'),
+            onError: () => showError('Could not update the service.'),
+          },
+        );
+      }}
+      onServiceAction={(actionId, serviceId) => {
+        if (actionId === 'archive' || actionId === 'pause') {
+          updateItemStatus.mutate(
+            { itemId: serviceId, status: 'inactive' },
+            {
+              onSuccess: () => showSuccess('Service archived.'),
+              onError: () => showError('Could not archive the service.'),
+            },
+          );
+        } else {
+          showError('This service action is not yet available.');
+        }
+      }}
+      onEditCategory={() => {
+        showError('Category editing is not yet available.');
+      }}
+      onArchiveCategory={() => {
+        showError('Category archiving is not yet available.');
+      }}
+      onReorderCategory={() => {
+        showError('Category reordering is not yet available.');
+      }}
     />
   );
 }
 
 function AddProductBasicsMediaRoute() {
   const navigation = useBusinessNavigation();
+  const publish = usePublishCatalogueItem();
   return (
     <AddProductBasicsMediaScreen
       onBack={navigation.goBack}
-      onContinue={() => navigation.navigate('ProductLocationAssignment')}
-      onSaveDraft={navigation.goBack}
+      onContinue={value => {
+        useCatalogueDraftStore.getState().setProduct({
+          name: value.title,
+          brand: value.producer,
+          description: value.description,
+          attributes: value.attributes,
+          condition: value.condition,
+          galleryImages: value.gallery,
+          mainImage: value.mainImage,
+        });
+        navigation.navigate('ProductLocationAssignment');
+      }}
+      onSaveDraft={value => {
+        useCatalogueDraftStore.getState().setProduct({
+          name: value.title,
+          brand: value.producer,
+          description: value.description,
+          attributes: value.attributes,
+          condition: value.condition,
+          galleryImages: value.gallery,
+          mainImage: value.mainImage,
+        });
+        const { product } = useCatalogueDraftStore.getState();
+        if (!product.branchIds.length) {
+          showError('Select branches first, then save the draft.');
+          return;
+        }
+        publish.mutate(
+          { kind: 'product', status: 'inactive' },
+          {
+            onSuccess: () => {
+              showSuccess('Draft saved.');
+              navigation.goBack();
+            },
+            onError: error =>
+              showError(
+                error instanceof Error ? error.message : 'Failed to save draft.',
+              ),
+          },
+        );
+      }}
       onChangeCategory={() => undefined}
-      onAddMedia={() => undefined}
     />
   );
 }
@@ -1014,7 +1240,7 @@ function BusinessNotificationsRoute() {
       onOpenProfile={() => undefined}
       onMarkAllRead={() => undefined}
       onOpenCategory={() => undefined}
-      onOpenNotification={() => undefined}
+      onOpenNotification={() => navigation.navigate('BusinessNotifications')}
       onConfigureDispatch={() => undefined}
     />
   );
@@ -1839,8 +2065,11 @@ function BusinessNetworkDashboardRoute() {
  * through its owning tab rather than by screen name.
  */
 /**
- * "Sign Out of Business" — same local clear as the customer-side sign out
- * (secure storage, query cache, auth store), then leave the shell.
+ * "Sign Out of Business" — the shared session teardown, then leave the shell.
+ *
+ * `endSession` covers secure storage, the query cache, the auth store and the
+ * realtime socket, the same as an expiry, so a manual sign-out cannot drift
+ * from one.
  *
  * BusinessTabs is a root sibling of AppStack/AuthStack, so flipping the
  * session only swaps the stack *underneath* the shell; without a root reset
@@ -1859,13 +2088,8 @@ const signOut = () => {
   };
 
   if (store.status === 'authenticated') {
-    queryClient.clear();
-    clearSecureStorage()
-      .catch(() => undefined)
-      .finally(() => {
-        store.clearSession();
-        leaveBusinessShell();
-      });
+    // Same teardown an expiry performs, then back to the auth stack.
+    endSession().catch(() => undefined).finally(() => leaveBusinessShell());
   } else {
     store.markUnauthenticated();
     leaveBusinessShell();
@@ -2956,8 +3180,14 @@ function BusinessTabBarWithLiveBadges(
   props: React.ComponentProps<typeof BusinessTabBar>,
 ) {
   const { activeBranchId } = useActiveBranch();
+  const isTabBarHidden = useTabBarStore(state => state.isTabBarHidden);
   const counts = useBusinessOrderCounts(activeBranchId);
   const dashboard = useBusinessDashboard(activeBranchId, Boolean(activeBranchId));
+
+  // A focused screen that wants the full canvas (the chat) has taken over the
+  // footer, so it is rendered away entirely rather than left floating over or
+  // squeezed above the keyboard.
+  if (isTabBarHidden) return null;
 
   const badges: Partial<Record<string, BusinessTabBadge>> = {};
 

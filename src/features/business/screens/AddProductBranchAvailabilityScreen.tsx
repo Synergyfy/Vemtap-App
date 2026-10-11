@@ -18,6 +18,7 @@ import {
 } from '@features/business/components/BusinessPrimitives';
 import { ServiceChoiceCard } from '@features/business/components/ServiceFlowPrimitives';
 import { productBranches } from '@features/business/data/businessSetupData';
+import { useBusinessBranches } from '@features/business/hooks/useCatalogueMutations';
 
 export type ProductBranchAvailabilityValue = {
   selectedBranchIds: string[];
@@ -75,10 +76,25 @@ export function AddProductBranchAvailabilityScreen({
   onSaveDraft,
   onEditPrice,
 }: AddProductBranchAvailabilityScreenProps) {
-  const [selectedBranchIds, setSelectedBranchIds] = useState(['wuse', 'garki']);
+  const [selectedOverride, setSelectedOverride] = useState<string[] | null>(null);
   const [pricingMode, setPricingMode] = useState<'unified' | 'custom'>('unified');
   const [fulfillment, setFulfillment] = useState(['pickup', 'delivery']);
   const [preparationWindow, setPreparationWindow] = useState('20-30');
+
+  const branchesQuery = useBusinessBranches();
+  const defaultBranchIds = useMemo(
+    () => (branchesQuery.data ?? []).slice(0, 2).map(branch => branch.id),
+    [branchesQuery.data],
+  );
+  const selectedBranchIds = selectedOverride ?? defaultBranchIds;
+  const shownBranches = (branchesQuery.data ?? productBranches).map(branch => ({
+    id: branch.id,
+    name: branch.name,
+    address: branch.address ?? '',
+    price: 'price' in branch ? branch.price : undefined,
+    badge: 'badge' in branch ? branch.badge : undefined,
+    stock: 'stock' in branch ? branch.stock : undefined,
+  }));
   const value = useMemo(
     () => ({ selectedBranchIds, pricingMode, fulfillment, preparationWindow }),
     [fulfillment, preparationWindow, pricingMode, selectedBranchIds],
@@ -88,11 +104,12 @@ export function AddProductBranchAvailabilityScreen({
     'Ready in 20 - 30 minutes';
 
   const toggleBranch = (id: string) => {
-    setSelectedBranchIds(current =>
-      current.includes(id)
-        ? current.filter(branchId => branchId !== id)
-        : [...current, id],
-    );
+    setSelectedOverride(current => {
+      const base = current ?? defaultBranchIds;
+      return base.includes(id)
+        ? base.filter(branchId => branchId !== id)
+        : [...base, id];
+    });
   };
   const toggleFulfillment = (id: string) => {
     setFulfillment(current =>
@@ -100,7 +117,10 @@ export function AddProductBranchAvailabilityScreen({
     );
   };
   const toggleAll = () => {
-    setSelectedBranchIds(current => (current.length === 2 ? [] : ['wuse', 'garki']));
+    setSelectedOverride(current => {
+      const base = current ?? defaultBranchIds;
+      return base.length === shownBranches.length ? [] : shownBranches.map(branch => branch.id);
+    });
   };
 
   return (
@@ -174,8 +194,8 @@ export function AddProductBranchAvailabilityScreen({
               </VemtapText>
             </Pressable>
           </View>
-          {productBranches.map(branch => {
-            const inactive = branch.id === 'maitama';
+          {shownBranches.map(branch => {
+            const inactive = false;
             const selected = selectedBranchIds.includes(branch.id);
             return (
               <View
@@ -222,10 +242,12 @@ export function AddProductBranchAvailabilityScreen({
                       >
                         {branch.name}
                       </VemtapText>
-                      <BusinessStatusPill
-                        label={branch.badge}
-                        tone={branch.id === 'wuse' ? 'brand' : 'neutral'}
-                      />
+                      {branch.badge ? (
+                        <BusinessStatusPill
+                          label={branch.badge}
+                          tone={shownBranches[0]?.id === branch.id ? 'brand' : 'neutral'}
+                        />
+                      ) : null}
                     </View>
                     <VemtapText
                       variant="caption"

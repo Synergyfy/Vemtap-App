@@ -1,6 +1,8 @@
 import { useHistoryBack } from '@navigation/useHistoryBack';
 import { useHideTabBarOnFocus } from '@navigation/useHideTabBarOnFocus';
 import { useOpenClaimChat } from '@features/merchantChat/hooks/useOpenClaimChat';
+import { useConversationActions } from '@navigation/useConversationActions';
+import { useCustomerThreads } from '@features/merchantChat/hooks/useCustomerMessaging';
 import React, { useEffect, useState } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import {
@@ -143,13 +145,35 @@ function PersonalConversationRoute() {
 
   const navigation = useNavigation<HubNavigation>();
   const route = useRoute<RouteProp<PersonalHubParamList, 'PersonalConversation'>>();
+
+  const threadsQuery = useCustomerThreads();
+  const thread = (threadsQuery.data ?? []).find(item => item.id === route.params?.threadId);
+  const branchCode = thread?.branch?.code ?? undefined;
+  const branchPhone = thread?.branch?.phone ?? undefined;
+  const claimId = route.params?.claimId ?? thread?.claimId ?? undefined;
+
+  const { props: actions, sheet } = useConversationActions({
+    hasClaim: claimId != null,
+    claimId,
+    branchCode,
+    branchPhone,
+    onOpenBusiness: code =>
+      // Discover is a sibling of Account, so the tab is addressed first.
+      navigation.navigate('Discover', { screen: 'BusinessProfile', params: { code } }),
+    onOpenPass: id => navigation.navigate('PersonalClaimedDealPass', { claimId: id }),
+  });
+
   return (
-    <UrbanConversationScreen
-      threadId={route.params?.threadId}
-      claimId={route.params?.claimId}
-      onBack={goBack}
-      onViewPass={claimId => navigation.navigate('PersonalClaimedDealPass', { claimId })}
-    />
+    <>
+      <UrbanConversationScreen
+        threadId={route.params?.threadId}
+        claimId={claimId}
+        onBack={goBack}
+        onViewPass={id => navigation.navigate('PersonalClaimedDealPass', { claimId: id })}
+        {...actions}
+      />
+      {sheet}
+    </>
   );
 }
 
@@ -246,10 +270,10 @@ function PersonalSavedRoute() {
   );
 }
 
-function PersonalNotificationsRoute() {
+function PersonalNotificationsRoute(navigation: NavigationProp<HubNavigationRootParamList>) {
   const goBack = useHistoryBack();
 
-  return <NotificationsCenterScreen onBack={goBack} />;
+  return <NotificationsCenterScreen onBack={goBack} onOpenNotification={navigation.navigate} />;
 }
 
 function PersonalSettingsRoute() {

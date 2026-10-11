@@ -1,6 +1,8 @@
 import { useHistoryBack } from '@navigation/useHistoryBack';
 import { useHideTabBarOnFocus } from '@navigation/useHideTabBarOnFocus';
 import { useOpenClaimChat } from '@features/merchantChat/hooks/useOpenClaimChat';
+import { useConversationActions } from '@navigation/useConversationActions';
+import { useCustomerThreads } from '@features/merchantChat/hooks/useCustomerMessaging';
 import { useClaimPass } from '@features/myDeals/hooks/useMyClaims';
 import { useTabBarStore } from '@store/tabBarStore';
 import { tabRePressListenersFor } from '@navigation/navigationHistory';
@@ -20,8 +22,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HomeScreen } from '@features/home/screens/HomeScreen';
 import { useLocationStore } from '@store/locationStore';
-import { queryClient } from '@store/queryClient';
-import { clearSecureStorage } from '@utils/secureStorage';
+import { endSession } from '@features/auth/endSession';
 import { FeaturedDealsScreen } from '@features/home/screens/FeaturedDealsScreen';
 import { AccountHomeScreen } from '@features/accountHub/screens/AccountHomeScreen';
 import { useOpenBusinessSetup } from '@features/business/hooks/useOpenBusinessSetup';
@@ -502,17 +503,16 @@ type AccountStackNavigation = CompositeNavigationProp<
 >;
 
 /**
- * `markUnauthenticated` alone left the bearer token in secure storage, so every
- * later request still carried a dead token and the flow could not be re-run
- * cleanly. Delegate to the logout hook so storage and the query cache clear too.
+ * Tears the whole session down — token, query cache, auth store, realtime
+ * socket — from the shared helper, so a manual sign-out and a 401 expiry
+ * cannot drift apart. Doing this by hand is what previously left a dead token
+ * in secure storage, so every later request carried it and the flow could not
+ * be re-run cleanly.
  */
 const signOut = () => {
   const store = useAuthStore.getState();
   if (store.status === 'authenticated') {
-    queryClient.clear();
-    clearSecureStorage()
-      .catch(() => undefined)
-      .finally(() => store.clearSession());
+    endSession().catch(() => undefined);
   } else {
     store.markUnauthenticated();
   }
@@ -803,13 +803,37 @@ function ConversationRoute() {
 
   const navigation = useNavigation<AccountStackNavigation>();
   const route = useRoute<RouteProp<AccountStackParamList, 'Conversation'>>();
+
+  // The thread and its linked claim drive which actions the navbar can offer.
+  const threadsQuery = useCustomerThreads();
+  const thread = (threadsQuery.data ?? []).find(item => item.id === route.params?.threadId);
+  const branchCode = thread?.branch?.code ?? undefined;
+  const branchPhone = thread?.branch?.phone ?? undefined;
+  const claimId = route.params?.claimId ?? thread?.claimId ?? undefined;
+
+  const { props: actions, sheet } = useConversationActions({
+    hasClaim: claimId != null,
+    claimId,
+    branchCode,
+    branchPhone,
+    onOpenBusiness: code => navigation.navigate('Discover', {
+      screen: 'BusinessProfile',
+      params: { code },
+    }),
+    onOpenPass: id => navigation.navigate('ClaimedDealPass', { claimId: id }),
+  });
+
   return (
-    <UrbanConversationScreen
-      threadId={route.params?.threadId}
-      claimId={route.params?.claimId}
-      onBack={goBack}
-      onViewPass={claimId => navigation.navigate('ClaimedDealPass', { claimId })}
-    />
+    <>
+      <UrbanConversationScreen
+        threadId={route.params?.threadId}
+        claimId={claimId}
+        onBack={goBack}
+        onViewPass={id => navigation.navigate('ClaimedDealPass', { claimId: id })}
+        {...actions}
+      />
+      {sheet}
+    </>
   );
 }
 

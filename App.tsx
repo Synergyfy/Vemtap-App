@@ -25,10 +25,9 @@ import { queryClient, queryCachePersister, PERSIST_BUSTER } from '@store/queryCl
 import { ThemeProvider } from '@theme/ThemeProvider';
 import { ErrorBoundary } from '@components/shared/ErrorBoundary';
 import { OfflineBanner } from '@components/shared/OfflineBanner';
-import { ToastHost } from '@components/shared/ToastHost';
+import Toast from 'react-native-toast-message';
 import { RootNavigator } from '@navigation/RootNavigator';
 import { useIsOnline } from '@hooks/useNetworkStatus';
-import { useUiStore } from '@store/uiStore';
 import { registerAuthBridge } from '@api/client';
 import { useAuthStore } from '@store/authStore';
 import { useAuthBootstrap } from '@features/auth/hooks/useAuthBootstrap';
@@ -93,13 +92,14 @@ function StatusBarBackdrop() {
 
 function Shell({ children }: { children: React.ReactNode }) {
   const isOnline = useIsOnline();
-  const toast = useUiStore(state => state.toast);
 
   return (
     <View className="flex-1 bg-background">
       {!isOnline ? <OfflineBanner /> : null}
       <View className="flex-1">{children}</View>
-      <ToastHost toast={toast} />
+      {/* Mounted once, above every screen, so a confirmation raised from any
+          depth of the navigator still has somewhere to render. */}
+      <Toast />
       <StatusBarBackdrop />
     </View>
   );

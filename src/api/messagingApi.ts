@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { requestValidated } from '@api/client';
+import { uploadFile } from '@api/uploadClient';
 import type { ApiRequestOptions } from '@app-types/api';
 
 export const threadParticipantSchema = z.object({
@@ -11,8 +12,14 @@ export const threadParticipantSchema = z.object({
   avatarUrl: z.string().nullable().optional(),
   avatar: z.string().nullable().optional(),
   address: z.string().nullable().optional(),
-  phone: z.string().nullable().optional(),
-  email: z.string().nullable().optional(),
+  phone: z.string().nullish(),
+  email: z.string().nullish(),
+  /**
+   * The branch's 9-character code. Not declared before, so zod stripped it and
+   * the chat could not deep-link to the business profile — `GET /public/
+   * businesses/code/:code` is keyed on it.
+   */
+  code: z.string().nullish(),
 });
 
 export const conversationThreadSchema = z.object({
@@ -69,6 +76,9 @@ export const messageSchema = z.object({
   to: z.string().nullish(),
   timestamp: z.string().nullish(),
   replyToId: z.string().nullable().optional(),
+  /** Hosted image attached to the message, when the sender sent one. */
+  mediaUrl: z.string().nullish(),
+  mediaMimeType: z.string().nullish(),
 });
 export type ChatMessage = z.infer<typeof messageSchema>;
 
@@ -101,6 +111,9 @@ export interface StartConversationPayload {
 export interface ReplyMessagePayload {
   content: string;
   replyToId?: string;
+  /** Hosted URL of an image the sender attached. Images may travel alone. */
+  mediaUrl?: string;
+  mediaMimeType?: string;
 }
 
 export const messagingApi = {
@@ -175,6 +188,29 @@ export const messagingApi = {
       },
       messageSchema,
     );
+  },
+
+  /**
+   * Host an image for a chat message.
+   *
+   * Separate from `POST /uploads`, which is business-only and files into a
+   * business folder; a customer has neither the role nor the folder. Images
+   * only, matching the uploads module's type and size limits.
+   */
+  async uploadCustomerMedia(
+    file: { fileUri: string; fileName: string; mimeType?: string },
+    options: ApiRequestOptions = {},
+  ): Promise<{ url: string }> {
+    const result = await uploadFile<{ url?: string; data?: { url?: string } }>({
+      url: '/customer/messaging/media',
+      fileUri: file.fileUri,
+      fileName: file.fileName,
+      mimeType: file.mimeType ?? 'image/jpeg',
+      ...(options.signal ? { signal: options.signal } : {}),
+    });
+    const url = result.data?.url ?? result.data?.data?.url;
+    if (!url) throw new Error('Upload returned no url');
+    return { url };
   },
 
   // Business Messaging

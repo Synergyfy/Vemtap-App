@@ -8,7 +8,9 @@
   "ios": {
     "bundleIdentifier": "com.vemtap.app",
     "infoPlist": {
-      "ITSAppUsesNonExemptEncryption": false
+      "ITSAppUsesNonExemptEncryption": false,
+      "NSCameraUsageDescription": "VEMTAP needs the camera so you can send a photo of a voucher or receipt to a business you are chatting with.",
+      "NSPhotoLibraryUsageDescription": "VEMTAP needs access to your photos so you can send an image to a business you are chatting with."
     }
   },
   "android": {
@@ -17,7 +19,8 @@
       "googleMaps": {
         "apiKey": ""
       }
-    }
+    },
+    "softwareKeyboardLayoutMode": "resize"
   },
   "owner": "vemtap",
   "plugins": [
@@ -35,7 +38,8 @@
     [
       "expo-image-picker",
       {
-        "photosPermission": "VEMTAP needs access to your photos so you can upload your logo, cover banner and storefront images."
+        "photosPermission": "VEMTAP needs access to your photos so you can send an image to a business you are chatting with.",
+        "cameraPermission": "VEMTAP needs the camera so you can send a photo of a voucher or receipt to a business you are chatting with."
       }
     ]
   ],

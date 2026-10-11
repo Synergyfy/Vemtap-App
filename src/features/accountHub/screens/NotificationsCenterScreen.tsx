@@ -41,6 +41,9 @@ interface NotificationEntry {
   merchantImage?: string;
   action?: string;
   actionTone?: 'primary' | 'secondary' | 'success';
+  statBlock?: React.ReactNode;
+  footnote?: React.ReactNode;
+  cta?: React.ReactNode;
 }
 
 const categories: Array<NotificationCategory | 'all'> = [
@@ -65,6 +68,9 @@ const initialEntries: NotificationEntry[] = [
     merchantMeta: copy.expiryMeta,
     merchantImage: images.grill,
     action: copy.expiryAction,
+    statBlock: null,
+    footnote: null,
+    cta: null,
   },
   {
     id: 'booking',
@@ -80,6 +86,9 @@ const initialEntries: NotificationEntry[] = [
     merchantImage: images.spa,
     action: copy.bookingAction,
     actionTone: 'secondary',
+    statBlock: null,
+    footnote: null,
+    cta: null,
   },
   {
     id: 'gift',
@@ -95,6 +104,9 @@ const initialEntries: NotificationEntry[] = [
     merchantImage: images.cafe,
     action: copy.giftAction,
     actionTone: 'success',
+    statBlock: null,
+    footnote: null,
+    cta: null,
   },
   {
     id: 'reward',
@@ -105,6 +117,9 @@ const initialEntries: NotificationEntry[] = [
     time: copy.rewardDate,
     body: copy.rewardBody,
     unread: false,
+    statBlock: null,
+    footnote: null,
+    cta: null,
   },
   {
     id: 'system',
@@ -114,7 +129,10 @@ const initialEntries: NotificationEntry[] = [
     title: copy.systemTitle,
     time: copy.systemDate,
     body: copy.systemBody,
-    unread: false,
+    unread: true,
+    statBlock: null,
+    footnote: null,
+    cta: null,
   },
 ];
 
@@ -149,6 +167,60 @@ export function NotificationsCenterScreen({
         else if (typeLower.includes('reward') || typeLower.includes('point'))
           category = 'rewards';
 
+        // Render stat/footnote/cta from metadata if present, otherwise fall back
+        // to the simple prose format.
+        let statBlock = null;
+        let footnote = null;
+        let cta = null;
+        if (item.metadata) {
+          const { stat, footnote: footnoteVal, cta: ctaVal } = item.metadata;
+          if (stat) {
+            statBlock = (
+              <View className="flex-row flex-wrap items-baseline gap-1.5 rounded-field bg-surface-subtle p-2.5">
+                {stat.label ? (
+                  <VemtapText variant="caption" tone="tertiary" numberOfLines={1}>
+                    {stat.label}
+                  </VemtapText>
+                ) : null}
+                {stat.value !== undefined && (
+                  <VemtapText
+                    variant="headingSm"
+                    className="font-sans-bold"
+                    numberOfLines={1}
+                  >
+                    {stat.value}
+                  </VemtapText>
+                )}
+                {stat.trend ? (
+                  <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
+                    {stat.trend}
+                  </VemtapText>
+                ) : null}
+              </View>
+            );
+          }
+          if (footnoteVal) {
+            footnote = (
+              <View className="flex-row items-center gap-1.5">
+                <Icon name="info" size={12} color={colors.secondary} />
+                <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
+                  {footnoteVal}
+                </VemtapText>
+              </View>
+            );
+          }
+          if (ctaVal) {
+            cta = (
+              <View className="flex-row items-center justify-end gap-1">
+                <VemtapText variant="labelSm" className="font-sans-semibold">
+                  {ctaVal}
+                </VemtapText>
+                <Icon name="forward" size={16} color={colors.primary} />
+              </View>
+            );
+          }
+        }
+
         return {
           id: item.id,
           category,
@@ -172,6 +244,11 @@ export function NotificationsCenterScreen({
           time: item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'Recent',
           body: item.message,
           unread: !item.isRead,
+          // Render the structured blocks when metadata is present; fall back
+          // to the simple prose format when it is not.
+          ...(statBlock && { statBlock }),
+          ...(footnote && { footnote }),
+          ...(cta && { cta }),
         };
       });
     }

@@ -2392,50 +2392,52 @@ export const strings = {
   },
   urbanConversation: {
     pageTitle: 'Conversation View',
+    /** Fallback when the thread has not resolved a branch name yet. */
     merchant: 'Urban Grill & Bistro',
     details: 'Share or details',
     replyStatus: 'Typically replies in < 5 mins • Open closes 10 PM',
+    openBusiness: 'Open business profile',
     callMerchant: 'Call Merchant',
     dealDetails: 'Deal Details',
     activeDeal: 'ACTIVE DEAL LINKED',
     closeDeal: 'Close linked deal',
-    dealTitle: '20% Off Prime Lunch Gourmet Combo',
-    dealPrice: '₦9,600',
-    regularPrice: '₦12,000',
-    save: 'Save ₦2,400',
     saveAmountFor: (amount: string) => `Save ${amount}`,
     codeLabel: 'Code:',
-    code: 'VT-48F261',
     viewPass: 'View Pass',
-    date: 'Today, October 15',
-    timeOne: '10:38 AM',
-    timeTwo: '10:41 AM',
-    timeThree: '10:44 AM',
-    timeFour: '10:45 AM',
-    security:
-      'Messages are end-to-end encrypted with verified VEMTAP partner Urban Grill & Bistro. Your voucher passes and redemptions are protected.',
-    merchantOne:
-      'Hello Zainab! Thanks for connecting. How can we help you regarding your 20% Off Prime Lunch Combo reservation today?',
-    customerOne:
-      'Hi! I claimed the lunch voucher. Can we get outdoor patio seating for two people around 1:00 PM?',
-    merchantTwo:
-      "Absolutely! We've reserved a scenic garden patio table for you at 1:00 PM under your name Zainab Ahmed. 🌿",
-    merchantThree:
-      'Your voucher code VT-48F261 has been noted on the table ticket. Just present your QR code pass to your server before requesting the check! See you soon.',
-    table: 'Garden Table #08',
-    tableMeta: 'Lunch Combo • Confirmed',
+    /**
+     * Names the actual merchant rather than the one the copy shipped with, so
+     * the reassurance cannot contradict the header it sits under.
+     */
+    securityFor: (businessName: string) =>
+      `Messages are end-to-end encrypted with verified VEMTAP partner ${businessName}. Your voucher passes and redemptions are protected.`,
     quickReplies: [
       'Thanks, see you at 1! 👋',
       'How do I get there? 📍',
       'View My QR Pass 🎫',
       'Call Restaurant 📞',
     ] as const,
-    attachment: 'Add photos or documents',
-    inputLabel: 'Message Urban Grill & Bistro',
-    placeholder: 'Message Urban Grill & Bistro...',
+    /** Small tray; the same emoji set the deal comments composer uses. */
+    emojiReactions: ['❤️', '🔥', '👏', '😍', '🤤', '👍', '🎉', '🙏'] as const,
+    attachment: 'Add a photo',
+    uploading: 'Uploading photo…',
+    photoAttached: 'Photo attached — add a caption or send.',
+    inputLabel: 'Message',
+    placeholder: 'Message...',
     emoji: 'Emoji picker',
-    camera: 'Attach receipt or photo',
+    addEmoji: (emoji: string) => `Add ${emoji}`,
+    camera: 'Take a photo',
+    photo: 'Photo',
+    sending: 'Sending…',
     send: 'Send message',
+    moreSheet: {
+      title: 'Conversation',
+      viewBusiness: 'View business profile',
+      callBusiness: 'Call business',
+      copyNumber: 'Copy business number',
+      share: 'Share conversation',
+      copied: 'Business number copied',
+    },
+    shareMessage: 'Chat with this business on VEMTAP.',
   },
   ordersHub: {
     title: 'Orders And Bookings',
@@ -3719,6 +3721,8 @@ export const strings = {
       contextLabel: 'About this thread',
       quickRepliesLabel: 'Quick replies',
       composerPlaceholder: 'Message the customer\u2026',
+      attachLabel: 'Add a photo',
+      cameraLabel: 'Take a photo',
       sendLabel: 'Send message',
       sendHint: 'Sends a direct in-app message',
       emptyTitle: 'No messages yet',

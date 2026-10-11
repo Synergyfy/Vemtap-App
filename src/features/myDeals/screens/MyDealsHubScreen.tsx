@@ -21,7 +21,7 @@ import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
 import { colors } from '@theme/colors';
-import { useUiStore } from '@store/uiStore';
+import { showToast } from '@components/shared/toast';
 import { formatCurrency } from '@utils/formatters';
 import { useDebounce } from '@hooks/useDebounce';
 import {
@@ -78,7 +78,6 @@ export function MyDealsHubScreen({
   const [tab, setTab] = useState(0);
   const [sort, setSort] = useState<MyDealsSort>('newest');
   const [sheetOpen, setSheetOpen] = useState(false);
-  const showToast = useUiStore(state => state.showToast);
 
   // The search is server-side, so it is debounced before it reaches the API —
   // otherwise one request per keystroke. The input itself stays synchronous.

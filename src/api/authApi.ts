@@ -52,6 +52,7 @@ export const userSchema = z.object({
   email: z.string(),
   firstName: z.string().default(''),
   lastName: z.string().default(''),
+  gender: z.string().nullable().optional(),
   role: z.string().default('customer'),
   status: z.string().default(''),
   authProvider: z.string().default('customer'),
@@ -94,6 +95,13 @@ export const sessionSchema = z.object({
 });
 
 export type LoginInput = z.infer<typeof loginInputSchema>;
+
+/** The editable slice of a profile, as the edit screen collects it. */
+export interface UpdateProfileInput {
+  firstName: string;
+  lastName: string;
+  gender?: string;
+}
 export type RegisterInput = z.infer<typeof registerInputSchema>;
 export type User = z.infer<typeof userSchema>;
 /** Session as the API returns it. The access token is stored in secure storage, not here. */
@@ -138,6 +146,25 @@ export const authApi = {
   async fetchProfile(options: ApiRequestOptions = {}): Promise<User> {
     return requestValidated<User>(
       { method: 'GET', url: '/auth/profile', ...options },
+      userSchema,
+    );
+  },
+
+  /**
+   * Persist the editable profile fields.
+   *
+   * Only the fields the edit screen actually owns are sent — `phone` is
+   * deliberately absent because changing it needs its own verification flow,
+   * and `email` likewise goes through verification rather than a profile edit.
+   * The response is the updated user, so callers can refresh the session
+   * without a second read.
+   */
+  async updateProfile(
+    input: UpdateProfileInput,
+    options: ApiRequestOptions = {},
+  ): Promise<User> {
+    return requestValidated<User>(
+      { method: 'PATCH', url: '/users/profile', data: input, ...options },
       userSchema,
     );
   },

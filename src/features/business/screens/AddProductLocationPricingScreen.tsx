@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
@@ -23,6 +23,7 @@ import {
   productBranches,
   productIdentity,
 } from '@features/business/data/businessSetupData';
+import { useBusinessBranches } from '@features/business/hooks/useCatalogueMutations';
 
 export type ProductLocationPricingValue = {
   productName: string;
@@ -53,16 +54,33 @@ export function AddProductLocationPricingScreen({
   const [description, setDescription] = useState<string>(
     productIdentity.locationDescription,
   );
-  const [selectedBranchIds, setSelectedBranchIds] = useState(['wuse', 'garki']);
+  const [selectedOverride, setSelectedOverride] = useState<string[] | null>(null);
   const [pricingMode, setPricingMode] = useState<'uniform' | 'branch'>('branch');
   const [inStock, setInStock] = useState(true);
 
+  // Live branch list; falls back to the static copy only before the query
+  // resolves so the picker never renders an empty row set. The first two
+  // branches are preselected until the owner overrides the selection.
+  const branchesQuery = useBusinessBranches();
+  const defaultBranchIds = useMemo(
+    () => (branchesQuery.data ?? []).slice(0, 2).map(branch => branch.id),
+    [branchesQuery.data],
+  );
+  const selectedBranchIds = selectedOverride ?? defaultBranchIds;
+  const shownBranches = (branchesQuery.data ?? productBranches).map(branch => ({
+    id: branch.id,
+    name: branch.name,
+    address: branch.address ?? '',
+    badge: 'badge' in branch ? branch.badge : undefined,
+  }));
+
   const toggleBranch = (id: string) => {
-    setSelectedBranchIds(current =>
-      current.includes(id)
-        ? current.filter(branchId => branchId !== id)
-        : [...current, id],
-    );
+    setSelectedOverride(current => {
+      const base = current ?? defaultBranchIds;
+      return base.includes(id)
+        ? base.filter(branchId => branchId !== id)
+        : [...base, id];
+    });
   };
 
   const save = () => {
@@ -189,7 +207,7 @@ export function AddProductLocationPricingScreen({
           subtitle="Select which branches stock or prepare this item."
         />
         <View className="gap-2.5">
-          {productBranches.map(branch => (
+          {shownBranches.map(branch => (
             <BusinessCheckRow
               key={branch.id}
               title={branch.name}

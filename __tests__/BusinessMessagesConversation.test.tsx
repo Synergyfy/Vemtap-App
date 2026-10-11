@@ -156,6 +156,32 @@ describe('business Messages hub opens a single conversation screen', () => {
     }
   });
 
+  it('hides the bottom bar for the chat and brings it back on the hub', async () => {
+    const { restore } = await mountShell();
+    try {
+      const messagesLabel = strings.businessShell.tabs.messages;
+      await openMessagesTab();
+      // The footer is the shell's navigation, so it is present on the hub.
+      expect(screen.getAllByLabelText(messagesLabel).length).toBeGreaterThan(0);
+
+      await act(async () => {
+        fireEvent.press(screen.getByLabelText('Sarah Test'));
+      });
+
+      // The chat is a full-height canvas, so the footer stands down while it is
+      // focused — otherwise it sits between the composer and the keyboard.
+      expect(screen.queryAllByLabelText(messagesLabel)).toHaveLength(0);
+
+      await act(async () => {
+        fireEvent.press(screen.getByLabelText(strings.common.goBack));
+      });
+
+      expect(screen.getAllByLabelText(messagesLabel).length).toBeGreaterThan(0);
+    } finally {
+      restore();
+    }
+  });
+
   it('keeps threads separate — each row loads its own transcript', async () => {
     const { restore } = await mountShell();
     try {
@@ -167,6 +193,32 @@ describe('business Messages hub opens a single conversation screen', () => {
 
       expect(screen.getByText('Where is my order?')).toBeTruthy();
       expect(screen.queryByText('Is the lunch combo available?')).toBeNull();
+    } finally {
+      restore();
+    }
+  });
+
+  it('puts the merchant own reply on the right and the customer on the left', async () => {
+    const { restore } = await mountShell();
+    try {
+      await openMessagesTab();
+      await act(async () => {
+        fireEvent.press(screen.getByLabelText('Sarah Test'));
+      });
+
+      // The reader is the merchant, so perspective decides the side, not who
+      // wrote it: its own OUTBOUND reply is on the right, the customer's
+      // INBOUND message on the left.
+      const alignmentFor = (text: string) => {
+        let node = screen.getByText(text);
+        while (node && !/self-(start|end)/.test(String(node.props?.className ?? ''))) {
+          node = node.parent as typeof node;
+        }
+        return String(node?.props?.className ?? '');
+      };
+
+      expect(alignmentFor('Yes, four vouchers remain today.')).toContain('self-end');
+      expect(alignmentFor('Is the lunch combo available?')).toContain('self-start');
     } finally {
       restore();
     }

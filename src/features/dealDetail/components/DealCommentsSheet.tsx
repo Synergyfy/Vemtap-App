@@ -9,7 +9,7 @@ import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { colors } from '@theme/colors';
 import { strings } from '@constants/strings';
-import { useUiStore } from '@store/uiStore';
+import { showToast } from '@components/shared/toast';
 import { formatWhen } from '@utils/formatters';
 import {
   useCreateDealReview,
@@ -141,7 +141,6 @@ function LiveReviewsSheet({
   commentCount,
   offerId,
 }: LiveCommentsSheetProps) {
-  const showToast = useUiStore(state => state.showToast);
   const list = useDealReviews(offerId);
   const createReview = useCreateDealReview(offerId);
 

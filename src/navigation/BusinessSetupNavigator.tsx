@@ -58,7 +58,15 @@ import { ForgotPinScreen } from '@features/auth/screens/ForgotPinScreen';
 import { TypeDensityProvider } from '@theme/TypeDensityProvider';
 import { useBusinessOnboardingStore } from '@store/businessOnboardingStore';
 import { useAuthStore, selectIsAuthenticated } from '@store/authStore';
+import { useCatalogueDraftStore } from '@store/catalogueDraftStore';
+import {
+  useBusinessBranches,
+  usePublishCatalogueItem,
+  usePublishCatalogueOffer,
+  useUpdateCatalogueItemStatus,
+} from '@features/business/hooks/useCatalogueMutations';
 import { businessDashboardApi } from '@api/businessDashboardApi';
+import { showError, showSuccess } from '@components/shared';
 import { mapLocationDraft } from '@features/business/utils/locationDraftMapper';
 import { businessProfileCopy } from '@features/business/businessCopy';
 import { logger } from '@utils/logger';
@@ -69,6 +77,36 @@ type FlowNavigation = NativeStackNavigationProp<BusinessSetupStackParamList>;
 
 function useFlowNavigation() {
   return useNavigation<FlowNavigation>();
+}
+
+/**
+ * Persists the in-progress product draft to the backend as an `inactive` item
+ * (the API has no server-side draft object; "draft" is the inactive status).
+ * Only offered once a branch is chosen, since creation is branch-scoped.
+ */
+function useSaveProductDraft() {
+  const navigation = useFlowNavigation();
+  const publish = usePublishCatalogueItem();
+  return () => {
+    const { product } = useCatalogueDraftStore.getState();
+    if (!product.branchIds.length) {
+      showError('Pick a branch first so the draft has somewhere to live.');
+      return;
+    }
+    publish.mutate(
+      { kind: 'product', status: 'inactive' },
+      {
+        onSuccess: () => {
+          showSuccess('Product saved as draft.');
+          navigation.navigate('ProductPublished');
+        },
+        onError: error =>
+          showError(
+            error instanceof Error ? error.message : 'Could not save the draft.',
+          ),
+      },
+    );
+  };
 }
 
 /**
@@ -426,137 +464,359 @@ function AddProductsOrServicesRoute() {
 
 function AddServiceBasicsRoute() {
   const navigation = useFlowNavigation();
+  const setService = useCatalogueDraftStore(state => state.setService);
+  const publish = usePublishCatalogueItem();
   return (
     <AddServiceBasicsMediaScreen
       onBack={navigation.goBack}
-      onNext={() => navigation.navigate('AddServiceDurationPricing')}
-      onSaveDraft={() => undefined}
+      onNext={value => {
+        setService({
+          name: value.title,
+          description: value.description,
+          deliveryMode: value.delivery,
+          highlights: value.highlights,
+          audience: value.audience,
+        });
+        navigation.navigate('AddServiceDurationPricing');
+      }}
+      onSaveDraft={value => {
+        setService({
+          name: value.title,
+          description: value.description,
+          deliveryMode: value.delivery,
+          highlights: value.highlights,
+          audience: value.audience,
+        });
+        const { service } = useCatalogueDraftStore.getState();
+        if (!service.branchIds.length) {
+          showError('Select branches first, then save the draft.');
+          return;
+        }
+        publish.mutate(
+          { kind: 'service', status: 'inactive' },
+          {
+            onSuccess: () => {
+              showSuccess('Service saved as draft.');
+              navigation.navigate('ServicePublished');
+            },
+            onError: error =>
+              showError(
+                error instanceof Error ? error.message : 'Could not save the draft.',
+              ),
+          },
+        );
+      }}
     />
   );
 }
 
 function AddServiceDurationPricingRoute() {
   const navigation = useFlowNavigation();
+  const setService = useCatalogueDraftStore(state => state.setService);
+  const publish = usePublishCatalogueItem();
   return (
     <AddServiceDurationPricingScreen
       onBack={navigation.goBack}
-      onNext={() => navigation.navigate('AddServiceAvailabilityRules')}
-      onSaveDraft={() => undefined}
+      onNext={value => {
+        setService({
+          basePrice: value.basePrice,
+          compareAtPrice: value.compareAtPrice,
+          duration: value.duration,
+          bookingEnabled: value.bookingEnabled,
+        });
+        navigation.navigate('AddServiceAvailabilityRules');
+      }}
+      onSaveDraft={value => {
+        setService({
+          basePrice: value.basePrice,
+          compareAtPrice: value.compareAtPrice,
+          duration: value.duration,
+          bookingEnabled: value.bookingEnabled,
+        });
+        const { service } = useCatalogueDraftStore.getState();
+        if (!service.branchIds.length) {
+          showError('Select branches first, then save the draft.');
+          return;
+        }
+        publish.mutate(
+          { kind: 'service', status: 'inactive' },
+          {
+            onSuccess: () => {
+              showSuccess('Service saved as draft.');
+              navigation.navigate('ServicePublished');
+            },
+            onError: error =>
+              showError(
+                error instanceof Error ? error.message : 'Could not save the draft.',
+              ),
+          },
+        );
+      }}
     />
   );
 }
 
 function AddServiceAvailabilityRulesRoute() {
   const navigation = useFlowNavigation();
+  const setService = useCatalogueDraftStore(state => state.setService);
+  const publish = usePublishCatalogueItem();
   return (
     <AddServiceAvailabilityRulesScreen
       onBack={navigation.goBack}
-      onNext={() => navigation.navigate('ReviewServiceSummary')}
-      onSaveDraft={() => undefined}
+      onNext={value => {
+        setService({
+          branchIds: value.branchIds,
+          serviceMode: value.serviceMode,
+          isBookable: value.isBookable,
+        });
+        navigation.navigate('ReviewServiceSummary');
+      }}
+      onSaveDraft={value => {
+        setService({
+          branchIds: value.branchIds,
+          serviceMode: value.serviceMode,
+          isBookable: value.isBookable,
+        });
+        const { service } = useCatalogueDraftStore.getState();
+        if (!service.branchIds.length) {
+          showError('Select branches first, then save the draft.');
+          return;
+        }
+        publish.mutate(
+          { kind: 'service', status: 'inactive' },
+          {
+            onSuccess: () => {
+              showSuccess('Service saved as draft.');
+              navigation.navigate('ServicePublished');
+            },
+            onError: error =>
+              showError(
+                error instanceof Error ? error.message : 'Could not save the draft.',
+              ),
+          },
+        );
+      }}
     />
   );
 }
 
 function ReviewServiceSummaryRoute() {
   const navigation = useFlowNavigation();
+  const draft = useCatalogueDraftStore(state => state.service);
+  const publish = usePublishCatalogueItem();
+
+  const submit = (status: 'active' | 'inactive') => {
+    publish.mutate(
+      { kind: 'service', status },
+      {
+        onSuccess: () => navigation.navigate('ServicePublished'),
+        onError: error =>
+          showError(
+            error instanceof Error
+              ? error.message
+              : 'Could not publish the service',
+          ),
+      },
+    );
+  };
+
   return (
     <ReviewServiceSummaryScreen
+      draft={draft}
+      publishing={publish.isPending}
       onBack={navigation.goBack}
-      onNext={() => navigation.navigate('ServicePublished')}
-      onSaveDraft={() => undefined}
-      onPreview={() => undefined}
+      onPublish={() => submit('active')}
+      onSaveDraft={() => submit('inactive')}
     />
   );
 }
 
 function ServicePublishedRoute() {
   const navigation = useFlowNavigation();
+  const serviceId = useCatalogueDraftStore(
+    state => state.service.publishedServiceId,
+  );
+  const draft = useCatalogueDraftStore(state => state.service);
+  const updateStatus = useUpdateCatalogueItemStatus();
   return (
     <ServicePublishedStatusScreen
       onBack={navigation.goBack}
       onNext={() => navigation.navigate('BusinessQrReady')}
-      onSaveDraft={() => undefined}
+      onSaveDraft={undefined}
       onAddAnother={() => navigation.navigate('AddServiceBasics')}
       onCreateDeal={() => navigation.navigate('CreateDealAutoImported')}
-      onStatusChange={() => undefined}
+      onStatusChange={status => {
+        if (!serviceId) return;
+        updateStatus.mutate(
+          { itemId: serviceId, status: status === 'live' ? 'active' : 'inactive' },
+          { onError: () => showError('Could not update the service status') },
+        );
+      }}
+      draft={draft}
     />
   );
 }
 
 function AddProductLocationPricingRoute() {
   const navigation = useFlowNavigation();
+  const setProduct = useCatalogueDraftStore(state => state.setProduct);
+  const resetProduct = useCatalogueDraftStore(state => state.resetProduct);
   return (
     <AddProductLocationPricingScreen
       onBack={navigation.goBack}
-      onSave={() => navigation.navigate('AddProductBasics')}
-      onDiscard={() => navigation.goBack()}
+      onSave={value => {
+        setProduct({
+          name: value.productName,
+          categoryName: value.category,
+          description: value.description,
+          branchIds: value.selectedBranchIds,
+          pricingMode: value.pricingMode,
+          inStock: value.inStock,
+        });
+        navigation.navigate('AddProductBasics');
+      }}
+      onDiscard={() => {
+        resetProduct();
+        navigation.goBack();
+      }}
     />
   );
 }
 
 function AddProductBasicsRoute() {
   const navigation = useFlowNavigation();
+  const setProduct = useCatalogueDraftStore(state => state.setProduct);
+  const saveProductDraft = useSaveProductDraft();
   return (
     <AddProductBasicsCategoryScreen
       onBack={navigation.goBack}
-      onContinue={() => navigation.navigate('AddProductPricingVariants')}
-      onSaveDraft={() => undefined}
+      onContinue={value => {
+        setProduct({
+          name: value.title,
+          brand: value.brand,
+          unbranded: value.unbranded,
+          description: value.description,
+          condition: value.condition,
+          categoryName: value.categoryPath,
+        });
+        navigation.navigate('AddProductPricingVariants');
+      }}
+      onSaveDraft={saveProductDraft}
     />
   );
 }
 
 function AddProductPricingVariantsRoute() {
   const navigation = useFlowNavigation();
+  const setProduct = useCatalogueDraftStore(state => state.setProduct);
+  const saveProductDraft = useSaveProductDraft();
   return (
     <AddProductPricingVariantsScreen
       onBack={navigation.goBack}
-      onContinue={() => navigation.navigate('AddProductBranchAvailability')}
-      onSaveDraft={() => undefined}
+      onContinue={value => {
+        setProduct({
+          regularPrice: value.regularPrice,
+          compareAtPrice: value.compareAtPrice,
+          costPrice: value.costPerItem,
+          variants: value.variants,
+          sku: value.sku,
+          lowStockThreshold: value.lowStockThreshold,
+          backorder: value.continueWhenOutOfStock,
+        });
+        navigation.navigate('AddProductBranchAvailability');
+      }}
+      onSaveDraft={saveProductDraft}
     />
   );
 }
 
 function AddProductBranchAvailabilityRoute() {
   const navigation = useFlowNavigation();
+  const setProduct = useCatalogueDraftStore(state => state.setProduct);
+  const saveProductDraft = useSaveProductDraft();
   return (
     <AddProductBranchAvailabilityScreen
       onBack={navigation.goBack}
-      onContinue={() => navigation.navigate('ReviewProductSummary')}
-      onSaveDraft={() => undefined}
+      onContinue={value => {
+        setProduct({
+          branchIds: value.selectedBranchIds,
+          pricingMode: value.pricingMode,
+          fulfillmentModes: value.fulfillment,
+        });
+        navigation.navigate('ReviewProductSummary');
+      }}
+      onSaveDraft={saveProductDraft}
     />
   );
 }
 
 function ReviewProductSummaryRoute() {
   const navigation = useFlowNavigation();
+  const draft = useCatalogueDraftStore(state => state.product);
+  const publish = usePublishCatalogueItem();
+
+  const submit = (status: 'active' | 'inactive') => {
+    publish.mutate(
+      { kind: 'product', status },
+      {
+        onSuccess: () => navigation.navigate('ProductPublished'),
+        onError: error =>
+          showError(
+            error instanceof Error ? error.message : 'Could not publish the product',
+          ),
+      },
+    );
+  };
+
   return (
     <ReviewProductSummaryScreen
+      draft={draft}
+      publishing={publish.isPending}
       onBack={navigation.goBack}
-      onPublish={() => navigation.navigate('ProductPublished')}
-      onSaveDraft={() => undefined}
+      onPublish={() => submit('active')}
+      onSaveDraft={() => submit('inactive')}
     />
   );
 }
 
 function ProductPublishedRoute() {
   const navigation = useFlowNavigation();
+  const itemId = useCatalogueDraftStore(state => state.product.publishedItemId);
+  const updateStatus = useUpdateCatalogueItemStatus();
   return (
     <ProductPublishedOrSavedAsDraftScreen
       onBack={navigation.goBack}
       onMakeDeal={() => navigation.navigate('ProductMakeDeal')}
       onViewCatalog={() => navigation.navigate('BusinessQrReady')}
       onAddAnother={() => navigation.navigate('AddProductLocationPricing')}
-      onStatusChange={() => undefined}
+      onStatusChange={status => {
+        if (!itemId) return;
+        updateStatus.mutate(
+          { itemId, status: status === 'live' ? 'active' : 'inactive' },
+          { onError: () => showError('Could not update the product status') },
+        );
+      }}
     />
   );
 }
 
 function ProductMakeDealRoute() {
   const navigation = useFlowNavigation();
+  const setDeal = useCatalogueDraftStore(state => state.setDeal);
+  const product = useCatalogueDraftStore(state => state.product);
   return (
     <ProductPublishedMakeItADealScreen
       onBack={navigation.goBack}
-      onConvertToDeal={() => navigation.navigate('CreateDealAutoImported')}
+      onConvertToDeal={() => {
+        setDeal({
+          sourceProductId: product.publishedItemId,
+          sourceProductName: product.name || undefined,
+          itemIds: product.publishedItemId ? [product.publishedItemId] : [],
+          name: product.name ? `${product.name} deal` : '',
+          mainImage: product.mainImage,
+        });
+        navigation.navigate('CreateDealAutoImported');
+      }}
       onQuickSetupOpen={() => undefined}
       onKeepRegularProduct={() => navigation.navigate('ProductPublished')}
     />
@@ -565,59 +825,167 @@ function ProductMakeDealRoute() {
 
 function CreateDealAutoImportedRoute() {
   const navigation = useFlowNavigation();
+  const setDeal = useCatalogueDraftStore(state => state.setDeal);
+  const publish = usePublishCatalogueOffer();
+  const branches = useBusinessBranches();
+
+  const submit = (status: 'active' | 'inactive') => {
+    const { deal } = useCatalogueDraftStore.getState();
+    const allBranchIds = (branches.data ?? []).map(branch => branch.id);
+    publish.mutate(
+      {
+        status,
+        itemIds: deal.itemIds.length ? deal.itemIds : undefined,
+        branchId: deal.branchIds[0] ?? allBranchIds[0],
+      },
+      {
+        onSuccess: () => {
+          showSuccess(
+            status === 'active' ? 'Deal launched.' : 'Deal saved as draft.',
+          );
+          navigation.navigate('BusinessQrReady');
+        },
+        onError: error =>
+          showError(
+            error instanceof Error ? error.message : 'Could not launch the deal',
+          ),
+      },
+    );
+  };
+
   return (
     <CreateDealOfferAutoImportedScreen
       onBack={navigation.goBack}
-      onPublish={() => navigation.navigate('CreateDealStep1')}
+      onPublish={value => {
+        setDeal({
+          strategy: value.discountMode === 'fixed' ? 'fixed' : 'percentage',
+          discountRate: value.discountPercent,
+          totalVouchers: String(value.totalVouchers),
+          branchIds: value.selectedBranchIds,
+          terms: value.terms ? [value.terms] : [],
+        });
+        submit('active');
+      }}
       onCancel={() => navigation.navigate('ProductPublished')}
-      onSaveDraft={() => navigation.navigate('ProductPublished')}
+      onSaveDraft={value => {
+        setDeal({
+          strategy: value.discountMode === 'fixed' ? 'fixed' : 'percentage',
+          discountRate: value.discountPercent,
+          totalVouchers: String(value.totalVouchers),
+          branchIds: value.selectedBranchIds,
+          terms: value.terms ? [value.terms] : [],
+        });
+        submit('inactive');
+      }}
     />
   );
 }
 
 function CreateDealStep1Route() {
   const navigation = useFlowNavigation();
+  const setDeal = useCatalogueDraftStore(state => state.setDeal);
   return (
     <CreateDealStep1DiscountStrategyScreen
       onBack={navigation.goBack}
       onChangeItem={() => navigation.navigate('ProductPublished')}
-      onContinue={() => navigation.navigate('CreateDealStep2')}
-      onSave={() => navigation.navigate('CreateDealStep2')}
+      onContinue={value => {
+        setDeal({
+          strategy: value.strategy,
+          discountRate: value.discountRate,
+        });
+        navigation.navigate('CreateDealStep2');
+      }}
+      onSave={value => {
+        setDeal({
+          strategy: value.strategy,
+          discountRate: value.discountRate,
+        });
+        navigation.navigate('CreateDealStep2');
+      }}
     />
   );
 }
 
 function CreateDealStep2Route() {
   const navigation = useFlowNavigation();
+  const setDeal = useCatalogueDraftStore(state => state.setDeal);
   return (
     <CreateDealStep2LimitsGiftingRulesScreen
       onBack={navigation.goBack}
-      onContinue={() => navigation.navigate('CreateDealStep3')}
-      onSave={() => navigation.navigate('CreateDealStep3')}
+      onContinue={value => {
+        setDeal({
+          totalVouchers: String(value.totalVouchers),
+          claimFrequency: value.claimFrequency,
+          maxClaimsPerMonth: value.maxClaimsPerMonth,
+          acceptGifting: value.acceptGifting,
+        });
+        navigation.navigate('CreateDealStep3');
+      }}
+      onSave={value => {
+        setDeal({
+          totalVouchers: String(value.totalVouchers),
+          claimFrequency: value.claimFrequency,
+          maxClaimsPerMonth: value.maxClaimsPerMonth,
+          acceptGifting: value.acceptGifting,
+        });
+        navigation.navigate('CreateDealStep3');
+      }}
     />
   );
 }
 
 function CreateDealStep3Route() {
   const navigation = useFlowNavigation();
+  const setDeal = useCatalogueDraftStore(state => state.setDeal);
   return (
     <CreateDealStep3ParticipatingBranchesScheduleScreen
       onBack={navigation.goBack}
-      onSave={() => navigation.navigate('CreateDealStep4')}
+      onSave={value => {
+        setDeal(value);
+        navigation.navigate('CreateDealStep4');
+      }}
     />
   );
 }
 
 function CreateDealStep4Route() {
   const navigation = useFlowNavigation();
+  const publish = usePublishCatalogueOffer();
+  const branches = useBusinessBranches();
+
+  const submit = (status: 'active' | 'inactive') => {
+    const { deal } = useCatalogueDraftStore.getState();
+    const allBranchIds = (branches.data ?? []).map(branch => branch.id);
+    const branchId = deal.branchIds[0] ?? allBranchIds[0];
+    if (!branchId) {
+      showError('No branches available for this deal.');
+      return;
+    }
+    publish.mutate(
+      { status, branchId },
+      {
+        onSuccess: () => {
+          showSuccess(
+            status === 'active' ? 'Deal launched.' : 'Deal saved as draft.',
+          );
+          navigation.navigate('BusinessQrReady');
+        },
+        onError: error =>
+          showError(
+            error instanceof Error ? error.message : 'Could not launch the deal',
+          ),
+      },
+    );
+  };
+
   return (
     <CreateDealStep4ReviewLaunchScreen
       onBack={navigation.goBack}
       onEditOffer={() => navigation.navigate('CreateDealStep1')}
       onEditRules={() => navigation.navigate('CreateDealStep2')}
       onEditBranches={() => navigation.navigate('CreateDealStep3')}
-      onLaunch={() => navigation.navigate('BusinessQrReady')}
-      onSaveDraft={() => navigation.navigate('ProductPublished')}
+      onLaunch={() => submit('active')}
+      onSaveDraft={() => submit('inactive')}
       onSave={() => navigation.navigate('BusinessQrReady')}
     />
   );

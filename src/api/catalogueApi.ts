@@ -196,6 +196,24 @@ export const businessOfferAdminSchema = z.looseObject({
   name: z.string().nullish(),
   status: z.string().nullish(),
   branchId: z.string().nullish(),
+  pricingType: z.string().nullish(),
+  discountValue: z.number().nullish(),
+  fixedPrice: z.number().nullish(),
+  calculatedPrice: z.number().nullish(),
+  quantity: z.number().nullish(),
+  itemIds: z.array(z.string()).nullish(),
+  startDate: z.string().nullish(),
+  endDate: z.string().nullish(),
+  terms: z.array(z.string()).nullish(),
+  maxClaimsPerCustomer: z.number().nullish(),
+  offerType: z.string().nullish(),
+  loyaltyPoints: z.number().nullish(),
+  rewardId: z.string().nullish(),
+  branchName: z.string().nullish(),
+  createdAt: z.string().nullish(),
+  updatedAt: z.string().nullish(),
+  maxClaims: z.number().nullish(),
+  claimedCount: z.number().nullish(),
 });
 export type BusinessOfferAdmin = z.infer<typeof businessOfferAdminSchema>;
 
@@ -206,6 +224,129 @@ export const businessOffersAdminSchema = z.union([
     .object({ data: z.array(businessOfferAdminSchema) })
     .transform(response => response.data),
 ]);
+
+/**
+ * Mutations. Inputs mirror the backend class-validator DTOs field-for-field
+ * (zod strips unknown keys, and the server rejects them with
+ * `forbidNonWhitelisted`, so screens must not smuggle extra fields).
+ */
+
+export const catalogueItemStatusSchema = z.enum([
+  'active',
+  'inactive',
+  'out_of_stock',
+  'suspended',
+  'low_stock',
+  'archived',
+]);
+
+export const createCatalogueItemInputSchema = z.object({
+  name: z.string().min(1),
+  price: z.number().min(0).optional(),
+  shortDescription: z.string().optional(),
+  /** Backend requires a non-empty description; publish callers fall back to name. */
+  description: z.string().min(1),
+  mainImage: z.string().optional(),
+  galleryImages: z.array(z.string()).optional(),
+  categoryId: z.string().uuid().optional(),
+  sku: z.string().optional(),
+  itemType: z.enum(['product', 'service']).optional(),
+  discountType: z.enum(['percentage', 'fixed', 'none']).optional(),
+  discountValue: z.number().min(0).optional(),
+  stockQuantity: z.number().min(0).optional(),
+  barcode: z.string().optional(),
+  costPrice: z.number().min(0).optional(),
+  minStock: z.number().min(0).optional(),
+  brand: z.string().optional(),
+  weight: z.string().optional(),
+  dimensions: z.string().optional(),
+  variants: z.array(z.object({ type: z.string(), value: z.string() })).optional(),
+  tags: z.array(z.string()).optional(),
+  allowBackOrder: z.boolean().optional(),
+  loyaltyPoints: z.number().min(0).optional(),
+  enableLoyaltyPoints: z.boolean().optional(),
+  loyaltyPointsValue: z.number().min(0).optional(),
+  priceType: z.enum(['fixed', 'starting_from', 'range', 'contact']).optional(),
+  priceRangeMin: z.number().min(0).optional(),
+  priceRangeMax: z.number().min(0).optional(),
+  duration: z.string().optional(),
+  serviceMode: z.enum(['location', 'customer', 'online', 'flexible']).optional(),
+  isBookable: z.boolean().optional(),
+  bookingMethod: z.enum(['vemtap', 'call', 'whatsapp', 'external']).optional(),
+  externalBookingLink: z.string().optional(),
+  branchId: z.string().uuid(),
+});
+export type CreateCatalogueItemInput = z.input<typeof createCatalogueItemInputSchema>;
+
+export const updateCatalogueItemInputSchema = createCatalogueItemInputSchema
+  .partial()
+  .extend({
+    status: catalogueItemStatusSchema.optional(),
+    branchId: z.string().uuid().optional(),
+    applyGlobally: z.boolean().optional(),
+  });
+export type UpdateCatalogueItemInput = z.input<typeof updateCatalogueItemInputSchema>;
+
+export const createCatalogueOfferInputSchema = z.object({
+  name: z.string().min(1),
+  description: z.string().optional(),
+  sourceProductId: z.string().uuid().optional(),
+  mainImage: z.string().optional(),
+  galleryImages: z.array(z.string()).optional(),
+  quantity: z.number().min(0).optional(),
+  pricingType: z.enum([
+    'sum',
+    'percentage_discount',
+    'fixed_discount_price',
+    'fixed_discount_amount',
+  ]),
+  discountValue: z.number().min(0).optional(),
+  fixedPrice: z.number().min(0).optional(),
+  loyaltyPoints: z.number().min(0).optional(),
+  rewardId: z.string().uuid().optional(),
+  branchId: z.string().uuid(),
+  itemIds: z.array(z.string().uuid()).optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  offerType: z.string().optional(),
+  audience: z.string().optional(),
+  terms: z.array(z.string()).optional(),
+  claimCodePrefix: z.string().max(20).optional(),
+  maxClaimsPerCustomer: z.number().min(0).optional(),
+  audienceTarget: z.string().optional(),
+  deliveryScope: z.string().optional(),
+  deliveryRadius: z.number().min(0).optional(),
+  deliveryUnit: z.string().optional(),
+  deliveryRegion: z.string().optional(),
+  minOrderAmount: z.number().min(0).optional(),
+  longDescription: z.string().optional(),
+  isFeatured: z.boolean().optional(),
+});
+export type CreateCatalogueOfferInput = z.input<typeof createCatalogueOfferInputSchema>;
+
+export const updateCatalogueOfferInputSchema = createCatalogueOfferInputSchema
+  .partial()
+  .extend({
+    /** Publish/draft toggle: `active` goes live, `inactive` hides the deal. */
+    status: z.enum(['active', 'inactive']).optional(),
+  });
+export type UpdateCatalogueOfferInput = z.input<typeof updateCatalogueOfferInputSchema>;
+
+/** Create/update answer with the full offer row; extra keys pass through. */
+export const catalogueOfferSchema = z.looseObject({
+  id: z.string(),
+  name: z.string(),
+  status: z.string(),
+  branchId: z.string(),
+  pricingType: z.string().nullish(),
+  calculatedPrice: money,
+});
+export type CatalogueOfferDetail = z.infer<typeof catalogueOfferSchema>;
+
+export const generateOfferTermsSchema = z.object({
+  terms: z.array(z.string()),
+});
+export type GeneratedOfferTerms = z.infer<typeof generateOfferTermsSchema>;
 
 export const catalogueApi = {
   /** Active items for one branch. Public. */
@@ -322,6 +463,135 @@ export const catalogueApi = {
         ...options,
       },
       businessOffersAdminSchema,
+    );
+  },
+
+  /**
+   * A bare array of the business's own catalogue categories (item placement,
+   * not the platform taxonomy). Requires a business-owner token.
+   */
+  async listCatalogueCategories(
+    options: ApiRequestOptions = {},
+  ): Promise<CatalogueCategory[]> {
+    return requestValidated<CatalogueCategory[]>(
+      { method: 'GET', url: '/catalogue/categories', ...options },
+      catalogueCategoryListSchema,
+    );
+  },
+
+  async createCatalogueCategory(
+    name: string,
+    options: ApiRequestOptions = {},
+  ): Promise<CatalogueCategory> {
+    return requestValidated<CatalogueCategory>(
+      {
+        method: 'POST',
+        url: '/catalogue/categories',
+        data: { name },
+        ...options,
+      },
+      catalogueCategorySchema,
+    );
+  },
+
+  /** Creates a product or service for one branch. Owner token. */
+  async createCatalogueItem(
+    input: CreateCatalogueItemInput,
+    options: ApiRequestOptions = {},
+  ): Promise<BusinessCatalogueItem> {
+    return requestValidated<BusinessCatalogueItem>(
+      {
+        method: 'POST',
+        url: '/catalogue/items',
+        data: createCatalogueItemInputSchema.parse(input),
+        ...options,
+      },
+      businessCatalogueItemSchema,
+    );
+  },
+
+  async updateCatalogueItem(
+    itemId: string,
+    input: UpdateCatalogueItemInput,
+    options: ApiRequestOptions = {},
+  ): Promise<BusinessCatalogueItem> {
+    return requestValidated<BusinessCatalogueItem>(
+      {
+        method: 'PATCH',
+        url: `/catalogue/items/${itemId}`,
+        data: updateCatalogueItemInputSchema.parse(input),
+        ...options,
+      },
+      businessCatalogueItemSchema,
+    );
+  },
+
+  /**
+   * Adds an existing item to another branch (`POST /catalogue/items/:id/import`).
+   * Multi-branch creates are a create for the first branch plus one import per
+   * remaining branch.
+   */
+  async importItemToBranch(
+    itemId: string,
+    targetBranchId: string,
+    options: ApiRequestOptions = {},
+  ): Promise<BusinessCatalogueItem> {
+    return requestValidated<BusinessCatalogueItem>(
+      {
+        method: 'POST',
+        url: `/catalogue/items/${itemId}/import`,
+        data: { targetBranchId },
+        ...options,
+      },
+      businessCatalogueItemSchema,
+    );
+  },
+
+  /** Creates a deal. The service requires `itemIds` or a `sourceProductId`. */
+  async createCatalogueOffer(
+    input: CreateCatalogueOfferInput,
+    options: ApiRequestOptions = {},
+  ): Promise<CatalogueOfferDetail> {
+    return requestValidated<CatalogueOfferDetail>(
+      {
+        method: 'POST',
+        url: '/catalogue/offers',
+        data: createCatalogueOfferInputSchema.parse(input),
+        ...options,
+      },
+      catalogueOfferSchema,
+    );
+  },
+
+  async updateCatalogueOffer(
+    offerId: string,
+    input: UpdateCatalogueOfferInput,
+    options: ApiRequestOptions = {},
+  ): Promise<CatalogueOfferDetail> {
+    return requestValidated<CatalogueOfferDetail>(
+      {
+        method: 'PATCH',
+        url: `/catalogue/offers/${offerId}`,
+        data: updateCatalogueOfferInputSchema.parse(input),
+        ...options,
+      },
+      catalogueOfferSchema,
+    );
+  },
+
+  /** AI-drafted deal terms; consumes one AI credit server-side. */
+  async generateOfferTerms(
+    input: { title?: string; name?: string; description?: string },
+    options: ApiRequestOptions = {},
+  ): Promise<GeneratedOfferTerms> {
+    return requestValidated<GeneratedOfferTerms>(
+      {
+        method: 'POST',
+        url: '/catalogue/offers/generate-terms',
+        data: input,
+        ...options,
+      },
+      generateOfferTermsSchema,
     );
   },
 };

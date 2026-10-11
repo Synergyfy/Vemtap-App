@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { cssInterop } from 'nativewind';
+import * as ImagePicker from 'expo-image-picker';
 import { Button } from '@components/ui/Button';
 import { Icon, type IconName } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
+import { showError } from '@components/shared';
 import { strings } from '@constants/strings';
 import { colors } from '@theme/colors';
 import { businessOpsMedia } from '@features/business/data/businessOpsImages';
+import { uploadBusinessImage } from '@features/business/utils/uploadBusinessMedia';
 import {
   BusinessProductImage,
   BusinessScreenLayout,
@@ -30,10 +33,20 @@ cssInterop(Pressable, { className: 'style' });
 
 const copy = strings.addProductBasics;
 
+export interface AddProductBasicsMediaValue {
+  title: string;
+  producer: string;
+  description: string;
+  attributes: string[];
+  condition: string;
+  gallery: string[];
+  mainImage?: string;
+}
+
 export interface AddProductBasicsMediaScreenProps {
   onBack?: () => void;
-  onContinue?: () => void;
-  onSaveDraft?: () => void;
+  onContinue?: (value: AddProductBasicsMediaValue) => void;
+  onSaveDraft?: (value: AddProductBasicsMediaValue) => void;
   onChangeCategory?: (field: string) => void;
   onAddMedia?: () => void;
 }
@@ -57,6 +70,51 @@ export function AddProductBasicsMediaScreen({
   const [attributes, setAttributes] = useState<string[]>([]);
   const [condition, setCondition] = useState('fresh');
   const [saved, setSaved] = useState(false);
+  const [gallery, setGallery] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
+
+  const buildValue = (): AddProductBasicsMediaValue => ({
+    title,
+    producer: unbranded ? '' : producer,
+    description,
+    attributes,
+    condition,
+    gallery,
+    mainImage: gallery[0],
+  });
+
+  const handleAddMedia = async () => {
+    if (uploading) return;
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsMultipleSelection: true,
+      selectionLimit: 5,
+      quality: 0.8,
+    });
+    if (result.canceled || !result.assets.length) return;
+    setUploading(true);
+    try {
+      const uploaded = await Promise.all(
+        result.assets.map(asset =>
+          uploadBusinessImage({
+            fileUri: asset.uri,
+            fileName: asset.fileName ?? 'product.jpg',
+            mimeType: asset.mimeType,
+          }),
+        ),
+      );
+      const urls = uploaded.filter((url): url is string => Boolean(url));
+      if (!urls.length) {
+        showError('Could not upload media. Please try again.');
+        return;
+      }
+      setGallery(current => [...current, ...urls]);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const addMedia = onAddMedia ?? handleAddMedia;
 
   const toggleAttribute = (value: string) => {
     setAttributes(current =>
@@ -77,16 +135,17 @@ export function AddProductBasicsMediaScreen({
         actionLabel: copy.draft,
         onAction: () => {
           setSaved(true);
-          onSaveDraft?.();
+          onSaveDraft?.(buildValue());
         },
       }}
       contentContainerClassName="pb-8"
       footer={
         <View className="gap-2 pb-2">
           <Button
-            label={copy.continue}
+            label={uploading ? 'Uploading media…' : copy.continue}
             labelVariant="labelMd"
-            onPress={onContinue}
+            disabled={uploading}
+            onPress={() => onContinue?.(buildValue())}
             rightIcon={<Icon name="arrowForward" size={18} color={colors.surface} />}
           />
           <Pressable
@@ -94,7 +153,7 @@ export function AddProductBasicsMediaScreen({
             accessibilityLabel={copy.saveDraft}
             onPress={() => {
               setSaved(true);
-              onSaveDraft?.();
+              onSaveDraft?.(buildValue());
             }}
             className="min-h-10 flex-row items-center justify-center gap-1.5"
           >
@@ -133,8 +192,8 @@ export function AddProductBasicsMediaScreen({
         <SetupSectionHeading title={copy.mediaTitle} badge={copy.mediaRequired} />
         <View className="relative h-48 w-full overflow-hidden rounded-card bg-surface-container-highest">
           <BusinessProductImage
-            source={businessOpsMedia.productLamb}
-            alt={businessOpsMedia.productLamb.alt}
+            source={gallery[0] ? { uri: gallery[0] } : businessOpsMedia.productLamb}
+            alt={copy.coverPhoto}
             className="h-full w-full"
           />
           <View className="absolute left-2.5 top-2.5 flex-row items-center gap-1.5">
@@ -154,7 +213,7 @@ export function AddProductBasicsMediaScreen({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={copy.change}
-            onPress={onAddMedia}
+            onPress={addMedia}
             className="absolute bottom-2.5 right-2.5 min-h-9 flex-row items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 shadow-md active:scale-95"
           >
             <Icon name="camera" size={15} color={colors.textSecondary} />
@@ -164,31 +223,50 @@ export function AddProductBasicsMediaScreen({
           </Pressable>
         </View>
         <HorizontallyScrollableRow>
-          {[
-            businessOpsMedia.productLamb,
-            businessOpsMedia.dealLunch,
-            businessOpsMedia.dealSpa,
-          ].map((image, index) => (
+          {gallery.map((uri, index) => (
             <Pressable
-              key={image.uri}
+              key={uri}
               accessibilityRole="image"
               accessibilityLabel={`${copy.coverPhoto} ${index + 1}`}
-              onPress={onAddMedia}
+              onPress={addMedia}
               className={`h-16 w-16 shrink-0 overflow-hidden rounded-field ${
                 index === 0 ? 'border-2 border-primary' : 'bg-surface-subtle'
               }`}
             >
               <BusinessProductImage
-                source={image}
-                alt={image.alt}
+                source={{ uri }}
+                alt={`${copy.coverPhoto} ${index + 1}`}
                 className="h-full w-full"
               />
             </Pressable>
           ))}
+          {gallery.length
+            ? null
+            : [
+                businessOpsMedia.productLamb,
+                businessOpsMedia.dealLunch,
+                businessOpsMedia.dealSpa,
+              ].map((image, index) => (
+                <Pressable
+                  key={image.uri}
+                  accessibilityRole="image"
+                  accessibilityLabel={`${copy.coverPhoto} ${index + 1}`}
+                  onPress={addMedia}
+                  className={`h-16 w-16 shrink-0 overflow-hidden rounded-field ${
+                    index === 0 ? 'border-2 border-primary' : 'bg-surface-subtle'
+                  }`}
+                >
+                  <BusinessProductImage
+                    source={image}
+                    alt={image.alt}
+                    className="h-full w-full"
+                  />
+                </Pressable>
+              ))}
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={copy.addTile}
-            onPress={onAddMedia}
+            onPress={addMedia}
             className="h-16 w-16 shrink-0 items-center justify-center rounded-field border-2 border-dashed border-border-active bg-surface-tint"
           >
             <Icon name="plus" size={18} color={colors.primary} />
@@ -199,7 +277,7 @@ export function AddProductBasicsMediaScreen({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={copy.extraTile}
-            onPress={onAddMedia}
+            onPress={addMedia}
             className="h-16 w-16 shrink-0 items-center justify-center rounded-field bg-surface-subtle"
           >
             <Icon name="imagePlus" size={18} color={colors.textTertiary} />

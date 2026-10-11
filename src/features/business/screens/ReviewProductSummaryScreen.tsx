@@ -25,8 +25,13 @@ import {
   productIdentity,
   productVariants,
 } from '@features/business/data/businessSetupData';
+import type { ProductDraft } from '@store/catalogueDraftStore';
+import { useBusinessBranches } from '@features/business/hooks/useCatalogueMutations';
 
 export interface ReviewProductSummaryScreenProps {
+  /** Live draft from the setup wizard. Absent in standalone (storybook) use. */
+  draft?: ProductDraft;
+  publishing?: boolean;
   onBack: () => void;
   onPublish?: () => void;
   onSaveDraft?: () => void;
@@ -50,6 +55,8 @@ const abujaRegion: Region = {
 };
 
 export function ReviewProductSummaryScreen({
+  draft,
+  publishing = false,
   onBack,
   onPublish,
   onSaveDraft,
@@ -61,6 +68,20 @@ export function ReviewProductSummaryScreen({
   onEditFulfillment,
   onEditDescription,
 }: ReviewProductSummaryScreenProps) {
+  const liveBranches = useBusinessBranches();
+  const shownBranches =
+    draft && liveBranches.data
+      ? liveBranches.data
+          .filter(branch => draft.branchIds.includes(branch.id))
+          .map(branch => ({
+            id: branch.id,
+            name: branch.name,
+            price: `₦${draft.regularPrice || '0'}`,
+            stock: draft.inStock ? 'In Stock' : 'Out of stock',
+            priceNote: 'Standard Base Rate',
+          }))
+      : productBranches.slice(0, 2);
+  const shownBranchCount = draft ? draft.branchIds.length : 2;
   return (
     <BusinessScreenLayout
       header={{
@@ -136,7 +157,7 @@ export function ReviewProductSummaryScreen({
                 className="font-sans-medium"
                 numberOfLines={1}
               >
-                {productIdentity.brand}
+                {draft?.brand || productIdentity.brand}
               </VemtapText>
             </View>
             <BusinessInlineAction
@@ -147,10 +168,10 @@ export function ReviewProductSummaryScreen({
           </View>
           <View>
             <VemtapText variant="headingMd" className="text-heading-md">
-              {productIdentity.name}
+              {draft?.name || productIdentity.name}
             </VemtapText>
             <VemtapText variant="caption" tone="tertiary" className="mt-1">
-              {productIdentity.categoryPath}
+              {draft?.categoryName || productIdentity.categoryPath}
             </VemtapText>
           </View>
         </View>
@@ -172,10 +193,10 @@ export function ReviewProductSummaryScreen({
             </VemtapText>
             <View className="mt-0.5 flex-row flex-wrap items-baseline gap-2">
               <VemtapText variant="headingMd" className="font-sans-bold text-heading-md">
-                ₦14,000
+                ₦{draft?.regularPrice || '14,000'}
               </VemtapText>
               <VemtapText tone="tertiary" className="line-through">
-                ₦16,000
+                ₦{draft?.compareAtPrice || '16,000'}
               </VemtapText>
             </View>
           </View>
@@ -189,7 +210,9 @@ export function ReviewProductSummaryScreen({
           Active Portions
         </VemtapText>
         <ProductVariantList
-          variants={productVariants.map(item => ({ ...item }))}
+          variants={(draft?.variants.length ? draft.variants : productVariants).map(
+            item => ({ ...item }),
+          )}
           readOnly
         />
         <View className="flex-row flex-wrap items-center justify-between gap-2">
@@ -202,7 +225,7 @@ export function ReviewProductSummaryScreen({
           </View>
           <View className="rounded bg-surface-container px-2 py-0.5">
             <VemtapText className="text-on-secondary-fixed text-caption">
-              SKU: {productIdentity.sku}
+              SKU: {draft?.sku || productIdentity.sku}
             </VemtapText>
           </View>
         </View>
@@ -213,7 +236,7 @@ export function ReviewProductSummaryScreen({
           boxedIcon
           title="Branch Availability"
           icon="hub"
-          subtitle="2 Outlets serving this item"
+          subtitle={`${shownBranchCount} Outlets serving this item`}
           actionLabel="Edit"
           onAction={onEditBranches}
         />
@@ -232,7 +255,7 @@ export function ReviewProductSummaryScreen({
           </View>
         </View>
         <View className="gap-2">
-          {productBranches.slice(0, 2).map((branch, index) => (
+          {shownBranches.map((branch, index) => (
             <View
               key={branch.id}
               className="gap-1 rounded-lg bg-surface-container-low p-3"
@@ -339,12 +362,15 @@ export function ReviewProductSummaryScreen({
           tone="secondary"
           className="rounded-xl bg-surface-subtle p-3 leading-relaxed"
         >
-          “{productIdentity.description}”
+          “{draft?.description || productIdentity.description}”
         </VemtapText>
         <View className="flex-row flex-wrap gap-2">
-          <BusinessStatusPill label="Gluten-free" icon="lightbulb" tone="neutral" />
-          <BusinessStatusPill label="Halal certified" icon="starFilled" tone="neutral" />
-          <BusinessStatusPill label="Eco packaging" icon="sync" tone="neutral" />
+          {(draft?.attributes.length
+            ? draft.attributes
+            : ['Gluten-free', 'Halal certified', 'Eco packaging']
+          ).map(attribute => (
+            <BusinessStatusPill key={attribute} label={attribute} tone="neutral" />
+          ))}
         </View>
       </SetupCard>
 
@@ -382,17 +408,19 @@ export function ReviewProductSummaryScreen({
 
       <View className="gap-3">
         <Button
-          label="Publish Product to Storefront 🚀"
+          label={publishing ? 'Publishing…' : 'Publish Product to Storefront 🚀'}
           labelVariant="labelMd"
           labelNumberOfLines={2}
           className="shadow-lg"
+          disabled={publishing}
           onPress={onPublish}
         />
         <Button
-          label="Save as Draft"
+          label={publishing ? 'Saving…' : 'Save as Draft'}
           labelVariant="labelMd"
           variant="secondary"
           className="min-h-12 border-0 bg-surface-container"
+          disabled={publishing}
           leftIcon={<Icon name="bookmark" size={18} color={colors.text} />}
           onPress={onSaveDraft}
         />

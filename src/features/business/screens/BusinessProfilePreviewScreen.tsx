@@ -7,6 +7,8 @@ import { Icon, type IconName } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
 import { colors } from '@theme/colors';
+import { useUpdateBusinessProfile } from '@features/business/hooks/useUpdateBusinessProfile';
+import { showToast } from '@components/shared/toast';
 import { businessOpsMedia } from '@features/business/data/businessOpsImages';
 import {
   BusinessActionDock,
@@ -38,6 +40,12 @@ export interface BusinessProfilePreviewScreenProps {
   onAddSocial?: () => void;
   onSaveChanges?: () => void;
   onDiscardChanges?: () => void;
+  /**
+   * The amenities the business actually has saved. Without this the toggles
+   * would start all-on and a save would overwrite real settings with the full
+   * design list.
+   */
+  initialAmenities?: string[];
 }
 
 /**
@@ -57,11 +65,15 @@ export function BusinessProfilePreviewScreen({
   onAddSocial,
   onSaveChanges,
   onDiscardChanges,
+  initialAmenities,
 }: BusinessProfilePreviewScreenProps) {
+  // Falls back to the full design list only when the business has never saved
+  // one, which is what a brand-new profile should start as.
   const [activeAmenities, setActiveAmenities] = useState<string[]>(
-    copy.amenities.map(amenity => amenity.id),
+    initialAmenities ?? copy.amenities.map(amenity => amenity.id),
   );
   const [saved, setSaved] = useState(false);
+  const updateProfile = useUpdateBusinessProfile();
 
   const toggleAmenity = (id: string) => {
     setActiveAmenities(current =>
@@ -80,8 +92,17 @@ export function BusinessProfilePreviewScreen({
   );
 
   const handleSave = () => {
-    setSaved(true);
-    onSaveChanges?.();
+    updateProfile.mutate(
+      { amenities: activeAmenities },
+      {
+        onSuccess: () => {
+          setSaved(true);
+          showToast(copy.savedToast, 'success');
+          onSaveChanges?.();
+        },
+        onError: () => showToast(strings.common.error, 'error'),
+      },
+    );
   };
 
   return (
@@ -107,6 +128,8 @@ export function BusinessProfilePreviewScreen({
             <Button
               label={copy.saveChanges}
               labelVariant="labelMd"
+              loading={updateProfile.isPending}
+              disabled={updateProfile.isPending}
               onPress={handleSave}
               className="flex-1"
               leftIcon={<Icon name="check" size={18} color={colors.surface} />}

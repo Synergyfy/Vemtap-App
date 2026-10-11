@@ -2,6 +2,7 @@ import React from 'react';
 import { cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
 import { strings } from '@constants/strings';
 import { BusinessProfilePreviewScreen } from '@features/business/screens/BusinessProfilePreviewScreen';
+import { businessDashboardApi } from '@api/businessDashboardApi';
 import { BusinessManagementHubScreen } from '@features/business/screens/BusinessManagementHubScreen';
 import { CentralDealsManagementScreen } from '@features/business/screens/CentralDealsManagementScreen';
 import { DealDetailsPerformanceScreen } from '@features/business/screens/DealDetailsPerformanceScreen';
@@ -23,6 +24,10 @@ import { StaffTeamAccessDirectoryScreen } from '@features/business/screens/Staff
 
 afterEach(cleanup);
 
+jest.mock('@api/businessDashboardApi', () => ({
+  businessDashboardApi: { updateMyBusiness: jest.fn() },
+}));
+
 describe('business profile preview', () => {
   const copy = strings.businessProfilePreview;
 
@@ -39,6 +44,10 @@ describe('business profile preview', () => {
   });
 
   it('confirms a save through the docked action bar', async () => {
+    // The save is a real request now, so the confirmation must wait for it to
+    // land rather than firing the moment the button is pressed.
+    const updateMyBusiness = businessDashboardApi.updateMyBusiness as jest.Mock;
+    updateMyBusiness.mockResolvedValue(undefined);
     const onSaveChanges = jest.fn();
     const view = await render(
       <BusinessProfilePreviewScreen onSaveChanges={onSaveChanges} />,
@@ -46,7 +55,8 @@ describe('business profile preview', () => {
 
     fireEvent.press(view.getByLabelText(copy.saveChanges));
 
-    expect(onSaveChanges).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(updateMyBusiness).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(onSaveChanges).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(view.getByText(copy.savedToast)).toBeTruthy());
   });
 
