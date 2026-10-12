@@ -1,10 +1,14 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
 import { useCustomerMessagingRealtime } from '@features/merchantChat/hooks/useCustomerMessagingRealtime';
 import {
   customerMessagingKeys,
   markCustomerThreadReadLocally,
   threadCategoriesFor,
+  useMarkCustomerThreadRead,
 } from '@features/merchantChat/hooks/useCustomerMessaging';
+import { messagingApi } from '@api/messagingApi';
 import { queryClient } from '@store/queryClient';
 import type { ConversationThread } from '@api/messagingApi';
 
@@ -282,6 +286,77 @@ describe('threadCategoriesFor', () => {
   test('drops the unread chip once the count reaches zero', () => {
     expect(threadCategoriesFor({ ...thread, subjectType: 'BOOKING' }, 0)).toEqual([
       'bookings',
+    ]);
+  });
+});
+
+/**
+ * `useMutation` resolves its client from context, so the provider is required.
+ * A fresh client per render keeps a mutation's cache writes from leaking into
+ * the shared one the other suites in this file assert against.
+ */
+function wrapper({ children }: { children: React.ReactNode }) {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+}
+
+describe('useMarkCustomerThreadRead', () => {
+  beforeEach(() => {
+    queryClient.clear();
+    jest
+      .spyOn(messagingApi, 'markCustomerThreadRead')
+      .mockResolvedValue(undefined as never);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test('clears the unread state on success so the server count cannot win the race', async () => {
+    const unread = {
+      ...thread,
+      categories: ['unread', 'bookings'],
+      customerUnreadCount: 2,
+    };
+    queryClient.setQueryData(customerMessagingKeys.threads(), [unread]);
+
+    const { result } = await renderHook(() => useMarkCustomerThreadRead(), { wrapper });
+    await act(async () => {
+      await result.current.mutateAsync('thread-1');
+    });
+
+    expect(messagingApi.markCustomerThreadRead).toHaveBeenCalledWith('thread-1');
+    const rows = queryClient.getQueryData<ConversationThread[]>(
+      customerMessagingKeys.threads(),
+    );
+    // The local patch runs in onSuccess too, so the badge is correct whether or
+    // not the invalidation's refetch has landed yet.
+    expect(rows?.[0]?.customerUnreadCount).toBe(0);
+    expect(rows?.[0]?.categories).not.toContain('unread');
+  });
+
+  test('leaves the badge alone when the server rejects the clear', async () => {
+    const unread = {
+      ...thread,
+      categories: ['unread', 'bookings'],
+      customerUnreadCount: 2,
+    };
+    queryClient.setQueryData(customerMessagingKeys.threads(), [unread]);
+    jest
+      .spyOn(messagingApi, 'markCustomerThreadRead')
+      .mockRejectedValue(new Error('nope') as never);
+
+    const { result } = await renderHook(() => useMarkCustomerThreadRead(), { wrapper });
+    await act(async () => {
+      await expect(result.current.mutateAsync('thread-1')).rejects.toThrow('nope');
+    });
+
+    // A failed clear must not look like a read one — the screen already patched
+    // optimistically, but the refetch must be free to restore the truth.
+    expect(queryClient.getQueryData(customerMessagingKeys.threads())).toEqual([
+      unread,
     ]);
   });
 });

@@ -25,6 +25,8 @@ import { SavingsHistoryScreen } from '@features/accountHub/screens/SavingsHistor
 import { SavedHubScreen } from '@features/accountHub/screens/SavedHubScreen';
 import { ComposeMessageSheet } from '@features/merchantChat/components/ComposeMessageSheet';
 import { NotificationsCenterScreen } from '@features/accountHub/screens/NotificationsCenterScreen';
+import { useNotifications } from '@features/accountHub/hooks/useNotifications';
+import { matchSegment } from '@navigation/notificationRoutes';
 import { AccountSettingsSecurityScreen } from '@features/accountHub/screens/AccountSettingsSecurityScreen';
 import { EditProfileScreen } from '@features/accountHub/screens/EditProfileScreen';
 import { HelpCentreScreen } from '@features/accountHub/screens/HelpCentreScreen';
@@ -274,10 +276,40 @@ function PersonalSavedRoute() {
   );
 }
 
-function PersonalNotificationsRoute(navigation: NavigationProp<HubNavigationRootParamList>) {
+function PersonalNotificationsRoute() {
   const goBack = useHistoryBack();
+  const navigation = useNavigation<HubNavigation>();
+  const { data: rows } = useNotifications();
 
-  return <NotificationsCenterScreen onBack={goBack} onOpenNotification={navigation.navigate} />;
+  // A tap is a request to go somewhere, not just to clear the dot. The row's
+  // `actionUrl` is the only thing that says where, so this resolves it rather
+  // than guessing from the notification type — a type can be written by several
+  // different things, and a wrong guess drops the user on the wrong order.
+  //
+  // An unknown or absent URL marks the row read and stays put. That is the
+  // whole point of allowlisting: `/dashboard/settings/subscription` and other
+  // admin-broadcast paths are written for the web panel and have no in-app
+  // destination, so navigating to them blindly would dead-end the tap.
+  const openNotification = (id: string) => {
+    const actionUrl = rows?.find(row => row.id === id)?.actionUrl;
+    const orderId = matchSegment(actionUrl, 'orders');
+    if (orderId) {
+      navigation.navigate('PersonalOrderDetail', { orderId });
+      return;
+    }
+    const threadId = matchSegment(actionUrl, 'messages');
+    if (threadId) {
+      navigation.navigate('PersonalConversation', { threadId });
+      
+    }
+  };
+
+  return (
+    <NotificationsCenterScreen
+      onBack={goBack}
+      onOpenNotification={openNotification}
+    />
+  );
 }
 
 function PersonalSettingsRoute() {

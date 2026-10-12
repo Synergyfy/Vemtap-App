@@ -3149,51 +3149,31 @@ export const strings = {
     signOut: 'Sign Out',
     version: 'VEMTAP Consumer v2.4.0 • Made with pride in Abuja',
   },
+  /**
+   * Every row here comes off `GET /notifications`; the counts and section sizes
+   * are computed from those rows rather than written down, so a tab cannot show
+   * a number the list does not contain.
+   */
   notificationsCenter: {
     title: 'Notification Preferences',
     inbox: 'Inbox',
-    unread: '3 new',
     zeroNew: '0 new',
     allRead: 'Mark all as read',
     caughtUp: 'All caught up',
+    recent: 'Recent',
+    /** Order matches `FILTERS` in the screen: all first, then each category. */
     filters: ['All', 'Deals & Claims', 'Orders & Bookings', 'Rewards', 'System'] as const,
-    counts: ['3', '1', '1', '1', ''] as const,
+    /** Keyed by category so the chip row reads its own label, not an index. */
+    filterLabels: {
+      deals: 'Deals & Claims',
+      bookings: 'Orders & Bookings',
+      rewards: 'Rewards',
+      system: 'System',
+    } as const,
+    unreadFor: (count: number) => `${count} new`,
+    updatesFor: (count: number) => (count === 1 ? '1 update' : `${count} updates`),
     today: 'Today',
-    todayCount: '2 updates',
     earlier: 'Earlier This Week',
-    earlierCount: '3 updates',
-    expiryTitle: 'Deal Expiring Soon! ⏳',
-    expiryTime: '2h ago',
-    expiryBody:
-      'Your claimed 20% Off Lunch voucher at Urban Grill expires tomorrow at 11:59 PM. Show your pass at the counter.',
-    expiryMerchant: 'Urban Grill Apo',
-    expiryMeta: 'Valid until tomorrow',
-    expiryAction: 'Pass VT-48F261',
-    bookingTitle: 'Appointment Confirmed',
-    bookingTime: '5h ago',
-    bookingBody:
-      'Glow & Serenity Spa has reserved your 1:15 PM slot with Amara K. Valet parking is available at Maitama Heights.',
-    bookingMeta: 'Thu, 1:15 PM • Amara K.',
-    bookingLocation: 'Maitama Heights, Abuja',
-    bookingAction: 'View Booking',
-    giftTitle: 'Samuel sent you a Gift! 🎁',
-    giftDate: 'Oct 14',
-    giftBody:
-      'You received a free Artisan Cold Brew voucher from Cafe Neo. Tap to claim and add to your passes.',
-    giftMeta: 'Free Voucher from Samuel',
-    giftSubtitle: 'Cafe Neo • Valid for 7 days',
-    giftAction: 'Claim Gift',
-    rewardTitle: '+150 VEM Points Earned 🎉',
-    rewardDate: 'Oct 13',
-    rewardBody:
-      'Your points for order #VT-ORD-88219 have been credited to your rewards wallet. You are 350 pts away from Platinum!',
-    tierProgress: 'Tier Progress: Gold Member',
-    points: '650 / 1000 pts',
-    systemTitle: 'New Weekend Flash Deals in Apo',
-    systemDate: 'Oct 11',
-    systemBody:
-      'Discover 12 newly listed dining, bakery, and wellness deals around Apo District this weekend. Tap to browse curated map pins.',
-    systemLocation: 'Apo Legislative Quarters & District',
     caughtUpTitle: 'All caught up here!',
     caughtUpBody:
       'No notifications found in this category. We will alert you whenever new deals or updates drop.',
@@ -6913,6 +6893,14 @@ export const strings = {
     headerTitle: 'Notification Center',
     markAllRead: 'Mark all as read',
     unreadLabel: '2 unread alerts',
+    /** Relative-time labels for the feed. `%s` is the count. */
+    justNow: 'Just now',
+    minutesAgo: '%sm ago',
+    hoursAgo: '%sh ago',
+    daysAgo: '%sd ago',
+    recentTime: 'Recently',
+    /** Shown when a row carries no CTA of its own. */
+    defaultCta: 'View details',
     tabs: {
       all: 'All',
       orders: 'Orders & POS',
@@ -6931,6 +6919,7 @@ export const strings = {
       feedback: 'Customer Feedback',
       billing: 'Billing & Subscription',
       sync: 'Till Sync & Hardware',
+      system: 'System & Account',
     } as const,
     emptyTitle: 'All caught up here!',
     emptyBody:

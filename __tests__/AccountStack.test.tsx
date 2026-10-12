@@ -31,6 +31,28 @@ jest.mock('@features/accountHub/hooks/useSavedHub', () =>
 jest.mock('@features/myDeals/hooks/useMyClaims', () =>
   jest.requireActual('./helpers/mockCustomerHub').mockMyClaimsModule(),
 );
+// The notifications screen reads its rows from the API rather than a fixture,
+// so without this the real hook fires and the dashboard lands on the screen's
+// error state instead of the inbox this test is about.
+jest.mock('@features/accountHub/hooks/useNotifications', () => ({
+  useNotifications: () => ({
+    isLoading: false,
+    isError: false,
+    data: [
+      {
+        id: 'acct-1',
+        title: 'AccountRow',
+        message: 'Something happened',
+        type: 'system.welcome',
+        isRead: false,
+        createdAt: new Date().toISOString(),
+      },
+    ],
+    refetch: jest.fn(),
+  }),
+  useMarkNotificationRead: () => ({ mutate: jest.fn() }),
+  useMarkAllNotificationsRead: () => ({ mutate: jest.fn() }),
+}));
 
 // Selector-capable so screens can read the signed-in user, plus `getState` for
 // the sign-out path that reads the store outside a component.

@@ -609,7 +609,8 @@ export function FeedPreviewCard({
   meta,
   rating,
 }: {
-  imageUri: string;
+  /** Cover image. Omitted when the business has not uploaded one. */
+  imageUri?: string;
   /** Picked store logo; falls back to the generic icon tile when absent. */
   logoUri?: string;
   /** Accessibility label for the banner image (used by tests too). */

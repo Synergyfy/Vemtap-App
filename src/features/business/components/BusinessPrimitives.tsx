@@ -1200,6 +1200,13 @@ export function BusinessProductImage({
   className?: string;
   resizeMode?: 'cover' | 'contain';
 }) {
+  // A missing URI is an empty slot, not an error: screens with an optional
+  // image pass `{ uri: undefined }` and the container's own surface shows
+  // through. Rendering `<Image source={{ uri: undefined }} />` would warn and
+  // leave a blank frame the platform decides the height of.
+  const isRemote = Boolean((source as { uri?: string } | null)?.uri);
+  if (!source || (!isRemote && typeof source !== 'number')) return null;
+
   return (
     <Image
       source={source}

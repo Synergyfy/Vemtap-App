@@ -3,13 +3,14 @@ import { Pressable, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { cssInterop } from 'nativewind';
 import { Button } from '@components/ui/Button';
+import { Avatar } from '@components/ui/Avatar';
 import { Icon, type IconName } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
 import { colors } from '@theme/colors';
+import { useMyBusiness } from '@features/business/hooks/useBusinessDashboardData';
 import { useUpdateBusinessProfile } from '@features/business/hooks/useUpdateBusinessProfile';
 import { showToast } from '@components/shared/toast';
-import { businessOpsMedia } from '@features/business/data/businessOpsImages';
 import {
   BusinessActionDock,
   BusinessProductImage,
@@ -74,6 +75,14 @@ export function BusinessProfilePreviewScreen({
   );
   const [saved, setSaved] = useState(false);
   const updateProfile = useUpdateBusinessProfile();
+
+  // The storefront shows this business, not a stand-in for one: the cover and
+  // logo come from what the owner actually uploaded, and the logo falls back to
+  // the business's initials through the shared Avatar.
+  const business = useMyBusiness();
+  const businessName = business.data?.name ?? copy.name;
+  const coverUri = business.data?.coverImage || undefined;
+  const logoUri = business.data?.logoUrl || undefined;
 
   const toggleAmenity = (id: string) => {
     setActiveAmenities(current =>
@@ -165,11 +174,13 @@ export function BusinessProfilePreviewScreen({
 
       <View className="relative mt-3 overflow-hidden rounded-card shadow-sm">
         <View className="h-40 w-full bg-surface-dim">
-          <BusinessProductImage
-            source={businessOpsMedia.profileCover}
-            alt={businessOpsMedia.profileCover.alt}
-            className="h-full w-full"
-          />
+          {coverUri ? (
+            <BusinessProductImage
+              source={{ uri: coverUri }}
+              alt={`${businessName} cover photo`}
+              className="h-full w-full"
+            />
+          ) : null}
         </View>
         <LinearGradient
           colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.2)', 'rgba(0,0,0,0.6)']}
@@ -200,12 +211,15 @@ export function BusinessProfilePreviewScreen({
           accessibilityRole="button"
           accessibilityLabel={copy.editProfile}
           onPress={onEditAvatar}
-          className="h-[68px] w-[68px] shrink-0 overflow-hidden rounded-full border-2 border-surface bg-surface p-1 shadow-md"
+          className="h-[68px] w-[68px] shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-surface bg-surface shadow-md"
         >
-          <BusinessProductImage
-            source={businessOpsMedia.profileLogo}
-            alt={businessOpsMedia.profileLogo.alt}
-            className="h-full w-full rounded-full"
+          <Avatar
+            uri={logoUri}
+            name={businessName}
+            size="lg"
+            tone="brand"
+            className="rounded-full"
+            accessibilityLabel={`${businessName} logo`}
           />
           <View className="absolute bottom-0 right-0 h-7 w-7 items-center justify-center rounded-full bg-primary shadow-md">
             <Icon name="edit" size={14} color={colors.surface} />
@@ -228,7 +242,7 @@ export function BusinessProfilePreviewScreen({
             className="text-heading-lg"
             numberOfLines={2}
           >
-            {copy.name}
+            {businessName}
           </VemtapText>
           <Icon name="verified" size={18} color={colors.primary} />
         </View>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Alert, Image, Pressable, View } from 'react-native';
 import { cssInterop } from 'nativewind';
+import { Avatar } from '@components/ui/Avatar';
 import { Icon, type IconName } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { TwoColumnGrid } from '@components/shared/TwoColumnGrid';
@@ -30,9 +31,6 @@ const itemImages: Record<string, string> = {
   lemonade:
     'https://lh3.googleusercontent.com/aida-public/AB6AXuBhj3lZVf1FYiEtzrUTaeW3_22hRkZ4opss8ICs2jvFOsbNA1v3ntezZG7IXweOfsrnBHi6lgyoGT2-a6fmGz-cu1MQnqAaUfPtllHD8p5zCq3krYwH2O3DjsUUfCIGFXHs4T-y-F8UUxRQvQtdrPN124ZSd_X2mdmKdilnQb9oloradFoIkQLNtqpb9EvMkr5hL60DDvI8PZP8NwyHjJnmXFVFJn07-sdRED1FLjrYpNxXAEfmNG0lxA',
 };
-
-const customerAvatar =
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuDitUORjWP7gx6kzReC-WC4_yC5Ja28lpv1WIlPM2_rR6m6Zbq4IrgjDPoVGDWJxJ6_woLHsEbok1JQhIU8i8SR9IRvnY9BkE0i3RQXPD2dmpYrD6JJp0_mPLTap9499v3GWSz4OiR-sYYmEJh19jciYH5woENo6_jSey0LJBYjnroSlIE10ko7lu52qs-MeJlzZ1svFROLNUDpBCV4FHTPXxXbmHK0pQ_J_AGQDdPg_5KqENLycIXiZA';
 
 const timelineIcons: Record<string, IconName> = {
   done: 'check',
@@ -303,11 +301,13 @@ export function OrderDetailScreen({
           icon="person"
         />
         <View className="flex-row items-center gap-3">
-          <Image
-            source={{ uri: detail?.customer.avatar ?? customerAvatar }}
+          <Avatar
+            uri={detail?.customer.avatar ?? undefined}
+            name={detail?.customer.name ?? copy.customerName}
+            size="lg"
+            tone="brand"
+            className="bg-surface-container"
             accessibilityLabel={`${detail?.customer.name ?? copy.customerName} portrait`}
-            className="h-12 w-12 rounded-full bg-surface-container"
-            resizeMode="cover"
           />
           <View className="min-w-0 flex-1">
             <View className="flex-row items-center gap-1">

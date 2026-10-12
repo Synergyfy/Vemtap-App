@@ -748,7 +748,8 @@ export function SectionMetaRow({
 }
 
 export interface InlineImageCardProps {
-  uri: string;
+  /** Remote image. Omit for an empty slot — the card's own surface shows. */
+  uri?: string;
   /** Bundled asset source; wins over `uri` so local artwork never needs a network round trip. */
   source?: ImageSourcePropType;
   alt?: string;

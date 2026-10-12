@@ -7,46 +7,30 @@ import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import {
+  notificationCategory,
+  notificationStat,
+  notificationText,
+  type NotificationFilterKey,
+} from '@api/notificationsApi';
+import {
   NotificationRow,
   type NotificationCategory,
 } from '@features/accountHub/components/NotificationRow';
 import { StatusPillTabs } from '@features/accountHub/components/HubPrimitives';
+import { LoadingState } from '@components/shared/LoadingState';
 import {
   useNotifications,
   useMarkNotificationRead,
   useMarkAllNotificationsRead,
 } from '@features/accountHub/hooks/useNotifications';
 import { strings } from '@constants/strings';
+import { formatWhen } from '@utils/formatters';
 import { colors } from '@theme/colors';
 
 const copy = strings.notificationsCenter;
-const images = {
-  grill:
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuDHKVPsXGSKQzTHPV1aIyWPclujpy2Zr3QbpAJIoYuTWil5GC2bb5tcW-4vSQ1baWlrQlZLmQietjI9ZFjv7wrjW2GKdaXKn-CegdzG_Zilegj-A5rOyFVFH_8v97OX0PJaq0FC0Z0Xqp_4_1fu7TDGJYZIvw6nNmA60U81Mp8bTCxH8uTeSVSs8zyLIEzsRslMmcSbKhfMMcPfsEagNDCkgEeE5fUTiZlPCpkuFBH2_VK0jRPWfwsu_w',
-  spa: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBxT_2alTl_vSlWPJiyXlqUWOVg9X823Rzuf08NvaCiUeCBkmPZkuuhkkZnpfvC1Wa1A6p7uaLW7xbQ8VVEaIIfhfrgcu5oITEyLPL_U6pmtRYNkPr7HFhElX9sHYb4WXLxXfk6nY5wRZcLgE_P4WoYEE4Ojo4m9ygMETuHpQIZEIvQLznNCwI6n4LuEZ2hHrRQkbD1r562EM6AQSswN7RVC0KCXY_1KhkUDtd0hCoXIaNp8ZE-RanEfQ',
-  cafe: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA61Izv9pEZ9O6CpWwLkcC3OzLM_I2hGQNAVPIMF2ldbvZjDCj-a82gLSEEewaN4q06L8qcgfdhLge7SJLn8RLDwxOoAx8RZPs46n1PVJg1z78p8jNUul4OOsB_5W-w6cbWQe2M9PuArOuXWWccT8waQ1M0O8c1cX9IKaN2T1AC9FrbwXAnBTR5iKQAs_qEbTij7Nxy3m1A2F297csjUFLmUzcLSX7VXKw8MKFnuOOV9_CXyJLWAQZoGw',
-};
 
-interface NotificationEntry {
-  id: string;
-  category: NotificationCategory;
-  icon: 'hourglass' | 'spa' | 'gift' | 'trophy' | 'announcement';
-  iconBackground: 'amber' | 'blue' | 'purple' | 'green' | 'system';
-  title: string;
-  time: string;
-  body: string;
-  unread: boolean;
-  merchantName?: string;
-  merchantMeta?: string;
-  merchantImage?: string;
-  action?: string;
-  actionTone?: 'primary' | 'secondary' | 'success';
-  statBlock?: React.ReactNode;
-  footnote?: React.ReactNode;
-  cta?: React.ReactNode;
-}
-
-const categories: Array<NotificationCategory | 'all'> = [
+/** Chip order; `all` leads so the unfiltered list is one press away. */
+const FILTERS: NotificationFilterKey[] = [
   'all',
   'deals',
   'bookings',
@@ -54,87 +38,141 @@ const categories: Array<NotificationCategory | 'all'> = [
   'system',
 ];
 
-const initialEntries: NotificationEntry[] = [
+/** Category → the art the row has always used for it. */
+const CATEGORY_ART: Record<
+  NotificationCategory,
   {
-    id: 'expiry',
-    category: 'deals',
-    icon: 'hourglass',
-    iconBackground: 'amber',
-    title: copy.expiryTitle,
-    time: copy.expiryTime,
-    body: copy.expiryBody,
-    unread: true,
-    merchantName: copy.expiryMerchant,
-    merchantMeta: copy.expiryMeta,
-    merchantImage: images.grill,
-    action: copy.expiryAction,
-    statBlock: null,
-    footnote: null,
-    cta: null,
-  },
-  {
-    id: 'booking',
-    category: 'bookings',
-    icon: 'spa',
-    iconBackground: 'blue',
-    title: copy.bookingTitle,
-    time: copy.bookingTime,
-    body: copy.bookingBody,
-    unread: true,
-    merchantName: copy.bookingMeta,
-    merchantMeta: copy.bookingLocation,
-    merchantImage: images.spa,
-    action: copy.bookingAction,
-    actionTone: 'secondary',
-    statBlock: null,
-    footnote: null,
-    cta: null,
-  },
-  {
-    id: 'gift',
-    category: 'deals',
-    icon: 'gift',
-    iconBackground: 'purple',
-    title: copy.giftTitle,
-    time: copy.giftDate,
-    body: copy.giftBody,
-    unread: true,
-    merchantName: copy.giftMeta,
-    merchantMeta: copy.giftSubtitle,
-    merchantImage: images.cafe,
-    action: copy.giftAction,
-    actionTone: 'success',
-    statBlock: null,
-    footnote: null,
-    cta: null,
-  },
-  {
-    id: 'reward',
-    category: 'rewards',
-    icon: 'trophy',
-    iconBackground: 'green',
-    title: copy.rewardTitle,
-    time: copy.rewardDate,
-    body: copy.rewardBody,
-    unread: false,
-    statBlock: null,
-    footnote: null,
-    cta: null,
-  },
-  {
-    id: 'system',
-    category: 'system',
-    icon: 'announcement',
-    iconBackground: 'system',
-    title: copy.systemTitle,
-    time: copy.systemDate,
-    body: copy.systemBody,
-    unread: true,
-    statBlock: null,
-    footnote: null,
-    cta: null,
-  },
-];
+    icon: 'hourglass' | 'spa' | 'trophy' | 'announcement';
+    iconBackground: 'amber' | 'blue' | 'green' | 'system';
+  }
+> = {
+  deals: { icon: 'hourglass', iconBackground: 'amber' },
+  bookings: { icon: 'spa', iconBackground: 'blue' },
+  rewards: { icon: 'trophy', iconBackground: 'green' },
+  system: { icon: 'announcement', iconBackground: 'system' },
+};
+
+interface NotificationEntry {
+  id: string;
+  category: NotificationCategory;
+  icon: 'hourglass' | 'spa' | 'trophy' | 'announcement';
+  iconBackground: 'amber' | 'blue' | 'green' | 'system';
+  title: string;
+  time: string;
+  body: string;
+  unread: boolean;
+  unreadLabel?: string;
+  unreadMeta?: string;
+  unreadImage?: string;
+  action?: string;
+  actionTone?: 'primary' | 'secondary' | 'success';
+  statBlock?: React.ReactNode;
+  footnote?: React.ReactNode;
+  cta?: React.ReactNode;
+  /** Midnight of the day the row landed, for the today/earlier split. */
+  dayStart: number | null;
+}
+
+/** A string out of the payload, or undefined when it is absent or blank. */
+const plainText = (value: unknown): string | undefined =>
+  typeof value === 'string' && value.trim() ? value : undefined;
+
+const startOfDay = (value: string | null | undefined): number | null => {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+};
+
+/**
+ * `action` text, read off the row rather than asserted per id.
+ *
+ * The button is the row's own call to action; with no CTA there is nothing to
+ * press, so the row renders without it instead of inventing one.
+ */
+function toEntry(item: {
+  id: string;
+  title: string;
+  message: string;
+  type?: string | null;
+  isRead?: boolean | null;
+  createdAt?: string | null;
+  metadata?: Record<string, unknown> | null | undefined;
+}): NotificationEntry {
+  const category = notificationCategory(item.type) as NotificationCategory;
+  const art = CATEGORY_ART[category];
+  const ctaValue = notificationText(item.metadata, 'cta');
+  const footnoteValue = notificationText(item.metadata, 'footnote');
+  const stat = notificationStat(item.metadata);
+
+  // Blocks are omitted rather than rendered empty — a stat pill with nothing in
+  // it is the design asserting a figure nobody sent.
+  let statBlock = null;
+  if (stat?.value) {
+    statBlock = (
+      <View className="flex-row flex-wrap items-baseline gap-1.5 rounded-field bg-surface-subtle p-2.5">
+        {stat.label ? (
+          <VemtapText variant="caption" tone="tertiary" numberOfLines={1}>
+            {stat.label}
+          </VemtapText>
+        ) : null}
+        <VemtapText
+          variant="headingSm"
+          className="font-sans-bold"
+          numberOfLines={1}
+        >
+          {stat.value}
+        </VemtapText>
+        {stat.trend ? (
+          <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
+            {stat.trend}
+          </VemtapText>
+        ) : null}
+      </View>
+    );
+  }
+
+  let footnote = null;
+  if (footnoteValue) {
+    footnote = (
+      <View className="flex-row items-center gap-1.5">
+        <Icon name="info" size={12} color={colors.secondary} />
+        <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
+          {footnoteValue}
+        </VemtapText>
+      </View>
+    );
+  }
+
+  let cta = null;
+  if (ctaValue) {
+    cta = (
+      <View className="flex-row items-center justify-end gap-1">
+        <VemtapText variant="labelSm" className="font-sans-semibold">
+          {ctaValue}
+        </VemtapText>
+        <Icon name="forward" size={16} color={colors.primary} />
+      </View>
+    );
+  }
+
+  return {
+    id: item.id,
+    category,
+    ...art,
+    title: item.title,
+    time: item.createdAt ? formatWhen(item.createdAt) || copy.recent : copy.recent,
+    body: item.message,
+    unread: !item.isRead,
+    unreadLabel: plainText(item.metadata?.merchantName),
+    unreadMeta: plainText(item.metadata?.merchantMeta),
+    action: ctaValue,
+    ...(statBlock && { statBlock }),
+    ...(footnote && { footnote }),
+    ...(cta && { cta }),
+    dayStart: startOfDay(item.createdAt),
+  };
+}
 
 export interface NotificationsCenterScreenProps {
   onBack?: () => void;
@@ -151,115 +189,40 @@ export function NotificationsCenterScreen({
   onOpenNotification,
   onNotificationAction,
 }: NotificationsCenterScreenProps) {
-  const { data: liveNotifications } = useNotifications();
+  const notifications = useNotifications();
   const markReadMutation = useMarkNotificationRead();
   const markAllReadMutation = useMarkAllNotificationsRead();
 
   const [filter, setFilter] = useState(0);
 
-  const entries = useMemo<NotificationEntry[]>(() => {
-    if (liveNotifications && liveNotifications.length > 0) {
-      return liveNotifications.map(item => {
-        let category: NotificationCategory = 'system';
-        const typeLower = (item.type || '').toLowerCase();
-        if (typeLower.includes('deal') || typeLower.includes('offer')) category = 'deals';
-        else if (typeLower.includes('booking')) category = 'bookings';
-        else if (typeLower.includes('reward') || typeLower.includes('point'))
-          category = 'rewards';
-
-        // Render stat/footnote/cta from metadata if present, otherwise fall back
-        // to the simple prose format.
-        let statBlock = null;
-        let footnote = null;
-        let cta = null;
-        if (item.metadata) {
-          const { stat, footnote: footnoteVal, cta: ctaVal } = item.metadata;
-          if (stat) {
-            statBlock = (
-              <View className="flex-row flex-wrap items-baseline gap-1.5 rounded-field bg-surface-subtle p-2.5">
-                {stat.label ? (
-                  <VemtapText variant="caption" tone="tertiary" numberOfLines={1}>
-                    {stat.label}
-                  </VemtapText>
-                ) : null}
-                {stat.value !== undefined && (
-                  <VemtapText
-                    variant="headingSm"
-                    className="font-sans-bold"
-                    numberOfLines={1}
-                  >
-                    {stat.value}
-                  </VemtapText>
-                )}
-                {stat.trend ? (
-                  <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-                    {stat.trend}
-                  </VemtapText>
-                ) : null}
-              </View>
-            );
-          }
-          if (footnoteVal) {
-            footnote = (
-              <View className="flex-row items-center gap-1.5">
-                <Icon name="info" size={12} color={colors.secondary} />
-                <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-                  {footnoteVal}
-                </VemtapText>
-              </View>
-            );
-          }
-          if (ctaVal) {
-            cta = (
-              <View className="flex-row items-center justify-end gap-1">
-                <VemtapText variant="labelSm" className="font-sans-semibold">
-                  {ctaVal}
-                </VemtapText>
-                <Icon name="forward" size={16} color={colors.primary} />
-              </View>
-            );
-          }
-        }
-
-        return {
-          id: item.id,
-          category,
-          icon:
-            category === 'deals'
-              ? 'hourglass'
-              : category === 'bookings'
-                ? 'spa'
-                : category === 'rewards'
-                  ? 'trophy'
-                  : 'announcement',
-          iconBackground:
-            category === 'deals'
-              ? 'amber'
-              : category === 'bookings'
-                ? 'blue'
-                : category === 'rewards'
-                  ? 'green'
-                  : 'system',
-          title: item.title,
-          time: item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'Recent',
-          body: item.message,
-          unread: !item.isRead,
-          // Render the structured blocks when metadata is present; fall back
-          // to the simple prose format when it is not.
-          ...(statBlock && { statBlock }),
-          ...(footnote && { footnote }),
-          ...(cta && { cta }),
-        };
-      });
-    }
-    return liveNotifications ? [] : initialEntries;
-  }, [liveNotifications]);
+  const entries = useMemo<NotificationEntry[]>(
+    () => (notifications.data ?? []).map(toEntry),
+    [notifications.data],
+  );
 
   const unread = entries.filter(item => item.unread).length;
-  // A filter index beyond the category map (e.g. a labels/categories length
-  // mismatch after an edit) must fall back to "all" instead of blanking the
-  // list with an undefined category.
-  const activeCategory = categories[filter] ?? 'all';
+
+  /**
+   * Chip counts come off the rows in hand rather than a stored string, so a tab
+   * can never claim a number the list does not contain. A zero is left off
+   * entirely: an empty tab reads better as a bare label.
+   */
+  const filterLabels = useMemo(
+    () =>
+      FILTERS.map(key => {
+        const label = key === 'all' ? copy.filters[0] : copy.filterLabels[key];
+        if (key === 'all') {
+          return entries.length ? `${label} ${entries.length}` : label;
+        }
+        const count = entries.filter(item => item.category === key).length;
+        return count ? `${label} ${count}` : label;
+      }),
+    [entries],
+  );
+
+  // A stale index (the chip row shrank after a fetch) falls back to "all"
+  // instead of blanking the list on an undefined category.
+  const activeCategory = FILTERS[filter] ?? 'all';
   const visible = useMemo(
     () =>
       activeCategory === 'all'
@@ -267,18 +230,18 @@ export function NotificationsCenterScreen({
         : entries.filter(item => item.category === activeCategory),
     [entries, activeCategory],
   );
+
+  /**
+   * Split on the day the row landed, not on whether it happens to be unread.
+   *
+   * Unread is not a date: a two-week-old unread row is "Earlier This Week" no
+   * matter how loudly it is badged.
+   */
+  const todayStart = useMemo(() => startOfDay(new Date().toISOString()), []);
   const today = visible.filter(
-    item => item.id === 'expiry' || item.id === 'booking' || item.unread,
+    item => item.dayStart != null && item.dayStart === todayStart,
   );
   const earlier = visible.filter(item => !today.includes(item));
-  // Defensive: a partial strings payload must not throw while building the
-  // chip labels — an empty list renders an empty pill row instead of crashing.
-  const filterLabels = (Array.isArray(copy.filters) ? copy.filters : []).map(
-    (label, index) => {
-      const count = Array.isArray(copy.counts) ? copy.counts[index] : '';
-      return count ? `${label} ${count}` : `${label}`;
-    },
-  );
 
   const markAllRead = () => {
     markAllReadMutation.mutate();
@@ -321,7 +284,7 @@ export function NotificationsCenterScreen({
                   variant="caption"
                   className={unread ? 'text-primary-foreground' : 'text-text-secondary'}
                 >
-                  {unread ? copy.unread : copy.zeroNew}
+                  {unread ? copy.unreadFor(unread) : copy.zeroNew}
                 </VemtapText>
               </View>
             </View>
@@ -355,7 +318,26 @@ export function NotificationsCenterScreen({
               />
             </ScrollView>
           </View>
-          {visible.length === 0 ? (
+          {notifications.isLoading ? (
+            <LoadingState label={strings.common.loading} />
+          ) : notifications.isError ? (
+            <View className="items-center px-4 py-12">
+              <View className="h-16 w-16 items-center justify-center rounded-full bg-surface-container-high">
+                <Icon name="cloudOff" size={32} color={colors.secondary} />
+              </View>
+              <VemtapText variant="headingSm" className="mt-3 text-center">
+                {strings.common.error}
+              </VemtapText>
+              <View className="mt-4">
+                <Button
+                  label={strings.common.retry}
+                  variant="secondary"
+                  size="sm"
+                  onPress={() => notifications.refetch()}
+                />
+              </View>
+            </View>
+          ) : visible.length === 0 ? (
             <View className="items-center px-4 py-12">
               <View className="h-16 w-16 items-center justify-center rounded-full bg-surface-container-high">
                 <Icon name="doNotDisturb" size={32} color={colors.secondary} />
@@ -372,7 +354,7 @@ export function NotificationsCenterScreen({
               {today.length ? (
                 <NotificationSection
                   title={copy.today}
-                  count={copy.todayCount}
+                  count={copy.updatesFor(today.length)}
                   entries={today}
                   onOpen={handleOpen}
                   onAction={onNotificationAction}
@@ -381,7 +363,7 @@ export function NotificationsCenterScreen({
               {earlier.length ? (
                 <NotificationSection
                   title={copy.earlier}
-                  count={copy.earlierCount}
+                  count={copy.updatesFor(earlier.length)}
                   entries={earlier}
                   onOpen={handleOpen}
                   onAction={onNotificationAction}
@@ -444,36 +426,14 @@ function NotificationSection({
           time={item.time}
           body={item.body}
           unread={item.unread}
-          merchantName={item.merchantName}
-          merchantMeta={item.merchantMeta}
-          merchantImage={item.merchantImage}
+          merchantName={item.unreadLabel}
+          merchantMeta={item.unreadMeta}
           action={item.action}
           actionTone={item.actionTone}
           onPress={() => onOpen?.(item.id)}
           onAction={() => onAction?.(item.id)}
         >
-          {item.id === 'reward' ? (
-            <View className="gap-1.5 rounded-lg bg-surface p-2.5">
-              <View className="flex-row justify-between gap-2">
-                <VemtapText variant="caption" tone="secondary">
-                  {copy.tierProgress}
-                </VemtapText>
-                <VemtapText variant="caption" tone="brand">
-                  {copy.points}
-                </VemtapText>
-              </View>
-              <View className="h-1.5 overflow-hidden rounded-full bg-surface-container-highest">
-                <View className="h-full w-[65%] rounded-full bg-primary" />
-              </View>
-            </View>
-          ) : item.id === 'system' ? (
-            <View className="flex-row items-center gap-1.5 px-1">
-              <Icon name="nearMe" size={16} color={colors.primary} />
-              <VemtapText variant="labelSm" tone="brand">
-                {copy.systemLocation}
-              </VemtapText>
-            </View>
-          ) : null}
+          {item.statBlock ?? item.footnote ?? item.cta ?? null}
         </NotificationRow>
       ))}
     </View>

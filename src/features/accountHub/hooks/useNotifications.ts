@@ -23,6 +23,25 @@ export function useUnreadNotificationsCount() {
   });
 }
 
+/**
+ * The venue's notification feed.
+ *
+ * Separate from `useNotifications` because it is a different scope: that one is
+ * the caller's own rows, this one is every row at the caller's business. They
+ * must not share a cache entry — a merged one would show the owner a list that
+ * disagrees with the badge above it.
+ */
+export function useBusinessNotifications(options: { limit?: number } = {}) {
+  return useQuery({
+    queryKey: [...notificationKeys.all, 'business', options.limit ?? null],
+    queryFn: () =>
+      notificationsApi.businessFeed({
+        limit: options.limit,
+      }),
+    staleTime: 60_000,
+  });
+}
+
 export function useMarkNotificationRead() {
   const queryClient = useQueryClient();
   return useMutation({

@@ -10,14 +10,6 @@ export interface BusinessOpsImage {
 }
 
 export const businessOpsMedia = {
-  profileCover: {
-    uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBp6rBry6k7jRuALLMX3HgZXGvqhtzZ_RWaMH2XTtAlrpg3owX0m2y22WAOXNTAgLc0QX3cH9RlVNxX-zngWF41Xyu3rYhudg_nsT1QuOXEQfmBadedCMN2lBJmXF5NuNSA9eK3HyXd0jJhd1lfpvnwIUdHApR6IkGaPJWM7wv_jMSsvR9XgaiHHfSHRTkNB9qO4r1xoCR4OjLK_ii8T7aV_6ukKFZ__LwSkCVT1aa_5Ie_1BUAAM5xvg',
-    alt: 'Modern restaurant dining hall with warm ambient lighting and wood tables.',
-  },
-  profileLogo: {
-    uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDQTOcBbqm-ewMAwKsOwDYezk7UGHK4W0l3XS2IEWoQ9z6y1vCvMTl4ex_eMJzJgKuTqxlsNGT-eMQ247dHsUnlj59wV__QeG9jYwUXezMoiVW9RJ6L9l-hWh5XGWdmklSs5a6F-LXxUTR2j3HeaUdwZ9xMrXQmS52OL6-_AiSsa6uzUSLL9uxEKgHN-ut3nycLGOujLm3ZMPCatyV2eBY2yId7qpmtBO_cX2z2c49Nec3nX01Xej1KqA',
-    alt: 'Urban Grill and Bistro flame and fork brand emblem.',
-  },
   dealLunch: {
     uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBAf5E55exAno6vi2RgrfOBr3J8tcEnX4s-H3JRSMVwfA9qIWt00vwq679dz77PHc5S81Bci9xsgfS3xy8qjpD3mbE6_ZyX4fY0HJB14SVtugGGHVKkutmYlx2RlaVBVnv2p5snhB7XAor3tiLEh5H6jCb4M9_zxCvDzjWjELm63xMnzHHlCfYsPM10Bgwi3a8WAovOxk7rg4S7GcSWfDhgpe6ye5OmV7BSx0H5T6Q4eHbNcpRFo9xt2g',
     alt: 'Gourmet lunch combo with steak, fries and a craft drink.',

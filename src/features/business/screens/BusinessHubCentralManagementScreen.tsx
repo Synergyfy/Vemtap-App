@@ -8,7 +8,6 @@ import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
 import { TypeDensityProvider } from '@theme/TypeDensityProvider';
 import { colors } from '@theme/colors';
-import { businessHubMedia } from '@features/business/data/businessHubImages';
 import {
   BusinessInlineAction,
   BusinessProductImage,
@@ -246,17 +245,24 @@ export function BusinessHubCentralManagementScreen({
         </View>
 
         <View className="mt-3 overflow-hidden rounded-card-lg bg-surface-container-lowest shadow-md">
+          {/* The cover is whatever the business uploaded. With none, the strip
+              stays the surface tint it already had — a stock dining-room photo
+              would claim a storefront this business never photographed. */}
           <View className="relative h-28 w-full overflow-hidden bg-surface-dim">
-            <BusinessProductImage
-              source={{ uri: hub?.coverUrl ?? businessHubMedia.cover.uri }}
-              alt={businessHubMedia.cover.alt}
-              className="h-full w-full"
-            />
-            <LinearGradient
-              colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.2)', 'rgba(0,0,0,0.6)']}
-              locations={[0, 0.5, 1]}
-              className="absolute inset-0"
-            />
+            {hub?.coverUrl ? (
+              <>
+                <BusinessProductImage
+                  source={{ uri: hub.coverUrl }}
+                  alt={`${hub?.name ?? copy.name} cover photo`}
+                  className="h-full w-full"
+                />
+                <LinearGradient
+                  colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.2)', 'rgba(0,0,0,0.6)']}
+                  locations={[0, 0.5, 1]}
+                  className="absolute inset-0"
+                />
+              </>
+            ) : null}
             {!hub || hub.isVerified ? (
               <View className="absolute right-2.5 top-2.5 flex-row items-center gap-1.5 rounded-full bg-badge-discount-bg px-2.5 py-1 shadow-sm">
                 <Icon name="verified" size={13} color={colors.badgeDiscountText} />

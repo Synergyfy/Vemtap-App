@@ -21,6 +21,7 @@ import {
   markCustomerThreadReadLocally,
   useCustomerThreadMessages,
   useCustomerThreads,
+  useMarkCustomerThreadRead,
   useSendCustomerReply,
 } from '@features/merchantChat/hooks/useCustomerMessaging';
 import { formatCurrency } from '@utils/formatters';
@@ -94,6 +95,7 @@ export function UrbanConversationScreen({
     : undefined;
   const messagesQuery = useCustomerThreadMessages(threadId);
   const sendReply = useSendCustomerReply();
+  const markThreadRead = useMarkCustomerThreadRead();
 
   /**
    * Older threads can predate the branch relations, so the business name falls
@@ -137,10 +139,17 @@ export function UrbanConversationScreen({
     // number and the Unread chip would both still list this thread as unread.
     markCustomerThreadReadLocally(threadId);
     markMessagingRead(threadId);
+    // Persist the clear: the socket event only advances message statuses, so
+    // without this the server keeps counting the thread unread and the badge
+    // comes back on the next fetch or from another device.
+    markThreadRead.mutate(threadId);
     return () => {
       setActiveMessagingThread(null);
       leaveMessagingThread(threadId);
     };
+    // `markThreadRead` is a stable mutation object; re-running on identity would
+    // re-clear the thread on every render of the screen.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [threadId]);
 
   /**

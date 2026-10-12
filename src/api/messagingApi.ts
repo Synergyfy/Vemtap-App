@@ -191,6 +191,28 @@ export const messagingApi = {
   },
 
   /**
+   * Customer: mark a thread as read.
+   *
+   * The socket's `markRead` event only advances individual message statuses, so
+   * it leaves the thread's `customerUnreadCount` standing — which is what the
+   * Messages badge and the "Unread" filter actually read. Opening a conversation
+   * therefore has to clear that counter over HTTP as well.
+   */
+  async markCustomerThreadRead(
+    threadId: string,
+    options: ApiRequestOptions = {},
+  ): Promise<void> {
+    await requestValidated<unknown>(
+      {
+        method: 'POST',
+        url: `/customer/messaging/threads/${threadId}/read`,
+        ...options,
+      },
+      z.unknown(),
+    );
+  },
+
+  /**
    * Host an image for a chat message.
    *
    * Separate from `POST /uploads`, which is business-only and files into a

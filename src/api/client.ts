@@ -194,11 +194,22 @@ export async function requestValidated<T>(
   const parsed = schema.safeParse(raw);
 
   if (!parsed.success) {
-    logger.error('api', 'Response schema mismatch', parsed.error.flatten());
+    // Name the request. A `flatten()` with an empty `fieldErrors` and only
+    // `formErrors: ["Invalid input"]` is a *root-level* rejection — a union or
+    // a primitive that took the wrong branch — and every union in the app can
+    // produce it. Without the method and path in the line, there is no way to
+    // tell which schema to widen, and the message alone says nothing.
+    const where = `${(config.method ?? 'GET').toUpperCase()} ${config.url}`;
+    const issues = parsed.error.flatten();
+
+    logger.error('api', `Response schema mismatch: ${where}`, {
+      ...issues,
+      issues: parsed.error.issues,
+    });
     throw new ApiError('Invalid API response shape', {
       code: 'SCHEMA_MISMATCH',
       status: 0,
-      details: parsed.error.flatten(),
+      details: { method: config.method ?? 'GET', url: config.url, ...issues },
     });
   }
 

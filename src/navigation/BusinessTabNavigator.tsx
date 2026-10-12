@@ -198,6 +198,8 @@ import { BusinessNetworkActiveDashboardScreen } from '@features/business/screens
 import { InviteABusinessSheet } from '@features/business/screens/InviteABusinessSheet';
 import { TypeDensityProvider } from '@theme/TypeDensityProvider';
 import { useSwitchRole } from '@features/auth/hooks/useSwitchRole';
+import { useBusinessNotifications } from '@features/accountHub/hooks/useNotifications';
+import { matchSegment } from '@navigation/notificationRoutes';
 import { useBusinessNavigation } from './useBusinessNavigation';
 import type { BusinessTabParamList } from './types';
 
@@ -1682,13 +1684,32 @@ function DigitalEReceiptRoute() {
 
 function BusinessNotificationsRoute() {
   const navigation = useBusinessNavigation();
+  const { data: feed } = useBusinessNotifications();
+
+  // Same allowlist as the consumer side, mapped onto the business stacks.
+  // Navigating to `BusinessNotifications` here — the screen the row lives on —
+  // would push a duplicate of the list onto itself every tap.
+  const openNotification = (id: string) => {
+    const actionUrl = feed?.data.find(row => row.id === id)?.actionUrl;
+    const orderId = matchSegment(actionUrl, 'orders');
+    if (orderId) {
+      navigation.navigate('BusinessOrders', { screen: 'BusinessOrderDetail', params: { orderId } });
+      return;
+    }
+    const threadId = matchSegment(actionUrl, 'messages');
+    if (threadId) {
+      navigation.navigate('BusinessMessages', { screen: 'BusinessConversation', params: { threadId } });
+      
+    }
+  };
+
   return (
     <BusinessNotificationsCenterScreen
       onBack={navigation.goBack}
       onOpenProfile={() => undefined}
       onMarkAllRead={() => undefined}
       onOpenCategory={() => undefined}
-      onOpenNotification={() => navigation.navigate('BusinessNotifications')}
+      onOpenNotification={openNotification}
       onConfigureDispatch={() => undefined}
     />
   );

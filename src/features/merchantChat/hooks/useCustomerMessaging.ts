@@ -134,6 +134,23 @@ export function useSendCustomerReply() {
   });
 }
 
+/**
+ * Clear a thread's unread state on the server, then settle the local cache.
+ *
+ * The local patch runs first and optimistically so the badge clears on tap
+ * rather than after a round trip; the invalidation that follows re-reads the
+ * thread list so the count the server agrees with wins.
+ */
+export function useMarkCustomerThreadRead() {
+  return useMutation({
+    mutationFn: (threadId: string) => messagingApi.markCustomerThreadRead(threadId),
+    onSuccess: (_data, threadId) => {
+      markCustomerThreadReadLocally(threadId);
+      queryClient.invalidateQueries({ queryKey: customerMessagingKeys.all });
+    },
+  });
+}
+
 export function useStartCustomerConversation() {
   return useMutation({
     mutationFn: (payload: StartConversationPayload) =>

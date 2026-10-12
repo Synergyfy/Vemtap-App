@@ -327,7 +327,7 @@ export function BusinessProfileBrandingScreen({
               <StatusPill label={copy.branding.coverSpec} tone="neutral" />
             </View>
             <InlineImageCard
-              uri={coverUri ?? businessBrandingImages.cover}
+              uri={coverUri}
               height={176}
               rounded="field"
             >
@@ -403,7 +403,7 @@ export function BusinessProfileBrandingScreen({
             className="bg-surface-container-low shadow-none"
           >
             <FeedPreviewCard
-              imageUri={coverUri ?? businessBrandingImages.cover}
+              imageUri={coverUri}
               logoUri={logoRemoved ? undefined : logoUri}
               imageLabel={copy.branding.previewTitle}
               badge={copy.branding.previewBadge}
