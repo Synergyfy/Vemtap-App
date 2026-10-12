@@ -100,13 +100,34 @@ describe('business management surfaces are reachable', () => {
   it('reaches deals management, deal performance and location assignment pricing', async () => {
     await expectToReach([module('deals')], strings.centralDeals.headerTitle);
 
-    // Deals management -> create a deal -> location assignment.
+    // Deals management -> create a deal -> the four-step wizard (step 1).
     await act(async () => {
       fireEvent.press(screen.getByLabelText(strings.centralDeals.createDeal));
     });
     expect(
-      screen.getAllByText(strings.dealLocationAssignment.scopeTitle).length,
+      screen.getAllByText(strings.businessCreateDeal.step1.headerTitle).length,
     ).toBeGreaterThan(0);
+
+    // The wizard steps forward through the shared draft store.
+    await act(async () => {
+      fireEvent.press(
+        screen.getByText(strings.businessCreateDeal.step1.continueLabel),
+      );
+    });
+    expect(screen.getAllByText('Media & Creative').length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Step 2 of 4/).length).toBeGreaterThan(0);
+  });
+
+  it('reaches location assignment pricing from a deal', async () => {
+    await expectToReach([module('deals')], strings.centralDeals.headerTitle);
+
+    // A deal card's Edit action opens the location assignment & pricing screen.
+    await act(async () => {
+      fireEvent.press(screen.getAllByText(strings.centralDeals.edit)[0]);
+    });
+    expect(screen.getAllByText(/Save Location Assignment/).length).toBeGreaterThan(
+      0,
+    );
   });
 
   it('reaches CRM directory, loyalty programme, staff directory and invite', async () => {
