@@ -26,6 +26,9 @@ jest.mock('@features/merchantChat/hooks/useCustomerMessaging', () => ({
   useCustomerThreads: jest.fn(),
   useCustomerThreadMessages: jest.fn(),
   useSendCustomerReply: jest.fn(),
+  // Opening a conversation clears the unread state; a no-op keeps these suites
+  // focused on rendering rather than read bookkeeping.
+  markCustomerThreadReadLocally: jest.fn(),
 }));
 
 jest.mock('@features/order/hooks/useCustomerOrders', () => ({

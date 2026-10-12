@@ -3,6 +3,10 @@ import { useHideTabBarOnFocus } from '@navigation/useHideTabBarOnFocus';
 import { useOpenClaimChat } from '@features/merchantChat/hooks/useOpenClaimChat';
 import { useConversationActions } from '@navigation/useConversationActions';
 import { useCustomerThreads } from '@features/merchantChat/hooks/useCustomerMessaging';
+// Imported from its own module: the realtime bridge is NOT exported by
+// `useCustomerMessaging`, and pulling it from there left the binding
+// undefined, which threw on render and took the shell down.
+import { useCustomerMessagingRealtime } from '@features/merchantChat/hooks/useCustomerMessagingRealtime';
 import React, { useEffect, useState } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import {
@@ -325,6 +329,9 @@ function PersonalClaimedDealPassRoute() {
  * page (or straight back to the Account hub).
  */
 export function PersonalHubNavigator() {
+  // One socket bridge for the consumer shell, mirroring the business tab's.
+  useCustomerMessagingRealtime();
+
   return (
     <TypeDensityProvider density="comfortable">
       <Stack.Navigator screenOptions={{ headerShown: false }}>

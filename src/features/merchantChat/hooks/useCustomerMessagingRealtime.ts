@@ -14,7 +14,10 @@ import {
 import { useAppState } from '@hooks/useAppState';
 import { queryClient } from '@store/queryClient';
 import { useAuthStore } from '@store/authStore';
-import { customerMessagingKeys } from './useCustomerMessaging';
+import {
+  customerMessagingKeys,
+  threadCategoriesFor,
+} from './useCustomerMessaging';
 
 /**
  * Realtime bridge between the `/messaging` socket and the customer's React
@@ -71,22 +74,6 @@ function applyMessageUpdate(
     }
     return { ...item, content: update.content ?? item.content };
   });
-}
-
-/**
- * Recompute the row's categories. `unread` is derived from the unread count and
- * the topic ones from the subject type, exactly as the server builds them, so a
- * patched row agrees with a freshly fetched one.
- */
-function categoriesFor(thread: ConversationThread, unreadCount: number): string[] {
-  const categories: string[] = [];
-  if (unreadCount > 0) categories.push('unread');
-  if (thread.subjectType === 'DEAL' || thread.subjectType === 'CLAIM') {
-    categories.push('deals');
-  } else if (thread.subjectType === 'BOOKING' || thread.subjectType === 'ORDER') {
-    categories.push('bookings');
-  }
-  return categories;
 }
 
 export function useCustomerMessagingRealtime(enabled = true): void {
@@ -155,7 +142,7 @@ export function useCustomerMessagingRealtime(enabled = true): void {
             lastMessageContent: message.content,
             lastActivityAt: message.createdAt ?? new Date().toISOString(),
             customerUnreadCount: unreadCount,
-            categories: categoriesFor(row, unreadCount),
+            categories: threadCategoriesFor(row, unreadCount),
           };
           return rows.map(candidate => (candidate.id === threadId ? next : candidate));
         },

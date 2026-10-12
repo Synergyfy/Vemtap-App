@@ -1,6 +1,10 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { useCustomerMessagingRealtime } from '@features/merchantChat/hooks/useCustomerMessagingRealtime';
-import { customerMessagingKeys } from '@features/merchantChat/hooks/useCustomerMessaging';
+import {
+  customerMessagingKeys,
+  markCustomerThreadReadLocally,
+  threadCategoriesFor,
+} from '@features/merchantChat/hooks/useCustomerMessaging';
 import { queryClient } from '@store/queryClient';
 import type { ConversationThread } from '@api/messagingApi';
 
@@ -200,5 +204,84 @@ test('an incoming message update rewrites the stored message', async () => {
 
   expect(openThreadMessages()?.[0]).toMatchObject({
     content: 'Confirmed, see you Sunday',
+  });
+});
+
+describe('markCustomerThreadReadLocally', () => {
+  const unreadThread: ConversationThread = {
+    ...thread,
+    subjectType: 'BOOKING',
+    categories: ['unread', 'bookings'],
+    customerUnreadCount: 3,
+  };
+
+  beforeEach(() => {
+    queryClient.clear();
+  });
+
+  test('clears the badge and drops the row out of the Unread chip', () => {
+    queryClient.setQueryData(customerMessagingKeys.threads(), [unreadThread]);
+
+    markCustomerThreadReadLocally('thread-1');
+
+    const rows = queryClient.getQueryData<ConversationThread[]>(
+      customerMessagingKeys.threads(),
+    );
+    expect(rows?.[0]?.customerUnreadCount).toBe(0);
+    // The unread badge and the Unread *filter* are the same piece of state, so
+    // the row has to leave the chip as well as lose its count.
+    expect(rows?.[0]?.categories).not.toContain('unread');
+    // Still a booking, though: reading a thread must not re-file it.
+    expect(rows?.[0]?.categories).toContain('bookings');
+  });
+
+  test('leaves other threads untouched', () => {
+    const other = { ...unreadThread, id: 'thread-2' };
+    queryClient.setQueryData(customerMessagingKeys.threads(), [
+      unreadThread,
+      other,
+    ]);
+
+    markCustomerThreadReadLocally('thread-1');
+
+    const rows = queryClient.getQueryData<ConversationThread[]>(
+      customerMessagingKeys.threads(),
+    );
+    expect(rows?.[0]?.customerUnreadCount).toBe(0);
+    expect(rows?.[1]?.customerUnreadCount).toBe(3);
+    expect(rows?.[1]?.categories).toContain('unread');
+  });
+
+  test('is idempotent, so re-opening a read thread does not churn the cache', () => {
+    queryClient.setQueryData(customerMessagingKeys.threads(), [
+      { ...unreadThread, customerUnreadCount: 0, categories: ['bookings'] },
+    ]);
+    const key = customerMessagingKeys.threads();
+    const before = queryClient.getQueryData(key);
+
+    markCustomerThreadReadLocally('thread-1');
+
+    // Same object identity: an already-read row is returned untouched.
+    expect(queryClient.getQueryData(key)).toBe(before);
+  });
+
+  test('is a no-op when the threads list is not cached yet', () => {
+    expect(() => markCustomerThreadReadLocally('thread-1')).not.toThrow();
+    expect(queryClient.getQueryData(customerMessagingKeys.threads())).toBeUndefined();
+  });
+});
+
+describe('threadCategoriesFor', () => {
+  test('files a deal claim under deals, never bookings', () => {
+    expect(threadCategoriesFor({ ...thread, subjectType: 'CLAIM' }, 1)).toEqual([
+      'unread',
+      'deals',
+    ]);
+  });
+
+  test('drops the unread chip once the count reaches zero', () => {
+    expect(threadCategoriesFor({ ...thread, subjectType: 'BOOKING' }, 0)).toEqual([
+      'bookings',
+    ]);
   });
 });

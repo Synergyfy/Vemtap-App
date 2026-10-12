@@ -13,10 +13,12 @@ import {
   joinMessagingThread,
   leaveMessagingThread,
   setActiveMessagingThread,
+  markMessagingRead,
 } from '@api/messagingSocket';
 import { strings } from '@constants/strings';
 import { orderImages } from '@features/order/orderData';
 import {
+  markCustomerThreadReadLocally,
   useCustomerThreadMessages,
   useCustomerThreads,
   useSendCustomerReply,
@@ -130,6 +132,11 @@ export function UrbanConversationScreen({
     if (!threadId) return;
     setActiveMessagingThread(threadId);
     joinMessagingThread(threadId);
+    // Tell the server, and clear the badge the messages hub is showing straight
+    // away. The socket emit alone leaves the local unread count untouched, so the
+    // number and the Unread chip would both still list this thread as unread.
+    markCustomerThreadReadLocally(threadId);
+    markMessagingRead(threadId);
     return () => {
       setActiveMessagingThread(null);
       leaveMessagingThread(threadId);

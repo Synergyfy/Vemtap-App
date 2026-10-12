@@ -15,7 +15,6 @@ import { navbarBottomShadow } from '@theme/shadows';
 import {
   composerLift,
   composerPaddingBottom,
-  useKeyboardInset,
 } from '@features/merchantChat/hooks/useKeyboardInset';
 
 export interface ChatComposerProps {

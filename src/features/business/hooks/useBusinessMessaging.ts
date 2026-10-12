@@ -46,6 +46,15 @@ export function useBusinessThreadMessages(
   });
 }
 
+function appendMessageDedupe(
+  existing: ChatMessage[] | undefined,
+  message: ChatMessage,
+): ChatMessage[] {
+  if (!existing) return [message];
+  if (existing.some(item => item.id === message.id)) return existing;
+  return [...existing, message];
+}
+
 export function useSendBusinessReply() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -62,7 +71,7 @@ export function useSendBusinessReply() {
       if (newMessage) {
         queryClient.setQueryData<ChatMessage[]>(
           businessMessagingKeys.messages(variables.threadId, variables.branchId),
-          old => (old ? [...old, newMessage] : [newMessage]),
+          old => appendMessageDedupe(old, newMessage),
         );
       }
       queryClient.invalidateQueries({ queryKey: businessMessagingKeys.all });
