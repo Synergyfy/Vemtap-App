@@ -19,6 +19,33 @@ export interface BrandingMediaUploads {
   gallery?: string[];
 }
 
+/**
+ * Uploads a document (PDF, image) to `POST /uploads` and returns its hosted URL.
+ * Used for verification documents (NIN, CAC, etc.).
+ */
+export async function uploadDocument({
+  fileUri,
+  fileName,
+  mimeType,
+}: BusinessImageInput): Promise<string | null> {
+  try {
+    const result = await uploadFile<UploadResponse>({
+      url: '/uploads',
+      fileUri,
+      fileName,
+      mimeType: mimeType ?? guessMimeType(fileName),
+    });
+
+    return result.data?.url ?? result.data?.data?.url ?? null;
+  } catch (error) {
+    logger.warn('business', 'Document upload failed', {
+      fileName,
+      message: error instanceof Error ? error.message : String(error),
+    });
+    return null;
+  }
+}
+
 const MIME_BY_EXTENSION: Record<string, string> = {
   png: 'image/png',
   webp: 'image/webp',

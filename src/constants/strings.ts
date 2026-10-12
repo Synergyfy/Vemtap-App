@@ -2723,7 +2723,12 @@ export const strings = {
     editProfile: {
       title: 'Edit Profile',
       changePhoto: 'Change Photo',
-      photoHint: 'JPG, PNG or WEBP under 5MB',
+      photoHint: 'JPG, PNG or WEBP under 4MB',
+      photoPermissionTitle: 'Permission Required',
+      photoPermissionBody:
+        'Please allow access to your photos to upload a profile picture.',
+      avatarUpdated: 'Profile picture updated',
+      photoUploadFailed: 'Could not upload the photo. Please try again.',
       verifiedConsumer: 'Verified Consumer',
       activeSince: 'Active member since Sept 2024',
       level: 'Level 2',

@@ -1,5 +1,7 @@
 import React, { useCallback, useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { Alert, Pressable, View } from 'react-native';
+import * as DocumentPicker from 'expo-document-picker';
+import * as ImagePicker from 'expo-image-picker';
 import { ProgressDots } from '@components/onboarding/ProgressDots';
 import { BottomSheet } from '@components/shared/BottomSheet';
 import { Button } from '@components/ui/Button';
@@ -20,10 +22,19 @@ import {
   UploadChip,
   VerificationPage,
 } from '@features/business/components/VerificationPrimitives';
+import { uploadDocument } from '@features/business/utils/uploadBusinessMedia';
+import { useVerifyNin } from '@features/business/hooks/useCatalogueMutations';
+import { showToast } from '@components/shared/toast';
+import { strings } from '@constants/strings';
 
 export interface IdVerificationScreenProps {
   onBack?: () => void;
-  onSubmit?: (value: { nin: string; fullName: string; slipFile?: string }) => void;
+  onSubmit?: (value: {
+    nin: string;
+    fullName: string;
+    slipFile?: string;
+    verificationId?: string;
+  }) => void;
   onCaptureSlip?: () => void;
 }
 
@@ -38,16 +49,110 @@ export function IdVerificationScreen({
   const [nin, setNin] = useState<string>(copy.ninValue);
   const [fullName, setFullName] = useState<string>(copy.nameValue);
   const [slipFile, setSlipFile] = useState<string | null>(null);
+  const [slipFileUri, setSlipFileUri] = useState<string | null>(null);
   const [infoVisible, setInfoVisible] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+
+  const verifyNin = useVerifyNin();
 
   const handleBack = useCallback(() => onBack?.(), [onBack]);
   const openInfo = useCallback(() => setInfoVisible(true), []);
   const closeInfo = useCallback(() => setInfoVisible(false), []);
-  const attachSlip = useCallback(() => {
-    setSlipFile(copy.uploadFileName);
+
+  const pickAndUploadSlip = useCallback(async () => {
+    const docResult = await DocumentPicker.getDocumentAsync({
+      type: ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'],
+      copyToCacheDirectory: true,
+    });
+
+    if (docResult.canceled || !docResult.assets[0]?.uri) return;
+
+    const { uri } = docResult.assets[0];
+    setSlipFile(docResult.assets[0].name ?? 'nin_slip.pdf');
+    setSlipFileUri(uri);
+
     onCaptureSlip?.();
   }, [onCaptureSlip]);
-  const removeSlip = useCallback(() => setSlipFile(null), []);
+
+  const pickAndUploadSlipImage = useCallback(async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert(copy.photoPermissionTitle, copy.photoPermissionBody);
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.8,
+    });
+
+    if (result.canceled || !result.assets[0]?.uri) return;
+
+    const { uri } = result.assets[0];
+    setSlipFile(`nin_slip_${Date.now()}.jpg`);
+    setSlipFileUri(uri);
+
+    onCaptureSlip?.();
+  }, [onCaptureSlip]);
+
+  const handleSubmit = useCallback(async () => {
+    if (!nin.trim() || !fullName.trim()) {
+      showToast(strings.common.error, 'error');
+      return;
+    }
+
+    if (!slipFileUri) {
+      showToast('Please upload your NIN slip first', 'error');
+      return;
+    }
+
+    setVerifying(true);
+
+    try {
+      // Upload the slip document
+      const documentUrl = await uploadDocument({
+        fileUri: slipFileUri,
+        fileName: slipFile ?? `nin_slip_${Date.now()}.pdf`,
+        mimeType: slipFile?.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg',
+      });
+
+      if (!documentUrl) {
+        throw new Error('Document upload failed');
+      }
+
+      // Verify NIN via Dojah
+      const result = await verifyNin.mutateAsync({
+        documentUrl,
+        nin,
+        firstName: fullName.split(' ')[0],
+        lastName: fullName.split(' ').slice(1).join(' ') || fullName,
+      });
+
+      if (!result.success) {
+        throw new Error(result.message);
+      }
+
+      showToast('NIN verified successfully', 'success');
+      onSubmit?.({
+        nin,
+        fullName,
+        slipFile: documentUrl,
+        verificationId: result.verificationId,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Verification failed';
+      showToast(message, 'error');
+    } finally {
+      setVerifying(false);
+    }
+  }, [nin, fullName, slipFile, slipFileUri, verifyNin, onSubmit]);
+
+  const removeSlip = useCallback(() => {
+    setSlipFile(null);
+    setSlipFileUri(null);
+  }, []);
 
   return (
     <VerificationPage
@@ -58,7 +163,9 @@ export function IdVerificationScreen({
         <>
           <PrimaryActionButton
             label={copy.submit}
-            onPress={() => onSubmit?.({ nin, fullName, slipFile: slipFile ?? undefined })}
+            onPress={handleSubmit}
+            loading={verifying}
+            disabled={verifying}
           />
           <VemtapText variant="caption" tone="secondary" className="text-center">
             {copy.submitHint}
@@ -175,15 +282,26 @@ export function IdVerificationScreen({
             </VemtapText>
           </View>
         </View>
-        <Button
-          label={copy.uploadAction}
-          labelVariant="labelSm"
-          variant="outline"
-          size="sm"
-          className="border-0 bg-surface-subtle"
-          leftIcon={<Icon name="camera" size={18} color={colors.primary} />}
-          onPress={attachSlip}
-        />
+        <View className="flex-row gap-2">
+          <Button
+            label="Upload Document (PDF)"
+            labelVariant="labelSm"
+            variant="outline"
+            size="sm"
+            className="flex-1 border-0 bg-surface-subtle"
+            leftIcon={<Icon name="fileDocument" size={18} color={colors.primary} />}
+            onPress={pickAndUploadSlip}
+          />
+          <Button
+            label="Upload Photo"
+            labelVariant="labelSm"
+            variant="outline"
+            size="sm"
+            className="flex-1 border-0 bg-surface-subtle"
+            leftIcon={<Icon name="camera" size={18} color={colors.primary} />}
+            onPress={pickAndUploadSlipImage}
+          />
+        </View>
         {slipFile ? (
           <UploadChip
             fileName={slipFile}

@@ -49,6 +49,7 @@ export const registerInputSchema = z.object({
  */
 export const userSchema = z.object({
   // Required by the API; kept strict so real contract breaks are caught.
+  id: z.string().uuid(),
   email: z.string(),
   firstName: z.string().default(''),
   lastName: z.string().default(''),

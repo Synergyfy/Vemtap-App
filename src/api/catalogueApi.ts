@@ -349,6 +349,9 @@ export const generateOfferTermsSchema = z.object({
 });
 export type GeneratedOfferTerms = z.infer<typeof generateOfferTermsSchema>;
 
+// Re-export verification API
+export * from './verificationApi';
+
 export const catalogueApi = {
   /** Active items for one branch. Public. */
   async listBranchItems(

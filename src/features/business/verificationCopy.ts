@@ -100,6 +100,8 @@ export const idVerificationCopy = {
   uploadAction: 'Take Photo or Upload Slip',
   uploadFileName: 'nin_slip_scan.jpg',
   removeFileLabel: 'Remove uploaded NIN slip',
+  photoPermissionTitle: 'Permission Required',
+  photoPermissionBody: 'Please allow access to your photos to upload a profile picture.',
   security:
     'Your information is securely encrypted and verified directly with official databases. VEMTAP never shares your sensitive ID records.',
   submit: 'Verify Identity',

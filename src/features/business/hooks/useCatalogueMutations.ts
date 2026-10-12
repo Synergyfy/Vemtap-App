@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { catalogueApi } from '@api/catalogueApi';
+import { catalogueApi, verificationApi } from '@api/catalogueApi';
 import type {
   BusinessCatalogueItem,
   CatalogueCategory,
   CatalogueOfferDetail,
+  VerificationResult,
 } from '@api/catalogueApi';
 import { useCatalogueDraftStore } from '@store/catalogueDraftStore';
 import {
@@ -31,12 +32,8 @@ export type CatalogueDraftKind = 'product' | 'service';
  * `inactive` (items are active-by-default on create).
  */
 export function usePublishCatalogueItem() {
-  const setPublishedProduct = useCatalogueDraftStore(
-    state => state.setPublishedProduct,
-  );
-  const setPublishedService = useCatalogueDraftStore(
-    state => state.setPublishedService,
-  );
+  const setPublishedProduct = useCatalogueDraftStore(state => state.setPublishedProduct);
+  const setPublishedService = useCatalogueDraftStore(state => state.setPublishedService);
 
   return useMutation({
     mutationFn: async ({
@@ -199,9 +196,7 @@ export function useUpdateOfferStatus() {
  * `inactive`.
  */
 export function usePublishCatalogueOffer() {
-  const setPublishedDeal = useCatalogueDraftStore(
-    state => state.setPublishedDeal,
-  );
+  const setPublishedDeal = useCatalogueDraftStore(state => state.setPublishedDeal);
 
   return useMutation({
     mutationFn: async ({
@@ -245,5 +240,57 @@ export function useCatalogueCategories() {
     queryKey: ['business-catalogue-categories'],
     queryFn: () => catalogueApi.listCatalogueCategories(),
     staleTime: 60_000,
+  });
+}
+
+/**
+ * Verifies a National Identification Number (NIN) via Dojah KYC.
+ * Requires the document URL (from uploadDocument), NIN, and full name.
+ */
+export function useVerifyNin() {
+  return useMutation({
+    mutationFn: ({
+      documentUrl,
+      nin,
+      firstName,
+      lastName,
+      phoneNumber,
+    }: {
+      documentUrl: string;
+      nin: string;
+      firstName: string;
+      lastName: string;
+      phoneNumber?: string;
+    }): Promise<VerificationResult> =>
+      verificationApi.verifyNin({ documentUrl, nin, firstName, lastName, phoneNumber }),
+  });
+}
+
+/**
+ * Verifies a CAC Certificate via Dojah KYC.
+ * Requires the document URL (from uploadDocument), CAC number, and business name.
+ */
+export function useVerifyCac() {
+  return useMutation({
+    mutationFn: ({
+      documentUrl,
+      cacNumber,
+      businessName,
+      email,
+      phoneNumber,
+    }: {
+      documentUrl: string;
+      cacNumber: string;
+      businessName: string;
+      email?: string;
+      phoneNumber?: string;
+    }): Promise<VerificationResult> =>
+      verificationApi.verifyCac({
+        documentUrl,
+        cacNumber,
+        businessName,
+        email,
+        phoneNumber,
+      }),
   });
 }

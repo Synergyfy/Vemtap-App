@@ -32,6 +32,8 @@ export type ServiceBasicsValue = {
   description: string;
   highlights: string[];
   audience: string;
+  mainImage?: string;
+  galleryImages?: string[];
 };
 
 export interface AddServiceBasicsMediaScreenProps {
@@ -46,14 +48,18 @@ export function AddServiceBasicsMediaScreen({
   onSaveDraft,
 }: AddServiceBasicsMediaScreenProps) {
   const [title, setTitle] = useState<string>(serviceFlowDraft.title);
-  const [description, setDescription] = useState<string>(
-    serviceFlowDraft.description,
-  );
+  const [description, setDescription] = useState<string>(serviceFlowDraft.description);
   const [delivery, setDelivery] = useState('in-salon');
   const [highlights, setHighlights] = useState(
     () => new Set(['Sensitive Skin Safe', 'Organic Botanicals']),
   );
   const [gender, setGender] = useState('all');
+  const [mainImage, _setMainImage] = useState<string | undefined>(
+    serviceFlowImages.cover.uri,
+  );
+  const [galleryImages, _setGalleryImages] = useState<string[]>(
+    serviceFlowImages.thumbnails.map(t => t.uri),
+  );
 
   const currentValue: ServiceBasicsValue = {
     title,
@@ -61,6 +67,8 @@ export function AddServiceBasicsMediaScreen({
     description,
     highlights: [...highlights],
     audience: gender,
+    mainImage,
+    galleryImages,
   };
 
   const handleTitleChange = (value: string) => {
@@ -118,8 +126,8 @@ export function AddServiceBasicsMediaScreen({
           </View>
           <View className="relative aspect-[4/3] w-full overflow-hidden rounded-card-lg bg-surface-container-high shadow-sm">
             <BusinessProductImage
-              source={{ uri: serviceFlowImages.cover.uri }}
-              alt={serviceFlowImages.cover.alt}
+              source={{ uri: mainImage }}
+              alt="Service cover photo"
               className="h-full w-full"
               resizeMode="cover"
             />
@@ -147,11 +155,11 @@ export function AddServiceBasicsMediaScreen({
             </Pressable>
           </View>
           <View className="flex-row gap-2">
-            {serviceFlowImages.thumbnails.map((image, index) => (
+            {galleryImages.map((uri, index) => (
               <ServiceMediaThumbnail
-                key={image.uri}
-                uri={image.uri}
-                alt={image.alt}
+                key={uri}
+                uri={uri}
+                alt={`Gallery image ${index + 1}`}
                 number={index + 1}
               />
             ))}

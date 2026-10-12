@@ -670,15 +670,11 @@ function CreateDealLocationAssignmentRoute() {
       { status, branchId: all[0] },
       {
         onSuccess: () => {
-          showSuccess(
-            status === 'active' ? 'Deal launched.' : 'Deal saved as draft.',
-          );
+          showSuccess(status === 'active' ? 'Deal launched.' : 'Deal saved as draft.');
           navigation.goBack();
         },
         onError: error =>
-          showError(
-            error instanceof Error ? error.message : 'Could not launch the deal',
-          ),
+          showError(error instanceof Error ? error.message : 'Could not launch the deal'),
       },
     );
   };
@@ -711,15 +707,11 @@ function DealLocationAssignmentPricingRoute() {
       { status, branchId: all[0] },
       {
         onSuccess: () => {
-          showSuccess(
-            status === 'active' ? 'Deal launched.' : 'Deal saved as draft.',
-          );
+          showSuccess(status === 'active' ? 'Deal launched.' : 'Deal saved as draft.');
           navigation.goBack();
         },
         onError: error =>
-          showError(
-            error instanceof Error ? error.message : 'Could not launch the deal',
-          ),
+          showError(error instanceof Error ? error.message : 'Could not launch the deal'),
       },
     );
   };
@@ -819,15 +811,11 @@ function CreateDealStep4Route() {
       { status, branchId },
       {
         onSuccess: () => {
-          showSuccess(
-            status === 'active' ? 'Deal launched.' : 'Deal saved as draft.',
-          );
+          showSuccess(status === 'active' ? 'Deal launched.' : 'Deal saved as draft.');
           navigation.navigate('BusinessHubHome');
         },
         onError: error =>
-          showError(
-            error instanceof Error ? error.message : 'Could not launch the deal',
-          ),
+          showError(error instanceof Error ? error.message : 'Could not launch the deal'),
       },
     );
   };
@@ -907,89 +895,89 @@ function CentralCatalogueRoute() {
   const items = catalogue.data?.data ?? [];
   return (
     <>
-    <CentralCatalogueScreen
-      layout={layout}
-      onNotifications={() => undefined}
-      onQuickSwitch={() => undefined}
-      onSearch={() => undefined}
-      onChangeScope={() => undefined}
-      onAddProduct={() => navigation.navigate('AddProductBasicsMedia')}
-      onAddService={() => navigation.navigate('ServicesCategories')}
-      onEditItem={itemId => {
-        const item = items.find(candidate => candidate.id === itemId);
-        if (!item) return;
-        setEditing({
-          id: itemId,
-          name: item.name,
-          price: item.price != null ? String(item.price) : '',
-        });
-      }}
-      onToggleStock={(itemId, value) => {
-        updateItemStatus.mutate(
-          { itemId, status: value ? 'active' : 'inactive' },
-          {
-            onSuccess: () =>
-              showSuccess(value ? 'Item is live.' : 'Item paused.'),
-            onError: () => showError('Could not update the item.'),
-          },
-        );
-      }}
-      onSheetAction={(actionId, itemId) => {
-        if (actionId === 'delete') {
+      <CentralCatalogueScreen
+        layout={layout}
+        onNotifications={() => undefined}
+        onQuickSwitch={() => undefined}
+        onSearch={() => undefined}
+        onChangeScope={() => undefined}
+        onAddProduct={() => navigation.navigate('AddProductBasicsMedia')}
+        onAddService={() => navigation.navigate('ServicesCategories')}
+        onEditItem={itemId => {
+          const item = items.find(candidate => candidate.id === itemId);
+          if (!item) return;
+          setEditing({
+            id: itemId,
+            name: item.name,
+            price: item.price != null ? String(item.price) : '',
+          });
+        }}
+        onToggleStock={(itemId, value) => {
           updateItemStatus.mutate(
-            { itemId, status: 'archived' },
+            { itemId, status: value ? 'active' : 'inactive' },
             {
-              onSuccess: () => showSuccess('Item archived. Customers no longer see it.'),
-              onError: () => showError('Could not archive the item.'),
+              onSuccess: () => showSuccess(value ? 'Item is live.' : 'Item paused.'),
+              onError: () => showError('Could not update the item.'),
             },
           );
-        } else if (actionId === 'archive' || actionId === 'pause') {
-          updateItemStatus.mutate(
-            { itemId, status: 'inactive' },
+        }}
+        onSheetAction={(actionId, itemId) => {
+          if (actionId === 'delete') {
+            updateItemStatus.mutate(
+              { itemId, status: 'archived' },
+              {
+                onSuccess: () =>
+                  showSuccess('Item archived. Customers no longer see it.'),
+                onError: () => showError('Could not archive the item.'),
+              },
+            );
+          } else if (actionId === 'archive' || actionId === 'pause') {
+            updateItemStatus.mutate(
+              { itemId, status: 'inactive' },
+              {
+                onSuccess: () => showSuccess('Item paused.'),
+                onError: () => showError('Could not pause the item.'),
+              },
+            );
+          } else {
+            showError('This item action is not yet available.');
+          }
+        }}
+        items={items.map(catalogueItemToCentralRow)}
+      />
+      <PromptDialog
+        visible={Boolean(editing)}
+        title="Edit item"
+        fields={[
+          { key: 'name', label: 'Name', value: editing?.name ?? '' },
+          {
+            key: 'price',
+            label: 'Price (₦)',
+            value: editing?.price ?? '',
+            keyboardType: 'decimal-pad',
+          },
+        ]}
+        confirmLabel="Save"
+        onCancel={() => setEditing(null)}
+        onConfirm={values => {
+          if (!editing) return;
+          const parsedPrice = Number(values.price.replace(/[^\d.]/g, ''));
+          updateDetails.mutate(
             {
-              onSuccess: () => showSuccess('Item paused.'),
-              onError: () => showError('Could not pause the item.'),
+              itemId: editing.id,
+              name: values.name.trim() || undefined,
+              price: Number.isFinite(parsedPrice) ? parsedPrice : undefined,
+            },
+            {
+              onSuccess: () => {
+                showSuccess('Item updated.');
+                setEditing(null);
+              },
+              onError: () => showError('Could not update the item.'),
             },
           );
-        } else {
-          showError('This item action is not yet available.');
-        }
-      }}
-      items={items.map(catalogueItemToCentralRow)}
-    />
-    <PromptDialog
-      visible={Boolean(editing)}
-      title="Edit item"
-      fields={[
-        { key: 'name', label: 'Name', value: editing?.name ?? '' },
-        {
-          key: 'price',
-          label: 'Price (₦)',
-          value: editing?.price ?? '',
-          keyboardType: 'decimal-pad',
-        },
-      ]}
-      confirmLabel="Save"
-      onCancel={() => setEditing(null)}
-      onConfirm={values => {
-        if (!editing) return;
-        const parsedPrice = Number(values.price.replace(/[^\d.]/g, ''));
-        updateDetails.mutate(
-          {
-            itemId: editing.id,
-            name: values.name.trim() || undefined,
-            price: Number.isFinite(parsedPrice) ? parsedPrice : undefined,
-          },
-          {
-            onSuccess: () => {
-              showSuccess('Item updated.');
-              setEditing(null);
-            },
-            onError: () => showError('Could not update the item.'),
-          },
-        );
-      }}
-    />
+        }}
+      />
     </>
   );
 }
@@ -1003,9 +991,7 @@ function ServicesCategoriesRoute() {
   const reorderCategories = useReorderCatalogueCategories();
   const services = useBusinessCatalogue({ itemType: 'service' });
   const categories = useCatalogueCategories();
-  const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(
-    null,
-  );
+  const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
   const [editingService, setEditingService] = useState<{
     id: string;
     name: string;
@@ -1016,134 +1002,134 @@ function ServicesCategoriesRoute() {
   const categoryItems = (categories.data ?? []).map(c => ({ id: c.id, name: c.name }));
   return (
     <>
-    <ServicesCategoriesManagementScreen
-      onNotifications={() => undefined}
-      onAddService={() => {
-        navigation.navigate('AddServiceBasics');
-      }}
-      onAddCategory={async () => {
-        try {
-          await catalogueApi.createCatalogueCategory('New Category');
-          showSuccess('Category created.');
-        } catch {
-          showError('Could not create the category.');
+      <ServicesCategoriesManagementScreen
+        onNotifications={() => undefined}
+        onAddService={() => {
+          navigation.navigate('AddServiceBasics');
+        }}
+        onAddCategory={async () => {
+          try {
+            await catalogueApi.createCatalogueCategory('New Category');
+            showSuccess('Category created.');
+          } catch {
+            showError('Could not create the category.');
+          }
+        }}
+        onEditService={serviceId => {
+          const service = serviceItems.find(candidate => candidate.id === serviceId);
+          if (!service) return;
+          setEditingService({
+            id: serviceId,
+            name: service.name,
+            price: service.price != null ? String(service.price) : '',
+          });
+        }}
+        onServiceAction={(actionId, serviceId) => {
+          if (actionId === 'delete') {
+            updateItemStatus.mutate(
+              { itemId: serviceId, status: 'archived' },
+              {
+                onSuccess: () => showSuccess('Service archived.'),
+                onError: () => showError('Could not archive the service.'),
+              },
+            );
+          } else if (actionId === 'archive' || actionId === 'pause') {
+            updateItemStatus.mutate(
+              { itemId: serviceId, status: 'inactive' },
+              {
+                onSuccess: () => showSuccess('Service paused.'),
+                onError: () => showError('Could not pause the service.'),
+              },
+            );
+          } else {
+            showError('This service action is not yet available.');
+          }
+        }}
+        onEditCategory={categoryId => {
+          const category = (categories.data ?? []).find(
+            candidate => candidate.id === categoryId,
+          );
+          if (!category) return;
+          setRenaming({ id: categoryId, name: category.name });
+        }}
+        onArchiveCategory={categoryId => {
+          deleteCategory.mutate(categoryId, {
+            onSuccess: () => showSuccess('Category archived.'),
+            onError: () => showError('Could not archive the category.'),
+          });
+        }}
+        onReorderCategory={() => {
+          setReordering(true);
+        }}
+        services={serviceItems.map(catalogueItemToServiceRow)}
+        categories={(categories.data ?? []).map(catalogueCategoryToRow)}
+      />
+      <CategoryReorderSheet
+        visible={reordering}
+        categories={categoryItems}
+        onClose={() => setReordering(false)}
+        onSubmit={orderedIds =>
+          reorderCategories.mutate(orderedIds, {
+            onSuccess: () => showSuccess('Category order updated.'),
+            onError: () => showError('Could not reorder categories.'),
+          })
         }
-      }}
-      onEditService={serviceId => {
-        const service = serviceItems.find(candidate => candidate.id === serviceId);
-        if (!service) return;
-        setEditingService({
-          id: serviceId,
-          name: service.name,
-          price: service.price != null ? String(service.price) : '',
-        });
-      }}
-      onServiceAction={(actionId, serviceId) => {
-        if (actionId === 'delete') {
-          updateItemStatus.mutate(
-            { itemId: serviceId, status: 'archived' },
+      />
+      <PromptDialog
+        visible={Boolean(renaming)}
+        title="Rename category"
+        fields={[{ key: 'name', label: 'Name', value: renaming?.name ?? '' }]}
+        confirmLabel="Save"
+        onCancel={() => setRenaming(null)}
+        onConfirm={values => {
+          if (!renaming) return;
+          const name = values.name.trim();
+          if (!name) return;
+          updateCategory.mutate(
+            { categoryId: renaming.id, name },
             {
-              onSuccess: () => showSuccess('Service archived.'),
-              onError: () => showError('Could not archive the service.'),
+              onSuccess: () => {
+                showSuccess('Category renamed.');
+                setRenaming(null);
+              },
+              onError: () => showError('Could not rename the category.'),
             },
           );
-        } else if (actionId === 'archive' || actionId === 'pause') {
-          updateItemStatus.mutate(
-            { itemId: serviceId, status: 'inactive' },
+        }}
+      />
+      <PromptDialog
+        visible={Boolean(editingService)}
+        title="Edit service"
+        fields={[
+          { key: 'name', label: 'Name', value: editingService?.name ?? '' },
+          {
+            key: 'price',
+            label: 'Price (₦)',
+            value: editingService?.price ?? '',
+            keyboardType: 'decimal-pad',
+          },
+        ]}
+        confirmLabel="Save"
+        onCancel={() => setEditingService(null)}
+        onConfirm={values => {
+          if (!editingService) return;
+          const parsedPrice = Number(values.price.replace(/[^\d.]/g, ''));
+          updateDetails.mutate(
             {
-              onSuccess: () => showSuccess('Service paused.'),
-              onError: () => showError('Could not pause the service.'),
+              itemId: editingService.id,
+              name: values.name.trim() || undefined,
+              price: Number.isFinite(parsedPrice) ? parsedPrice : undefined,
+            },
+            {
+              onSuccess: () => {
+                showSuccess('Service updated.');
+                setEditingService(null);
+              },
+              onError: () => showError('Could not update the service.'),
             },
           );
-        } else {
-          showError('This service action is not yet available.');
-        }
-      }}
-      onEditCategory={categoryId => {
-        const category = (categories.data ?? []).find(
-          candidate => candidate.id === categoryId,
-        );
-        if (!category) return;
-        setRenaming({ id: categoryId, name: category.name });
-      }}
-      onArchiveCategory={categoryId => {
-        deleteCategory.mutate(categoryId, {
-          onSuccess: () => showSuccess('Category archived.'),
-          onError: () => showError('Could not archive the category.'),
-        });
-      }}
-      onReorderCategory={() => {
-        setReordering(true);
-      }}
-      services={serviceItems.map(catalogueItemToServiceRow)}
-      categories={(categories.data ?? []).map(catalogueCategoryToRow)}
-    />
-    <CategoryReorderSheet
-      visible={reordering}
-      categories={categoryItems}
-      onClose={() => setReordering(false)}
-      onSubmit={orderedIds =>
-        reorderCategories.mutate(orderedIds, {
-          onSuccess: () => showSuccess('Category order updated.'),
-          onError: () => showError('Could not reorder categories.'),
-        })
-      }
-    />
-    <PromptDialog
-      visible={Boolean(renaming)}
-      title="Rename category"
-      fields={[{ key: 'name', label: 'Name', value: renaming?.name ?? '' }]}
-      confirmLabel="Save"
-      onCancel={() => setRenaming(null)}
-      onConfirm={values => {
-        if (!renaming) return;
-        const name = values.name.trim();
-        if (!name) return;
-        updateCategory.mutate(
-          { categoryId: renaming.id, name },
-          {
-            onSuccess: () => {
-              showSuccess('Category renamed.');
-              setRenaming(null);
-            },
-            onError: () => showError('Could not rename the category.'),
-          },
-        );
-      }}
-    />
-    <PromptDialog
-      visible={Boolean(editingService)}
-      title="Edit service"
-      fields={[
-        { key: 'name', label: 'Name', value: editingService?.name ?? '' },
-        {
-          key: 'price',
-          label: 'Price (₦)',
-          value: editingService?.price ?? '',
-          keyboardType: 'decimal-pad',
-        },
-      ]}
-      confirmLabel="Save"
-      onCancel={() => setEditingService(null)}
-      onConfirm={values => {
-        if (!editingService) return;
-        const parsedPrice = Number(values.price.replace(/[^\d.]/g, ''));
-        updateDetails.mutate(
-          {
-            itemId: editingService.id,
-            name: values.name.trim() || undefined,
-            price: Number.isFinite(parsedPrice) ? parsedPrice : undefined,
-          },
-          {
-            onSuccess: () => {
-              showSuccess('Service updated.');
-              setEditingService(null);
-            },
-            onError: () => showError('Could not update the service.'),
-          },
-        );
-      }}
-    />
+        }}
+      />
     </>
   );
 }
@@ -1166,7 +1152,7 @@ function AddServiceBasicsRoute() {
           // out imageless even though the owner picked photos (the old dead
           // end: the tiles were demo assets with no picker behind them).
           mainImage: value.mainImage,
-          galleryImages: value.gallery,
+          galleryImages: value.galleryImages,
         });
         navigation.navigate('AddServiceDurationPricing');
       }}
@@ -1181,7 +1167,7 @@ function AddServiceBasicsRoute() {
           // out imageless even though the owner picked photos (the old dead
           // end: the tiles were demo assets with no picker behind them).
           mainImage: value.mainImage,
-          galleryImages: value.gallery,
+          galleryImages: value.galleryImages,
         });
         const { service } = useCatalogueDraftStore.getState();
         if (!service.branchIds.length) {
@@ -1307,17 +1293,13 @@ function ReviewServiceSummaryRoute() {
       {
         onSuccess: () => {
           showSuccess(
-            status === 'active'
-              ? 'Service published.'
-              : 'Service saved as draft.',
+            status === 'active' ? 'Service published.' : 'Service saved as draft.',
           );
           navigation.navigate('ServicesCategories');
         },
         onError: error =>
           showError(
-            error instanceof Error
-              ? error.message
-              : 'Could not publish the service',
+            error instanceof Error ? error.message : 'Could not publish the service',
           ),
       },
     );
@@ -1375,9 +1357,7 @@ function AddProductBasicsMediaRoute() {
               navigation.goBack();
             },
             onError: error =>
-              showError(
-                error instanceof Error ? error.message : 'Failed to save draft.',
-              ),
+              showError(error instanceof Error ? error.message : 'Failed to save draft.'),
           },
         );
       }}
@@ -1728,13 +1708,18 @@ function BusinessNotificationsRoute() {
     const actionUrl = feed?.data.find(row => row.id === id)?.actionUrl;
     const orderId = matchSegment(actionUrl, 'orders');
     if (orderId) {
-      navigation.navigate('BusinessOrders', { screen: 'BusinessOrderDetail', params: { orderId } });
+      navigation.navigate('BusinessOrders', {
+        screen: 'BusinessOrderDetail',
+        params: { orderId },
+      });
       return;
     }
     const threadId = matchSegment(actionUrl, 'messages');
     if (threadId) {
-      navigation.navigate('BusinessMessages', { screen: 'BusinessConversation', params: { threadId } });
-      
+      navigation.navigate('BusinessMessages', {
+        screen: 'BusinessConversation',
+        params: { threadId },
+      });
     }
   };
 
@@ -2593,7 +2578,9 @@ const signOut = () => {
 
   if (store.status === 'authenticated') {
     // Same teardown an expiry performs, then back to the auth stack.
-    endSession().catch(() => undefined).finally(() => leaveBusinessShell());
+    endSession()
+      .catch(() => undefined)
+      .finally(() => leaveBusinessShell());
   } else {
     store.markUnauthenticated();
     leaveBusinessShell();

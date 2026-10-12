@@ -101,9 +101,7 @@ function useSaveProductDraft() {
           navigation.navigate('ProductPublished');
         },
         onError: error =>
-          showError(
-            error instanceof Error ? error.message : 'Could not save the draft.',
-          ),
+          showError(error instanceof Error ? error.message : 'Could not save the draft.'),
       },
     );
   };
@@ -223,7 +221,7 @@ function BusinessProfileContactChannelsRoute() {
  * without this the Basic Info / Branding / Contact fields collected in this
  * wizard would be silently dropped when the account step is skipped.
  */
-function syncOwnerDraftToBusiness(draft: {
+async function syncOwnerDraftToBusiness(draft: {
   basic: {
     name: string;
     categoryId?: string;
@@ -231,34 +229,61 @@ function syncOwnerDraftToBusiness(draft: {
     otherSubcategoryName?: string;
     description: string;
   };
-  branding: { logoUrl?: string };
+  branding: {
+    logoUrl?: string;
+    logoUri?: string;
+    coverUri?: string;
+    galleryUris?: string[];
+    logoRemoved?: boolean;
+  };
   contact: { email: string; website: string; whatsappNumber?: string; phone: string };
-}): void {
+}): Promise<void> {
   const updates: Record<string, unknown> = {};
-  const { basic, branding, contact } = draft;
+  const { branding } = draft;
 
-  if (basic.name?.trim()) updates.name = basic.name.trim();
-  if (basic.categoryId) updates.categoryId = basic.categoryId;
-  if (basic.subcategoryId) updates.subcategoryId = basic.subcategoryId;
-  if (basic.otherSubcategoryName?.trim()) {
-    updates.otherSubcategoryName = basic.otherSubcategoryName.trim();
+  // Upload branding media (logo, cover, gallery) if any local URIs are present
+  const { uploadBrandingMedia } =
+    await import('@features/business/utils/uploadBusinessMedia');
+  const media = await uploadBrandingMedia({
+    logoUri: branding.logoUri,
+    coverUri: branding.coverUri,
+    galleryUris: branding.galleryUris,
+  });
+
+  if (branding.logoRemoved) {
+    updates.logoUrl = null;
+  } else if (media.logoUrl) {
+    updates.logoUrl = media.logoUrl;
+  } else if (branding.logoUrl) {
+    updates.logoUrl = branding.logoUrl;
   }
-  if (basic.description?.trim()) updates.about = basic.description.trim();
-  if (branding.logoUrl) updates.logoUrl = branding.logoUrl;
 
-  if (contact.email?.trim()) updates.officialEmail = contact.email.trim();
+  if (media.coverImage) updates.coverImage = media.coverImage;
+  if (media.gallery?.length) updates.gallery = media.gallery;
 
-  const whatsapp = (contact.whatsappNumber ?? contact.phone ?? '').replace(/\D/g, '');
+  const { basic: b, contact: c } = draft;
+
+  if (b.name?.trim()) updates.name = b.name.trim();
+  if (b.categoryId) updates.categoryId = b.categoryId;
+  if (b.subcategoryId) updates.subcategoryId = b.subcategoryId;
+  if (b.otherSubcategoryName?.trim()) {
+    updates.otherSubcategoryName = b.otherSubcategoryName.trim();
+  }
+  if (b.description?.trim()) updates.about = b.description.trim();
+
+  if (c.email?.trim()) updates.officialEmail = c.email.trim();
+
+  const whatsapp = (c.whatsappNumber ?? c.phone ?? '').replace(/\D/g, '');
   if (whatsapp) updates.whatsappNumber = whatsapp;
 
-  const website = contact.website?.trim();
+  const website = c.website?.trim();
   if (website) {
     updates.website = /^https?:\/\//i.test(website) ? website : `https://${website}`;
   }
 
   if (Object.keys(updates).length === 0) return;
 
-  businessDashboardApi.updateMyBusiness(updates).catch(error =>
+  await businessDashboardApi.updateMyBusiness(updates).catch(error =>
     logger.warn('business', 'Failed to sync owner draft before location', {
       message: error instanceof Error ? error.message : String(error),
     }),
@@ -295,17 +320,27 @@ function BusinessAccountCredentialsRoute() {
   useEffect(() => {
     if (!skipCredentials) return;
 
-    if (ownerWithoutBusiness && !syncedOwnerDraft.current) {
-      syncedOwnerDraft.current = true;
-      const store = useBusinessOnboardingStore.getState();
-      syncOwnerDraftToBusiness({
-        basic: store.profile.basic,
-        branding: store.profile.branding,
-        contact: store.profile.contact,
-      });
-    }
+    let mounted = true;
 
-    navigation.navigate('BusinessLocation');
+    (async () => {
+      if (ownerWithoutBusiness && !syncedOwnerDraft.current) {
+        syncedOwnerDraft.current = true;
+        const store = useBusinessOnboardingStore.getState();
+        await syncOwnerDraftToBusiness({
+          basic: store.profile.basic,
+          branding: store.profile.branding,
+          contact: store.profile.contact,
+        });
+      }
+
+      if (mounted) {
+        navigation.navigate('BusinessLocation');
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
   }, [ownerWithoutBusiness, skipCredentials, navigation]);
 
   if (skipCredentials) {
@@ -612,9 +647,7 @@ function ReviewServiceSummaryRoute() {
         onSuccess: () => navigation.navigate('ServicePublished'),
         onError: error =>
           showError(
-            error instanceof Error
-              ? error.message
-              : 'Could not publish the service',
+            error instanceof Error ? error.message : 'Could not publish the service',
           ),
       },
     );
@@ -633,9 +666,7 @@ function ReviewServiceSummaryRoute() {
 
 function ServicePublishedRoute() {
   const navigation = useFlowNavigation();
-  const serviceId = useCatalogueDraftStore(
-    state => state.service.publishedServiceId,
-  );
+  const serviceId = useCatalogueDraftStore(state => state.service.publishedServiceId);
   const draft = useCatalogueDraftStore(state => state.service);
   const updateStatus = useUpdateCatalogueItemStatus();
   return (
@@ -840,15 +871,11 @@ function CreateDealAutoImportedRoute() {
       },
       {
         onSuccess: () => {
-          showSuccess(
-            status === 'active' ? 'Deal launched.' : 'Deal saved as draft.',
-          );
+          showSuccess(status === 'active' ? 'Deal launched.' : 'Deal saved as draft.');
           navigation.navigate('BusinessQrReady');
         },
         onError: error =>
-          showError(
-            error instanceof Error ? error.message : 'Could not launch the deal',
-          ),
+          showError(error instanceof Error ? error.message : 'Could not launch the deal'),
       },
     );
   };
@@ -965,15 +992,11 @@ function CreateDealStep4Route() {
       { status, branchId },
       {
         onSuccess: () => {
-          showSuccess(
-            status === 'active' ? 'Deal launched.' : 'Deal saved as draft.',
-          );
+          showSuccess(status === 'active' ? 'Deal launched.' : 'Deal saved as draft.');
           navigation.navigate('BusinessQrReady');
         },
         onError: error =>
-          showError(
-            error instanceof Error ? error.message : 'Could not launch the deal',
-          ),
+          showError(error instanceof Error ? error.message : 'Could not launch the deal'),
       },
     );
   };

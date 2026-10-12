@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { Alert, Pressable, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as ImagePicker from 'expo-image-picker';
 import {
   AccountHeader,
   FormSection,
@@ -12,7 +13,7 @@ import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
 import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
-import { useUpdateProfile } from '@features/profile/hooks/useProfile';
+import { useUpdateProfile, useUploadAvatar } from '@features/profile/hooks/useProfile';
 import { showToast } from '@components/shared/toast';
 import { colors } from '@theme/colors';
 
@@ -22,7 +23,6 @@ export interface EditProfileScreenProps {
   onBack?: () => void;
   onSave?: () => void;
   onDiscard?: () => void;
-  onChangePhoto?: () => void;
   onChooseDistrict?: () => void;
 }
 
@@ -30,11 +30,11 @@ export function EditProfileScreen({
   onBack,
   onSave,
   onDiscard,
-  onChangePhoto,
   onChooseDistrict,
 }: EditProfileScreenProps) {
   const me = useCurrentUserDisplay();
   const updateProfile = useUpdateProfile();
+  const uploadAvatar = useUploadAvatar();
   const [firstName, setFirstName] = useState(me.firstName);
   const [lastName, setLastName] = useState(me.lastName);
   // Starts from whatever was saved, falling back to the first option so the
@@ -62,6 +62,28 @@ export function EditProfileScreen({
     );
   };
 
+  const pickAndUploadAvatar = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert(copy.photoPermissionTitle, copy.photoPermissionBody);
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (result.canceled || !result.assets[0]?.uri) return;
+
+    uploadAvatar.mutate(result.assets[0].uri, {
+      onSuccess: () => showToast(copy.avatarUpdated, 'success'),
+      onError: () => showToast(copy.photoUploadFailed, 'error'),
+    });
+  };
+
   return (
     <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-background">
       <AccountHeader title={copy.title} onBack={onBack} />
@@ -77,13 +99,13 @@ export function EditProfileScreen({
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={copy.changePhoto}
-              onPress={onChangePhoto}
+              onPress={pickAndUploadAvatar}
               className="absolute bottom-0 right-0 h-9 w-9 items-center justify-center rounded-full bg-primary"
             >
               <Icon name="edit" size={18} color={colors.surface} />
             </Pressable>
           </View>
-          <Pressable accessibilityRole="button" onPress={onChangePhoto}>
+          <Pressable accessibilityRole="button" onPress={pickAndUploadAvatar}>
             <VemtapText variant="labelSm" tone="brand">
               {copy.changePhoto}
             </VemtapText>
