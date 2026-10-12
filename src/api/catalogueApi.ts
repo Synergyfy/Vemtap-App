@@ -550,8 +550,9 @@ export const catalogueApi = {
 
   /**
    * Removes an item everywhere (`DELETE /catalogue/items/:id?applyGlobally=true`).
-   * The backend requires either `branchId` or `applyGlobally`; the hub's delete
-   * action means "gone", not "unlinked from one branch".
+   * The backend requires either `branchId` or `applyGlobally`; a permanent
+   * delete means "gone", not "unlinked from one branch". The hub's own action
+   * archives instead (PATCH status=archived) so history survives.
    */
   async deleteCatalogueItem(
     itemId: string,
@@ -599,6 +600,26 @@ export const catalogueApi = {
         ...options,
       },
       z.looseObject({ id: z.string() }),
+    );
+  },
+
+  /**
+   * Reorders categories (`PATCH /catalogue/categories/reorder`).
+   * Sends the complete ordered list of category ids; backend assigns
+   * sortOrder = index.
+   */
+  async reorderCatalogueCategories(
+    orderedIds: string[],
+    options: ApiRequestOptions = {},
+  ): Promise<CatalogueCategory[]> {
+    return requestValidated<CatalogueCategory[]>(
+      {
+        method: 'PATCH',
+        url: '/catalogue/categories/reorder',
+        data: { orderedIds },
+        ...options,
+      },
+      z.array(catalogueCategorySchema),
     );
   },
 

@@ -87,7 +87,7 @@ export function useUpdateCatalogueItemStatus() {
       status,
     }: {
       itemId: string;
-      status: 'active' | 'inactive';
+      status: 'active' | 'inactive' | 'archived';
     }): Promise<BusinessCatalogueItem> =>
       catalogueApi.updateCatalogueItem(itemId, { status }),
   });
@@ -115,7 +115,11 @@ export function useUpdateCatalogueItemDetails() {
   });
 }
 
-/** Hub delete action: the item is removed everywhere, not just one branch. */
+/**
+ * Permanent delete: the item is removed everywhere, not just one branch. The
+ * hub's sheet action archives (status=archived) instead; this stays for
+ * flows that truly destroy the row.
+ */
 export function useDeleteCatalogueItem() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -154,6 +158,21 @@ export function useDeleteCatalogueCategory() {
   return useMutation({
     mutationFn: (categoryId: string): Promise<{ id: string }> =>
       catalogueApi.deleteCatalogueCategory(categoryId),
+    onSuccess: () =>
+      queryClient.invalidateQueries({
+        queryKey: ['business-catalogue-categories'],
+      }),
+  });
+}
+
+/**
+ * Reorders categories: sends the full ordered list to the backend.
+ */
+export function useReorderCatalogueCategories() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (orderedIds: string[]): Promise<CatalogueCategory[]> =>
+      catalogueApi.reorderCatalogueCategories(orderedIds),
     onSuccess: () =>
       queryClient.invalidateQueries({
         queryKey: ['business-catalogue-categories'],

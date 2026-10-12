@@ -107,14 +107,15 @@ import {
   useBusinessBranches,
   useCatalogueCategories,
   useDeleteCatalogueCategory,
-  useDeleteCatalogueItem,
   usePublishCatalogueItem,
   usePublishCatalogueOffer,
+  useReorderCatalogueCategories,
   useUpdateCatalogueCategory,
   useUpdateCatalogueItemDetails,
   useUpdateCatalogueItemStatus,
   useUpdateOfferStatus,
 } from '@features/business/hooks/useCatalogueMutations';
+import { CategoryReorderSheet } from '@features/business/components/CategoryReorderSheet';
 import { PromptDialog } from '@features/business/components/PromptDialog';
 import { catalogueApi } from '@api/catalogueApi';
 import { useBusinessCatalogue } from '@features/business/hooks/useBusinessCatalogue';
@@ -897,7 +898,6 @@ function CentralCatalogueRoute() {
   const layout = route.params?.layout ?? 'directory';
   const updateItemStatus = useUpdateCatalogueItemStatus();
   const updateDetails = useUpdateCatalogueItemDetails();
-  const deleteItem = useDeleteCatalogueItem();
   const catalogue = useBusinessCatalogue();
   const [editing, setEditing] = useState<{
     id: string;
@@ -935,19 +935,22 @@ function CentralCatalogueRoute() {
         );
       }}
       onSheetAction={(actionId, itemId) => {
-        if (actionId === 'archive' || actionId === 'pause') {
+        if (actionId === 'delete') {
           updateItemStatus.mutate(
-            { itemId, status: 'inactive' },
+            { itemId, status: 'archived' },
             {
-              onSuccess: () => showSuccess('Item archived.'),
+              onSuccess: () => showSuccess('Item archived. Customers no longer see it.'),
               onError: () => showError('Could not archive the item.'),
             },
           );
-        } else if (actionId === 'delete') {
-          deleteItem.mutate(itemId, {
-            onSuccess: () => showSuccess('Item removed from the catalogue.'),
-            onError: () => showError('Could not remove the item.'),
-          });
+        } else if (actionId === 'archive' || actionId === 'pause') {
+          updateItemStatus.mutate(
+            { itemId, status: 'inactive' },
+            {
+              onSuccess: () => showSuccess('Item paused.'),
+              onError: () => showError('Could not pause the item.'),
+            },
+          );
         } else {
           showError('This item action is not yet available.');
         }
@@ -997,6 +1000,7 @@ function ServicesCategoriesRoute() {
   const updateDetails = useUpdateCatalogueItemDetails();
   const updateCategory = useUpdateCatalogueCategory();
   const deleteCategory = useDeleteCatalogueCategory();
+  const reorderCategories = useReorderCatalogueCategories();
   const services = useBusinessCatalogue({ itemType: 'service' });
   const categories = useCatalogueCategories();
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(
@@ -1007,7 +1011,9 @@ function ServicesCategoriesRoute() {
     name: string;
     price: string;
   } | null>(null);
+  const [reordering, setReordering] = useState(false);
   const serviceItems = services.data?.data ?? [];
+  const categoryItems = (categories.data ?? []).map(c => ({ id: c.id, name: c.name }));
   return (
     <>
     <ServicesCategoriesManagementScreen
@@ -1033,12 +1039,20 @@ function ServicesCategoriesRoute() {
         });
       }}
       onServiceAction={(actionId, serviceId) => {
-        if (actionId === 'archive' || actionId === 'pause') {
+        if (actionId === 'delete') {
           updateItemStatus.mutate(
-            { itemId: serviceId, status: 'inactive' },
+            { itemId: serviceId, status: 'archived' },
             {
               onSuccess: () => showSuccess('Service archived.'),
               onError: () => showError('Could not archive the service.'),
+            },
+          );
+        } else if (actionId === 'archive' || actionId === 'pause') {
+          updateItemStatus.mutate(
+            { itemId: serviceId, status: 'inactive' },
+            {
+              onSuccess: () => showSuccess('Service paused.'),
+              onError: () => showError('Could not pause the service.'),
             },
           );
         } else {
@@ -1059,10 +1073,21 @@ function ServicesCategoriesRoute() {
         });
       }}
       onReorderCategory={() => {
-        showError('Category reordering is not yet available.');
+        setReordering(true);
       }}
       services={serviceItems.map(catalogueItemToServiceRow)}
       categories={(categories.data ?? []).map(catalogueCategoryToRow)}
+    />
+    <CategoryReorderSheet
+      visible={reordering}
+      categories={categoryItems}
+      onClose={() => setReordering(false)}
+      onSubmit={orderedIds =>
+        reorderCategories.mutate(orderedIds, {
+          onSuccess: () => showSuccess('Category order updated.'),
+          onError: () => showError('Could not reorder categories.'),
+        })
+      }
     />
     <PromptDialog
       visible={Boolean(renaming)}
@@ -1137,6 +1162,11 @@ function AddServiceBasicsRoute() {
           deliveryMode: value.delivery,
           highlights: value.highlights,
           audience: value.audience,
+          // Uploaded service media — without these the published item goes
+          // out imageless even though the owner picked photos (the old dead
+          // end: the tiles were demo assets with no picker behind them).
+          mainImage: value.mainImage,
+          galleryImages: value.gallery,
         });
         navigation.navigate('AddServiceDurationPricing');
       }}
@@ -1147,6 +1177,11 @@ function AddServiceBasicsRoute() {
           deliveryMode: value.delivery,
           highlights: value.highlights,
           audience: value.audience,
+          // Uploaded service media — without these the published item goes
+          // out imageless even though the owner picked photos (the old dead
+          // end: the tiles were demo assets with no picker behind them).
+          mainImage: value.mainImage,
+          galleryImages: value.gallery,
         });
         const { service } = useCatalogueDraftStore.getState();
         if (!service.branchIds.length) {
