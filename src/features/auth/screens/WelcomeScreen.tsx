@@ -7,7 +7,6 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { VemtapText } from '@components/ui/Text';
 import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
-import { ProgressDots } from '@components/onboarding/ProgressDots';
 import { colors } from '@theme/colors';
 import type { AuthStackParamList } from '@navigation/types';
 import { strings } from '@constants/strings';
@@ -161,7 +160,7 @@ export function WelcomeScreen() {
             {strings.onboarding.welcomeSubtitle}
           </VemtapText>
 
-          <ProgressDots total={3} activeIndex={0} className="my-5" />
+          <View className="my-8" />
 
           <Button
             label={strings.common.getStarted}
