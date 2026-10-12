@@ -106,11 +106,16 @@ import { useCatalogueDraftStore } from '@store/catalogueDraftStore';
 import {
   useBusinessBranches,
   useCatalogueCategories,
+  useDeleteCatalogueCategory,
+  useDeleteCatalogueItem,
   usePublishCatalogueItem,
   usePublishCatalogueOffer,
+  useUpdateCatalogueCategory,
+  useUpdateCatalogueItemDetails,
   useUpdateCatalogueItemStatus,
   useUpdateOfferStatus,
 } from '@features/business/hooks/useCatalogueMutations';
+import { PromptDialog } from '@features/business/components/PromptDialog';
 import { catalogueApi } from '@api/catalogueApi';
 import { useBusinessCatalogue } from '@features/business/hooks/useBusinessCatalogue';
 import {
@@ -147,6 +152,10 @@ import {
   CreateCustomSegmentScreen,
   SegmentAudienceDetailsScreen,
 } from '@features/business/screens';
+import { AddServiceAvailabilityRulesScreen } from '@features/business/screens/AddServiceAvailabilityRulesScreen';
+import { AddServiceBasicsMediaScreen } from '@features/business/screens/AddServiceBasicsMediaScreen';
+import { AddServiceDurationPricingScreen } from '@features/business/screens/AddServiceDurationPricingScreen';
+import { ReviewServiceSummaryScreen } from '@features/business/screens/ReviewServiceSummaryScreen';
 import { BusinessQrScreen } from '@features/business/screens/BusinessQrScreen';
 import { LocationQrScreen } from '@features/business/screens/LocationQrScreen';
 import { BusinessDiscoveryFeedScreen } from '@features/business/screens/BusinessDiscoveryFeedScreen';
@@ -885,8 +894,17 @@ function CentralCatalogueRoute() {
   const route = useRoute<RouteProp<BusinessTabParamList, 'CentralCatalogue'>>();
   const layout = route.params?.layout ?? 'directory';
   const updateItemStatus = useUpdateCatalogueItemStatus();
+  const updateDetails = useUpdateCatalogueItemDetails();
+  const deleteItem = useDeleteCatalogueItem();
   const catalogue = useBusinessCatalogue();
+  const [editing, setEditing] = useState<{
+    id: string;
+    name: string;
+    price: string;
+  } | null>(null);
+  const items = catalogue.data?.data ?? [];
   return (
+    <>
     <CentralCatalogueScreen
       layout={layout}
       onNotifications={() => undefined}
@@ -895,8 +913,14 @@ function CentralCatalogueRoute() {
       onChangeScope={() => undefined}
       onAddProduct={() => navigation.navigate('AddProductBasicsMedia')}
       onAddService={() => navigation.navigate('ServicesCategories')}
-      onEditItem={() => {
-        showError('Item editing is not yet available from the hub.');
+      onEditItem={itemId => {
+        const item = items.find(candidate => candidate.id === itemId);
+        if (!item) return;
+        setEditing({
+          id: itemId,
+          name: item.name,
+          price: item.price != null ? String(item.price) : '',
+        });
       }}
       onToggleStock={(itemId, value) => {
         updateItemStatus.mutate(
@@ -918,25 +942,76 @@ function CentralCatalogueRoute() {
             },
           );
         } else if (actionId === 'delete') {
-          showError('Item deletion is not yet available.');
+          deleteItem.mutate(itemId, {
+            onSuccess: () => showSuccess('Item removed from the catalogue.'),
+            onError: () => showError('Could not remove the item.'),
+          });
         } else {
           showError('This item action is not yet available.');
         }
       }}
-      items={(catalogue.data?.data ?? []).map(catalogueItemToCentralRow)}
+      items={items.map(catalogueItemToCentralRow)}
     />
+    <PromptDialog
+      visible={Boolean(editing)}
+      title="Edit item"
+      fields={[
+        { key: 'name', label: 'Name', value: editing?.name ?? '' },
+        {
+          key: 'price',
+          label: 'Price (₦)',
+          value: editing?.price ?? '',
+          keyboardType: 'decimal-pad',
+        },
+      ]}
+      confirmLabel="Save"
+      onCancel={() => setEditing(null)}
+      onConfirm={values => {
+        if (!editing) return;
+        const parsedPrice = Number(values.price.replace(/[^\d.]/g, ''));
+        updateDetails.mutate(
+          {
+            itemId: editing.id,
+            name: values.name.trim() || undefined,
+            price: Number.isFinite(parsedPrice) ? parsedPrice : undefined,
+          },
+          {
+            onSuccess: () => {
+              showSuccess('Item updated.');
+              setEditing(null);
+            },
+            onError: () => showError('Could not update the item.'),
+          },
+        );
+      }}
+    />
+    </>
   );
 }
 
 function ServicesCategoriesRoute() {
+  const navigation = useBusinessNavigation();
   const updateItemStatus = useUpdateCatalogueItemStatus();
+  const updateDetails = useUpdateCatalogueItemDetails();
+  const updateCategory = useUpdateCatalogueCategory();
+  const deleteCategory = useDeleteCatalogueCategory();
   const services = useBusinessCatalogue({ itemType: 'service' });
   const categories = useCatalogueCategories();
+  const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(
+    null,
+  );
+  const [editingService, setEditingService] = useState<{
+    id: string;
+    name: string;
+    price: string;
+  } | null>(null);
+  const serviceItems = services.data?.data ?? [];
   return (
+    <>
     <ServicesCategoriesManagementScreen
       onNotifications={() => undefined}
       onAddService={() => {
-        showError('Service creation from the hub is coming soon.');
+        navigation.navigate('AddServiceBasics');
       }}
       onAddCategory={async () => {
         try {
@@ -947,13 +1022,13 @@ function ServicesCategoriesRoute() {
         }
       }}
       onEditService={serviceId => {
-        updateItemStatus.mutate(
-          { itemId: serviceId, status: 'active' },
-          {
-            onSuccess: () => showSuccess('Service updated.'),
-            onError: () => showError('Could not update the service.'),
-          },
-        );
+        const service = serviceItems.find(candidate => candidate.id === serviceId);
+        if (!service) return;
+        setEditingService({
+          id: serviceId,
+          name: service.name,
+          price: service.price != null ? String(service.price) : '',
+        });
       }}
       onServiceAction={(actionId, serviceId) => {
         if (actionId === 'archive' || actionId === 'pause') {
@@ -968,17 +1043,256 @@ function ServicesCategoriesRoute() {
           showError('This service action is not yet available.');
         }
       }}
-      onEditCategory={() => {
-        showError('Category editing is not yet available.');
+      onEditCategory={categoryId => {
+        const category = (categories.data ?? []).find(
+          candidate => candidate.id === categoryId,
+        );
+        if (!category) return;
+        setRenaming({ id: categoryId, name: category.name });
       }}
-      onArchiveCategory={() => {
-        showError('Category archiving is not yet available.');
+      onArchiveCategory={categoryId => {
+        deleteCategory.mutate(categoryId, {
+          onSuccess: () => showSuccess('Category archived.'),
+          onError: () => showError('Could not archive the category.'),
+        });
       }}
       onReorderCategory={() => {
         showError('Category reordering is not yet available.');
       }}
-      services={(services.data?.data ?? []).map(catalogueItemToServiceRow)}
+      services={serviceItems.map(catalogueItemToServiceRow)}
       categories={(categories.data ?? []).map(catalogueCategoryToRow)}
+    />
+    <PromptDialog
+      visible={Boolean(renaming)}
+      title="Rename category"
+      fields={[{ key: 'name', label: 'Name', value: renaming?.name ?? '' }]}
+      confirmLabel="Save"
+      onCancel={() => setRenaming(null)}
+      onConfirm={values => {
+        if (!renaming) return;
+        const name = values.name.trim();
+        if (!name) return;
+        updateCategory.mutate(
+          { categoryId: renaming.id, name },
+          {
+            onSuccess: () => {
+              showSuccess('Category renamed.');
+              setRenaming(null);
+            },
+            onError: () => showError('Could not rename the category.'),
+          },
+        );
+      }}
+    />
+    <PromptDialog
+      visible={Boolean(editingService)}
+      title="Edit service"
+      fields={[
+        { key: 'name', label: 'Name', value: editingService?.name ?? '' },
+        {
+          key: 'price',
+          label: 'Price (₦)',
+          value: editingService?.price ?? '',
+          keyboardType: 'decimal-pad',
+        },
+      ]}
+      confirmLabel="Save"
+      onCancel={() => setEditingService(null)}
+      onConfirm={values => {
+        if (!editingService) return;
+        const parsedPrice = Number(values.price.replace(/[^\d.]/g, ''));
+        updateDetails.mutate(
+          {
+            itemId: editingService.id,
+            name: values.name.trim() || undefined,
+            price: Number.isFinite(parsedPrice) ? parsedPrice : undefined,
+          },
+          {
+            onSuccess: () => {
+              showSuccess('Service updated.');
+              setEditingService(null);
+            },
+            onError: () => showError('Could not update the service.'),
+          },
+        );
+      }}
+    />
+    </>
+  );
+}
+
+function AddServiceBasicsRoute() {
+  const navigation = useBusinessNavigation();
+  const setService = useCatalogueDraftStore(state => state.setService);
+  const publish = usePublishCatalogueItem();
+  return (
+    <AddServiceBasicsMediaScreen
+      onBack={navigation.goBack}
+      onNext={value => {
+        setService({
+          name: value.title,
+          description: value.description,
+          deliveryMode: value.delivery,
+          highlights: value.highlights,
+          audience: value.audience,
+        });
+        navigation.navigate('AddServiceDurationPricing');
+      }}
+      onSaveDraft={value => {
+        setService({
+          name: value.title,
+          description: value.description,
+          deliveryMode: value.delivery,
+          highlights: value.highlights,
+          audience: value.audience,
+        });
+        const { service } = useCatalogueDraftStore.getState();
+        if (!service.branchIds.length) {
+          showError('Select branches first, then save the draft.');
+          return;
+        }
+        publish.mutate(
+          { kind: 'service', status: 'inactive' },
+          {
+            onSuccess: () => {
+              showSuccess('Service saved as draft.');
+              navigation.navigate('ServicesCategories');
+            },
+            onError: error =>
+              showError(
+                error instanceof Error ? error.message : 'Could not save the draft.',
+              ),
+          },
+        );
+      }}
+    />
+  );
+}
+
+function AddServiceDurationPricingRoute() {
+  const navigation = useBusinessNavigation();
+  const setService = useCatalogueDraftStore(state => state.setService);
+  const publish = usePublishCatalogueItem();
+  return (
+    <AddServiceDurationPricingScreen
+      onBack={navigation.goBack}
+      onNext={value => {
+        setService({
+          basePrice: value.basePrice,
+          compareAtPrice: value.compareAtPrice,
+          duration: value.duration,
+          bookingEnabled: value.bookingEnabled,
+        });
+        navigation.navigate('AddServiceAvailabilityRules');
+      }}
+      onSaveDraft={value => {
+        setService({
+          basePrice: value.basePrice,
+          compareAtPrice: value.compareAtPrice,
+          duration: value.duration,
+          bookingEnabled: value.bookingEnabled,
+        });
+        const { service } = useCatalogueDraftStore.getState();
+        if (!service.branchIds.length) {
+          showError('Select branches first, then save the draft.');
+          return;
+        }
+        publish.mutate(
+          { kind: 'service', status: 'inactive' },
+          {
+            onSuccess: () => {
+              showSuccess('Service saved as draft.');
+              navigation.navigate('ServicesCategories');
+            },
+            onError: error =>
+              showError(
+                error instanceof Error ? error.message : 'Could not save the draft.',
+              ),
+          },
+        );
+      }}
+    />
+  );
+}
+
+function AddServiceAvailabilityRulesRoute() {
+  const navigation = useBusinessNavigation();
+  const setService = useCatalogueDraftStore(state => state.setService);
+  const publish = usePublishCatalogueItem();
+  return (
+    <AddServiceAvailabilityRulesScreen
+      onBack={navigation.goBack}
+      onNext={value => {
+        setService({
+          branchIds: value.branchIds,
+          serviceMode: value.serviceMode,
+          isBookable: value.isBookable,
+        });
+        navigation.navigate('ReviewServiceSummary');
+      }}
+      onSaveDraft={value => {
+        setService({
+          branchIds: value.branchIds,
+          serviceMode: value.serviceMode,
+          isBookable: value.isBookable,
+        });
+        const { service } = useCatalogueDraftStore.getState();
+        if (!service.branchIds.length) {
+          showError('Select branches first, then save the draft.');
+          return;
+        }
+        publish.mutate(
+          { kind: 'service', status: 'inactive' },
+          {
+            onSuccess: () => {
+              showSuccess('Service saved as draft.');
+              navigation.navigate('ServicesCategories');
+            },
+            onError: error =>
+              showError(
+                error instanceof Error ? error.message : 'Could not save the draft.',
+              ),
+          },
+        );
+      }}
+    />
+  );
+}
+
+function ReviewServiceSummaryRoute() {
+  const navigation = useBusinessNavigation();
+  const draft = useCatalogueDraftStore(state => state.service);
+  const publish = usePublishCatalogueItem();
+
+  const submit = (status: 'active' | 'inactive') => {
+    publish.mutate(
+      { kind: 'service', status },
+      {
+        onSuccess: () => {
+          showSuccess(
+            status === 'active'
+              ? 'Service published.'
+              : 'Service saved as draft.',
+          );
+          navigation.navigate('ServicesCategories');
+        },
+        onError: error =>
+          showError(
+            error instanceof Error
+              ? error.message
+              : 'Could not publish the service',
+          ),
+      },
+    );
+  };
+
+  return (
+    <ReviewServiceSummaryScreen
+      draft={draft}
+      publishing={publish.isPending}
+      onBack={navigation.goBack}
+      onPublish={() => submit('active')}
+      onSaveDraft={() => submit('inactive')}
     />
   );
 }
@@ -3179,6 +3493,19 @@ function BusinessHubTabNavigator() {
       <HubStack.Screen
         name="AddProductBasicsMedia"
         component={AddProductBasicsMediaRoute}
+      />
+      <HubStack.Screen name="AddServiceBasics" component={AddServiceBasicsRoute} />
+      <HubStack.Screen
+        name="AddServiceDurationPricing"
+        component={AddServiceDurationPricingRoute}
+      />
+      <HubStack.Screen
+        name="AddServiceAvailabilityRules"
+        component={AddServiceAvailabilityRulesRoute}
+      />
+      <HubStack.Screen
+        name="ReviewServiceSummary"
+        component={ReviewServiceSummaryRoute}
       />
       <HubStack.Screen name="LocationsBranches" component={LocationsBranchesRoute} />
       <HubStack.Screen name="WuseBranchDetails" component={WuseBranchDetailsRoute} />

@@ -92,6 +92,11 @@ export type BusinessStackParamList = {
   BusinessHubCatalogue: { layout?: 'businessHub' } | undefined;
   ServicesCategories: undefined;
   AddProductBasicsMedia: undefined;
+  /** Hub-side service wizard — mirrors the setup stack's service steps. */
+  AddServiceBasics: undefined;
+  AddServiceDurationPricing: undefined;
+  AddServiceAvailabilityRules: undefined;
+  ReviewServiceSummary: undefined;
   LocationsBranches: undefined;
   WuseBranchDetails: undefined;
   CustomerCrmDirectory: undefined;

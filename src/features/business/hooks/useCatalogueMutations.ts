@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { catalogueApi } from '@api/catalogueApi';
 import type {
   BusinessCatalogueItem,
@@ -60,9 +60,11 @@ export function usePublishCatalogueItem() {
           : serviceDraftToCreateInput(state.service, primaryBranchId);
 
       let created = await catalogueApi.createCatalogueItem(input);
-      for (const targetBranchId of remainingBranchIds) {
-        await catalogueApi.importItemToBranch(created.id, targetBranchId);
-      }
+      await Promise.all(
+        remainingBranchIds.map(targetBranchId =>
+          catalogueApi.importItemToBranch(created.id, targetBranchId),
+        ),
+      );
       if (status === 'inactive') {
         created = await catalogueApi.updateCatalogueItem(created.id, {
           status: 'inactive',
@@ -88,6 +90,74 @@ export function useUpdateCatalogueItemStatus() {
       status: 'active' | 'inactive';
     }): Promise<BusinessCatalogueItem> =>
       catalogueApi.updateCatalogueItem(itemId, { status }),
+  });
+}
+
+/**
+ * Quick edit from the hub: patches the fields an owner actually tweaks from a
+ * list (name/price) and refreshes every catalogue list that showed the row.
+ */
+export function useUpdateCatalogueItemDetails() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      itemId,
+      name,
+      price,
+    }: {
+      itemId: string;
+      name?: string;
+      price?: number;
+    }): Promise<BusinessCatalogueItem> =>
+      catalogueApi.updateCatalogueItem(itemId, { name, price }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ['catalogue', 'business'] }),
+  });
+}
+
+/** Hub delete action: the item is removed everywhere, not just one branch. */
+export function useDeleteCatalogueItem() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (itemId: string): Promise<{ id: string }> =>
+      catalogueApi.deleteCatalogueItem(itemId),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ['catalogue', 'business'] }),
+  });
+}
+
+/** Rename from the services/categories hub. */
+export function useUpdateCatalogueCategory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      categoryId,
+      name,
+    }: {
+      categoryId: string;
+      name: string;
+    }): Promise<CatalogueCategory> =>
+      catalogueApi.updateCatalogueCategory(categoryId, name),
+    onSuccess: () =>
+      queryClient.invalidateQueries({
+        queryKey: ['business-catalogue-categories'],
+      }),
+  });
+}
+
+/**
+ * Archive a category: the backend detaches it from every item, then removes
+ * the row, so products survive with no category.
+ */
+export function useDeleteCatalogueCategory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (categoryId: string): Promise<{ id: string }> =>
+      catalogueApi.deleteCatalogueCategory(categoryId),
+    onSuccess: () =>
+      queryClient.invalidateQueries({
+        queryKey: ['business-catalogue-categories'],
+      }),
   });
 }
 

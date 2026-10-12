@@ -42,7 +42,7 @@ describe('central catalogue screen — item actions', () => {
     await fireEvent.press(menus[0]);
 
     const edit = screen.getAllByText(/edit/i).find(el => {
-      const parent = el.parent;
+      const {parent} = el;
       return parent?.props?.accessibilityRole === 'menuitem';
     });
     if (edit) {
@@ -52,6 +52,19 @@ describe('central catalogue screen — item actions', () => {
     }
 
     expect(onEditItem).toHaveBeenCalledWith(expect.any(String));
+  });
+
+  test('sheet archive action fires onSheetAction with delete and item id', async () => {
+    const onSheetAction = jest.fn();
+    await render(
+      <CentralCatalogueScreen layout="directory" onSheetAction={onSheetAction} />,
+    );
+
+    const menus = screen.getAllByLabelText(/options/i);
+    await fireEvent.press(menus[0]);
+
+    await fireEvent.press(screen.getByText('Archive from Catalogue'));
+    expect(onSheetAction).toHaveBeenCalledWith('delete', expect.any(String));
   });
 });
 
@@ -95,6 +108,40 @@ describe('services categories screen — actions', () => {
 
     expect(onEditService).toBeDefined();
     expect(onServiceAction).toBeDefined();
+  });
+
+  test('add service fires', async () => {
+    const onAddService = jest.fn();
+    await render(
+      <ServicesCategoriesManagementScreen onAddService={onAddService} />,
+    );
+
+    await fireEvent.press(screen.getByText('Add Service'));
+    expect(onAddService).toHaveBeenCalledTimes(1);
+  });
+
+  test('category edit fires with category id', async () => {
+    const onEditCategory = jest.fn();
+    await render(
+      <ServicesCategoriesManagementScreen onEditCategory={onEditCategory} />,
+    );
+
+    const editButtons = screen.getAllByLabelText(/^Edit /);
+    await fireEvent.press(editButtons[0]);
+    expect(onEditCategory).toHaveBeenCalledWith(expect.any(String));
+  });
+
+  test('category archive fires with category id', async () => {
+    const onArchiveCategory = jest.fn();
+    await render(
+      <ServicesCategoriesManagementScreen
+        onArchiveCategory={onArchiveCategory}
+      />,
+    );
+
+    const archiveButtons = screen.getAllByLabelText(/^Archive /);
+    await fireEvent.press(archiveButtons[0]);
+    expect(onArchiveCategory).toHaveBeenCalledWith(expect.any(String));
   });
 });
 

@@ -548,6 +548,60 @@ export const catalogueApi = {
     );
   },
 
+  /**
+   * Removes an item everywhere (`DELETE /catalogue/items/:id?applyGlobally=true`).
+   * The backend requires either `branchId` or `applyGlobally`; the hub's delete
+   * action means "gone", not "unlinked from one branch".
+   */
+  async deleteCatalogueItem(
+    itemId: string,
+    options: ApiRequestOptions = {},
+  ): Promise<{ id: string }> {
+    return requestValidated<{ id: string }>(
+      {
+        method: 'DELETE',
+        url: `/catalogue/items/${itemId}?applyGlobally=true`,
+        ...options,
+      },
+      z.looseObject({ id: z.string() }),
+    );
+  },
+
+  async updateCatalogueCategory(
+    categoryId: string,
+    name: string,
+    options: ApiRequestOptions = {},
+  ): Promise<CatalogueCategory> {
+    return requestValidated<CatalogueCategory>(
+      {
+        method: 'PATCH',
+        url: `/catalogue/categories/${categoryId}`,
+        data: { name },
+        ...options,
+      },
+      catalogueCategorySchema,
+    );
+  },
+
+  /**
+   * Deletes a category (`DELETE /catalogue/categories/:id`). The backend
+   * detaches the category from its items first, so the row can go even while
+   * products still reference it.
+   */
+  async deleteCatalogueCategory(
+    categoryId: string,
+    options: ApiRequestOptions = {},
+  ): Promise<{ id: string }> {
+    return requestValidated<{ id: string }>(
+      {
+        method: 'DELETE',
+        url: `/catalogue/categories/${categoryId}`,
+        ...options,
+      },
+      z.looseObject({ id: z.string() }),
+    );
+  },
+
   /** Creates a deal. The service requires `itemIds` or a `sourceProductId`. */
   async createCatalogueOffer(
     input: CreateCatalogueOfferInput,
