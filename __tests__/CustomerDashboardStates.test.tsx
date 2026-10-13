@@ -31,8 +31,8 @@ jest.mock('@features/myDeals/hooks/useMyClaims', () => ({
   useActiveClaimsCount: () => mockActiveClaimsCount(),
 }));
 
-jest.mock('@features/business/hooks/useBusinessDashboardData', () => ({
-  ...jest.requireActual('@features/business/hooks/useBusinessDashboardData'),
+jest.mock('@features/accountHub/hooks/useNotifications', () => ({
+  ...jest.requireActual('@features/accountHub/hooks/useNotifications'),
   useUnreadNotificationsCount: () => mockUnread(),
 }));
 

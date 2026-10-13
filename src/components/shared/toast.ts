@@ -27,10 +27,22 @@ const VISIBILITY_MS = 3_000;
 const BOTTOM_OFFSET = 96;
 const KEYBOARD_OFFSET = 16;
 
+/**
+ * Clear of the status bar / dynamic island, for the toasts that drop in from
+ * the top edge (notification banners).
+ */
+const TOP_OFFSET = 64;
+
 export interface ShowToastOptions {
   kind?: ToastKind;
   /** Overrides the default 3s for messages that need longer to read. */
   visibilityTime?: number;
+  /**
+   * `'top'` drops the toast in from the top edge — the shape a notification
+   * banner wants. The default `'bottom'` keeps confirmations near the action
+   * that raised them.
+   */
+  position?: 'top' | 'bottom';
 }
 
 /**
@@ -48,15 +60,22 @@ const toneFor = (kind: ToastKind) => {
   }
 };
 
-export function showToast(message: string, kind: ToastKind = 'info'): void {
+export function showToast(
+  message: string,
+  kind: ToastKind = 'info',
+  options: ShowToastOptions = {},
+): void {
+  const { position = 'bottom', visibilityTime = VISIBILITY_MS } = options;
   const { backgroundColor, textColor } = toneFor(kind);
   Toast.show({
     type: kind,
     text1: message,
-    position: 'bottom',
-    visibilityTime: VISIBILITY_MS,
-    bottomOffset: BOTTOM_OFFSET,
-    keyboardOffset: KEYBOARD_OFFSET,
+    position,
+    visibilityTime,
+    // The library reads the offset for whichever edge the toast is anchored to.
+    ...(position === 'top'
+      ? { topOffset: TOP_OFFSET }
+      : { bottomOffset: BOTTOM_OFFSET, keyboardOffset: KEYBOARD_OFFSET }),
     props: { backgroundColor, textColor },
   });
 }
@@ -69,8 +88,8 @@ export function showError(message: string): void {
   showToast(message, 'error');
 }
 
-export function showInfo(message: string): void {
-  showToast(message, 'info');
+export function showInfo(message: string, options: ShowToastOptions = {}): void {
+  showToast(message, 'info', options);
 }
 
 /** Dismiss early — e.g. when navigating away from whatever raised it. */

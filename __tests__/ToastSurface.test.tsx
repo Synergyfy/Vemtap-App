@@ -1,5 +1,11 @@
 import Toast from 'react-native-toast-message';
-import { showToast, showError, showSuccess, hideToast } from '@components/shared/toast';
+import {
+  showToast,
+  showError,
+  showSuccess,
+  showInfo,
+  hideToast,
+} from '@components/shared/toast';
 import { colors } from '@theme/colors';
 
 jest.mock('react-native-toast-message', () => ({
@@ -28,6 +34,23 @@ test('passes the duration and position the app expects', () => {
       visibilityTime: 3_000,
     }),
   );
+});
+
+test('notification banners drop in from the top, not the bottom', () => {
+  showInfo('New message from Owo Cafe', { position: 'top' });
+
+  const call = show.mock.calls[0]?.[0] as Record<string, unknown>;
+  expect(call).toEqual(
+    expect.objectContaining({
+      text1: 'New message from Owo Cafe',
+      position: 'top',
+      topOffset: expect.any(Number),
+    }),
+  );
+  // A top-anchored toast must not also carry the bottom/keyboard offsets —
+  // the library reads the offset for the edge the toast is anchored to.
+  expect(call).not.toHaveProperty('bottomOffset');
+  expect(call).not.toHaveProperty('keyboardOffset');
 });
 
 test('keeps the app tone for each kind', () => {

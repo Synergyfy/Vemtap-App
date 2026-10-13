@@ -86,9 +86,9 @@ export function useNotificationsRealtime(enabled = true): void {
     const handleCreated = (payload: CreatedPayload) => {
       const notification = payload?.notification;
       if (notification?.title) {
-        // The banner the OS would have shown if the app were closed. Reuses the
-        // shared toast so it matches every other in-app message.
-        showInfo(notification.title);
+        // The banner the OS would have shown if the app were closed — dropped
+        // in from the top edge so it reads as a banner, not a confirmation.
+        showInfo(notification.title, { position: 'top' });
       }
       invalidatePersonal();
     };
