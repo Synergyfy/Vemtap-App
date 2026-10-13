@@ -135,6 +135,7 @@ describe('business shell cross-stack navigation', () => {
 
   it('clears the session when the More hub signs the owner out', async () => {
     const owner = userSchema.parse({
+      id: '33333333-3333-4333-8333-333333333333',
       email: 'ada.okon@example.com',
       firstName: 'Ada',
       lastName: 'Okon',

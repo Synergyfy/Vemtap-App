@@ -284,7 +284,7 @@ export function IdVerificationScreen({
         </View>
         <View className="flex-row gap-2">
           <Button
-            label="Upload Document (PDF)"
+            label={copy.uploadAction}
             labelVariant="labelSm"
             variant="outline"
             size="sm"

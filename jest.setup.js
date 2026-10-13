@@ -322,6 +322,24 @@ jest.mock('expo-image-picker', () => ({
   },
 }));
 
+jest.mock('expo-document-picker', () => ({
+  getDocumentAsync: jest.fn(async () => ({
+    canceled: false,
+    assets: [{ uri: 'file:///tmp/nin_slip_scan.jpg', name: 'nin_slip_scan.jpg' }],
+  })),
+  releaseSecureAccess: jest.fn(async () => undefined),
+  pick: jest.fn(async () => ({
+    canceled: false,
+    assets: [{ uri: 'file:///tmp/nin_slip_scan.jpg', name: 'nin_slip_scan.jpg' }],
+  })),
+  types: {
+    pdf: 'application/pdf',
+    images: 'image/*',
+    all: '*/*',
+  },
+  allowsMultipleSelection: false,
+}));
+
 jest.mock('expo-location', () => ({
   requestForegroundPermissionsAsync: jest.fn(async () => ({
     status: 'granted',
