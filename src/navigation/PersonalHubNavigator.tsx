@@ -2,11 +2,11 @@ import React, { useEffect } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import {
-  useNavigation,
   useRoute,
   type CompositeNavigationProp,
   type RouteProp,
 } from '@react-navigation/native';
+import { useOptionalNavigation } from '@navigation/useOptionalNavigation';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { PersonalHubTabBar } from '@features/accountHub/components/PersonalHubTabBar';
@@ -52,7 +52,7 @@ type HubNavigation = CompositeNavigationProp<
 
 /** The overview is the personal hub's Home tab, so its actions stay in-shell. */
 function PersonalHomeRoute() {
-  const navigation = useNavigation<HubNavigation>();
+  const navigation = useOptionalNavigation<HubNavigation>();
   const route = useRoute<RouteProp<PersonalHubParamList, 'PersonalHome'>>();
   const deepLink = route.params?.deepLink;
 
@@ -88,7 +88,7 @@ function PersonalHomeRoute() {
 }
 
 function PersonalMyDealsRoute() {
-  const navigation = useNavigation<HubNavigation>();
+  const navigation = useOptionalNavigation<HubNavigation>();
   return (
     <MyDealsHubScreen
       onAccount={() => navigation.navigate('PersonalMore')}
@@ -98,7 +98,7 @@ function PersonalMyDealsRoute() {
 }
 
 function PersonalMessagesRoute() {
-  const navigation = useNavigation<HubNavigation>();
+  const navigation = useOptionalNavigation<HubNavigation>();
   return (
     <MessagesScreen
       onBack={navigation.goBack}
@@ -110,12 +110,12 @@ function PersonalMessagesRoute() {
 }
 
 function PersonalConversationRoute() {
-  const navigation = useNavigation<HubNavigation>();
+  const navigation = useOptionalNavigation<HubNavigation>();
   return <UrbanConversationScreen onBack={navigation.goBack} />;
 }
 
 function PersonalOrdersRoute() {
-  const navigation = useNavigation<HubNavigation>();
+  const navigation = useOptionalNavigation<HubNavigation>();
   return (
     <OrdersBookingsHubScreen
       onBack={navigation.goBack}
@@ -130,17 +130,17 @@ function PersonalOrdersRoute() {
 }
 
 function PersonalOrderDetailRoute() {
-  const navigation = useNavigation<HubNavigation>();
+  const navigation = useOptionalNavigation<HubNavigation>();
   return <UrbanOrderDetailScreen onBack={navigation.goBack} />;
 }
 
 function PersonalBookingDetailRoute() {
-  const navigation = useNavigation<HubNavigation>();
+  const navigation = useOptionalNavigation<HubNavigation>();
   return <BookingDetailScreen onBack={navigation.goBack} />;
 }
 
 function PersonalMoreRoute() {
-  const navigation = useNavigation<HubNavigation>();
+  const navigation = useOptionalNavigation<HubNavigation>();
   return (
     <MoreHubScreen
       onBack={navigation.goBack}
@@ -159,7 +159,7 @@ function PersonalMoreRoute() {
 }
 
 function PersonalRewardsRoute() {
-  const navigation = useNavigation<HubNavigation>();
+  const navigation = useOptionalNavigation<HubNavigation>();
   // Rewards is a dense hub: keep the same density it has in the Account stack.
   return (
     <TypeDensityProvider density="dense">
@@ -169,37 +169,37 @@ function PersonalRewardsRoute() {
 }
 
 function PersonalActivityRoute() {
-  const navigation = useNavigation<HubNavigation>();
+  const navigation = useOptionalNavigation<HubNavigation>();
   return <MyActivityScreen onBack={navigation.goBack} />;
 }
 
 function PersonalSavingsRoute() {
-  const navigation = useNavigation<HubNavigation>();
+  const navigation = useOptionalNavigation<HubNavigation>();
   return <SavingsHistoryScreen onBack={navigation.goBack} />;
 }
 
 function PersonalNotificationsRoute() {
-  const navigation = useNavigation<HubNavigation>();
+  const navigation = useOptionalNavigation<HubNavigation>();
   return <NotificationsCenterScreen onBack={navigation.goBack} />;
 }
 
 function PersonalSettingsRoute() {
-  const navigation = useNavigation<HubNavigation>();
+  const navigation = useOptionalNavigation<HubNavigation>();
   return <AccountSettingsSecurityScreen onBack={navigation.goBack} />;
 }
 
 function PersonalEditProfileRoute() {
-  const navigation = useNavigation<HubNavigation>();
+  const navigation = useOptionalNavigation<HubNavigation>();
   return <EditProfileScreen onBack={navigation.goBack} />;
 }
 
 function PersonalHelpCentreRoute() {
-  const navigation = useNavigation<HubNavigation>();
+  const navigation = useOptionalNavigation<HubNavigation>();
   return <HelpCentreScreen onBack={navigation.goBack} />;
 }
 
 function PersonalClaimedDealPassRoute() {
-  const navigation = useNavigation<HubNavigation>();
+  const navigation = useOptionalNavigation<HubNavigation>();
   return <ClaimedDealDetailPassScreen onBack={navigation.goBack} />;
 }
 

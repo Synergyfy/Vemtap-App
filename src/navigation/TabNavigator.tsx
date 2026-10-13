@@ -4,11 +4,11 @@ import {
   type BottomTabNavigationProp,
 } from '@react-navigation/bottom-tabs';
 import {
-  useNavigation,
   useRoute,
   type CompositeNavigationProp,
   type RouteProp,
 } from '@react-navigation/native';
+import { useOptionalNavigation } from '@navigation/useOptionalNavigation';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -73,7 +73,7 @@ type DealsTabNavigation = BottomTabNavigationProp<MainTabParamList> &
   NativeStackNavigationProp<RootStackParamList>;
 
 function DealsTabScreen() {
-  const navigation = useNavigation<DealsTabNavigation>();
+  const navigation = useOptionalNavigation<DealsTabNavigation>();
   const onOpenFilters = useMemo(
     () => () => navigation.navigate('DealFilters'),
     [navigation],
@@ -125,7 +125,7 @@ type HomeStackNavigation = CompositeNavigationProp<
 >;
 
 function HomeFeedScreen() {
-  const navigation = useNavigation<HomeStackNavigation>();
+  const navigation = useOptionalNavigation<HomeStackNavigation>();
   // The store is the single source for the district/radius both consumer
   // navbars read, so the selection page only has to write to it.
   const area = useLocationStore(state => state.area);
@@ -187,7 +187,7 @@ function HomeFeedScreen() {
 }
 
 function HomeFeaturedDealsScreen() {
-  const navigation = useNavigation<HomeStackNavigation>();
+  const navigation = useOptionalNavigation<HomeStackNavigation>();
   const onOpenDeal = useMemo(
     () => (dealId: string) => navigation.navigate('DealDetail', { dealId }),
     [navigation],
@@ -212,7 +212,7 @@ function HomeFeaturedDealsScreen() {
 }
 
 function HomeDealsDiscoveryScreen() {
-  const navigation = useNavigation<HomeStackNavigation>();
+  const navigation = useOptionalNavigation<HomeStackNavigation>();
   const onOpenFilters = useMemo(
     () => () => navigation.navigate('DealFilters'),
     [navigation],
@@ -271,7 +271,7 @@ type DiscoverStackNavigation = CompositeNavigationProp<
 >;
 
 function DiscoverHomeScreen() {
-  const navigation = useNavigation<DiscoverStackNavigation>();
+  const navigation = useOptionalNavigation<DiscoverStackNavigation>();
   const onOpenBusiness = useMemo(
     () => (businessId: string) => {
       const business = businesses.find(item => item.id === businessId);
@@ -310,7 +310,7 @@ function DiscoverHomeScreen() {
 }
 
 function BusinessProfileTabScreen() {
-  const navigation = useNavigation<DiscoverStackNavigation>();
+  const navigation = useOptionalNavigation<DiscoverStackNavigation>();
   const route = useRoute<RouteProp<DiscoverStackParamList, 'BusinessProfile'>>();
   return (
     <BusinessProfileScreen business={route.params.business} onBack={navigation.goBack} />
@@ -318,7 +318,7 @@ function BusinessProfileTabScreen() {
 }
 
 function UrbanGrillProfileTabScreen() {
-  const navigation = useNavigation<DiscoverStackNavigation>();
+  const navigation = useOptionalNavigation<DiscoverStackNavigation>();
   return (
     <UrbanGrillProfileScreen
       onBack={navigation.goBack}
@@ -333,7 +333,7 @@ function UrbanGrillProfileTabScreen() {
 }
 
 function UrbanGrillCatalogueTabScreen() {
-  const navigation = useNavigation<DiscoverStackNavigation>();
+  const navigation = useOptionalNavigation<DiscoverStackNavigation>();
   return (
     <UrbanGrillProductsCatalogueScreen
       onBack={navigation.goBack}
@@ -356,7 +356,7 @@ function UrbanGrillCatalogueTabScreen() {
 }
 
 function UrbanGrillMenuTabScreen() {
-  const navigation = useNavigation<DiscoverStackNavigation>();
+  const navigation = useOptionalNavigation<DiscoverStackNavigation>();
   return (
     <UrbanGrillMenuScreen
       onBack={navigation.goBack}
@@ -366,7 +366,7 @@ function UrbanGrillMenuTabScreen() {
 }
 
 function UrbanGrillDealsTabScreen() {
-  const navigation = useNavigation<DiscoverStackNavigation>();
+  const navigation = useOptionalNavigation<DiscoverStackNavigation>();
   return (
     <UrbanGrillAllDealsScreen
       onBack={navigation.goBack}
@@ -378,7 +378,7 @@ function UrbanGrillDealsTabScreen() {
 }
 
 function GlowSerenityProfileTabScreen() {
-  const navigation = useNavigation<DiscoverStackNavigation>();
+  const navigation = useOptionalNavigation<DiscoverStackNavigation>();
   return (
     <GlowSerenityProfileScreen
       onBack={navigation.goBack}
@@ -389,7 +389,7 @@ function GlowSerenityProfileTabScreen() {
 }
 
 function GlowSerenityServicesTabScreen() {
-  const navigation = useNavigation<DiscoverStackNavigation>();
+  const navigation = useOptionalNavigation<DiscoverStackNavigation>();
   return (
     <GlowSerenityServicesScreen
       onBack={navigation.goBack}
@@ -434,7 +434,7 @@ type SavedTabNavigation = BottomTabNavigationProp<MainTabParamList> &
   NativeStackNavigationProp<RootStackParamList>;
 
 function SavedTabScreen() {
-  const navigation = useNavigation<SavedTabNavigation>();
+  const navigation = useOptionalNavigation<SavedTabNavigation>();
   const onOpenDeal = useCallback(
     (dealId: string) => navigation.navigate('DealDetail', { dealId }),
     [navigation],
@@ -502,7 +502,7 @@ const signOut = () => {
  * under the consumer nav when opened from Account.
  */
 function usePersonalFlowHandoff() {
-  const navigation = useNavigation<AccountStackNavigation>();
+  const navigation = useOptionalNavigation<AccountStackNavigation>();
   return useMemo(
     () => ({
       myDeals: () => navigation.navigate('PersonalHub', { screen: 'PersonalMyDeals' }),
@@ -524,7 +524,7 @@ function usePersonalFlowHandoff() {
 }
 
 function AccountHomeRoute() {
-  const navigation = useNavigation<AccountStackNavigation>();
+  const navigation = useOptionalNavigation<AccountStackNavigation>();
   const personal = usePersonalFlowHandoff();
   return (
     <AccountHomeScreen
@@ -548,7 +548,7 @@ function AccountHomeRoute() {
 }
 
 function AccountDashboardRoute() {
-  const navigation = useNavigation<AccountStackNavigation>();
+  const navigation = useOptionalNavigation<AccountStackNavigation>();
   const openDeal = useCallback(
     (id: string) => {
       if (id === 'my-deals') {
@@ -590,7 +590,7 @@ function AccountDashboardRoute() {
 }
 
 function MyDealsRoute() {
-  const navigation = useNavigation<AccountStackNavigation>();
+  const navigation = useOptionalNavigation<AccountStackNavigation>();
   return (
     <MyDealsHubScreen
       onAccount={() => navigation.navigate('More')}
@@ -600,7 +600,7 @@ function MyDealsRoute() {
 }
 
 function OrdersBookingsRoute() {
-  const navigation = useNavigation<AccountStackNavigation>();
+  const navigation = useOptionalNavigation<AccountStackNavigation>();
   return (
     <OrdersBookingsHubScreen
       onBack={navigation.goBack}
@@ -616,7 +616,7 @@ function OrdersBookingsRoute() {
 }
 
 function MessagesRoute() {
-  const navigation = useNavigation<AccountStackNavigation>();
+  const navigation = useOptionalNavigation<AccountStackNavigation>();
   return (
     <MessagesScreen
       onBack={navigation.goBack}
@@ -626,7 +626,7 @@ function MessagesRoute() {
 }
 
 function MoreRoute() {
-  const navigation = useNavigation<AccountStackNavigation>();
+  const navigation = useOptionalNavigation<AccountStackNavigation>();
   const personal = usePersonalFlowHandoff();
   return (
     <MoreHubScreen
@@ -646,7 +646,7 @@ function MoreRoute() {
 }
 
 function HelpCentreRoute() {
-  const navigation = useNavigation<AccountStackNavigation>();
+  const navigation = useOptionalNavigation<AccountStackNavigation>();
   return (
     <HelpCentreScreen
       onBack={() => navigation.goBack()}
@@ -657,7 +657,7 @@ function HelpCentreRoute() {
 }
 
 function ActivityRoute() {
-  const navigation = useNavigation<AccountStackNavigation>();
+  const navigation = useOptionalNavigation<AccountStackNavigation>();
   return (
     <MyActivityScreen
       onBack={() => navigation.goBack()}
@@ -668,7 +668,7 @@ function ActivityRoute() {
 }
 
 function RewardsRoute() {
-  const navigation = useNavigation<AccountStackNavigation>();
+  const navigation = useOptionalNavigation<AccountStackNavigation>();
   return (
     <TypeDensityProvider density="dense">
       <RewardsScreen onBack={() => navigation.goBack()} />
@@ -677,12 +677,12 @@ function RewardsRoute() {
 }
 
 function SavingsHistoryRoute() {
-  const navigation = useNavigation<AccountStackNavigation>();
+  const navigation = useOptionalNavigation<AccountStackNavigation>();
   return <SavingsHistoryScreen onBack={() => navigation.goBack()} />;
 }
 
 function AccountSettingsRoute() {
-  const navigation = useNavigation<AccountStackNavigation>();
+  const navigation = useOptionalNavigation<AccountStackNavigation>();
   return (
     <AccountSettingsSecurityScreen
       onBack={() => navigation.goBack()}
@@ -692,7 +692,7 @@ function AccountSettingsRoute() {
 }
 
 function EditProfileRoute() {
-  const navigation = useNavigation<AccountStackNavigation>();
+  const navigation = useOptionalNavigation<AccountStackNavigation>();
   return (
     <EditProfileScreen
       onBack={() => navigation.goBack()}
@@ -703,7 +703,7 @@ function EditProfileRoute() {
 }
 
 function ClaimedDealPassRoute() {
-  const navigation = useNavigation<AccountStackNavigation>();
+  const navigation = useOptionalNavigation<AccountStackNavigation>();
   return (
     <ClaimedDealDetailPassScreen
       onBack={() => navigation.goBack()}
@@ -713,7 +713,7 @@ function ClaimedDealPassRoute() {
 }
 
 function OrderDetailRoute() {
-  const navigation = useNavigation<AccountStackNavigation>();
+  const navigation = useOptionalNavigation<AccountStackNavigation>();
   return (
     <UrbanOrderDetailScreen
       onBack={() => navigation.goBack()}
@@ -723,7 +723,7 @@ function OrderDetailRoute() {
 }
 
 function BookingDetailRoute() {
-  const navigation = useNavigation<AccountStackNavigation>();
+  const navigation = useOptionalNavigation<AccountStackNavigation>();
   return (
     <BookingDetailScreen
       onBack={() => navigation.goBack()}
@@ -733,7 +733,7 @@ function BookingDetailRoute() {
 }
 
 function ConversationRoute() {
-  const navigation = useNavigation<AccountStackNavigation>();
+  const navigation = useOptionalNavigation<AccountStackNavigation>();
   return (
     <UrbanConversationScreen
       onBack={() => navigation.goBack()}
