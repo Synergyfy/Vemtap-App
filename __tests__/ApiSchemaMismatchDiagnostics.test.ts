@@ -16,9 +16,16 @@ jest.mock('axios', () => {
       response: { use: jest.fn() },
     },
   };
-  const create = jest.fn(() => instance);
-  create.isAxiosError = jest.fn(() => false);
-  create.AxiosError = class extends Error {};
+  // Built as an object literal rather than by assigning onto `jest.fn()`: the
+  // mock's inferred type is narrower than the axios surface, so the two
+  // statics below would not type-check as properties of it.
+  const create = Object.assign(
+    jest.fn(() => instance),
+    {
+      isAxiosError: jest.fn(() => false),
+      AxiosError: class extends Error {},
+    },
+  );
   return { __esModule: true, default: { create }, isAxiosError: () => false };
 });
 
@@ -53,7 +60,10 @@ describe('requestValidated diagnostics', () => {
     mockRequest.mockResolvedValue({ data: 5 });
 
     await expect(
-      requestValidated({ method: 'GET', url: '/notifications/unread-count' }, failingSchema),
+      requestValidated(
+        { method: 'GET', url: '/notifications/unread-count' },
+        failingSchema,
+      ),
     ).rejects.toMatchObject({
       code: 'SCHEMA_MISMATCH',
       details: expect.objectContaining({
@@ -67,7 +77,10 @@ describe('requestValidated diagnostics', () => {
     mockRequest.mockResolvedValue({ data: 5 });
 
     await expect(
-      requestValidated({ method: 'GET', url: '/notifications/unread-count' }, failingSchema),
+      requestValidated(
+        { method: 'GET', url: '/notifications/unread-count' },
+        failingSchema,
+      ),
     ).rejects.toBeInstanceOf(ApiError);
 
     const [scope, message, payload] = (logger.error as jest.Mock).mock.calls[0];
@@ -87,7 +100,9 @@ describe('requestValidated diagnostics', () => {
   it('defaults a missing method to GET rather than logging "undefined"', async () => {
     mockRequest.mockResolvedValue({ data: 5 });
 
-    await expect(requestValidated({ url: '/notifications' }, failingSchema)).rejects.toMatchObject({
+    await expect(
+      requestValidated({ url: '/notifications' }, failingSchema),
+    ).rejects.toMatchObject({
       details: expect.objectContaining({ method: 'GET', url: '/notifications' }),
     });
   });
@@ -99,7 +114,10 @@ describe('requestValidated diagnostics', () => {
     } as never;
 
     await expect(
-      requestValidated({ method: 'GET', url: '/notifications/unread-count' }, passingSchema),
+      requestValidated(
+        { method: 'GET', url: '/notifications/unread-count' },
+        passingSchema,
+      ),
     ).resolves.toBe(42);
     expect(logger.error).not.toHaveBeenCalled();
   });

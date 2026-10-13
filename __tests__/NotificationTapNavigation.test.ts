@@ -28,7 +28,10 @@ jest.mock('@navigation/navigationRef', () => ({
   },
 }));
 
-const authState = { status: 'authenticated', activeMode: 'customer' as const };
+const authState: { status: string; activeMode: 'customer' | 'business' } = {
+  status: 'authenticated',
+  activeMode: 'customer',
+};
 
 jest.mock('@store/authStore', () => ({
   useAuthStore: { getState: () => authState },
