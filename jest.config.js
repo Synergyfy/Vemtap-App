@@ -22,10 +22,10 @@ module.exports = {
   // Several suites mount a whole tab navigator (customer dashboard + business
   // tabs), each of which now issues its own live queries. That legitimately
   // takes tens of seconds, and while anything else competes for CPU (a dev
-  // server, Metro) a tight cap turns a slow parallel run into a spurious
-  // timeout failure. 60s keeps the timeout a real deadlock guard rather than a
-  // performance assertion.
-  testTimeout: 60000,
+  // server, Metro, another test run) a tight cap turns a slow parallel run into
+  // a spurious timeout failure. 180s keeps the timeout a real deadlock guard
+  // rather than a performance assertion.
+  testTimeout: 180000,
   // Jest's default matches everything under __tests__, so shared helpers and
   // fixtures would be collected as empty suites.
   testPathIgnorePatterns: [

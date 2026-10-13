@@ -20,7 +20,7 @@
     "ios:env": "expo run:ios --environment development",
     "android:env": "expo run:android --environment development",
     "doctor": "npx expo-doctor",
-    "verify": "npm run typecheck && npm run lint && npm run test",
+    "verify": "npm run typecheck && npm run lint && npm run test -- --maxWorkers=2",
     "postinstall": "patch-package",
     "prepare": "husky || true"
   },
