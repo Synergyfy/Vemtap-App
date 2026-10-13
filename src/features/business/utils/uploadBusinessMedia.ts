@@ -17,6 +17,12 @@ export interface BrandingMediaUploads {
   logoUrl?: string;
   coverImage?: string;
   gallery?: string[];
+  /**
+   * Picked files that failed to upload. Best-effort still returns whatever
+   * made it, but the caller must tell the user what is missing — a silent
+   * drop left owners believing a logo was saved when it was not.
+   */
+  failures: number;
 }
 
 /**
@@ -97,28 +103,39 @@ export async function uploadBrandingMedia(branding: {
   coverUri?: string;
   galleryUris?: string[];
 }): Promise<BrandingMediaUploads> {
-  const uploads: BrandingMediaUploads = {};
+  const uploads: BrandingMediaUploads = { failures: 0 };
+  let attempts = 0;
+  let succeeded = 0;
 
   if (branding.logoUri) {
+    attempts += 1;
     const url = await uploadBusinessImage({
       fileUri: branding.logoUri,
       fileName: 'business-logo.jpg',
     });
-    if (url) uploads.logoUrl = url;
+    if (url) {
+      uploads.logoUrl = url;
+      succeeded += 1;
+    }
   }
 
   if (branding.coverUri) {
+    attempts += 1;
     const url = await uploadBusinessImage({
       fileUri: branding.coverUri,
       fileName: 'business-cover.jpg',
     });
-    if (url) uploads.coverImage = url;
+    if (url) {
+      uploads.coverImage = url;
+      succeeded += 1;
+    }
   }
 
   const localGallery = (branding.galleryUris ?? []).filter(
     uri => !/^https?:\/\//i.test(uri),
   );
   if (localGallery.length > 0) {
+    attempts += localGallery.length;
     const urls = await Promise.all(
       localGallery.map((fileUri, index) =>
         uploadBusinessImage({
@@ -128,8 +145,10 @@ export async function uploadBrandingMedia(branding: {
       ),
     );
     const uploaded = urls.filter((url): url is string => Boolean(url));
+    succeeded += uploaded.length;
     if (uploaded.length > 0) uploads.gallery = uploaded;
   }
 
+  uploads.failures = attempts - succeeded;
   return uploads;
 }

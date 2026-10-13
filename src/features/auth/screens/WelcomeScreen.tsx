@@ -167,7 +167,7 @@ export function WelcomeScreen() {
             size="lg"
             className="rounded-full"
             rightIcon={<Icon name="forward" size={20} color="#FFFFFF" />}
-            onPress={() => navigation.navigate('DiscoverDeals')}
+            onPress={() => navigation.navigate('StartVemtap')}
             accessibilityHint="Continues to the discovery overview"
           />
           <Pressable

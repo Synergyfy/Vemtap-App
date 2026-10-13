@@ -1,8 +1,9 @@
 import { useCallback } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { authApi, type UpdateProfileInput } from '@api/authApi';
-import { uploadFile } from '@api/uploadClient';
+import { uploadFile, extensionForMimeType } from '@api/uploadClient';
 import { useAuthStore } from '@store/authStore';
+import { logger } from '@utils/logger';
 
 export const PROFILE_QUERY_KEY = ['users', 'me'] as const;
 
@@ -47,9 +48,22 @@ export function useUpdateProfile() {
   });
 }
 
+export interface AvatarUploadInput {
+  uri: string;
+  /** Picker name/type when available — keeps PNG/WebP/HEIC honest on the CDN. */
+  fileName?: string | null;
+  mimeType?: string | null;
+}
+
 /**
- * Uploads the user's avatar to Cloudinary under `vemtap/avatars/{userId}`.
- * On success, updates the auth store with the new avatar URL.
+ * Uploads the user's avatar to Cloudinary under `vemtap/avatars/{userId}` and
+ * persists the hosted URL on the profile.
+ *
+ * The persist is what makes the picture durable. Held only in the client store
+ * it was silently dropped whenever the session user was rebuilt from the API —
+ * switching between the business and customer dashboards rehydrates the store
+ * from the `/auth/switch-role` response, which had no avatar on it. Storing the
+ * URL server-side means every rehydration path carries it.
  */
 export function useUploadAvatar() {
   const setUser = useAuthStore(state => state.setUser);
@@ -57,15 +71,16 @@ export function useUploadAvatar() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (fileUri: string) => {
+    mutationFn: async ({ uri, fileName, mimeType }: AvatarUploadInput) => {
       if (!user?.id) throw new Error('User not authenticated');
 
-      const fileName = `avatar-${user.id}.jpg`;
+      const resolvedName =
+        fileName ?? `avatar-${user.id}.${extensionForMimeType(mimeType)}`;
       const result = await uploadFile<{ url?: string; data?: { url?: string } }>({
         url: '/uploads',
-        fileUri,
-        fileName,
-        mimeType: 'image/jpeg',
+        fileUri: uri,
+        fileName: resolvedName,
+        mimeType: mimeType ?? 'image/jpeg',
         additionalFields: {
           folderOverride: `vemtap/avatars/${user.id}`,
         },
@@ -74,16 +89,21 @@ export function useUploadAvatar() {
       const url = result.data?.url ?? result.data?.data?.url;
       if (!url) throw new Error('Upload succeeded but no URL returned');
 
-      return url;
-    },
-    onSuccess: avatarUrl => {
-      if (user) {
-        setUser({ ...user, avatar: avatarUrl });
+      try {
+        return await authApi.updateProfile({ avatar: url });
+      } catch (error) {
+        // The photo is uploaded and on screen either way; a failed persist
+        // only means it may not survive the next sign-in. Report it in the log
+        // rather than failing an upload the user just watched succeed.
+        logger.warn('upload', 'Avatar uploaded but not persisted', {
+          message: error instanceof Error ? error.message : String(error),
+        });
+        return { ...user, avatar: url };
       }
-      queryClient.setQueryData(PROFILE_QUERY_KEY, old => {
-        if (!old) return old;
-        return { ...old, avatar: avatarUrl };
-      });
+    },
+    onSuccess: updatedUser => {
+      setUser(updatedUser);
+      queryClient.setQueryData(PROFILE_QUERY_KEY, updatedUser);
     },
   });
 }

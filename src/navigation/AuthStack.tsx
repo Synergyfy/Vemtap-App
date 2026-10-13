@@ -1,7 +1,6 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { WelcomeScreen } from '@features/auth/screens/WelcomeScreen';
-import { DiscoverDealsScreen } from '@features/auth/screens/DiscoverDealsScreen';
 import { StartVemtapScreen } from '@features/auth/screens/StartVemtapScreen';
 import { SignInScreen } from '@features/auth/screens/SignInScreen';
 import { RegisterScreen } from '@features/auth/screens/RegisterScreen';
@@ -24,7 +23,6 @@ export function AuthStack() {
       screenOptions={{ headerShown: false, animation: 'slide_from_right' }}
     >
       <Stack.Screen name="Welcome" component={WelcomeScreen} />
-      <Stack.Screen name="DiscoverDeals" component={DiscoverDealsScreen} />
       <Stack.Screen name="StartVemtap" component={StartVemtapScreen} />
       <Stack.Screen name="SignIn" component={SignInScreen} />
       <Stack.Screen name="Register" component={RegisterScreen} />

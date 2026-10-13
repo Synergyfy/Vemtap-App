@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { cssInterop } from 'nativewind';
+import * as ImagePicker from 'expo-image-picker';
 import {
   ServiceChoiceCard,
   ServiceChip,
@@ -19,6 +20,10 @@ import {
   serviceHighlightOptions,
 } from '@features/business/data/serviceFlowData';
 import { BusinessProductImage } from '@features/business/components/BusinessPrimitives';
+import { uploadBusinessImage } from '@features/business/utils/uploadBusinessMedia';
+import { extensionForMimeType } from '@api/uploadClient';
+import { showError } from '@components/shared';
+import { strings } from '@constants/strings';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { colors } from '@theme/colors';
@@ -54,12 +59,13 @@ export function AddServiceBasicsMediaScreen({
     () => new Set(['Sensitive Skin Safe', 'Organic Botanicals']),
   );
   const [gender, setGender] = useState('all');
-  const [mainImage, _setMainImage] = useState<string | undefined>(
+  const [mainImage, setMainImage] = useState<string | undefined>(
     serviceFlowImages.cover.uri,
   );
-  const [galleryImages, _setGalleryImages] = useState<string[]>(
+  const [galleryImages, setGalleryImages] = useState<string[]>(
     serviceFlowImages.thumbnails.map(t => t.uri),
   );
+  const [uploading, setUploading] = useState(false);
 
   const currentValue: ServiceBasicsValue = {
     title,
@@ -82,6 +88,62 @@ export function AddServiceBasicsMediaScreen({
       else next.add(value);
       return next;
     });
+  };
+
+  const uploadPicked = async (assets: ImagePicker.ImagePickerAsset[]) => {
+    setUploading(true);
+    try {
+      return await Promise.all(
+        assets.map(asset =>
+          uploadBusinessImage({
+            fileUri: asset.uri,
+            fileName: asset.fileName ?? `service.${extensionForMimeType(asset.mimeType)}`,
+            mimeType: asset.mimeType,
+          }),
+        ),
+      );
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleChangeCover = async () => {
+    if (uploading) return;
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.8,
+    });
+    if (result.canceled || !result.assets.length) return;
+
+    const uploaded = await uploadPicked(result.assets.slice(0, 1));
+    const url = uploaded[0];
+    if (!url) {
+      showError(strings.common.uploadFailed);
+      return;
+    }
+    setMainImage(url);
+  };
+
+  const handleAddPhotos = async () => {
+    if (uploading) return;
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsMultipleSelection: true,
+      selectionLimit: Math.max(1, 10 - (galleryImages.length + 1)),
+      quality: 0.8,
+    });
+    if (result.canceled || !result.assets.length) return;
+
+    const uploaded = await uploadPicked(result.assets);
+    const urls = uploaded.filter((url): url is string => Boolean(url));
+    // A dropped photo would otherwise leave the gallery looking complete.
+    if (urls.length < result.assets.length) {
+      showError(strings.common.uploadFailed);
+    }
+    if (!urls.length) return;
+    setGalleryImages(current => [...current, ...urls]);
   };
 
   return (
@@ -121,7 +183,7 @@ export function AddServiceBasicsMediaScreen({
               </VemtapText>
             </View>
             <VemtapText variant="caption" tone="secondary">
-              4 / 10 photos
+              {galleryImages.length + 1} / 10 photos
             </VemtapText>
           </View>
           <View className="relative aspect-[4/3] w-full overflow-hidden rounded-card-lg bg-surface-container-high shadow-sm">
@@ -148,6 +210,8 @@ export function AddServiceBasicsMediaScreen({
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Change cover photo"
+              onPress={handleChangeCover}
+              disabled={uploading}
               className="absolute bottom-3 right-3 min-h-11 flex-row items-center gap-1.5 rounded-lg bg-surface px-3 py-2 shadow-md active:bg-surface-muted"
             >
               <Icon name="camera" size={16} color={colors.primary} />
@@ -166,6 +230,8 @@ export function AddServiceBasicsMediaScreen({
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Add photo"
+              onPress={handleAddPhotos}
+              disabled={uploading}
               className="aspect-square flex-1 flex-col items-center justify-center gap-1 rounded-lg bg-surface-container-low active:bg-surface-container"
             >
               <View className="h-7 w-7 items-center justify-center rounded-full bg-surface-container-highest">

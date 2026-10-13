@@ -94,7 +94,7 @@ export function StartVemtapScreen() {
           onBack={() => navigation.goBack()}
           showSkip={false}
           center="progress"
-          progress={{ activeIndex: 2, total: 3 }}
+          progress={{ activeIndex: 1, total: 2 }}
         />
       </View>
 
