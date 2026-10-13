@@ -200,7 +200,7 @@ import { InviteABusinessSheet } from '@features/business/screens/InviteABusiness
 import { TypeDensityProvider } from '@theme/TypeDensityProvider';
 import { useSwitchRole } from '@features/auth/hooks/useSwitchRole';
 import { useBusinessNotifications } from '@features/accountHub/hooks/useNotifications';
-import { matchSegment } from '@navigation/notificationRoutes';
+import { resolveNotificationUrl } from '@navigation/notificationRoutes';
 import { useBusinessNavigation } from './useBusinessNavigation';
 import type { BusinessTabParamList } from './types';
 
@@ -1706,19 +1706,18 @@ function BusinessNotificationsRoute() {
   // would push a duplicate of the list onto itself every tap.
   const openNotification = (id: string) => {
     const actionUrl = feed?.data.find(row => row.id === id)?.actionUrl;
-    const orderId = matchSegment(actionUrl, 'orders');
-    if (orderId) {
+    const target = resolveNotificationUrl(actionUrl);
+    if (target?.kind === 'order') {
       navigation.navigate('BusinessOrders', {
         screen: 'BusinessOrderDetail',
-        params: { orderId },
+        params: { orderId: target.id },
       });
       return;
     }
-    const threadId = matchSegment(actionUrl, 'messages');
-    if (threadId) {
+    if (target?.kind === 'message') {
       navigation.navigate('BusinessMessages', {
         screen: 'BusinessConversation',
-        params: { threadId },
+        params: { threadId: target.id },
       });
     }
   };

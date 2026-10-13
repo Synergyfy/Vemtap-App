@@ -17,10 +17,7 @@ export const notificationSchema = z.object({
    * which needs a second type argument in this Zod version. Unknown values
    * rather than `any`: the payload's shape is the backend's to extend.
    */
-  metadata: z
-    .record(z.string(), z.unknown())
-    .nullable()
-    .optional(),
+  metadata: z.record(z.string(), z.unknown()).nullable().optional(),
 });
 export type NotificationItem = z.infer<typeof notificationSchema>;
 
@@ -44,9 +41,7 @@ export const businessNotificationPageSchema = z.object({
   page: z.number().nullish().default(1),
   limit: z.number().nullish().default(20),
 });
-export type BusinessNotificationPage = z.infer<
-  typeof businessNotificationPageSchema
->;
+export type BusinessNotificationPage = z.infer<typeof businessNotificationPageSchema>;
 
 /**
  * The shape every notification writer stamps into `metadata`.
@@ -112,18 +107,10 @@ export function notificationCategory(
   if (value.includes('deal') || value.includes('offer') || value.includes('claim')) {
     return 'deals';
   }
-  if (
-    value.includes('booking') ||
-    value.includes('order') ||
-    value.includes('pos')
-  ) {
+  if (value.includes('booking') || value.includes('order') || value.includes('pos')) {
     return 'bookings';
   }
-  if (
-    value.includes('reward') ||
-    value.includes('point') ||
-    value.includes('loyalty')
-  ) {
+  if (value.includes('reward') || value.includes('point') || value.includes('loyalty')) {
     return 'rewards';
   }
   return 'system';
@@ -207,6 +194,55 @@ export const notificationsApi = {
       {
         method: 'PATCH',
         url: '/notifications/read-all',
+        ...options,
+      },
+      z.unknown(),
+    );
+  },
+
+  /**
+   * Hand this device's push token to the backend.
+   *
+   * Without it the server has no address for the phone and every notification
+   * is skipped in the worker, so this is what makes the app reachable while it
+   * is closed or backgrounded. Idempotent per token: re-registering refreshes
+   * the existing `push_tokens` row rather than adding a second one.
+   */
+  async registerPushToken(
+    token: string,
+    options: ApiRequestOptions & { platform?: string } = {},
+  ): Promise<void> {
+    const { platform, ...requestOptions } = options;
+    await requestValidated<unknown>(
+      {
+        method: 'POST',
+        url: '/notifications/push-token',
+        // Omitted rather than sent as null: the backend whitelists its DTO
+        // fields, and `platform` is only useful when it is actually known.
+        data: {
+          token,
+          transport: 'expo',
+          ...(platform ? { platform } : {}),
+        },
+        ...requestOptions,
+      },
+      z.unknown(),
+    );
+  },
+
+  /**
+   * Revoke push tokens on sign-out.
+   *
+   * Omit `token` to clear every device, which is the honest default for a
+   * logout: a session that is gone should stop being pushed to, whichever
+   * device happened to sign out.
+   */
+  async clearPushToken(token?: string, options: ApiRequestOptions = {}): Promise<void> {
+    await requestValidated<unknown>(
+      {
+        method: 'DELETE',
+        url: '/notifications/push-token',
+        data: token ? { token } : {},
         ...options,
       },
       z.unknown(),
