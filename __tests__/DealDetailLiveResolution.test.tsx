@@ -403,6 +403,7 @@ describe('DealDetailScreen location and hours', () => {
 describe('DealDetailScreen claim identity', () => {
   /** Same shape the signup flow stores: `emailVerified` drives the badge. */
   const ada = userSchema.parse({
+    id: '3c0d3a2a-1f6b-4b3e-9c2d-5a1e0b7f4d21',
     email: 'ada.okon@example.com',
     firstName: 'Ada',
     lastName: 'Okon',

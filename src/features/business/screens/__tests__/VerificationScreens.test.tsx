@@ -1,5 +1,5 @@
 import React from 'react';
-import { act, fireEvent, render } from '@testing-library/react-native';
+import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 import { VerifyYourBusinessScreen } from '@features/business/screens/VerifyYourBusinessScreen';
 import { VerifyYourIdentityScreen } from '@features/business/screens/VerifyYourIdentityScreen';
 import { IdVerificationScreen } from '@features/business/screens/IdVerificationScreen';
@@ -33,6 +33,30 @@ import {
   youReVerifiedCopy,
   verifyIdentityCopy as identityCopy,
 } from '@features/business/verificationCopy';
+
+// The NIN slip flow calls the document picker natively; under test it returns
+// the scanned slip so the chip, the submit payload and the remove path can be
+// exercised end to end.
+jest.mock('expo-document-picker', () => ({
+  getDocumentAsync: jest.fn(async () => ({
+    canceled: false,
+    assets: [{ uri: 'file://nin-slip-scan', name: 'nin_slip_scan.jpg' }],
+  })),
+}));
+
+// Submit uploads the slip and verifies the NIN remotely before handing the
+// verified payload back; mocked here so the test asserts the screen's contract,
+// not the network.
+const mockDocumentUrl = 'https://uploads.example.com/nin_slip_scan.jpg';
+jest.mock('@features/business/utils/uploadBusinessMedia', () => ({
+  uploadDocument: jest.fn(async () => 'https://uploads.example.com/nin_slip_scan.jpg'),
+}));
+jest.mock('@features/business/hooks/useCatalogueMutations', () => ({
+  ...jest.requireActual('@features/business/hooks/useCatalogueMutations'),
+  useVerifyNin: () => ({
+    mutateAsync: jest.fn(async () => ({ success: true, verificationId: 'ver-nin-1' })),
+  }),
+}));
 
 describe('business verification entry and identity screens', () => {
   it('renders the verification entry screen and starts the flow', async () => {
@@ -80,8 +104,17 @@ describe('business verification entry and identity screens', () => {
     await act(async () => {
       fireEvent.press(view.getByText(idCopy.submit));
     });
-    expect(onSubmit).toHaveBeenCalledWith(
-      expect.objectContaining({ slipFile: idCopy.uploadFileName }),
+    // The payload carries the uploaded slip URL and the verification id, not
+    // the local file name — the chip above is where the name is surfaced.
+    await waitFor(() =>
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          nin: idCopy.ninValue,
+          fullName: idCopy.nameValue,
+          slipFile: mockDocumentUrl,
+          verificationId: 'ver-nin-1',
+        }),
+      ),
     );
 
     await act(async () => {
