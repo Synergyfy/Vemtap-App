@@ -4,9 +4,11 @@ import { cssInterop } from 'nativewind';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Button } from '@components/ui/Button';
+import { Avatar } from '@components/ui/Avatar';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
+import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
 import { dealsGrid } from '@features/deals/data/dealsFeed';
 import type { AppStackParamList } from '@navigation/types';
 import { colors } from '@theme/colors';
@@ -22,6 +24,7 @@ const CLAIM_CODE = '#VT-GIFT-83921';
 type Props = NativeStackScreenProps<AppStackParamList, 'GiftDealSentSuccess'>;
 
 export function GiftDealSentSuccessScreen({ route, navigation }: Props) {
+  const display = useCurrentUserDisplay();
   const insets = useSafeAreaInsets();
   const copyResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [copied, setCopied] = useState(false);
@@ -89,7 +92,7 @@ export function GiftDealSentSuccessScreen({ route, navigation }: Props) {
               accessibilityLabel={copy.avatar}
               className="h-8 w-8 items-center justify-center rounded-full bg-primary"
             >
-              <Icon name="person" size={18} color={colors.surface} />
+              <Avatar name={display.fullName} size="sm" tone="brand" />
             </Pressable>
           </View>
         </View>

@@ -80,22 +80,22 @@ describe('haversineMeters', () => {
 });
 
 describe('offerDistanceMeters', () => {
-  test('measures from the selected district to the business', () => {
-    const metres = offerDistanceMeters(makeOffer(), 'Apo');
+  test('measures from the origin to the business', () => {
+    const metres = offerDistanceMeters(makeOffer(), areaCoords('Apo'));
     expect(metres).not.toBeNull();
     expect(metres!).toBeGreaterThan(1000);
   });
 
   test('is null when the business has no coordinates', () => {
     const offer = makeOffer({ business: null });
-    expect(offerDistanceMeters(offer, 'Apo')).toBeNull();
+    expect(offerDistanceMeters(offer, areaCoords('Apo'))).toBeNull();
   });
 
-  test('is smaller for a district the business is actually near', () => {
+  test('is smaller for an origin the business is actually near', () => {
     const offer = makeOffer();
     // The business sits at Dei-dei, ~1.1 km from Garki and ~3.2 km from Apo.
-    const fromGarki = offerDistanceMeters(offer, 'Garki')!;
-    const fromApo = offerDistanceMeters(offer, 'Apo')!;
+    const fromGarki = offerDistanceMeters(offer, areaCoords('Garki'))!;
+    const fromApo = offerDistanceMeters(offer, areaCoords('Apo'))!;
     expect(fromGarki).toBeLessThan(fromApo);
     expect(fromGarki / 1000).toBeCloseTo(1.14, 1);
   });
@@ -195,7 +195,7 @@ describe('mapping', () => {
     // under the boundary, so the label flips 5h -> 4h. The extra minute keeps the
     // floor safely inside the 5h bucket.
     const end = new Date(Date.now() + 5 * 3_600_000 + 60_000).toISOString();
-    const item = mapOfferToListItem(makeOffer({ endDate: end }), 'Apo', {
+    const item = mapOfferToListItem(makeOffer({ endDate: end }), areaCoords('Apo'), {
       likesCount: 12,
       reviewsCount: 3,
     });
@@ -212,34 +212,37 @@ describe('mapping', () => {
   });
 
   test('list item defaults engagement to zero before it loads', () => {
-    const item = mapOfferToListItem(makeOffer(), 'Apo');
+    const item = mapOfferToListItem(makeOffer(), areaCoords('Apo'));
     expect(item.likes).toBe(0);
     expect(item.comments).toBe(0);
   });
 
   test('an expired offer reads as expired', () => {
-    const item = mapOfferToListItem(makeOffer({ isExpired: true }), 'Apo');
+    const item = mapOfferToListItem(makeOffer({ isExpired: true }), areaCoords('Apo'));
     expect(item.meta).toBe('Expired');
   });
 
   test('an offer with no end date shows an availability line, not a timer', () => {
-    const item = mapOfferToListItem(makeOffer(), 'Apo');
+    const item = mapOfferToListItem(makeOffer(), areaCoords('Apo'));
     expect(item.meta).toBe('Available now');
     expect(item.rightBadge.kind).toBe('text');
   });
 
   test('a modest discount is not marked hot', () => {
-    const item = mapOfferToListItem(makeOffer({ discountPercent: 10 }), 'Apo');
+    const item = mapOfferToListItem(
+      makeOffer({ discountPercent: 10 }),
+      areaCoords('Apo'),
+    );
     expect(item.statusIcon).toBe('none');
   });
 
   test('grid item exposes distance rather than a location line', () => {
-    const item = mapOfferToGridItem(makeOffer(), 'Apo');
+    const item = mapOfferToGridItem(makeOffer(), areaCoords('Apo'));
     expect(item.distance).toMatch(/away$/);
   });
 
   test('an offer with no business falls back to the branch name', () => {
-    const item = mapOfferToListItem(makeOffer({ business: null }), 'Apo');
+    const item = mapOfferToListItem(makeOffer({ business: null }), areaCoords('Apo'));
     expect(item.merchant).toBe('Synergyfy');
     expect(item.location).toBe('');
   });

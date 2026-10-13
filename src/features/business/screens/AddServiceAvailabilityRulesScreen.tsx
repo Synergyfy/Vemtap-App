@@ -19,10 +19,16 @@ import { colors } from '@theme/colors';
 cssInterop(Pressable, { className: 'style' });
 cssInterop(View, { className: 'style' });
 
+export type ServiceAvailabilityValue = {
+  branchIds: string[];
+  serviceMode: string;
+  isBookable: boolean;
+};
+
 export interface AddServiceAvailabilityRulesScreenProps {
   onBack: () => void;
-  onNext: () => void;
-  onSaveDraft?: () => void;
+  onNext?: (value: ServiceAvailabilityValue) => void;
+  onSaveDraft?: (value: ServiceAvailabilityValue) => void;
 }
 
 export function AddServiceAvailabilityRulesScreen({
@@ -38,6 +44,12 @@ export function AddServiceAvailabilityRulesScreen({
   const [leadTime, setLeadTime] = useState('same-day');
   const [horizon, setHorizon] = useState('30-days');
   const [capacity, setCapacity] = useState(2);
+
+  const currentValue: ServiceAvailabilityValue = {
+    branchIds: [...selectedOutlets],
+    serviceMode: 'location',
+    isBookable: leadTime !== 'never',
+  };
 
   const toggleOutlet = (id: string) => {
     setSelectedOutlets(current => {
@@ -62,11 +74,11 @@ export function AddServiceAvailabilityRulesScreen({
     <ServiceFlowPage
       title="Add Service   Step 3: Branch Availability & Appointment Rules"
       onBack={onBack}
-      onSaveDraft={onSaveDraft}
+      onSaveDraft={() => onSaveDraft?.(currentValue)}
       footer={
         <ServiceFlowFooter
           primaryLabel="Review & Publish"
-          onPrimary={onNext}
+          onPrimary={() => onNext?.(currentValue)}
           backLabel="Back"
           onBack={onBack}
         />

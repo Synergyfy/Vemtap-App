@@ -1,5 +1,3 @@
-import type { IconName } from '@components/ui/Icon';
-
 export type DealGridRightBadge =
   | { kind: 'timer'; label: string }
   | { kind: 'text'; label: string; tone: 'primary' | 'dark'; icon?: 'bolt' };
@@ -253,18 +251,4 @@ export const dealsList: DealListItem[] = [
     comments: 14,
     claimLabel: 'Claim Deal',
   },
-];
-
-export const dealsFilterCategories: {
-  label: string;
-  icon: IconName;
-}[] = [
-  { label: 'Food & Drinks', icon: 'restaurant' },
-  { label: 'Beauty & Spa', icon: 'spa' },
-  { label: 'Fashion & Apparel', icon: 'fashion' },
-  { label: 'Electronics & Gadgets', icon: 'devices' },
-  { label: 'Health & Fitness', icon: 'fitness' },
-  { label: 'Groceries & Supermarket', icon: 'groceries' },
-  { label: 'Home & Living', icon: 'homeLiving' },
-  { label: 'Automotive & Services', icon: 'automotive' },
 ];

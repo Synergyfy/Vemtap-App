@@ -1,12 +1,27 @@
-import React, { useMemo, useState } from 'react';
-import { Pressable, ScrollView, TextInput, View } from 'react-native';
+import React, { useMemo, useRef, useState } from 'react';
+import {
+  Pressable,
+  ScrollView,
+  TextInput,
+  View,
+  type ImageSourcePropType,
+  type ScrollView as RNScrollView,
+  type TextInput as RNTextInput,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ConversationListCard } from '@features/merchantChat/components/ConversationListCard';
-import { Icon } from '@components/ui/Icon';
+import { useCustomerThreads } from '@features/merchantChat/hooks/useCustomerMessaging';
+import type { ConversationThread } from '@api/messagingApi';
+import { LoadingState } from '@components/shared/LoadingState';
+import { EmptyState } from '@components/shared/EmptyState';
+import { Avatar } from '@components/ui/Avatar';
+import { Icon, type IconName } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
+import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
 import { colors } from '@theme/colors';
 import { navbarBottomShadow } from '@theme/shadows';
+import { formatWhen } from '@utils/formatters';
 
 const images = [
   {
@@ -28,10 +43,73 @@ const images = [
 
 export interface MessagesScreenProps {
   onBack?: () => void;
-  onOpenConversation?: (merchant: string) => void;
+  onOpenConversation?: (threadId: string) => void;
+  /** Opens the compose sheet; starts a thread with a subject when provided. */
   onCompose?: () => void;
+  /** Focuses the search field (the header icon drives the field in the body). */
   onSearch?: () => void;
+  /** Brings the filter chips into view. */
   onFilter?: () => void;
+}
+
+interface ThreadEntry {
+  key: string;
+  image: ImageSourcePropType;
+  name: string;
+  time: string;
+  message: string;
+  context: string;
+  contextIcon: IconName;
+  unread: number;
+  categories: string[];
+}
+
+// Design `data-filter` values for the four chips, in render order.
+const FILTER_KEYS = ['all', 'unread', 'deals', 'bookings'];
+
+/**
+ * Fallback keyword classification, used only for threads the server has not
+ * classified (`subjectType` GENERAL and no `categories`). Threads recorded
+ * against a deal, claim, booking or order already carry `categories`, so the
+ * regexes no longer decide where a real conversation lives.
+ */
+const DEAL_CATEGORY_RE =
+  /\b(deal|deals|offer|offers|voucher|vouchers|discount|discounts|promo|coupon|coupons|claim|claims|redeem|savings|% off)\b/i;
+const BOOKING_CATEGORY_RE =
+  /\b(book|books|booked|booking|bookings|reserve|reserved|reservation|reservations|table|appointment|appointments|schedule|scheduled|slot|slots|order|orders|ordered)\b/i;
+
+/**
+ * One API thread → one conversation card. Everything comes from
+ * `GET /customer/messaging/threads`; nothing is invented when the payload is
+ * missing a field (empty context hides the chip, blank time hides nothing).
+ */
+function toEntry(thread: ConversationThread, index: number): ThreadEntry {
+  const name =
+    thread.business?.name ?? thread.branch?.name ?? strings.messagesHub.entryNameFallback;
+  const logo = thread.business?.logoUrl ?? thread.branch?.logoUrl ?? null;
+  const message = thread.lastMessageContent ?? '';
+  const unread = thread.customerUnreadCount ?? 0;
+  // `categories` is server-side (see `ThreadSubjectType`): `unread`, `deals`,
+  // `bookings`. It is authoritative when present, so only an unclassified
+  // thread falls back to keyword matching on its last snippet.
+  const categories = thread.categories?.length
+    ? thread.categories
+    : [
+        ...(unread > 0 ? ['unread'] : []),
+        ...(DEAL_CATEGORY_RE.test(message) ? ['deals'] : []),
+        ...(BOOKING_CATEGORY_RE.test(message) ? ['bookings'] : []),
+      ];
+  return {
+    key: thread.id,
+    image: logo ? { uri: logo } : images[index % images.length],
+    name,
+    time: thread.lastActivityAt ? formatWhen(thread.lastActivityAt) : '',
+    message,
+    context: thread.branch?.address ?? '',
+    contextIcon: 'locationOn',
+    unread,
+    categories,
+  };
 }
 
 export function MessagesScreen({
@@ -41,20 +119,45 @@ export function MessagesScreen({
   onSearch,
   onFilter,
 }: MessagesScreenProps) {
+  const display = useCurrentUserDisplay();
   const insets = useSafeAreaInsets();
   const [query, setQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState(0);
+  const searchRef = useRef<RNTextInput | null>(null);
+  const scrollRef = useRef<RNScrollView | null>(null);
+  const threadsQuery = useCustomerThreads();
+
+  // The header's search icon focuses the field; its filter icon scrolls to the
+  // chip row. Both are no-ops when the navigator does not pass them.
+  const focusSearch = () => searchRef.current?.focus();
+  const focusFilters = () => scrollRef.current?.scrollTo({ y: 140, animated: true });
+  const threads = threadsQuery.data;
+
+  const unreadConversations = useMemo(
+    () => (threads ?? []).filter(thread => (thread.customerUnreadCount ?? 0) > 0).length,
+    [threads],
+  );
+
   const entries = useMemo(() => {
     const normalized = query.trim().toLowerCase();
-    return strings.messagesHub.entries.filter(entry => {
-      const matchesSearch =
-        !normalized ||
-        `${entry.name} ${entry.message}`.toLowerCase().includes(normalized);
-      const matchesFilter =
-        activeFilter === 0 || (activeFilter === 1 && entry.unread > 0);
-      return matchesSearch && matchesFilter;
-    });
-  }, [activeFilter, query]);
+    return (threads ?? [])
+      .map((thread, index) => toEntry(thread, index))
+      .filter(entry => {
+        const matchesSearch =
+          !normalized ||
+          `${entry.name} ${entry.message}`.toLowerCase().includes(normalized);
+        const filterKey = FILTER_KEYS[activeFilter];
+        const matchesFilter =
+          activeFilter === 0 ||
+          (filterKey !== undefined && entry.categories.includes(filterKey));
+        return matchesSearch && matchesFilter;
+      });
+  }, [activeFilter, query, threads]);
+
+  const hasConstraint = activeFilter !== 0 || query.trim().length > 0;
+  const emptyCopy = hasConstraint
+    ? strings.messagesHub.emptyFiltered
+    : strings.messagesHub.empty;
 
   return (
     <View className="flex-1 bg-background">
@@ -85,7 +188,7 @@ export function MessagesScreen({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={strings.messagesHub.search}
-            onPress={onSearch}
+            onPress={onSearch ?? focusSearch}
             className="h-11 w-11 items-center justify-center rounded-full active:bg-surface-container-low"
           >
             <Icon name="search" size={23} color={colors.textSecondary} />
@@ -93,18 +196,17 @@ export function MessagesScreen({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={strings.messagesHub.filter}
-            onPress={onFilter}
+            onPress={onFilter ?? focusFilters}
             className="h-11 w-11 items-center justify-center rounded-full active:bg-surface-container-low"
           >
             <Icon name="tune" size={21} color={colors.textSecondary} />
           </Pressable>
-          <View className="ml-1 h-8 w-8 items-center justify-center rounded-full bg-primary">
-            <Icon name="person" size={17} color={colors.surface} />
-          </View>
+          <Avatar name={display.fullName} size="sm" tone="brand" />
         </View>
       </View>
 
       <ScrollView
+        ref={scrollRef}
         className="flex-1"
         contentContainerClassName="gap-3 px-6 pb-6 pt-4"
         showsVerticalScrollIndicator={false}
@@ -118,13 +220,15 @@ export function MessagesScreen({
             >
               {strings.messagesHub.title}
             </VemtapText>
-            <VemtapText
-              variant="labelSm"
-              tone="brand"
-              className="rounded-full bg-surface-tint px-2 py-0.5"
-            >
-              {strings.messagesHub.unread}
-            </VemtapText>
+            {unreadConversations > 0 ? (
+              <VemtapText
+                variant="labelSm"
+                tone="brand"
+                className="rounded-full bg-surface-tint px-2 py-0.5"
+              >
+                {strings.messagesHub.unreadFor(unreadConversations)}
+              </VemtapText>
+            ) : null}
           </View>
           <Pressable
             accessibilityRole="button"
@@ -138,6 +242,7 @@ export function MessagesScreen({
         <View className="h-11 flex-row items-center rounded-xl bg-surface-container-low px-4 shadow-sm">
           <Icon name="search" size={20} color={colors.textTertiary} />
           <TextInput
+            ref={searchRef}
             accessibilityLabel={strings.messagesHub.searchPlaceholder}
             value={query}
             onChangeText={setQuery}
@@ -147,42 +252,74 @@ export function MessagesScreen({
           />
         </View>
         <View className="-mx-1 flex-row flex-wrap gap-2">
-          {strings.messagesHub.filters.map((filter, index) => (
-            <Pressable
-              key={filter}
-              accessibilityRole="button"
-              accessibilityState={{ selected: activeFilter === index }}
-              onPress={() => setActiveFilter(index)}
-              className={`min-h-9 shrink-0 flex-row items-center rounded-full px-4 ${activeFilter === index ? 'bg-primary shadow-sm' : 'bg-surface-container-low'}`}
-            >
-              <VemtapText
-                variant="labelMd"
-                tone={activeFilter === index ? 'inverse' : 'secondary'}
-                className={
-                  activeFilter === index ? 'font-sans-semibold' : 'font-sans-medium'
-                }
+          {strings.messagesHub.filters.map((filter, index) => {
+            const selected = activeFilter === index;
+            return (
+              <Pressable
+                key={FILTER_KEYS[index]}
+                accessibilityRole="button"
+                accessibilityState={{ selected }}
+                onPress={() => setActiveFilter(index)}
+                className={`min-h-9 shrink-0 flex-row items-center rounded-full px-4 ${selected ? 'bg-primary shadow-sm' : 'bg-surface-container-low'}`}
               >
-                {filter}
-              </VemtapText>
-            </Pressable>
-          ))}
+                <View className="flex-row items-center gap-1">
+                  <VemtapText
+                    variant="labelMd"
+                    tone={selected ? 'inverse' : 'secondary'}
+                    className={selected ? 'font-sans-semibold' : 'font-sans-medium'}
+                  >
+                    {filter}
+                  </VemtapText>
+                  {index === 1 && unreadConversations > 0 ? (
+                    <View
+                      className={`h-5 min-w-5 items-center justify-center rounded-full px-1 ${selected ? 'bg-primary-foreground' : 'bg-primary'}`}
+                    >
+                      <VemtapText
+                        variant="caption"
+                        tone={selected ? 'brand' : 'inverse'}
+                        className="font-sans-bold"
+                      >
+                        {unreadConversations}
+                      </VemtapText>
+                    </View>
+                  ) : null}
+                </View>
+              </Pressable>
+            );
+          })}
         </View>
-        {entries.map((entry, index) => (
-          <ConversationListCard
-            key={entry.name}
-            image={images[strings.messagesHub.entries.indexOf(entry)] ?? images[index]}
-            name={entry.name}
-            time={entry.time}
-            message={entry.message}
-            context={entry.context}
-            contextIcon={entry.contextIcon}
-            unread={entry.unread}
-            online={entry.online}
-            verified={entry.verified}
-            sender={entry.sender}
-            onPress={() => onOpenConversation?.(entry.name)}
+        {threadsQuery.isLoading ? (
+          <LoadingState label={strings.common.loading} />
+        ) : threadsQuery.isError ? (
+          <EmptyState
+            variant="contained"
+            icon="cloudOff"
+            title={strings.common.error}
+            actionLabel={strings.common.retry}
+            onAction={() => threadsQuery.refetch()}
           />
-        ))}
+        ) : entries.length === 0 ? (
+          <EmptyState
+            variant="contained"
+            icon="message"
+            title={emptyCopy.title}
+            description={emptyCopy.body}
+          />
+        ) : (
+          entries.map(entry => (
+            <ConversationListCard
+              key={entry.key}
+              image={entry.image}
+              name={entry.name}
+              time={entry.time}
+              message={entry.message}
+              context={entry.context}
+              contextIcon={entry.contextIcon}
+              unread={entry.unread}
+              onPress={() => onOpenConversation?.(entry.key)}
+            />
+          ))
+        )}
         <View className="mt-2 flex-row items-center gap-2 rounded-xl bg-surface-container-low px-3 py-3">
           <Icon name="lock" size={17} color={colors.primary} />
           <VemtapText variant="caption" tone="secondary" className="flex-1 text-center">

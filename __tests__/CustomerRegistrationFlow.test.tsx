@@ -1,7 +1,8 @@
 import React from 'react';
-import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { ProfileSetupScreen } from '@features/auth/screens/ProfileSetupScreen';
 import { RegisterScreen } from '@features/auth/screens/RegisterScreen';
+import { SignInScreen } from '@features/auth/screens/SignInScreen';
 import { useAuthStore } from '@store/authStore';
 import { strings } from '@constants/strings';
 
@@ -156,6 +157,53 @@ describe('Register screen', () => {
     await render(<RegisterScreen />);
     // No auth SDK is installed, so the button used to be inert.
     expect(screen.queryByLabelText('Continue with Google')).toBeNull();
+  });
+});
+
+describe('action buttons enable as the user types', () => {
+  const continueDisabled = () =>
+    screen.getByRole('button', { name: strings.auth.registerContinue }).props
+      .accessibilityState?.disabled;
+
+  it('enables Continue on the register screen while the email input is still focused', async () => {
+    await render(<RegisterScreen />);
+    expect(continueDisabled()).toBe(true);
+
+    fireEvent.changeText(
+      screen.getByLabelText(strings.auth.registerEmailLabel),
+      'ada@example.com',
+    );
+
+    await waitFor(() => expect(continueDisabled()).toBe(false));
+  });
+
+  it('disables Continue again when the email is cleared', async () => {
+    await render(<RegisterScreen />);
+    const input = screen.getByLabelText(strings.auth.registerEmailLabel);
+    fireEvent.changeText(input, 'ada@example.com');
+    await waitFor(() => expect(continueDisabled()).toBe(false));
+
+    fireEvent.changeText(input, '');
+    await waitFor(() => expect(continueDisabled()).toBe(true));
+  });
+
+  it('enables Sign In once credentials are valid, without blurring first', async () => {
+    await render(<SignInScreen />);
+    const signInDisabled = () =>
+      screen.getByRole('button', { name: strings.common.signIn }).props.accessibilityState
+        ?.disabled;
+    expect(signInDisabled()).toBe(true);
+
+    fireEvent.changeText(
+      screen.getByLabelText(strings.auth.signInIdentifierLabel),
+      'ada@example.com',
+    );
+    fireEvent.changeText(
+      screen.getByPlaceholderText(strings.auth.signInCredentialPlaceholder),
+      'secret123',
+    );
+
+    await waitFor(() => expect(signInDisabled()).toBe(false));
   });
 });
 

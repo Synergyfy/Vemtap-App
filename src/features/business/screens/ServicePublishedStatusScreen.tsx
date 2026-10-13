@@ -16,6 +16,7 @@ import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { colors } from '@theme/colors';
+import type { ServiceDraft } from '@store/catalogueDraftStore';
 
 cssInterop(Pressable, { className: 'style' });
 cssInterop(View, { className: 'style' });
@@ -28,6 +29,8 @@ export interface ServicePublishedStatusScreenProps {
   onAddAnother?: () => void;
   onCreateDeal?: () => void;
   onStatusChange?: (status: 'live' | 'draft') => void;
+  /** Live draft from the setup wizard. Absent in standalone (storybook) use. */
+  draft?: ServiceDraft;
 }
 
 export function ServicePublishedStatusScreen({
@@ -37,6 +40,7 @@ export function ServicePublishedStatusScreen({
   onAddAnother,
   onCreateDeal,
   onStatusChange,
+  draft,
 }: ServicePublishedStatusScreenProps) {
   const [status, setStatus] = useState<'live' | 'draft'>('live');
 
@@ -65,7 +69,7 @@ export function ServicePublishedStatusScreen({
         <View className="flex-row items-center gap-1.5 rounded-full bg-success-container px-2 py-1">
           <View className="h-2 w-2 rounded-full bg-success" />
           <VemtapText variant="caption" tone="success" className="font-sans-semibold">
-            Live Online
+            {status === 'live' ? 'Live Online' : 'Saved as Draft'}
           </VemtapText>
         </View>
       </View>
@@ -146,8 +150,12 @@ export function ServicePublishedStatusScreen({
         <View className="flex-row items-start gap-3">
           <View className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-surface-container">
             <BusinessProductImage
-              source={{ uri: serviceFlowImages.status.uri }}
-              alt={serviceFlowImages.status.alt}
+              source={
+                draft?.mainImage
+                  ? { uri: draft.mainImage }
+                  : { uri: serviceFlowImages.status.uri }
+              }
+              alt={draft?.name || serviceFlowImages.status.alt}
               className="h-full w-full"
               resizeMode="cover"
             />
@@ -180,14 +188,14 @@ export function ServicePublishedStatusScreen({
               className="truncate text-heading-sm text-text"
               numberOfLines={1}
             >
-              {serviceFlowDraft.shortTitle}
+              {draft?.name || serviceFlowDraft.shortTitle}
             </VemtapText>
             <VemtapText
               variant="labelMd"
               tone="brand"
               className="mt-0.5 font-sans-semibold"
             >
-              {serviceFlowDraft.priceRange}
+              {draft?.basePrice ? `₦${draft.basePrice}` : serviceFlowDraft.priceRange}
             </VemtapText>
           </View>
         </View>

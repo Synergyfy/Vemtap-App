@@ -8,6 +8,7 @@ import { FeaturedDealOfDayCard } from '@components/deals/FeaturedDealOfDayCard';
 import { DealsResultsRow } from '@components/deals/DealsResultsRow';
 import { HomeSearchBar } from '@components/home/HomeSearchBar';
 import { TwoColumnGrid } from '@components/shared/TwoColumnGrid';
+import { Button } from '@components/ui/Button';
 import type { DealsViewMode } from '@components/home/ViewToggle';
 import { VemtapText } from '@components/ui/Text';
 import { Icon } from '@components/ui/Icon';
@@ -21,6 +22,8 @@ import { useDealReaction } from '@features/deals/hooks/useDealEngagementActions'
 import type { DealListItem, FeaturedDealOfDay } from '@features/deals/data/dealsFeed';
 import { DealCommentsSheet } from '@features/dealDetail/components/DealCommentsSheet';
 import { useConsumerTargeting } from '@features/home/hooks/useConsumerTargeting';
+import { useSearch } from '@features/search/hooks/usePublicSearch';
+import { SearchResults } from '@features/search/components/SearchResults';
 
 /** The Deals feed names its own section; the standard variant keeps the greeting. */
 function isFeaturedTitle(variant: 'featured' | 'standard'): string | undefined {
@@ -91,10 +94,16 @@ function FeaturedDealCard({
   onOpenComments: (id: string) => void;
   onOpenDetail: (id: string) => void;
 }) {
+  const { data } = useDealEngagement(deal.id);
   const reaction = useDealReaction(deal.id);
+  const enriched = useMemo(
+    () =>
+      data ? { ...deal, likes: data.likesCount, comments: data.reviewsCount } : deal,
+    [data, deal],
+  );
   return (
     <FeaturedDealOfDayCard
-      deal={deal}
+      deal={enriched}
       liked={reaction.liked}
       onToggleLike={reaction.toggle}
       onOpenComments={onOpenComments}
@@ -113,10 +122,16 @@ export function DealsDiscoveryScreen({
   onOpenAccount,
 }: DealsDiscoveryScreenProps) {
   const [viewMode, setViewMode] = useState<DealsViewMode>('grid');
+  // Same search hook as Home, so both feeds share one debounce, one request
+  // shape and one empty state.
+  const search = useSearch();
   const {
     feed: { featured: featuredDealOfDay, list: dealsList, grid: dealsGrid },
     isLoading,
     isError,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
   } = usePublicOffersFeed();
   const [commentsDealId, setCommentsDealId] = useState<string | null>(null);
 
@@ -162,84 +177,107 @@ export function DealsDiscoveryScreen({
           }
           filterLabel={isFeatured ? strings.deals.filters : strings.home.filter}
           onFilterPress={openFilters}
+          value={search.query}
+          onChangeText={search.setQuery}
         />
 
-        {isFeatured ? (
-          <View className="flex-col gap-2">
-            <View className="flex-row items-center justify-between">
-              <View className="min-w-0 flex-1 flex-row items-center gap-1.5">
-                <Icon name="fire" size={18} color={colors.primary} />
-                <VemtapText className="font-sans-bold text-label-sm uppercase tracking-wider text-text-secondary">
-                  {strings.deals.featuredEyebrow}
-                </VemtapText>
+        {search.active ? (
+          <SearchResults search={search} onOpenDeal={onOpenDeal} />
+        ) : (
+          <>
+            {isFeatured ? (
+              <View className="flex-col gap-2">
+                <View className="flex-row items-center justify-between">
+                  <View className="min-w-0 flex-1 flex-row items-center gap-1.5">
+                    <Icon name="fire" size={18} color={colors.primary} />
+                    <VemtapText className="font-sans-bold text-label-sm uppercase tracking-wider text-text-secondary">
+                      {strings.deals.featuredEyebrow}
+                    </VemtapText>
+                  </View>
+                  <View className="rounded-full bg-badge-discount-bg px-2 py-0.5">
+                    <VemtapText className="font-sans-bold text-caption text-badge-discount-text">
+                      {strings.deals.featuredPercentOff}
+                    </VemtapText>
+                  </View>
+                </View>
+                {featuredDealOfDay ? (
+                  <FeaturedDealCard
+                    deal={featuredDealOfDay}
+                    onOpenComments={openComments}
+                    onOpenDetail={onOpenDeal}
+                  />
+                ) : null}
               </View>
-              <View className="rounded-full bg-badge-discount-bg px-2 py-0.5">
-                <VemtapText className="font-sans-bold text-caption text-badge-discount-text">
-                  {strings.deals.featuredPercentOff}
-                </VemtapText>
-              </View>
-            </View>
-            {featuredDealOfDay ? (
-              <FeaturedDealCard
-                deal={featuredDealOfDay}
-                onOpenComments={openComments}
-                onOpenDetail={onOpenDeal}
-              />
             ) : null}
-          </View>
-        ) : null}
 
-        {isError ? (
-          <View className="rounded-2xl bg-surface-container-low p-4">
-            <VemtapText tone="error" accessibilityRole="alert">
-              {strings.common.error}
-            </VemtapText>
-          </View>
-        ) : null}
+            {isError ? (
+              <View className="rounded-2xl bg-surface-container-low p-4">
+                <VemtapText tone="error" accessibilityRole="alert">
+                  {strings.common.error}
+                </VemtapText>
+              </View>
+            ) : null}
 
-        {isEmpty ? (
-          <View className="rounded-2xl bg-surface-container-low px-4 py-8">
-            <VemtapText className="text-text-primary text-center text-heading-sm">
-              {strings.featuredDeals.emptyTitle}
-            </VemtapText>
-            <VemtapText className="mt-1 text-center text-caption text-text-secondary">
-              {strings.featuredDeals.emptyBody}
-            </VemtapText>
-          </View>
-        ) : null}
+            {isEmpty ? (
+              <View className="rounded-2xl bg-surface-container-low px-4 py-8">
+                <VemtapText className="text-text-primary text-center text-heading-sm">
+                  {strings.featuredDeals.emptyTitle}
+                </VemtapText>
+                <VemtapText className="mt-1 text-center text-caption text-text-secondary">
+                  {strings.featuredDeals.emptyBody}
+                </VemtapText>
+              </View>
+            ) : null}
 
-        <View className="flex-col gap-3">
-          <DealsResultsRow
-            mode={viewMode}
-            onChangeMode={setViewMode}
-            variant={variant}
-            count={feedCount}
-            countLabel={
-              isFeatured && viewMode === 'list'
-                ? strings.deals.dealsInFound(18)
-                : undefined
-            }
-          />
+            <View className="flex-col gap-3">
+              <DealsResultsRow
+                mode={viewMode}
+                onChangeMode={setViewMode}
+                variant={variant}
+                count={feedCount}
+                countLabel={
+                  isFeatured && viewMode === 'list'
+                    ? strings.deals.dealsInFound(18)
+                    : undefined
+                }
+              />
 
-          {viewMode === 'list' ? (
-            <View className="flex-col gap-4">
-              {dealsList.map(deal => (
-                <DealsListRow
-                  key={deal.id}
-                  deal={deal}
-                  onOpenComments={openComments}
-                  onOpenDetail={onOpenDeal}
+              {viewMode === 'list' ? (
+                <View className="flex-col gap-4">
+                  {dealsList.map(deal => (
+                    <DealsListRow
+                      key={deal.id}
+                      deal={deal}
+                      onOpenComments={openComments}
+                      onOpenDetail={onOpenDeal}
+                    />
+                  ))}
+                </View>
+              ) : (
+                <TwoColumnGrid
+                  items={dealsGrid}
+                  keyExtractor={deal => deal.id}
+                  renderItem={deal => (
+                    <DealsGridCard deal={deal} onOpenDetail={onOpenDeal} />
+                  )}
                 />
-              ))}
+              )}
+
+              {hasNextPage ? (
+                <Button
+                  label={
+                    isFetchingNextPage
+                      ? strings.deals.loadingMore
+                      : strings.deals.loadMore
+                  }
+                  variant="secondary"
+                  loading={isFetchingNextPage}
+                  onPress={() => fetchNextPage()}
+                />
+              ) : null}
             </View>
-          ) : (
-            <TwoColumnGrid
-              items={dealsGrid}
-              keyExtractor={deal => deal.id}
-              renderItem={deal => <DealsGridCard deal={deal} onOpenDetail={onOpenDeal} />}
-            />
-          )}
-        </View>
+          </>
+        )}
       </ScrollView>
       <DealCommentsSheet
         visible={commentsDeal !== null}

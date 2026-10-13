@@ -1505,8 +1505,8 @@ export interface BusinessToastPillProps {
 
 /**
  * Transient inverse-surface pill for copy/save confirmations inside a business
- * screen. `ToastHost` owns app-level banners; this is the local, screen-scoped
- * affordance the designs call for.
+ * screen. `shared/toast` owns app-level messages; this is the local,
+ * screen-scoped affordance the designs call for.
  */
 export function BusinessToastPill({
   message,

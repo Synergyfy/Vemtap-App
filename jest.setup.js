@@ -194,12 +194,31 @@ jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
 );
 
-jest.mock('expo-secure-store', () => ({
-  getItemAsync: jest.fn(async () => null),
-  setItemAsync: jest.fn(async () => undefined),
-  deleteItemAsync: jest.fn(async () => undefined),
-  WHEN_UNLOCKED_THIS_DEVICE_ONLY: 'WhenUnlockedThisDeviceOnly',
-}));
+/**
+ * In-memory stand-in for the Keychain/Keystore.
+ *
+ * It must actually round-trip values: `jest.setup` used to make `getItemAsync`
+ * always resolve to null, which meant `setTokenPair` wrote nowhere and the API
+ * client's auth interceptor could never attach a token. Every authenticated
+ * live test then 401'd, and the failure looked like a server-side problem
+ * rather than the stub.
+ *
+ * The map lives inside the factory, so jest gives each test file a fresh one.
+ * Files that never write still read null, exactly as before.
+ */
+jest.mock('expo-secure-store', () => {
+  const store = new Map();
+  return {
+    getItemAsync: jest.fn(async key => store.get(key) ?? null),
+    setItemAsync: jest.fn(async (key, value) => {
+      store.set(key, value);
+    }),
+    deleteItemAsync: jest.fn(async key => {
+      store.delete(key);
+    }),
+    WHEN_UNLOCKED_THIS_DEVICE_ONLY: 'WhenUnlockedThisDeviceOnly',
+  };
+});
 
 jest.mock('expo-notifications', () => ({
   setNotificationHandler: jest.fn(),
@@ -285,6 +304,24 @@ jest.mock('expo-linear-gradient', () => {
   return { LinearGradient };
 });
 
+jest.mock('expo-image-picker', () => ({
+  requestMediaLibraryPermissionsAsync: jest.fn(async () => ({
+    status: 'granted',
+    granted: true,
+    canAskAgain: true,
+    expires: 'never',
+  })),
+  launchImageLibraryAsync: jest.fn(async () => ({
+    canceled: true,
+    assets: [],
+  })),
+  MediaTypeOptions: {
+    Images: 'Images',
+    Videos: 'Videos',
+    All: 'All',
+  },
+}));
+
 jest.mock('expo-location', () => ({
   requestForegroundPermissionsAsync: jest.fn(async () => ({
     status: 'granted',
@@ -365,3 +402,131 @@ jest.mock('@expo-google-fonts/inter', () => {
     Inter_800ExtraBold: 1,
   };
 });
+
+/**
+ * Screens may call TanStack Query hooks directly; React Query throws without a
+ * provider ("No QueryClient set"). Wrap every render in a fresh client so
+ * suites do not each need their own wrapper. A test that passes its own
+ * `wrapper` is nested closer to the component under test, so its client still
+ * wins when it provides one.
+ */
+jest.mock('@testing-library/react-native', () => {
+  const actual = jest.requireActual('@testing-library/react-native');
+  const React = require('react');
+  const QueryClient = require('@tanstack/react-query').QueryClient;
+  const QueryClientProvider = require('@tanstack/react-query').QueryClientProvider;
+
+  const mockModule = {
+    ...actual,
+    render: (ui, options = {}) => {
+      const { wrapper, ...rest } = options;
+      const client = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      const tree = wrapper ? React.createElement(wrapper, null, ui) : ui;
+      return actual.render(
+        React.createElement(QueryClientProvider, { client }, tree),
+        rest,
+      );
+    },
+  };
+
+  // `screen` is reassigned by every render. A literal `get screen()` (or the
+  // spread of `actual`) would be flattened by the object-spread helper into a
+  // pre-render snapshot, so every query would throw "render not called".
+  Object.defineProperty(mockModule, 'screen', {
+    enumerable: true,
+    configurable: true,
+    get: () => actual.screen,
+  });
+
+  return mockModule;
+});
+
+/**
+ * The messaging realtime layer must never open a real websocket in tests.
+ * Screens and routes can still import the socket module; every call is a no-op.
+ */
+jest.mock('socket.io-client', () => ({
+  io: jest.fn(() => ({
+    on: jest.fn(),
+    off: jest.fn(),
+    emit: jest.fn(),
+    connect: jest.fn(),
+    disconnect: jest.fn(),
+    removeAllListeners: jest.fn(),
+    connected: false,
+    auth: undefined,
+  })),
+}));
+
+/**
+ * Unit tests must never reach the network. Screens query the API on mount, and
+ * the HTTP client is axios over XMLHttpRequest, so a real request to the dev
+ * host is both slow and retried with exponential backoff. This XHR stub answers
+ * every request with a 404 envelope: calls settle on the next microtask, and the
+ * query client's retry rule treats 4xx as final, so screens land on their
+ * designed fallback copy. Live contract tests opt back in via LIVE_API_TESTS=1.
+ */
+if (process.env.LIVE_API_TESTS !== '1') {
+  const notFoundBody = JSON.stringify({
+    statusCode: 404,
+    message: 'Not Found',
+    error: 'NOT_FOUND',
+  });
+
+  class MockXmlHttpRequest {
+    constructor() {
+      this.readyState = 0;
+      this.status = 0;
+      this.statusText = '';
+      this.responseText = '';
+      this.response = '';
+      this.responseType = '';
+      this.upload = { addEventListener() {}, removeEventListener() {} };
+      this.onloadend = null;
+      this.onreadystatechange = null;
+      this.onerror = null;
+      this.ontimeout = null;
+      this.onabort = null;
+      this.aborted = false;
+    }
+
+    open() {
+      this.readyState = 1;
+    }
+
+    setRequestHeader() {}
+
+    getAllResponseHeaders() {
+      return '';
+    }
+
+    getResponseHeader() {
+      return null;
+    }
+
+    addEventListener() {}
+
+    removeEventListener() {}
+
+    abort() {
+      this.aborted = true;
+    }
+
+    send() {
+      this.readyState = 4;
+      this.status = 404;
+      this.statusText = 'Not Found';
+      this.responseText = notFoundBody;
+      this.response =
+        this.responseType === 'json' ? JSON.parse(notFoundBody) : notFoundBody;
+      queueMicrotask(() => {
+        this.onloadend?.();
+        this.onreadystatechange?.();
+      });
+    }
+  }
+
+  global.XMLHttpRequest = MockXmlHttpRequest;
+}

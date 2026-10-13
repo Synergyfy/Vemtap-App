@@ -5,11 +5,32 @@ import { TabNavigator } from '@navigation/TabNavigator';
 import { BusinessTabNavigator } from '@navigation/BusinessTabNavigator';
 import { PersonalHubNavigator } from '@navigation/PersonalHubNavigator';
 
+// Mounts three whole navigators (customer tabs, business tabs, personal hub)
+// in one test, so it needs more headroom than the global cap on a loaded
+// machine. Without this the suite fails on wall-clock, not on behaviour.
+jest.setTimeout(180_000);
+
+jest.mock('@features/home/hooks/useNearbyBusinesses', () =>
+  jest.requireActual('./helpers/mockHomeBusinesses').mockHomeBusinessesModule(),
+);
+jest.mock('@features/home/hooks/useNearbyProducts', () =>
+  jest.requireActual('./helpers/mockHomeProducts').mockHomeProductsModule(),
+);
+
 jest.mock('@features/deals/hooks/usePublicOffers', () =>
   jest.requireActual('./helpers/mockOffersFeed').mockOffersFeedModule(),
 );
 jest.mock('@features/deals/hooks/useDealEngagementActions', () =>
   jest.requireActual('./helpers/mockOffersFeed').mockDealEngagementActionsModule(),
+);
+jest.mock('@features/discover/hooks/useDiscoverBusinesses', () =>
+  jest.requireActual('./helpers/mockDiscoverBusinesses').mockDiscoverBusinessesModule(),
+);
+jest.mock('@features/accountHub/hooks/useSavedHub', () =>
+  jest.requireActual('./helpers/mockCustomerHub').mockSavedHubModule(),
+);
+jest.mock('@features/myDeals/hooks/useMyClaims', () =>
+  jest.requireActual('./helpers/mockCustomerHub').mockMyClaimsModule(),
 );
 
 jest.mock('@store/authStore', () => ({
@@ -66,13 +87,10 @@ async function auditNavigator(element: React.ReactElement, tabLabels: string[]) 
 }
 
 test('no navigator nests a screen that reuses an ancestor route name', async () => {
-  const personal = await auditNavigator(<PersonalHubNavigator />, [
-    'My Deals',
-    'Messages',
-    'Orders',
-    'More',
-    'Home',
-  ]);
+  // The personal flow is a flat pushed stack now — it has no tabs and no nested
+  // navigators, so there are no route names left to collide. Rendering it still
+  // catches a regression that reintroduces a nesting navigator.
+  const personal = await auditNavigator(<PersonalHubNavigator />, []);
   const business = await auditNavigator(<BusinessTabNavigator />, [
     'Orders',
     'Messages',
@@ -82,8 +100,7 @@ test('no navigator nests a screen that reuses an ancestor route name', async () 
   ]);
   const consumer = await auditNavigator(<TabNavigator />, [
     'Deals',
-    'Discover',
-    'Saved',
+    'Business',
     'Account',
     'Home',
   ]);

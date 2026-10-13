@@ -1,5 +1,5 @@
 import type { Offer } from '@api/dealsApi';
-import { areaCoords } from '@constants/locations';
+import type { GeoCoords } from '@constants/locations';
 import { haversineMeters } from '@utils/geo';
 import { formatCurrency } from '@utils/formatters';
 import { strings } from '@constants/strings';
@@ -13,8 +13,8 @@ import type {
  * Maps API offers onto the view models the deal cards already consume.
  *
  * The feed endpoint returns no distance, so it is computed here from the
- * business coordinates against the selected district (AREA_COORDS is the single
- * source for those). Images come from the first catalogue item that has one;
+ * business coordinates against the discovery origin (the user's position, or the
+ * centre of the district they picked). Images come from the first catalogue item that has one;
  * money arrives as numbers or numeric strings; the countdown is derived from
  * `endDate`, which is an absolute instant, so no timezone assumption is needed.
  */
@@ -29,12 +29,18 @@ const PLACEHOLDER_IMAGE =
  */
 export { haversineMeters } from '@utils/geo';
 
-/** Distance from the selected district to the offer's business, or null. */
-export function offerDistanceMeters(offer: Offer, area: string): number | null {
+/**
+ * Distance from the discovery origin to the offer's business, or null.
+ *
+ * The origin is a position rather than a district name because it is either the
+ * user's real coordinates or the district centre they picked — `discoveryOrigin`
+ * decides which, so the number here always matches the proximity filter the API
+ * applied.
+ */
+export function offerDistanceMeters(offer: Offer, origin: GeoCoords): number | null {
   const { latitude, longitude } = offer.business ?? {};
   if (typeof latitude !== 'number' || typeof longitude !== 'number') return null;
 
-  const origin = areaCoords(area);
   return haversineMeters(origin, { latitude, longitude });
 }
 
@@ -45,7 +51,11 @@ export function formatDistanceLabel(meters: number | null): string {
   return strings.deals.distanceAway(label);
 }
 
-function toAmount(value: string | number | null | undefined): number | null {
+/**
+ * Money arrives as a number, a numeric string, or neither. Exported so every
+ * mapper parses prices one way instead of each re-implementing `parseFloat`.
+ */
+export function toAmount(value: string | number | null | undefined): number | null {
   if (value === null || value === undefined) return null;
   const parsed = typeof value === 'number' ? value : Number.parseFloat(value);
   return Number.isFinite(parsed) ? parsed : null;
@@ -56,10 +66,22 @@ export function offerImage(offer: Offer): string {
   return withImage?.mainImage ?? PLACEHOLDER_IMAGE;
 }
 
-/** Remaining time until `endDate`, e.g. "Ends in 4h". Null when unknown/over. */
-export function offerCountdown(
+/**
+ * Wording for a countdown, injected so different domains phrase the same
+ * remaining time correctly ("Ends in…" for an offer, "Expires in…" for a claim)
+ * without forking the time arithmetic.
+ */
+export type CountdownLabels = {
+  days: (days: number, hours: number) => string;
+  hours: (hours: number) => string;
+  minutes: (minutes: number) => string;
+};
+
+/** Remaining time until `endDate` using the caller's wording; null when over/unknown. */
+export function countdownLabel(
   endDate: string | null | undefined,
-  now = Date.now(),
+  now: number,
+  labels: CountdownLabels,
 ): string | null {
   if (!endDate) return null;
   const end = Date.parse(endDate);
@@ -73,12 +95,51 @@ export function offerCountdown(
   const hours = totalHours % 24;
   const minutes = Math.floor(remaining / 60_000) % 60;
 
-  if (days > 0) return strings.deals.endsInDays(days, hours);
-  if (totalHours > 0) return strings.deals.endsInHours(totalHours);
-  return strings.deals.endsInMinutes(minutes);
+  if (days > 0) return labels.days(days, hours);
+  if (totalHours > 0) return labels.hours(totalHours);
+  return labels.minutes(minutes);
 }
 
-function discountLabel(offer: Offer): string {
+const DEAL_COUNTDOWN_LABELS: CountdownLabels = {
+  days: (days, hours) => strings.deals.endsInDays(days, hours),
+  hours: hours => strings.deals.endsInHours(hours),
+  minutes: minutes => strings.deals.endsInMinutes(minutes),
+};
+
+/** Remaining time until `endDate`, e.g. "Ends in 4h". Null when unknown/over. */
+export function offerCountdown(
+  endDate: string | null | undefined,
+  now = Date.now(),
+): string | null {
+  return countdownLabel(endDate, now, DEAL_COUNTDOWN_LABELS);
+}
+
+/**
+ * The absolute end date for screens that word their own copy, e.g.
+ * `14 Feb 2027`. Null when the payload has no usable date, so the caller can
+ * drop the clause instead of inventing one.
+ *
+ * Formatted in UTC: the column stores the merchant's calendar day at midnight,
+ * and a device west of UTC would otherwise render the day before it ends.
+ */
+export function formatOfferEndDate(endDate: string | null | undefined): string | null {
+  if (!endDate) {
+    return null;
+  }
+  const date = new Date(endDate);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+  return date.toLocaleDateString('en-NG', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
+}
+
+/** Exported for the Home cards, which render the same badge in their own layout. */
+export function discountLabel(offer: Offer): string {
   if (typeof offer.discountPercent === 'number' && offer.discountPercent > 0) {
     return strings.deals.percentOff(offer.discountPercent);
   }
@@ -91,7 +152,8 @@ function statusIcon(offer: Offer): DealGridItem['statusIcon'] {
   return (offer.discountPercent ?? 0) >= 50 ? 'hot' : 'none';
 }
 
-function merchantLabel(offer: Offer): string {
+/** Exported for the Home cards. */
+export function merchantLabel(offer: Offer): string {
   const name = offer.business?.name ?? offer.branchName ?? '';
   const city = offer.business?.city;
   return city ? `${name} • ${city}` : name;
@@ -145,7 +207,7 @@ function expiryLabel(offer: Offer): { meta: string; metaTone: DealListItem['meta
 
 export function mapOfferToListItem(
   offer: Offer,
-  area: string,
+  origin: GeoCoords,
   engagement?: { likesCount: number; reviewsCount: number },
 ): DealListItem {
   const countdown = offerCountdown(offer.endDate);
@@ -170,7 +232,7 @@ export function mapOfferToListItem(
     price: prices.price,
     priceWas: prices.priceWas,
     save: prices.save,
-    location: formatDistanceLabel(offerDistanceMeters(offer, area)),
+    location: formatDistanceLabel(offerDistanceMeters(offer, origin)),
     meta: expiry.meta,
     metaTone: expiry.metaTone,
     likes: engagement?.likesCount ?? 0,
@@ -179,7 +241,7 @@ export function mapOfferToListItem(
   };
 }
 
-export function mapOfferToGridItem(offer: Offer, area: string): DealGridItem {
+export function mapOfferToGridItem(offer: Offer, origin: GeoCoords): DealGridItem {
   const countdown = offerCountdown(offer.endDate);
   const prices = priceLabels(offer);
 
@@ -201,12 +263,12 @@ export function mapOfferToGridItem(offer: Offer, area: string): DealGridItem {
     price: prices.price,
     priceWas: prices.priceWas,
     save: prices.save,
-    distance: formatDistanceLabel(offerDistanceMeters(offer, area)),
+    distance: formatDistanceLabel(offerDistanceMeters(offer, origin)),
     claimLabel: strings.deals.claimDeal,
   };
 }
 
-export function mapOfferToFeatured(offer: Offer, area: string): FeaturedDealOfDay {
+export function mapOfferToFeatured(offer: Offer, origin: GeoCoords): FeaturedDealOfDay {
   const countdown = offerCountdown(offer.endDate);
   const prices = priceLabels(offer);
   const limit = offer.remainingLimit ?? offer.totalLimit;
@@ -218,7 +280,7 @@ export function mapOfferToFeatured(offer: Offer, area: string): FeaturedDealOfDa
     specialPromo: discountLabel(offer),
     endsLabel: countdown ?? strings.deals.endsIn('today'),
     merchant: merchantLabel(offer),
-    distance: formatDistanceLabel(offerDistanceMeters(offer, area)),
+    distance: formatDistanceLabel(offerDistanceMeters(offer, origin)),
     title: offer.name,
     price: prices.price,
     priceWas: prices.priceWas,

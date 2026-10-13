@@ -5,7 +5,8 @@ import { AuthStack } from '@navigation/AuthStack';
 import { AppStack } from '@navigation/AppStack';
 import { BusinessSetupNavigator } from '@navigation/BusinessSetupNavigator';
 import { BusinessTabNavigator } from '@navigation/BusinessTabNavigator';
-import { PersonalHubNavigator } from '@navigation/PersonalHubNavigator';
+import { navigationRef } from '@navigation/navigationRef';
+import { NavigationHistoryTracker } from '@navigation/useHistoryBack';
 import type { RootStackParamList } from '@navigation/types';
 import { useAuthStore, selectIsAuthenticated } from '@store/authStore';
 
@@ -79,7 +80,7 @@ export function RootNavigator() {
   const isAuthenticated = useAuthStore(selectIsAuthenticated);
 
   return (
-    <NavigationContainer linking={linking}>
+    <NavigationContainer ref={navigationRef} linking={linking}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {isAuthenticated ? (
           <Stack.Screen name="AppStack" component={AppStack} />
@@ -94,13 +95,10 @@ export function RootNavigator() {
           existing.
         */}
         <Stack.Screen name="BusinessTabs" component={BusinessTabNavigator} />
-        {/*
-          The customer personal hub owns its own bottom navigation (Home · My
-          Deals · Messages · Orders · More). It is a root sibling of `Tabs` so
-          the two shells can never render a stacked pair of bottom bars.
-        */}
-        <Stack.Screen name="PersonalHub" component={PersonalHubNavigator} />
       </Stack.Navigator>
+      {/* Cross-tab back history. Sits outside the stack so it observes every
+          navigation in the app, including tab switches. */}
+      <NavigationHistoryTracker />
     </NavigationContainer>
   );
 }

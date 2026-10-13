@@ -244,6 +244,6 @@ export {
 } from './SegmentAudienceDetailsScreen';
 export {
   BusinessConversationScreen,
+  type BusinessConversationMessage,
   type BusinessConversationScreenProps,
-  type BusinessThreadId,
 } from './BusinessConversationScreen';

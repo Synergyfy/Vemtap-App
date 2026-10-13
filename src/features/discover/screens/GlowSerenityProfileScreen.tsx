@@ -11,6 +11,7 @@ import { ReviewCard } from '@components/discover/ReviewCard';
 import { ServiceCard } from '@components/discover/ServiceCard';
 import { LocationMapView } from '@components/shared/LocationMapView';
 import { Button } from '@components/ui/Button';
+import { Avatar } from '@components/ui/Avatar';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
@@ -35,12 +36,14 @@ export interface GlowSerenityProfileProps {
   onBack: () => void;
   onOpenServices: () => void;
   onOpenDeal: (dealId: string) => void;
+  onOpenInApp?: () => void;
 }
 
 export function GlowSerenityProfileScreen({
   onBack,
   onOpenServices,
   onOpenDeal,
+  onOpenInApp = () => undefined,
 }: GlowSerenityProfileProps) {
   const [following, setFollowing] = useState(false);
   const [aboutExpanded, setAboutExpanded] = useState(false);
@@ -53,11 +56,7 @@ export function GlowSerenityProfileScreen({
       <ProfilePageHeader
         title={strings.glowProfile.businessProfile}
         onBack={onBack}
-        right={
-          <View className="h-8 w-8 items-center justify-center rounded-full bg-primary">
-            <Icon name="person" size={18} color={colors.surface} />
-          </View>
-        }
+        right={<Avatar name={strings.glowProfile.name} size="sm" tone="brand" />}
       />
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -261,7 +260,7 @@ export function GlowSerenityProfileScreen({
           <ContactActionGrid
             phone="+2348000000000"
             whatsappUrl="https://wa.me"
-            onInApp={() => undefined}
+            onInApp={onOpenInApp}
             onWebsite={() => undefined}
           />
         </View>

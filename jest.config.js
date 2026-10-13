@@ -19,10 +19,13 @@ module.exports = {
     '\\.(css)$': '<rootDir>/__mocks__/styleMock.js',
     '\\.(ttf|otf|png|jpg|jpeg)$': '<rootDir>/__mocks__/fontStub.js',
   },
-  // Several suites mount the full business tab navigator, which legitimately
-  // takes a few seconds. Without this the default 5s cap turns a slow parallel
-  // run into a spurious timeout failure.
-  testTimeout: 20000,
+  // Several suites mount a whole tab navigator (customer dashboard + business
+  // tabs), each of which now issues its own live queries. That legitimately
+  // takes tens of seconds, and while anything else competes for CPU (a dev
+  // server, Metro) a tight cap turns a slow parallel run into a spurious
+  // timeout failure. 60s keeps the timeout a real deadlock guard rather than a
+  // performance assertion.
+  testTimeout: 60000,
   // Jest's default matches everything under __tests__, so shared helpers and
   // fixtures would be collected as empty suites.
   testPathIgnorePatterns: [

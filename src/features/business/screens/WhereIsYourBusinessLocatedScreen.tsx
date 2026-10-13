@@ -86,6 +86,17 @@ export function WhereIsYourBusinessLocatedScreen({
     [landmark, search, street],
   );
 
+  // `district` is fixed design copy, so it must not count as an entered
+  // address: one of the three user-editable fields has to carry the location.
+  // The wizard PATCHes the derived address to `/businesses/my-business`.
+  const hasAddress = [search, street, landmark].some(part => part.trim().length > 0);
+  const blockingReason = hasAddress ? null : copy.whereLocated.addressRequired;
+
+  const handleContinue = useCallback(() => {
+    if (blockingReason) return;
+    onContinue?.(draft);
+  }, [blockingReason, draft, onContinue]);
+
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top', 'bottom']}>
       <RegistrationHeader
@@ -348,9 +359,19 @@ export function WhereIsYourBusinessLocatedScreen({
       </ScrollView>
 
       <View className="items-center gap-3 px-6 pb-6 pt-0">
+        {blockingReason ? (
+          <VemtapText
+            tone="secondary"
+            accessibilityRole="alert"
+            className="text-center text-caption"
+          >
+            {blockingReason}
+          </VemtapText>
+        ) : null}
         <PrimaryActionButton
           label={copy.whereLocated.continue}
-          onPress={() => onContinue?.(draft)}
+          disabled={blockingReason !== null}
+          onPress={handleContinue}
         />
         <TextActionButton
           label={copy.whereLocated.saveDraft}

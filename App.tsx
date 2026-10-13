@@ -26,13 +26,15 @@ import { queryClient, queryCachePersister, PERSIST_BUSTER } from '@store/queryCl
 import { ThemeProvider } from '@theme/ThemeProvider';
 import { ErrorBoundary } from '@components/shared/ErrorBoundary';
 import { OfflineBanner } from '@components/shared/OfflineBanner';
-import { ToastHost } from '@components/shared/ToastHost';
+import Toast from 'react-native-toast-message';
 import { RootNavigator } from '@navigation/RootNavigator';
 import { useIsOnline } from '@hooks/useNetworkStatus';
-import { useUiStore } from '@store/uiStore';
 import { registerAuthBridge } from '@api/client';
 import { useAuthStore } from '@store/authStore';
 import { useAuthBootstrap } from '@features/auth/hooks/useAuthBootstrap';
+import { endSession } from '@features/auth/endSession';
+import { useCustomerTokenSync } from '@features/auth/hooks/useCustomerTokenSync';
+import { useCustomerMessagingRealtime } from '@features/merchantChat/hooks/useCustomerMessagingRealtime';
 import { startOfflineReplay } from '@services/offlineReplay';
 import { refreshFeatureFlags } from '@services/featureFlags';
 import { initPushNotifications } from '@services/pushNotifications';
@@ -95,16 +97,38 @@ function StatusBarBackdrop() {
 
 function Shell({ children }: { children: React.ReactNode }) {
   const isOnline = useIsOnline();
-  const toast = useUiStore(state => state.toast);
 
   return (
     <View className="flex-1 bg-background">
       {!isOnline ? <OfflineBanner /> : null}
       <View className="flex-1">{children}</View>
-      <ToastHost toast={toast} />
+      {/* Mounted once, above every screen, so a confirmation raised from any
+          depth of the navigator still has somewhere to render. */}
+      <Toast />
       <StatusBarBackdrop />
     </View>
   );
+}
+
+/**
+ * The token repair is a React Query mutation, so the query client has to sit
+ * above it. Calling `useCustomerTokenSync()` inside `App()` itself put it
+ * outside every provider and the app threw "No QueryClient set" on boot.
+ */
+function CustomerTokenSync() {
+  useCustomerTokenSync();
+  return null;
+}
+
+/**
+ * Lives only while the consumer side is the active one — the business shell
+ * mounts its own bridge, and the two must never both hold the socket.
+ */
+function CustomerMessagingRealtime() {
+  const activeMode = useAuthStore(state => state.activeMode);
+  const status = useAuthStore(state => state.status);
+  useCustomerMessagingRealtime(status === 'authenticated' && activeMode === 'customer');
+  return null;
 }
 
 export default function App() {
@@ -127,8 +151,11 @@ export default function App() {
   useEffect(() => {
     registerAuthBridge({
       onSessionExpired: () => {
-        logger.warn('auth', 'Session expired — clearing auth state');
-        useAuthStore.getState().markUnauthenticated();
+        // The API has no refresh endpoint, so a 401 is terminal. Log out
+        // rather than just flagging the status, which would leave the dead
+        // token in place and the last account's data in the cache.
+        logger.warn('auth', 'Session expired — logging out');
+        endSession().catch(() => undefined);
       },
     });
 
@@ -148,19 +175,7 @@ export default function App() {
     logger.error('app', 'Font loading failed', fontError);
   }
 
-  if (!bootReady || (!fontsLoaded && !fontTimeout)) {
-    return (
-      <SafeAreaProvider>
-        <View className="flex-1 items-center justify-center bg-surface">
-          <View className="flex-row items-center gap-3">
-            <ActivityIndicator size="large" color="#066CF4" />
-            <Text style={loadingTextStyle.loadingText}>Loading VEMTAP...</Text>
-          </View>
-          <StatusBarBackdrop />
-        </View>
-      </SafeAreaProvider>
-    );
-  }
+  const booted = bootReady && (fontsLoaded || fontTimeout);
 
   return (
     <ErrorBoundary>
@@ -176,9 +191,23 @@ export default function App() {
               }}
             >
               <QueryClientProvider client={queryClient}>
-                <Shell>
-                  <RootNavigator />
-                </Shell>
+                {/* Under the client, above the shell: a mis-signed token is
+                    repaired before the first screen's fetches run. */}
+                <CustomerTokenSync />
+                <CustomerMessagingRealtime />
+                {booted ? (
+                  <Shell>
+                    <RootNavigator />
+                  </Shell>
+                ) : (
+                  <View className="flex-1 items-center justify-center bg-surface">
+                    <View className="flex-row items-center gap-3">
+                      <ActivityIndicator size="large" color="#066CF4" />
+                      <Text style={loadingTextStyle.loadingText}>Loading VEMTAP...</Text>
+                    </View>
+                    <StatusBarBackdrop />
+                  </View>
+                )}
               </QueryClientProvider>
             </PersistQueryClientProvider>
           </ThemeProvider>

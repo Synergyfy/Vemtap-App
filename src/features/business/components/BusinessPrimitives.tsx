@@ -14,6 +14,8 @@ import { cssInterop } from 'nativewind';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Card } from '@components/ui/Card';
 import { Icon, type IconName } from '@components/ui/Icon';
+import { Avatar } from '@components/ui/Avatar';
+import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
 import { VemtapText } from '@components/ui/Text';
 import { RangeSlider } from '@components/ui/RangeSlider';
 import { colors } from '@theme/colors';
@@ -51,6 +53,11 @@ export interface BusinessHeaderProps {
   titleAccessory?: ReactNode;
   stepBadge?: string;
   showAvatar?: boolean;
+  /** Business logo shown in the avatar slot; falls back to the business's
+   * initials, then to the person icon when there is no name either. */
+  avatarUri?: string;
+  /** Business (or owner) name the initials are derived from. */
+  avatarName?: string;
   centerTitle?: boolean;
   /** Navbar title token; defaults to `headingSm`, drop to `labelMd` on crowded bars. */
   titleVariant?: TextVariant;
@@ -69,9 +76,17 @@ export function BusinessHeader({
   titleAccessory,
   stepBadge,
   showAvatar = true,
+  avatarUri,
+  avatarName,
   centerTitle = true,
   titleVariant = 'headingSm',
 }: BusinessHeaderProps) {
+  // Business surfaces that know their own name pass `avatarName`; the rest fall
+  // back to the signed-in owner's name, so the slot always shows initials
+  // instead of a generic person glyph.
+  const owner = useCurrentUserDisplay();
+  const ownerName = owner.fullName;
+
   return (
     <View
       className="h-16 w-full max-w-screen flex-row items-center gap-1 self-center bg-surface px-6"
@@ -171,9 +186,14 @@ export function BusinessHeader({
           </View>
         ) : null}
         {showAvatar ? (
-          <View className="h-8 w-8 items-center justify-center rounded-full bg-primary shadow-sm">
-            <Icon name="person" size={18} color={colors.surface} />
-          </View>
+          <Avatar
+            uri={avatarUri}
+            name={avatarName ?? ownerName}
+            size="sm"
+            tone="brand"
+            className="shadow-sm"
+            accessibilityLabel={`${avatarName ?? ownerName} logo`}
+          />
         ) : null}
       </View>
     </View>
@@ -1180,6 +1200,13 @@ export function BusinessProductImage({
   className?: string;
   resizeMode?: 'cover' | 'contain';
 }) {
+  // A missing URI is an empty slot, not an error: screens with an optional
+  // image pass `{ uri: undefined }` and the container's own surface shows
+  // through. Rendering `<Image source={{ uri: undefined }} />` would warn and
+  // leave a blank frame the platform decides the height of.
+  const isRemote = Boolean((source as { uri?: string } | null)?.uri);
+  if (!source || (!isRemote && typeof source !== 'number')) return null;
+
   return (
     <Image
       source={source}
@@ -1205,6 +1232,8 @@ export interface BusinessNumberInputProps {
   leadingIcon?: ReactNode;
   trailingText?: string;
   trailingIcon?: ReactNode;
+  /** Masks the input for password fields. */
+  secureTextEntry?: boolean;
   /** Inline token variant (no label block, fixed 64x36 field) for step configurators. */
   compact?: boolean;
   className?: string;
@@ -1225,6 +1254,7 @@ export function BusinessNumberInput({
   leadingIcon,
   trailingText,
   trailingIcon,
+  secureTextEntry = false,
   compact = false,
   className,
 }: BusinessNumberInputProps) {
@@ -1263,6 +1293,7 @@ export function BusinessNumberInput({
           autoCapitalize={autoCapitalize}
           maxLength={maxLength}
           multiline={multiline}
+          secureTextEntry={secureTextEntry}
           textAlignVertical={multiline ? 'top' : 'center'}
           className={cn(
             'bg-transparent',

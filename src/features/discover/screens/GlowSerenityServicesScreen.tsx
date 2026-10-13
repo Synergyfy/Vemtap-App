@@ -7,6 +7,7 @@ import { ProfilePageHeader } from '@components/discover/ProfilePageHeader';
 import { ServiceCard } from '@components/discover/ServiceCard';
 import { CategoryChips } from '@components/home/CategoryChips';
 import { HomeSearchBar } from '@components/home/HomeSearchBar';
+import { Avatar } from '@components/ui/Avatar';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
@@ -112,11 +113,7 @@ export function GlowSerenityServicesScreen({
       <ProfilePageHeader
         title={strings.glowServices.screenTitle}
         onBack={onBack}
-        right={
-          <View className="h-8 w-8 items-center justify-center rounded-full bg-primary">
-            <Icon name="person" size={18} color={colors.surface} />
-          </View>
-        }
+        right={<Avatar name={strings.glowServices.merchantName} size="sm" tone="brand" />}
       />
       <ScrollView
         showsVerticalScrollIndicator={false}

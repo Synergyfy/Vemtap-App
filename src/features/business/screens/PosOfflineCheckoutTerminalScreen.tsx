@@ -1,6 +1,7 @@
 import React from 'react';
 import { Pressable, View } from 'react-native';
 import { Button } from '@components/ui/Button';
+import { Avatar } from '@components/ui/Avatar';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
@@ -210,9 +211,7 @@ export function PosOfflineCheckoutTerminalScreen({
           </View>
         </View>
         <View className="flex-row items-center gap-2 border-t border-surface-container-low bg-surface px-3 py-2.5">
-          <View className="h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-container">
-            <Icon name="person" size={17} color={colors.textSecondary} />
-          </View>
+          <Avatar name={copy.guestLabel} size="sm" tone="neutral" />
           <View className="min-w-0 flex-1">
             <VemtapText
               variant="labelSm"

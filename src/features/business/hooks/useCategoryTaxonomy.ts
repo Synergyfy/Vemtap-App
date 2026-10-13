@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { categoriesApi, type Category } from '@api/categoriesApi';
 
+export type { Category };
+
 /**
  * The real category taxonomy, used wherever a business picks its category or
  * specialty.

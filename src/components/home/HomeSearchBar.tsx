@@ -2,6 +2,7 @@ import React from 'react';
 import { Pressable, TextInput, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { Icon } from '@components/ui/Icon';
+import { SearchClearButton } from '@components/ui/SearchClearButton';
 import { colors } from '@theme/colors';
 import { strings } from '@constants/strings';
 import { cn } from '@utils/cn';
@@ -32,6 +33,7 @@ export function HomeSearchBar({
   const isOutlined = variant === 'outlined';
   const label = placeholder ?? strings.home.searchPlaceholder;
   const a11yFilter = filterLabel ?? strings.home.filter;
+  const canClear = value !== undefined && value.length > 0 && onChangeText !== undefined;
 
   return (
     <View className="w-full">
@@ -56,6 +58,7 @@ export function HomeSearchBar({
           onChangeText={onChangeText}
           className="min-w-0 flex-1 bg-transparent p-0 font-sans text-body-md text-text"
         />
+        {canClear ? <SearchClearButton onClear={() => onChangeText?.('')} /> : null}
         {showFilter ? (
           <Pressable
             accessibilityRole="button"

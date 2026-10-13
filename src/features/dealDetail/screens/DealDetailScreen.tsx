@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -23,9 +23,20 @@ import {
   type RecipientData,
 } from '@features/dealDetail/components';
 import { colors } from '@theme/colors';
+import { strings } from '@constants/strings';
 import { navbarBottomShadow } from '@theme/shadows';
 import type { AppStackParamList } from '@navigation/types';
-import { resolveDeal } from '@features/dealDetail/data/dealResolver';
+import { useDealDetail } from '@features/dealDetail/hooks/useDealDetail';
+import { useOfferClaim } from '@features/dealDetail/hooks/useOfferClaim';
+import { useSendGift } from '@features/dealDetail/hooks/useSendGift';
+import { useDealReaction } from '@features/deals/hooks/useDealEngagementActions';
+import { useDealEngagement } from '@features/deals/hooks/usePublicOffers';
+import { LoadingState } from '@components/shared/LoadingState';
+import { EmptyState } from '@components/shared/EmptyState';
+import { useAuthStore, selectIsAuthenticated } from '@store/authStore';
+import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
+import { usePublicBusinessProfile } from '@features/discover/hooks/usePublicBusinessProfile';
+import { isOpenNow } from '@features/dealDetail/utils/openingHours';
 import { businesses } from '@features/discover/data/discoverData';
 
 cssInterop(View, { className: 'style' });
@@ -44,6 +55,8 @@ type ClaimFlowStep =
   | 'recipient'
   | 'verification'
   | 'summary'
+  | 'selfIdentity'
+  | 'selfVerification'
   | 'gift'
   | 'giftConfirm'
   | 'terms'
@@ -59,7 +72,8 @@ const apoRegion = {
 type DealDetailProps = {
   title: string;
   badge: string;
-  endsIn: string;
+  /** Absent when the offer has no known end date; the row is then omitted. */
+  endsIn?: string;
   distance: string;
   location: string;
   price: string;
@@ -74,12 +88,26 @@ type DealDetailProps = {
 export function DealDetailScreen({ route, navigation }: Props) {
   const insets = useSafeAreaInsets();
   const [expanded, setExpanded] = useState(false);
-  const [liked, setLiked] = useState(false);
   const [claimed, setClaimed] = useState(false);
   const [commentsVisible, setCommentsVisible] = useState(false);
   const [shareVisible, setShareVisible] = useState(false);
   const [claimStep, setClaimStep] = useState<ClaimFlowStep>(null);
-  const [claimingAs, setClaimingAs] = useState('john@email.com');
+  const isAuthenticated = useAuthStore(selectIsAuthenticated);
+  // The claim copy addresses the claim to whoever the session says the user
+  // is — never a fixed name or address.
+  const claimant = useCurrentUserDisplay();
+  const [claimingAs, setClaimingAs] = useState(claimant.email);
+  // Stable seed for the self-claim form: a fresh identity on every render
+  // would re-trigger the sheet's re-seed effect on every keystroke.
+  const selfClaimDefaults = useMemo<RecipientData>(
+    () => ({
+      firstName: claimant.firstName,
+      lastName: claimant.lastName,
+      email: claimant.email,
+      phone: claimant.phone,
+    }),
+    [claimant.firstName, claimant.lastName, claimant.email, claimant.phone],
+  );
   const [recipient, setRecipient] = useState<RecipientData>({
     firstName: '',
     lastName: '',
@@ -96,33 +124,212 @@ export function DealDetailScreen({ route, navigation }: Props) {
     },
   );
 
-  const deal = resolveDeal(route.params.dealId);
-  const businessId = deal.id.startsWith('urban-grill')
+  // Fictional deals resolve locally; real ones come from the API. Until one
+  // resolves there is no deal to render, and showing a stand-in would be
+  // presenting invented prices as if they were the merchant's.
+  const detail = useDealDetail(route.params.dealId);
+  const deal = detail.status === 'resolved' ? detail.deal : undefined;
+
+  /**
+   * The weekly hours live on the merchant's public profile — one query, shared
+   * with the profile screen. A fictional deal carries no code, so the query
+   * stays disabled and the badge reads as unknown rather than inventing hours.
+   */
+  const profile = usePublicBusinessProfile(deal?.businessCode);
+  const openNow = isOpenNow(
+    profile.status === 'resolved' ? profile.business.openingHours : undefined,
+  );
+
+  /**
+   * The merchant's own first term when they wrote one. The platform phrasing is
+   * only for the bundled deals: claiming "12 PM – 4 PM weekdays" for an offer
+   * whose merchant said nothing would be inventing the merchant's hours.
+   */
+  const termsSubtitle =
+    deal?.terms?.[0] ??
+    (deal?.businessCode ? undefined : 'Valid 12 PM - 4 PM weekdays only');
+
+  /**
+   * Only a real offer can be claimed: the claim endpoints are keyed by offer UUID
+   * and the app's fictional deals do not exist server-side.
+   */
+  const isLiveOffer =
+    deal?.businessCode !== undefined &&
+    !deal.id.startsWith('urban-grill') &&
+    !deal.id.startsWith('glow-');
+  const claim = useOfferClaim(route.params.dealId);
+  const gift = useSendGift();
+
+  /**
+   * Real like toggle with optimistic updates and auth gating.
+   * For fictional deals the hook still works but the API will 401/404;
+   * the hook handles `needsAuth` so the UI can prompt sign-in.
+   */
+  const reaction = useDealReaction(route.params.dealId);
+  const engagement = useDealEngagement(route.params.dealId);
+
+  /**
+   * The fictional Discover businesses are reached by id prefix. A real offer has
+   * no such prefix and instead carries the merchant's 9-character code, which
+   * is what the public business endpoint is keyed by — so the merchant link
+   * works for real offers instead of silently doing nothing.
+   */
+  const seedBusinessId = route.params.dealId.startsWith('urban-grill')
     ? 'urban-grill'
-    : deal.id.startsWith('glow-')
+    : route.params.dealId.startsWith('glow-')
       ? 'glow-serenity'
-      : deal.id.includes('sky-lounge')
+      : route.params.dealId.includes('sky-lounge')
         ? 'sky-lounge'
-        : deal.id.startsWith('sole-district')
+        : route.params.dealId.startsWith('sole-district')
           ? 'sole-district'
-          : deal.id.startsWith('cafe-neo')
+          : route.params.dealId.startsWith('cafe-neo')
             ? 'cafe-neo'
             : null;
-  const business = businesses.find(item => item.id === businessId);
-  const details: DealDetailProps = {
-    title: deal.title,
-    badge: deal.badge,
-    endsIn: 'Ends in 3 days',
-    distance: deal.distance,
-    location: deal.location,
-    price: deal.price,
-    priceWas: deal.priceWas,
-    save: deal.save,
-    description: deal.description,
-    address: deal.address,
-    likes: deal.likes,
-    comments: deal.comments,
-  };
+  const seedBusiness = businesses.find(item => item.id === seedBusinessId);
+  const details: DealDetailProps | null = deal
+    ? {
+        title: deal.title,
+        badge: deal.badge,
+        // Real countdown, or nothing. This was a hardcoded "Ends in 3 days".
+        endsIn: deal.endsIn,
+        distance: deal.distance,
+        location: deal.location,
+        price: deal.price,
+        priceWas: deal.priceWas,
+        save: deal.save,
+        description: deal.description,
+        address: deal.address,
+        // Engagement cache is the one number every screen shares; fall back to
+        // the payload while it loads (and for seed deals with no endpoint).
+        likes: engagement.data?.likesCount ?? deal.likes,
+        comments: deal.comments,
+      }
+    : null;
+
+  const handleShare = useCallback(() => {
+    setShareVisible(true);
+  }, []);
+
+  const handleOpenBusiness = useCallback(() => {
+    // A fictional deal links to its bundled Discover profile; a real offer links
+    // to the merchant's public profile, fetched by code.
+    if (deal?.businessCode) {
+      navigation.navigate('Tabs', {
+        screen: 'Discover',
+        params: {
+          screen: 'BusinessProfile',
+          params: { code: deal.businessCode },
+        },
+      });
+      return;
+    }
+    if (seedBusiness) {
+      navigation.navigate('Tabs', {
+        screen: 'Discover',
+        params: {
+          screen: 'BusinessProfile',
+          params: { business: seedBusiness },
+        },
+      });
+    }
+  }, [deal?.businessCode, seedBusiness, navigation]);
+
+  const handleClaim = useCallback(() => {
+    if (claimed) {
+      navigation.navigate('MyClaimedDeal', { dealId: route.params.dealId });
+      return;
+    }
+    setClaimStep('confirmation');
+  }, [claimed, route.params.dealId, navigation]);
+
+  /**
+   * Marks the offer claimed. For a real offer this only proceeds once the API
+   * has verified the emailed code and issued a claim code — previously it set the
+   * flag unconditionally, so a user could "claim" a promotion that was never
+   * issued.
+   */
+  const completeClaim = useCallback(() => {
+    const verified = claim.status.phase === 'claimed';
+    if (isLiveOffer && !verified) {
+      setClaimStep('selfIdentity');
+      return;
+    }
+    setClaimed(true);
+    setClaimStep(null);
+    navigation.navigate('DealClaimedSuccess', {
+      dealId: route.params.dealId,
+      claimCode:
+        verified && claim.status.phase === 'claimed' ? claim.status.claimCode : undefined,
+    });
+  }, [isLiveOffer, claim.status, route.params.dealId, navigation]);
+
+  /**
+   * Dispatches the gift, and only then shows the confirmation screen.
+   *
+   * The confirm sheet used to navigate straight to `GiftDealSentSuccess`
+   * without calling the API, so a user could be told their gift was sent when
+   * nothing had been dispatched. The endpoint deletes its row and throws when
+   * the email fails, so `send` returning false means nothing was recorded — the
+   * sheet stays open on the error rather than showing a success that did not
+   * happen.
+   */
+  const sendDealGift = useCallback(async () => {
+    const sent = await gift.send({
+      offerId: route.params.dealId,
+      recipientEmail: giftRecipient.email,
+      recipientName: [giftRecipient.firstName, giftRecipient.lastName]
+        .filter(Boolean)
+        .join(' ')
+        .trim(),
+      note: giftRecipient.message.trim() || undefined,
+    });
+    if (!sent) return;
+
+    setClaimStep(null);
+    navigation.navigate('GiftDealSentSuccess', {
+      dealId: route.params.dealId,
+      recipient: giftRecipient,
+    });
+  }, [gift, route.params.dealId, giftRecipient, navigation]);
+
+  // A verified code is the success moment for a real claim; there is nothing
+  // left for the user to confirm afterwards.
+  useEffect(() => {
+    if (claim.status.phase === 'claimed') {
+      setClaimed(true);
+      setClaimStep(null);
+      navigation.navigate('DealClaimedSuccess', {
+        dealId: route.params.dealId,
+        claimCode: claim.status.claimCode,
+      });
+    }
+  }, [claim.status, navigation, route.params.dealId]);
+
+  // Loading, gone, or broken: say so instead of inventing an offer to fill the
+  // page. These branches come after every hook so hook order never changes.
+  if (detail.status !== 'resolved' || !deal || !details) {
+    return (
+      <View className="flex-1 bg-background">
+        <SafeAreaView edges={['top']} className="bg-surface" />
+        {detail.status === 'loading' ? (
+          <LoadingState label={strings.common.loading} />
+        ) : (
+          <EmptyState
+            icon="search"
+            title={
+              detail.status === 'notFound'
+                ? strings.errors.notFound
+                : strings.errors.server
+            }
+            description={strings.dealDetail.unavailableBody}
+            actionLabel={detail.status === 'notFound' ? undefined : strings.common.retry}
+            onAction={detail.status === 'notFound' ? undefined : detail.retry}
+            className="mt-16"
+          />
+        )}
+      </View>
+    );
+  }
 
   const claimData: ClaimDealData = {
     title: details.title,
@@ -132,37 +339,8 @@ export function DealDetailScreen({ route, navigation }: Props) {
     save: details.save,
     badge: details.badge,
     image: deal.image,
+    endsIn: details.endsIn,
   };
-
-  const handleShare = useCallback(() => {
-    setShareVisible(true);
-  }, []);
-
-  const handleOpenBusiness = useCallback(() => {
-    if (business) {
-      navigation.navigate('Tabs', {
-        screen: 'Discover',
-        params: {
-          screen: 'BusinessProfile',
-          params: { business },
-        },
-      });
-    }
-  }, [business, navigation]);
-
-  const handleClaim = useCallback(() => {
-    if (claimed) {
-      navigation.navigate('MyClaimedDeal', { dealId: deal.id });
-      return;
-    }
-    setClaimStep('confirmation');
-  }, [claimed, deal.id, navigation]);
-
-  const completeClaim = useCallback(() => {
-    setClaimed(true);
-    setClaimStep(null);
-    navigation.navigate('DealClaimedSuccess', { dealId: deal.id });
-  }, [deal.id, navigation]);
 
   return (
     <View className="flex-1 bg-background">
@@ -196,20 +374,20 @@ export function DealDetailScreen({ route, navigation }: Props) {
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Like deal"
-                accessibilityState={{ selected: liked }}
-                onPress={() => setLiked(value => !value)}
+                accessibilityState={{ selected: reaction.liked }}
+                onPress={reaction.toggle}
                 style={styles.likePill}
               >
                 <Icon
-                  name={liked ? 'favoriteFilled' : 'favorite'}
+                  name={reaction.liked ? 'favoriteFilled' : 'favorite'}
                   size={20}
-                  color={liked ? colors.error : colors.text}
+                  color={reaction.liked ? colors.error : colors.text}
                 />
                 <VemtapText
                   className="font-sans-semibold text-label-sm"
-                  style={{ color: liked ? colors.error : colors.text }}
+                  style={{ color: reaction.liked ? colors.error : colors.text }}
                 >
-                  {details.likes + (liked ? 1 : 0)}
+                  {details.likes}
                 </VemtapText>
               </Pressable>
             </View>
@@ -221,12 +399,14 @@ export function DealDetailScreen({ route, navigation }: Props) {
                   {details.badge}
                 </VemtapText>
               </View>
-              <View style={styles.timerBadge}>
-                <Icon name="schedule" size={14} color={colors.inverseOnSurface} />
-                <VemtapText className="text-caption text-inverse-on-surface">
-                  {details.endsIn}
-                </VemtapText>
-              </View>
+              {details.endsIn ? (
+                <View style={styles.timerBadge}>
+                  <Icon name="schedule" size={14} color={colors.inverseOnSurface} />
+                  <VemtapText className="text-caption text-inverse-on-surface">
+                    {details.endsIn}
+                  </VemtapText>
+                </View>
+              ) : null}
             </View>
             <View style={styles.hotBadge}>
               <Icon name="fire" size={16} color={colors.tertiaryContainer} />
@@ -294,7 +474,9 @@ export function DealDetailScreen({ route, navigation }: Props) {
             contentContainerStyle={styles.attributeContent}
             className="mt-4"
           >
-            <AttributePill icon="schedule" label={details.endsIn} />
+            {details.endsIn ? (
+              <AttributePill icon="schedule" label={details.endsIn} />
+            ) : null}
             <AttributePill icon="storefront" label="Dine-in & Takeout" />
             <AttributePill icon="person" label="1 Claim / Person" />
           </ScrollView>
@@ -303,16 +485,16 @@ export function DealDetailScreen({ route, navigation }: Props) {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Like deal"
-              onPress={() => setLiked(value => !value)}
+              onPress={reaction.toggle}
               style={styles.engagementButton}
             >
               <Icon
-                name={liked ? 'favoriteFilled' : 'favorite'}
+                name={reaction.liked ? 'favoriteFilled' : 'favorite'}
                 size={18}
-                color={liked ? colors.error : colors.textSecondary}
+                color={reaction.liked ? colors.error : colors.textSecondary}
               />
               <VemtapText className="font-sans-semibold text-label-md text-text-secondary">
-                {details.likes + (liked ? 1 : 0)}
+                {details.likes}
               </VemtapText>
             </Pressable>
             <View style={styles.divider} />
@@ -374,14 +556,32 @@ export function DealDetailScreen({ route, navigation }: Props) {
               <VemtapText variant="labelMd" className="font-sans-semibold text-text">
                 Location & Hours
               </VemtapText>
-              <View style={styles.openBadge}>
-                <VemtapText className="font-sans-medium text-caption text-badge-discount-text">
-                  Open Now
-                </VemtapText>
-              </View>
+              {/* No badge while the hours are unknown — "Open Now" is a claim. */}
+              {openNow === null ? null : (
+                <View style={openNow ? styles.openBadge : styles.closedBadge}>
+                  <VemtapText
+                    className={
+                      openNow
+                        ? 'font-sans-medium text-caption text-badge-discount-text'
+                        : 'font-sans-medium text-caption text-text-secondary'
+                    }
+                  >
+                    {openNow ? 'Open Now' : 'Closed'}
+                  </VemtapText>
+                </View>
+              )}
             </View>
             <LocationMapView
-              region={apoRegion}
+              region={
+                deal?.coordinates
+                  ? {
+                      latitude: deal.coordinates.latitude,
+                      longitude: deal.coordinates.longitude,
+                      latitudeDelta: apoRegion.latitudeDelta,
+                      longitudeDelta: apoRegion.longitudeDelta,
+                    }
+                  : apoRegion
+              }
               style={styles.mapPanel}
               scrollEnabled={false}
               zoomEnabled={false}
@@ -412,7 +612,7 @@ export function DealDetailScreen({ route, navigation }: Props) {
               icon="info"
               iconBackground="bg-surface-container"
               title="Terms & Conditions"
-              subtitle="Valid 12 PM - 4 PM weekdays only"
+              subtitle={termsSubtitle}
               onPress={() =>
                 navigation.navigate('DealTermsConditions', { dealId: deal.id })
               }
@@ -449,7 +649,7 @@ export function DealDetailScreen({ route, navigation }: Props) {
         <View style={styles.claimHint}>
           <Icon name="info" size={13} color={colors.primary} />
           <VemtapText variant="caption" tone="secondary" className="text-center">
-            No payment required now • Claim to reserve
+            {strings.deals.claimFlow.claimHint}
           </VemtapText>
         </View>
       </View>
@@ -457,7 +657,7 @@ export function DealDetailScreen({ route, navigation }: Props) {
       <ClaimConfirmationSheet
         visible={claimStep === 'confirmation'}
         onClose={() => setClaimStep(null)}
-        onConfirm={() => setClaimStep('auth')}
+        onConfirm={() => setClaimStep(isAuthenticated ? 'identity' : 'auth')}
         deal={claimData}
       />
       <ClaimAuthModalSheet
@@ -470,7 +670,16 @@ export function DealDetailScreen({ route, navigation }: Props) {
         visible={claimStep === 'identity'}
         onClose={() => setClaimStep(null)}
         onForMe={() => {
-          setClaimingAs('john@email.com');
+          // A real offer goes through the real OTP flow: the API only issues a
+          // claim once an emailed code is verified. Fictional deals have no server
+          // record to claim, so they keep the local walkthrough — addressed to
+          // whoever is signed in.
+          if (isLiveOffer) {
+            claim.reset();
+            setClaimStep('selfIdentity');
+            return;
+          }
+          setClaimingAs(claimant.email);
           setClaimStep('terms');
         }}
         onGift={() => setClaimStep('gift')}
@@ -485,6 +694,43 @@ export function DealDetailScreen({ route, navigation }: Props) {
           setRecipient(data);
           setClaimingAs(data.email);
           setClaimStep('verification');
+        }}
+      />
+      <RecipientDetailsSheet
+        visible={claimStep === 'selfIdentity'}
+        onClose={() => setClaimStep(null)}
+        onBack={() => setClaimStep('identity')}
+        title={strings.deals.claimFlow.selfClaimIdentityTitle}
+        // Claiming as yourself: open the form already holding the session's
+        // identity instead of asking the user to retype it.
+        initialValues={selfClaimDefaults}
+        onContinue={async data => {
+          setRecipient(data);
+          setClaimingAs(data.email);
+          await claim.requestCode(data);
+          setClaimStep('selfVerification');
+        }}
+      />
+      <RecipientVerificationSheet
+        visible={claimStep === 'selfVerification'}
+        onClose={() => setClaimStep(null)}
+        onBack={() => setClaimStep('selfIdentity')}
+        email={recipient.email}
+        title={strings.deals.claimFlow.verifySelfTitle}
+        heading={strings.deals.claimFlow.verifySelfHeading}
+        bodyCopy={strings.deals.claimFlow.verifySelfBody}
+        codeHint={strings.deals.claimFlow.enterCodeRange}
+        submitLabel={strings.deals.claimFlow.verifyContinue}
+        // The claim OTP is 4–6 characters, verified live, so the field must not
+        // insist on the recipient flow's fixed six.
+        minimumDigits={4}
+        busy={claim.status.phase === 'verifying'}
+        errorMessage={claim.status.phase === 'error' ? claim.status.message : undefined}
+        // Optional on the sheet: when `onSubmitCode` is supplied it replaces
+        // `onContinue`, so this is intentionally unused.
+        onContinue={() => undefined}
+        onSubmitCode={async codeText => {
+          await claim.submitCode(codeText);
         }}
       />
       <RecipientVerificationSheet
@@ -517,12 +763,12 @@ export function DealDetailScreen({ route, navigation }: Props) {
         onClose={() => setClaimStep(null)}
         onBack={() => setClaimStep('gift')}
         onConfirm={() => {
-          setClaimStep(null);
-          navigation.navigate('GiftDealSentSuccess', {
-            dealId: deal.id,
-            recipient: giftRecipient,
-          });
+          // A fictional deal's id is not an offer uuid, so the endpoint rejects
+          // it — the sheet shows that failure rather than a success screen.
+          void sendDealGift();
         }}
+        sending={gift.status.phase === 'sending'}
+        errorMessage={gift.status.phase === 'error' ? gift.status.message : undefined}
         recipient={giftRecipient}
         deal={claimData}
       />
@@ -540,6 +786,8 @@ export function DealDetailScreen({ route, navigation }: Props) {
         dealTitle={details.title}
         merchant={deal.merchant.split(' • ')[0]}
         commentCount={details.comments}
+        // Fictional seed offers have no server row — the sheet keeps demo copy.
+        offerId={isLiveOffer ? route.params.dealId : undefined}
       />
       <DealShareSheet
         visible={shareVisible}
@@ -576,7 +824,8 @@ function InfoRow({
   icon: 'verifiedUser' | 'info';
   iconBackground: 'bg-surface-tint' | 'bg-surface-container';
   title: string;
-  subtitle: string;
+  /** Absent when there is nothing true to say — the row keeps its title. */
+  subtitle?: string;
   onPress: () => void;
 }) {
   return (
@@ -599,9 +848,11 @@ function InfoRow({
           <VemtapText variant="labelMd" className="font-sans-semibold text-text">
             {title}
           </VemtapText>
-          <VemtapText variant="caption" tone="secondary">
-            {subtitle}
-          </VemtapText>
+          {subtitle ? (
+            <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
+              {subtitle}
+            </VemtapText>
+          ) : null}
         </View>
       </View>
       <Icon name="forward" size={20} color={colors.outline} />
@@ -741,6 +992,12 @@ const styles = StyleSheet.create({
   openBadge: {
     borderRadius: 999,
     backgroundColor: colors.badgeDiscountBg,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  closedBadge: {
+    borderRadius: 999,
+    backgroundColor: colors.surfaceContainerHighest,
     paddingHorizontal: 8,
     paddingVertical: 2,
   },

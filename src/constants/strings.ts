@@ -220,7 +220,6 @@ export const strings = {
     manualTitle: 'Where are you?',
     manualSubtitle: "Enter a city, area or location to discover what's nearby.",
     manualSearchPlaceholder: 'Search city, area or location',
-    manualClearSearch: 'Clear search input',
     manualMapCaption: 'FCT Zone • Apo Sector Active',
     manualOffersBadge: '142 Offers Nearby',
     manualUseCurrent: 'Use Current Location',
@@ -290,6 +289,23 @@ export const strings = {
     dealsNearYou: 'Deals Near You',
     trending: 'Trending Deals',
     businessesAround: 'Businesses Around You',
+    /**
+     * New copy: the businesses section is live now, so an empty result means the
+     * test data has none nearby rather than that the section is broken.
+     */
+    noBusinessesTitle: 'No businesses listed yet',
+    noBusinessesBody: 'Businesses appear here as they join VEMTAP near you.',
+    /**
+     * New copy. Every Home section now renders a state like this instead of a
+     * bare header over nothing, and none of it exists in the Stitch spec because
+     * the mock screens always had content in every section.
+     */
+    emptyFeaturedTitle: 'No featured deals yet',
+    emptyFeaturedBody: 'Promoted offers near you will appear here.',
+    emptyTrendingTitle: 'Nothing trending yet',
+    emptyTrendingBody: 'The most-claimed offers near you will show up here.',
+    emptyProductsTitle: 'No products listed yet',
+    emptyProductsBody: 'Products from businesses near you will appear here.',
     popularNearYou: 'Popular Near You',
     seeAll: 'See All',
     listView: 'List view',
@@ -307,10 +323,36 @@ export const strings = {
     enrollmentMeta: 'Set up in 3 minutes • Instant discovery',
     tabHome: 'Home',
     tabDeals: 'Deals',
-    tabDiscover: 'Discover',
-    tabSaved: 'Saved',
+    tabBusiness: 'Business',
     tabAccount: 'Account',
     avatar: 'Account avatar',
+  },
+  search: {
+    /**
+     * New copy. The Stitch spec has no search-results state for Home — the mock
+     * screens only ever show the search bar and the sections below it — so this
+     * group is new, following the precedent of `home.empty*` above.
+     *
+     * The deals group heading reuses `deals.caption` rather than repeating the
+     * word; only the business heading had no existing equivalent.
+     */
+    businesses: 'Businesses',
+    /** Group heading for the search results' `products` group (catalogue items). */
+    products: 'Products',
+    emptyTitle: 'No results found',
+    emptyBody: 'Try a different search term, or pick one of the categories above.',
+    /**
+     * Shown while the debounced request is in flight. The spec has no such state
+     * either, so this is the same situation as the empty copy above.
+     */
+    searching: 'Searching…',
+    /**
+     * Accessibility label for the clear ("cancel") button shown at the right end
+     * of a search field once it holds a value. It lives here rather than beside
+     * any one screen's placeholder because the button is a shared primitive
+     * (`SearchClearButton`) that the shared search fields render.
+     */
+    clearLabel: 'Clear search input',
   },
   homeLocation: {
     title: 'Location & Radius',
@@ -403,6 +445,9 @@ export const strings = {
     distanceAway: (label: string) => `${label} away`,
     claimDeal: 'Claim Deal',
     claim: 'Claim',
+    /** Cursor pagination footer on the Deals feed. */
+    loadMore: 'Load more deals',
+    loadingMore: 'Loading more…',
     dealsInTitle: (area: string) => `Deals in ${area}`,
     dealsInCount: (n: number) => `(${n})`,
     dealsInFound: (n: number) => `(${n} found)`,
@@ -425,6 +470,25 @@ export const strings = {
     post: 'Post',
     reply: 'Reply',
     owner: 'Owner',
+    /** Live review moderation and author actions. */
+    noReviews: 'No reviews yet',
+    noReviewsBody: 'Be the first to share your experience with this deal.',
+    rateOptional: 'Tap to rate (optional)',
+    yourReview: 'Your review',
+    editReview: 'Edit',
+    deleteReview: 'Delete',
+    saveReview: 'Save Changes',
+    cancelEdit: 'Cancel',
+    deleteReviewTitle: 'Delete your review?',
+    deleteReviewBody: 'This removes it from the deal. You can always write a new one.',
+    deleteReviewAction: 'Delete',
+    alreadyReviewed: 'You have already reviewed this deal.',
+    underReview: 'Thanks! Your review is awaiting approval.',
+    reviewUpdated: 'Review updated.',
+    reviewDeleted: 'Review deleted.',
+    reviewPosted: 'Review posted.',
+    reviewUnavailable: 'This review is not available right now.',
+    backToComments: 'Back',
     shareTitle: 'Share Deal',
     closeShare: 'Close share sheet',
     copyLink: 'Copy link',
@@ -447,7 +511,13 @@ export const strings = {
         'Reserve your 20% discount now. You only pay directly at the venue when you redeem.',
       payAtVenue: 'Pay at venue',
       validUntil: 'Valid Until',
+      validUntilUnknown: '—',
       commitment: 'Commitment',
+      noCommitment: '₦0 upfront today',
+      flexibleTitle: 'Easy & Flexible',
+      flexibleBody:
+        'Make sure you can use this deal before it expires. You can manage all your active claims under My Deals anytime.',
+      claimHint: 'No payment required now • Claim to reserve',
       confirmClaim: 'Confirm Claim',
       notNow: 'Not Now',
       heldForYou: 'Guaranteed rate held exclusively in your name',
@@ -491,6 +561,7 @@ export const strings = {
       giftConfirmSubtitle: 'Review recipient details before confirming.',
       verifiedContact: 'Verified Contact',
       confirmSendGift: 'Confirm & Send Gift',
+      sendingGift: 'Sending…',
       editRecipient: 'Edit Recipient Details',
       recipientVerification: 'Recipient Verification',
       verifyRecipient: "Verify recipient's email",
@@ -499,6 +570,18 @@ export const strings = {
       enterCode: 'Enter 6-digit authorization code',
       resendCode: 'Resend code',
       verifyContinue: 'Verify & Continue',
+      /**
+       * New copy for the self-claim path. The recipient sentences were inline in
+       * the component; they now live here so both flows share one source.
+       */
+      verifyRecipientBody: () => 'We sent a verification code to',
+      verifySelfTitle: 'Verify your claim',
+      verifySelfHeading: 'Confirm it is you',
+      verifySelfBody: () => 'We sent a claim code to',
+      selfClaimIdentityTitle: 'Your details',
+      selfClaimIdentitySub: 'We email your claim code here',
+      enterCodeRange: 'Enter the 4–6 digit code',
+      claimCodeSentTo: (email: string) => `Code sent to ${email}`,
       backRecipient: 'Back to recipient details',
       recipientConfirmed: 'Recipient Confirmed',
       recipientSummary: 'Confirm Recipient Summary',
@@ -514,6 +597,8 @@ export const strings = {
       reservationSubtitle:
         'Review the claim conditions before your one-time voucher is generated.',
       claimingAs: 'Claiming as',
+      /** Accessibility label for the identity card's verified badge. */
+      emailVerified: 'Email verified',
       understandConditions: 'I have read and understand the reservation conditions:',
       howToClaim: 'How to Claim',
       dealTerms: 'Deal Terms & Conditions',
@@ -552,6 +637,9 @@ export const strings = {
     redeemablePrefix: 'Redeemable during standard lunch hours: ',
     redeemableWindow: '12:00 PM – 4:30 PM',
     redeemableDays: ', Monday through Saturday.',
+    redeemableLivePrefix: 'Redeemable during the merchant’s hours: ',
+    hoursFallback: 'Redeemable during the merchant’s business hours.',
+    merchantTermsTitle: 'Offer terms',
     merchantName: 'Urban Grill & Bistro',
     locationPrefix: 'Valid exclusively at ',
     locationSuffix: ', Apo Boulevard, Abuja branch.',
@@ -581,7 +669,7 @@ export const strings = {
     claimed: 'Claim Secured!',
   },
   howToClaim: {
-    headerTitle: 'Deal Terms & Conditions',
+    headerTitle: 'How to Claim',
     badge: 'Instant Guarantee',
     title: 'Claim your deal in 3 simple steps',
     subtitle: 'Fast, seamless local savings with zero upfront commitment.',
@@ -590,8 +678,11 @@ export const strings = {
       'Tap ‘Claim Deal’ to instantly reserve your offer in VEMTAP. No upfront payment required.',
     reservation: 'Reserved for 48 hours',
     stepTwoTitle: 'Visit the Business',
-    stepTwoBody: (merchant: string, area: string) =>
-      `Head to ${merchant} in ${area}, Abuja anytime before the deal expires on 20 Sep.`,
+    // The deadline is passed in: a real offer's own end date, and the bundled
+    // deals' scripted one. Unknown dates drop the clause instead of guessing.
+    stepTwoBody: (merchant: string, area: string, deadline?: string) =>
+      `Head to ${merchant} in ${area} anytime before the deal expires${deadline ? ` on ${deadline}` : ''}.`,
+    seedDeadline: '20 Sep',
     address: 'Plot 412, Apo Resettlement',
     stepThreeTitle: 'Show Your Claim',
     stepThreeBody:
@@ -666,6 +757,8 @@ export const strings = {
       description:
         "Choose how you'd like to reach out to inquire, make reservations, or coordinate redemption.",
       inAppChat: 'In-App Chat',
+      openerFor: (dealTitle: string) =>
+        `Hi, I'd like to ask about my voucher for ${dealTitle}.`,
       recommended: 'Recommended',
       chatReplyTime: 'Typical reply in under 5 mins',
       whatsapp: 'Chat on WhatsApp',
@@ -801,8 +894,6 @@ export const strings = {
       'All filtered results support instant contactless discount verification at checkout.',
     showDeals: (n: number) => `Show ${n} Deals`,
     showingNear: (area: string) => `Showing deals near ${area}`,
-    foodDrinks: 'Food & Drinks',
-    beautySpa: 'Beauty & Spa',
   },
   discoverFeed: {
     headerTitle: 'Discover',
@@ -824,7 +915,9 @@ export const strings = {
       'Supermarkets',
       'Services',
     ],
-    spotlightDiscoveries: 'Spotlight Discoveries (42)',
+    spotlightDiscoveries: (count: number) => `Spotlight Discoveries (${count})`,
+    noBusinessesTitle: 'No businesses found',
+    noBusinessesBody: 'Try adjusting your category filter or search term.',
     realTimePerks: 'Real-time Perks',
     enrollmentPrompt: 'Own a local store or clinic?',
     enrollmentLink: 'Set up your business on VEMTAP',
@@ -1879,12 +1972,25 @@ export const strings = {
   savedHub: {
     title: 'Saved Items Hub',
     searchPlaceholder: 'Search saved deals, businesses & items...',
+    /**
+     * Tab labels only. The counts on these tabs are live (`useSavedTotals`),
+     * so no designed figures live here — a hardcoded number in the strings
+     * file would be dead data that reads like a real one.
+     */
     filters: [
-      { label: 'All', count: 9 },
-      { label: 'Deals', count: 4 },
-      { label: 'Businesses', count: 3 },
-      { label: 'Services & Menu', count: 2 },
+      { label: 'All' },
+      { label: 'Deals' },
+      { label: 'Businesses' },
+      { label: 'Services & Menu' },
     ],
+    /** Live-state copy for the server-backed hub. */
+    noMatchesTitle: 'No matching saved items',
+    viewService: 'View Service',
+    businessBadgeFallback: 'Local Business',
+    verified: 'Verified',
+    expiredBadge: 'Expired',
+    fromPrice: (price: string) => `From ${price}`,
+    contactForPrice: 'Contact for price',
     expiresIn: 'Expires in 3 days',
     limitedVouchers: 'Limited Vouchers',
     wellnessSpa: 'Wellness & Spa',
@@ -1981,9 +2087,9 @@ export const strings = {
   customerDashboard: {
     greetingFor: (firstName: string) => `Hello, ${firstName} 👋`,
     greeting: 'Hello, Zainab 👋',
-    location: 'Apo, Abuja',
-    cart: 'Cart',
+    locationFor: (area: string) => `${area}, Abuja`,
     notifications: 'Notifications',
+    shop: 'Shop',
     account: 'Open account menu',
     campaign: 'FEATURED CAMPAIGN',
     weekend: 'Weekend Special',
@@ -1992,70 +2098,122 @@ export const strings = {
     exploreDeals: 'Explore Deals',
     activity: 'My Activity',
     sync: 'Real-time sync',
-    metrics: [
-      ['3', 'Active Deals'],
-      ['2,450', 'VEM Points'],
-      ['₦24.5k', 'Saved Total'],
-    ],
+    metrics: ['Active Deals', 'VEM Points', 'Saved Total'],
+    metricUnavailable: '—',
     quickActions: 'Quick Actions',
     actions: ['Explore', 'Rewards', 'Scan QR', 'Activity'],
     activeDeals: 'Your Active Deals',
     viewAllDeals: 'View All My Deals',
-    activeTwo: '2',
-    ready: 'Ready to Redeem',
-    confirmed: 'Confirmed',
-    showQr: 'Show QR',
-    slotReserved: 'Slot Reserved',
-    viewPass: 'View Pass',
+    activeEmpty: {
+      title: 'No active deals yet',
+      body: 'Claim a deal and it will show up here with its pass code.',
+    },
     rewards: 'Your Rewards',
     viewRewards: 'View Rewards',
     tierStatus: 'Tier Status',
-    gold: 'Gold Member • Tier 3',
+    // Rank is optional: the API's tier endpoint returns names + thresholds,
+    // not an ordinal, so callers render the name on its own when it has no rank.
+    tierFor: (name: string, rank?: number) =>
+      rank == null ? `${name} Member` : `${name} Member • Tier ${rank}`,
     balance: 'Balance',
-    progress: 'Progress to Platinum',
-    progressValue: '2,450 / 3,000 pts',
-    rewardsAvailable: '3 rewards available to unlock right now',
+    balanceFor: (points: string) => `${points} pts`,
+    progressTo: (tier: string) => `Progress to ${tier}`,
+    progressComplete: 'Highest tier reached',
+    progressValue: (current: string, next: string) => `${current} / ${next} pts`,
+    rewardsAvailableFor: (count: number) =>
+      count === 1
+        ? '1 reward available to unlock right now'
+        : `${count} rewards available to unlock right now`,
+    rewardsZero: 'No rewards available to unlock right now',
+    rewardsUnavailable: 'Rewards unavailable right now',
     claim: 'Claim',
     recent: 'Recent Activity',
     viewActivity: 'View Activity',
-    activityRows: [
-      ['Deal Claimed', 'Urban Grill & Bistro • Today, 10:42 AM', '+100 pts'],
-      [
-        'In-Store QR Redemption',
-        'Sole District Boutique • Yesterday, 4:15 PM',
-        'Saved ₦4,000',
-      ],
-      ['Review Submitted', 'Cafe Neo Artisan • Oct 14, 2:30 PM', '+50 pts'],
-    ],
+    activityTitles: {
+      earned: 'Points Earned',
+      spent: 'Points Spent',
+      expired: 'Points Expired',
+      manual: 'Points Adjustment',
+    },
+    activityDelta: (amount: string, debit: boolean) =>
+      `${debit ? '−' : '+'}${amount} pts`,
+    activityEmpty: {
+      title: 'No activity yet',
+      body: 'Points you earn and spend will show up here.',
+    },
     mayLike: 'Deals You May Like',
-    mayLikeBody: 'Based on your visits and dining taste in Apo',
-    exploreApo: 'Explore More Deals in Apo',
+    mayLikeBodyFor: (area: string) => `Based on your visits and dining taste in ${area}`,
+    recommendationsEmpty: {
+      title: 'No deals to suggest yet',
+      body: 'New offers from businesses around you will show up here.',
+    },
+    exploreAreaFor: (area: string) => `Explore More Deals in ${area}`,
     guarantee: 'VEMTAP Verified Local Guarantee',
   },
   myDealsHub: {
     title: 'My Deals',
-    searchAction: 'Search',
     filterAction: 'Filter',
-    account: 'Account',
     savings: 'Total Savings to Date',
-    savingsValue: '₦24,500',
     claimed: 'Claimed Deals',
-    claimedValue: '14 Total',
+    /** Live summary for the server-backed hub. */
+    claimedValueFor: (count: number) => `${count} Total`,
     search: 'Search your claimed deals, businesses...',
-    tabs: ['Active 3', 'Used 8', 'Expired 2', 'Gifted 1'],
+    /** Plain tab labels; live counts are supplied as badge props. */
+    tabLabels: ['Active', 'Used', 'Expired', 'Gifted'] as const,
+    emptyFor: (tab: string) => `${tab} deals appear here.`,
+    /** Search returned nothing — distinct from the tab being empty. */
+    noSearchMatch: (query: string) => `No deals match "${query}".`,
+    noSearchMatchHint: 'Try a deal, business or voucher code.',
     copy: 'Copy',
     code: 'Voucher:',
     showServer: 'Show QR code to your server prior to ordering.',
     useDeal: 'Use Deal',
     viewPass: 'View Pass',
-    viewBookingPass: 'View Booking Pass',
-    gifted: 'Gifted to Others',
-    viewAll: 'View All',
+    /** Effective claim statuses, straight from `GET /me/claims`. */
+    statusActive: 'READY TO REDEEM',
+    statusRedeemed: 'REDEEMED',
+    statusExpired: 'EXPIRED',
+    codeCopied: 'Copied!',
+    /** Countdown wording for a claimed pass (`Expires in …`). */
+    expiresInDays: (days: number, hours: number) => `Expires in ${days}d ${hours}h`,
+    expiresInHours: (hours: number) => `Expires in ${hours}h`,
+    expiresInMinutes: (minutes: number) => `Expires in ${minutes}m`,
+    redeemedOnValue: (date: string) => `Redeemed ${date}`,
     claimedBadge: 'Claimed',
-    receipt: 'Receipt',
     helpTitle: 'Need assistance redeeming?',
     helpBody:
       'Read our redemption guidelines or tap the business info on your pass to contact the manager directly.',
+    /**
+     * The Gifted tab's rows, from `GET /me/gifts`.
+     *
+     * `rejected` is a real outcome, not an error: the server keeps a declined
+     * gift for the sender's history while hiding it from the branch dashboard,
+     * so the row gets its own label rather than being dropped.
+     */
+    giftedCard: {
+      statusPending: 'Awaiting claim',
+      statusAccepted: 'Accepted',
+      statusRejected: 'Declined',
+      sentOn: (date: string) => `Sent ${date}`,
+      acceptedOn: (date: string) => `Accepted ${date}`,
+      note: (note: string) => `"${note}"`,
+      offerUnavailable: 'This deal is no longer available',
+      emptyTitle: 'Gifted to others',
+      emptyBody: 'Deals you gift to friends and family appear here.',
+    },
+    filterSheet: {
+      title: 'Sort deals',
+      sortSectionTitle: 'Sort by',
+      sortSectionSubtitle:
+        'Newest is how the list arrives. The other orders are applied to the tab you are viewing.',
+      sortNewest: 'Newest claimed',
+      sortExpiring: 'Expiring soonest',
+      sortPriceAsc: 'Price: low to high',
+      sortPriceDesc: 'Price: high to low',
+      reset: 'Reset',
+      apply: 'Apply',
+      statusNote: 'Status lives on the tabs above — this sheet only orders the list.',
+    },
   },
   claimedDealPass: {
     title: 'Claimed Deal Pass',
@@ -2063,7 +2221,13 @@ export const strings = {
     share: 'Share deal',
     more: 'More options',
     active: 'ACTIVE CLAIM • READY TO USE',
+    /** Live pass states (server `GET /me/claims` status). */
+    redeemedStatus: 'REDEEMED • PASS USED',
+    expiredStatus: 'EXPIRED',
     expires: 'Expires Oct 18, 2024 at 11:59 PM (in 2 days)',
+    expiresOnValue: (date: string) => `Expires ${date}`,
+    regularValue: (price: string) => `${price} Reg.`,
+    referenceFor: (code: string) => `#${code}`,
     saved: '20% Saved',
     business: 'Urban Grill & Bistro',
     deal: '20% Off Prime Lunch Gourmet Combo',
@@ -2124,17 +2288,45 @@ export const strings = {
   },
   messagesHub: {
     title: 'Messages',
-    unread: '1 unread',
+    unreadFor: (count: number) => `${count} unread`,
+    entryNameFallback: 'Business',
+    empty: {
+      title: 'No messages yet',
+      body: 'Message threads will show up here.',
+    },
+    emptyFiltered: {
+      title: 'No matching conversations',
+      body: 'Try a different filter or search.',
+    },
     searchPlaceholder: 'Search conversations, businesses...',
     search: 'Search',
     filter: 'Filter',
     filters: [
       'All Messages',
-      'Unread  1',
+      'Unread',
       'Deals & Inquiries',
       'Bookings & Orders',
     ] as const,
-    compose: 'Compose new message',
+    compose: 'New Conversation',
+    composeSheet: {
+      title: 'New Conversation',
+      businessLabel: 'Business',
+      businessFallback: 'Business',
+      noBusinesses: 'No businesses to message yet.',
+      subjectLabel: 'What is this about?',
+      subjects: {
+        general: 'General',
+        deal: 'Deal',
+        booking: 'Booking',
+        claim: 'Claim',
+        order: 'Order',
+      },
+      messageLabel: 'Message',
+      messagePlaceholder: 'Write your first message…',
+      send: 'Start conversation',
+      subjectHint:
+        'The topic files this conversation under the matching filter on your Messages list.',
+    },
     account: 'Account',
     entries: [
       {
@@ -2200,49 +2392,52 @@ export const strings = {
   },
   urbanConversation: {
     pageTitle: 'Conversation View',
+    /** Fallback when the thread has not resolved a branch name yet. */
     merchant: 'Urban Grill & Bistro',
     details: 'Share or details',
     replyStatus: 'Typically replies in < 5 mins • Open closes 10 PM',
+    openBusiness: 'Open business profile',
     callMerchant: 'Call Merchant',
     dealDetails: 'Deal Details',
     activeDeal: 'ACTIVE DEAL LINKED',
     closeDeal: 'Close linked deal',
-    dealTitle: '20% Off Prime Lunch Gourmet Combo',
-    dealPrice: '₦9,600',
-    regularPrice: '₦12,000',
-    save: 'Save ₦2,400',
+    saveAmountFor: (amount: string) => `Save ${amount}`,
     codeLabel: 'Code:',
-    code: 'VT-48F261',
     viewPass: 'View Pass',
-    date: 'Today, October 15',
-    timeOne: '10:38 AM',
-    timeTwo: '10:41 AM',
-    timeThree: '10:44 AM',
-    timeFour: '10:45 AM',
-    security:
-      'Messages are end-to-end encrypted with verified VEMTAP partner Urban Grill & Bistro. Your voucher passes and redemptions are protected.',
-    merchantOne:
-      'Hello Zainab! Thanks for connecting. How can we help you regarding your 20% Off Prime Lunch Combo reservation today?',
-    customerOne:
-      'Hi! I claimed the lunch voucher. Can we get outdoor patio seating for two people around 1:00 PM?',
-    merchantTwo:
-      "Absolutely! We've reserved a scenic garden patio table for you at 1:00 PM under your name Zainab Ahmed. 🌿",
-    merchantThree:
-      'Your voucher code VT-48F261 has been noted on the table ticket. Just present your QR code pass to your server before requesting the check! See you soon.',
-    table: 'Garden Table #08',
-    tableMeta: 'Lunch Combo • Confirmed',
+    /**
+     * Names the actual merchant rather than the one the copy shipped with, so
+     * the reassurance cannot contradict the header it sits under.
+     */
+    securityFor: (businessName: string) =>
+      `Messages are end-to-end encrypted with verified VEMTAP partner ${businessName}. Your voucher passes and redemptions are protected.`,
     quickReplies: [
       'Thanks, see you at 1! 👋',
       'How do I get there? 📍',
       'View My QR Pass 🎫',
       'Call Restaurant 📞',
     ] as const,
-    attachment: 'Add photos or documents',
-    inputLabel: 'Message Urban Grill & Bistro',
-    placeholder: 'Message Urban Grill & Bistro...',
+    /** Small tray; the same emoji set the deal comments composer uses. */
+    emojiReactions: ['❤️', '🔥', '👏', '😍', '🤤', '👍', '🎉', '🙏'] as const,
+    attachment: 'Add a photo',
+    uploading: 'Uploading photo…',
+    photoAttached: 'Photo attached — add a caption or send.',
+    inputLabel: 'Message',
+    placeholder: 'Message...',
     emoji: 'Emoji picker',
-    camera: 'Attach receipt or photo',
+    addEmoji: (emoji: string) => `Add ${emoji}`,
+    camera: 'Take a photo',
+    photo: 'Photo',
+    sending: 'Sending…',
     send: 'Send message',
+    moreSheet: {
+      title: 'Conversation',
+      viewBusiness: 'View business profile',
+      callBusiness: 'Call business',
+      copyNumber: 'Copy business number',
+      share: 'Share conversation',
+      copied: 'Business number copied',
+    },
+    shareMessage: 'Chat with this business on VEMTAP.',
   },
   ordersHub: {
     title: 'Orders And Bookings',
@@ -2250,13 +2445,13 @@ export const strings = {
     ordersTab: 'Orders',
     messagesTab: 'Messages',
     moreTab: 'More',
-    orders: 'Orders (3)',
+    orders: 'Orders',
     bookingsTab: 'Bookings (2)',
     nextBooking: 'Next Booking',
     nextBookingMerchant: 'Glow & Serenity Spa',
     nextBookingDate: 'Thu, Oct 17 • 1:15 PM',
     view: 'View',
-    orderFilters: ['Active (1)', 'Completed (4)', 'Cancelled', 'Refunded'] as const,
+    orderFilters: ['Active', 'Completed', 'Cancelled', 'Refunded'] as const,
     bookingFilters: ['Upcoming (1)', 'Completed (3)', 'Cancelled'] as const,
     preparing: 'Preparing',
     cooking: 'Cooking in kitchen',
@@ -2306,6 +2501,8 @@ export const strings = {
     groomingTotal: '₦9,500',
     bookings: {
       upcoming: 'Upcoming',
+      cancelled: 'Cancelled',
+      duration: 'Duration',
       addCalendar: 'Add to Calendar',
       directions: 'Get Directions',
       completed: 'Completed',
@@ -2313,7 +2510,32 @@ export const strings = {
       service: 'Deep Hydration Radiance Facial',
       serviceBody: 'Includes botanical peel & cryo-lymphatic massage session.',
       deposit: 'Deposit Paid (₦10,000)',
+      merchantFallback: 'Appointment',
     },
+    orderNumberLabel: 'Order #',
+    orderTotalLabel: 'Total',
+    orderMerchantFallback: 'Merchant',
+    orderItemFallback: 'Item',
+    /** Wire status → chip/card copy. Keys match `CatalogueOrderStatus`. */
+    orderStatusLabels: {
+      new: 'New',
+      processing: 'Preparing',
+      completed: 'Completed',
+      cancelled: 'Cancelled',
+      rejected: 'Rejected',
+      refunded: 'Refunded',
+      partial_refund: 'Partially Refunded',
+    } as const,
+    orderDetailUnavailableTitle: 'Order not found',
+    orderDetailUnavailableBody:
+      'This order is no longer available. It may belong to another account or have been archived.',
+    orderNotStarted: 'Not started',
+    orderItemsCount: (count: number) => `${count} ${count === 1 ? 'item' : 'items'}`,
+    emptyOrdersTitle: 'No orders yet',
+    emptyOrdersBody: 'Your orders from local merchants will appear here.',
+    emptyBookingsTitle: 'No bookings yet',
+    emptyBookingsBody: 'Your table reservations and appointments will appear here.',
+    bookingRef: 'Booking ref',
     nav: ['Home', 'My Deals', 'Messages', 'Orders', 'More'] as const,
     home: 'Home',
     myDeals: 'My Deals',
@@ -2501,7 +2723,12 @@ export const strings = {
     editProfile: {
       title: 'Edit Profile',
       changePhoto: 'Change Photo',
-      photoHint: 'JPG, PNG or WEBP under 5MB',
+      photoHint: 'JPG, PNG or WEBP under 4MB',
+      photoPermissionTitle: 'Permission Required',
+      photoPermissionBody:
+        'Please allow access to your photos to upload a profile picture.',
+      avatarUpdated: 'Profile picture updated',
+      photoUploadFailed: 'Could not upload the photo. Please try again.',
       verifiedConsumer: 'Verified Consumer',
       activeSince: 'Active member since Sept 2024',
       level: 'Level 2',
@@ -2611,19 +2838,24 @@ export const strings = {
       exportStatement: 'Export Statement',
       timeframes: ['This Month', 'Last 3 Mo', 'All Time'] as const,
       lifetimeLabel: 'Total Lifetime Savings',
-      lifetimeTotals: ['₦48,500', '₦124,300', '₦289,750'] as const,
-      growthPill: '+18% vs last mo',
+      /** Rendered while the ledger, or a figure it feeds, is still loading. */
+      unknown: '—',
+      growthPill: (percent: number) =>
+        `${percent >= 0 ? '+' : ''}${percent}% vs last period`,
       dealsRedeemedLabel: 'Deals Redeemed',
-      dealsRedeemedValue: '14',
       dealsRedeemedUnit: 'deals',
       avgDiscountLabel: 'Avg Discount',
-      avgDiscountValue: '22%',
       avgDiscountUnit: 'off',
       pointsLabel: 'VEM Points',
-      pointsValue: '1,450',
       pointsUnit: 'pts',
       categoryTitle: 'Savings by Category',
-      categoryCount: '3 active categories',
+      categoryCount: (count: number) =>
+        `${count} active ${count === 1 ? 'category' : 'categories'}`,
+      noCategories: 'No savings in this period yet.',
+      redemptions: 'redemptions',
+      noRedemptions:
+        'No redeemed deals in this period yet. Savings appear here once a merchant redeems your pass.',
+      loadFailed: "Couldn't load your savings. Pull to retry.",
       categories: [
         {
           id: 'dining',
@@ -2654,7 +2886,7 @@ export const strings = {
         },
       ] as const,
       ledgerTitle: 'Transaction Ledger',
-      ledgerCount: '14 records',
+      ledgerCount: (total: number) => `${total} ${total === 1 ? 'record' : 'records'}`,
       ledger: 'Detailed History Ledger',
       seeAll: 'See All',
       vip: 'Abuja VIP',
@@ -2882,22 +3114,24 @@ export const strings = {
     phone: '+234 803 555 0192',
     email: 'zainab.ahmed@example.com',
     totalSaved: 'Total Saved',
-    totalSavedValue: '₦18,500',
     activeDeals: 'Active Deals',
-    activeDealsValue: '3 Live',
-    liveHub: 'Live Hub',
-    goToDashboard: 'Go to Customer Dashboard',
-    goToDashboardShort: 'Go to Dashboard',
-    goToDashboardBody: 'Overview of your claimed deals, savings & local activity',
+    /** Live count of the customer's active claims (`GET /me/claims`, status ACTIVE). */
+    activeDealsValueFor: (count: number) => `${count} Live`,
     activitySection: 'Activity & Deals',
+    dashboard: 'Dashboard',
+    dashboardMeta: 'Your personal hub overview',
+    messages: 'Messages',
+    messagesMeta: 'Chat with your merchants',
     myDeals: 'My Deals',
-    myDealsBadge: '3 Active',
+    /** Live count of active claims, shown as the My Deals row badge. */
+    myDealsBadgeFor: (count: number) => `${count} Active`,
     ordersBookings: 'Orders & Bookings',
-    ordersBookingsBadge: '1 Pending',
+    /** Live count of orders still open (status `new`/`processing`). */
+    ordersBookingsBadgeFor: (count: number) => `${count} Pending`,
     savingsHistory: 'Savings & Rewards History',
-    savingsHistoryBadge: '₦18,500',
     savedItems: 'Saved Items & Wishlist',
-    savedItemsBadge: '12 items',
+    /** Live count from the unified saved feed. */
+    savedItemsBadgeFor: (count: number) => `${count} Saved`,
     preferencesSection: 'Preferences & Settings',
     notifications: 'Notifications & Alerts',
     notificationsMeta: 'Push, WhatsApp, Email',
@@ -2915,54 +3149,36 @@ export const strings = {
     terms: 'Terms & Privacy Policy',
     ownBusiness: 'Own a business in Nigeria?',
     setUpBusiness: 'Set up your business on VEMTAP',
+    /** Dual-role owners: flip back to the merchant side. */
+    switchToBusiness: 'Switch to Business Mode',
     signOut: 'Sign Out',
     version: 'VEMTAP Consumer v2.4.0 • Made with pride in Abuja',
   },
+  /**
+   * Every row here comes off `GET /notifications`; the counts and section sizes
+   * are computed from those rows rather than written down, so a tab cannot show
+   * a number the list does not contain.
+   */
   notificationsCenter: {
     title: 'Notification Preferences',
     inbox: 'Inbox',
-    unread: '3 new',
     zeroNew: '0 new',
     allRead: 'Mark all as read',
     caughtUp: 'All caught up',
+    recent: 'Recent',
+    /** Order matches `FILTERS` in the screen: all first, then each category. */
     filters: ['All', 'Deals & Claims', 'Orders & Bookings', 'Rewards', 'System'] as const,
-    counts: ['3', '1', '1', '1', ''] as const,
+    /** Keyed by category so the chip row reads its own label, not an index. */
+    filterLabels: {
+      deals: 'Deals & Claims',
+      bookings: 'Orders & Bookings',
+      rewards: 'Rewards',
+      system: 'System',
+    } as const,
+    unreadFor: (count: number) => `${count} new`,
+    updatesFor: (count: number) => (count === 1 ? '1 update' : `${count} updates`),
     today: 'Today',
-    todayCount: '2 updates',
     earlier: 'Earlier This Week',
-    earlierCount: '3 updates',
-    expiryTitle: 'Deal Expiring Soon! ⏳',
-    expiryTime: '2h ago',
-    expiryBody:
-      'Your claimed 20% Off Lunch voucher at Urban Grill expires tomorrow at 11:59 PM. Show your pass at the counter.',
-    expiryMerchant: 'Urban Grill Apo',
-    expiryMeta: 'Valid until tomorrow',
-    expiryAction: 'Pass VT-48F261',
-    bookingTitle: 'Appointment Confirmed',
-    bookingTime: '5h ago',
-    bookingBody:
-      'Glow & Serenity Spa has reserved your 1:15 PM slot with Amara K. Valet parking is available at Maitama Heights.',
-    bookingMeta: 'Thu, 1:15 PM • Amara K.',
-    bookingLocation: 'Maitama Heights, Abuja',
-    bookingAction: 'View Booking',
-    giftTitle: 'Samuel sent you a Gift! 🎁',
-    giftDate: 'Oct 14',
-    giftBody:
-      'You received a free Artisan Cold Brew voucher from Cafe Neo. Tap to claim and add to your passes.',
-    giftMeta: 'Free Voucher from Samuel',
-    giftSubtitle: 'Cafe Neo • Valid for 7 days',
-    giftAction: 'Claim Gift',
-    rewardTitle: '+150 VEM Points Earned 🎉',
-    rewardDate: 'Oct 13',
-    rewardBody:
-      'Your points for order #VT-ORD-88219 have been credited to your rewards wallet. You are 350 pts away from Platinum!',
-    tierProgress: 'Tier Progress: Gold Member',
-    points: '650 / 1000 pts',
-    systemTitle: 'New Weekend Flash Deals in Apo',
-    systemDate: 'Oct 11',
-    systemBody:
-      'Discover 12 newly listed dining, bakery, and wellness deals around Apo District this weekend. Tap to browse curated map pins.',
-    systemLocation: 'Apo Legislative Quarters & District',
     caughtUpTitle: 'All caught up here!',
     caughtUpBody:
       'No notifications found in this category. We will alert you whenever new deals or updates drop.',
@@ -3030,6 +3246,12 @@ export const strings = {
     ] as const,
     alertTitle: '3 Actions Required',
     alertBody: '2 online orders \u00b7 1 POS awaiting kitchen',
+    /** Live copies once the order counts answer. */
+    alertTitleFor: (n: number) => `${n} Action${n === 1 ? '' : 's'} Required`,
+    alertBodyFor: (online: number, kitchen: number) =>
+      `${online} online order${online === 1 ? '' : 's'} \u00b7 ${kitchen} POS awaiting kitchen`,
+    emptyTitle: 'No orders yet',
+    emptyBody: 'New orders appear here in real time as customers check out.',
     orders: [
       {
         id: 'vg-94021',
@@ -3250,6 +3472,20 @@ export const strings = {
     markReady: 'Mark Ready',
     confirmPayment: 'Confirm Payment & Complete',
     adjustRefund: 'Adjust / Refund',
+    /** Live copies: catalogue orders have no payment state, only `completed`. */
+    completeOrder: 'Complete Order',
+    refundOrder: 'Refund Order',
+    itemsStatusFor: (status: string) =>
+      status === 'ready' || status === 'completed'
+        ? 'Kitchen Ready'
+        : status === 'new'
+          ? 'Awaiting kitchen'
+          : 'In Kitchen',
+    loyaltyAwardedHint: 'Loyalty points were awarded for this order',
+    refundConfirmTitle: 'Refund this order?',
+    refundConfirmBody: 'The full amount is refunded and any deducted stock is restored.',
+    refundConfirmCancel: 'Cancel',
+    refundConfirmAction: 'Refund',
     refundIssued: 'Refund flagged for review',
     orderDeclined: 'Order declined',
   },
@@ -3273,6 +3509,9 @@ export const strings = {
       { label: 'Cancelled', count: '(2)' },
     ] as const,
     summaryTitle: '5 Bookings Scheduled Today',
+    summaryTitleFor: (n: number) => `${n} Booking${n === 1 ? '' : 's'} Scheduled Today`,
+    emptyTitle: 'No bookings here yet',
+    emptyBody: 'Appointments your customers book will appear on this timeline.',
     summaryMetaLabel: 'Next appointment starts in',
     summaryMeta: '35 mins',
     summaryMetaHint: '(Room 2)',
@@ -3371,6 +3610,8 @@ export const strings = {
     ] as const,
     terminalName: 'POS Terminal 01 (Cashier Counter)',
     terminalStatus: 'Online \u00b7 0s Latency',
+    /** Badge on the terminal row when offline/held sales are waiting to sync. */
+    heldSalesFor: (n: number) => `${n} held sale${n === 1 ? '' : 's'}`,
     volumeLabel: 'Daily In-Store Volume',
     volumeValue: '\u20A6142,500',
     volumeMeta: '/ 12 transactions',
@@ -3441,18 +3682,32 @@ export const strings = {
     connected: 'Connected',
     connectedMeta: 'Instant customer sync active',
     hubBranch: 'Victoria Island Hub',
+    customerFallback: 'Customer',
+    emptyTitle: 'No conversations yet',
+    emptyBody: 'When a customer messages your branch, the conversation lands here.',
+    emptyFilteredTitle: 'No matching conversations',
+    emptyFilteredBody: 'Try another filter or search term.',
+    context: {
+      general: 'In-app chat',
+      deal: 'Deal',
+      claim: 'Claim',
+      order: 'Order',
+      booking: 'Booking',
+    },
     filters: [
-      { label: 'All', count: '(18)', icon: undefined, dot: false },
-      { label: 'Unread', count: '(4)', icon: undefined, dot: true },
-      { label: 'Orders', count: '(6)', icon: 'receipt', dot: false },
-      { label: 'Deals', count: '(5)', icon: 'localOffer', dot: false },
-      { label: 'Bookings', count: '(3)', icon: 'calendar', dot: false },
+      { label: 'All', icon: undefined, dot: false },
+      { label: 'Unread', icon: undefined, dot: true },
+      { label: 'Orders', icon: 'receipt', dot: false },
+      { label: 'Deals', icon: 'localOffer', dot: false },
+      { label: 'Bookings', icon: 'calendar', dot: false },
     ] as const,
     conversation: {
       transcriptLabel: 'Conversation transcript',
       contextLabel: 'About this thread',
       quickRepliesLabel: 'Quick replies',
       composerPlaceholder: 'Message the customer\u2026',
+      attachLabel: 'Add a photo',
+      cameraLabel: 'Take a photo',
       sendLabel: 'Send message',
       sendHint: 'Sends a direct in-app message',
       emptyTitle: 'No messages yet',
@@ -3462,222 +3717,7 @@ export const strings = {
         'Your voucher is ready to use.',
         'We can hold that for 30 minutes.',
       ] as const,
-      transcripts: {
-        sarah: {
-          intro: 'Thread opened from your Deals enquiry',
-          messages: [
-            {
-              id: 'sarah-1',
-              sender: 'customer' as const,
-              time: '10:32 AM',
-              text: 'Hi, is the 20% lunch combo still available for 4 people today?',
-            },
-            {
-              id: 'sarah-2',
-              sender: 'merchant' as const,
-              time: '10:35 AM',
-              text: 'It is! Four vouchers are still unclaimed for today\u2019s service.',
-            },
-            {
-              id: 'sarah-3',
-              sender: 'customer' as const,
-              time: '10:39 AM',
-              text: 'Perfect. Can I claim two now and two when my sister arrives at 2pm?',
-            },
-            {
-              id: 'sarah-4',
-              sender: 'merchant' as const,
-              time: '10:42 AM',
-              text: 'Absolutely. Claim whenever you like \u2014 each voucher is valid until 4pm today.',
-            },
-          ],
-        },
-        michael: {
-          intro: 'Thread opened from your Orders inbox',
-          messages: [
-            {
-              id: 'michael-1',
-              sender: 'customer' as const,
-              time: '9:18 AM',
-              text: 'My ribeye order shows confirmed but I have not received the table confirmation.',
-            },
-            {
-              id: 'michael-2',
-              sender: 'merchant' as const,
-              time: '9:21 AM',
-              text: 'Let me check that for you \u2014 one moment.',
-            },
-            {
-              id: 'michael-3',
-              sender: 'merchant' as const,
-              time: '9:24 AM',
-              text: 'Found it: your table is held under the name James. Confirmation re-sent just now.',
-            },
-          ],
-        },
-        amaka: {
-          intro: 'Thread opened from your Products inbox',
-          messages: [
-            {
-              id: 'amaka-1',
-              sender: 'customer' as const,
-              time: 'Yesterday',
-              text: 'Do you restock the Glow Radiance Serum this month?',
-            },
-            {
-              id: 'amaka-2',
-              sender: 'merchant' as const,
-              time: 'Yesterday',
-              text: 'We do \u2014 a new batch lands on Thursday. I can reserve one for you.',
-            },
-            {
-              id: 'amaka-3',
-              sender: 'customer' as const,
-              time: 'Yesterday',
-              text: 'Yes please, reserve one for pickup.',
-            },
-          ],
-        },
-        chidi: {
-          intro: 'Thread opened from your Bookings inbox',
-          messages: [
-            {
-              id: 'chidi-1',
-              sender: 'customer' as const,
-              time: 'Yesterday',
-              text: 'I booked table for 4 on Saturday at 7:30pm \u2014 can I move it to 8pm?',
-            },
-            {
-              id: 'chidi-2',
-              sender: 'merchant' as const,
-              time: 'Yesterday',
-              text: '8pm is free. I have moved the booking and re-sent the confirmation.',
-            },
-          ],
-        },
-        tunde: {
-          intro: 'General enquiry from your storefront',
-          messages: [
-            {
-              id: 'tunde-1',
-              sender: 'customer' as const,
-              time: 'Mon',
-              text: 'What are your opening hours on public holidays?',
-            },
-            {
-              id: 'tunde-2',
-              sender: 'merchant' as const,
-              time: 'Mon',
-              text: 'We open 11am\u201310pm on public holidays, same as weekends.',
-            },
-          ],
-        },
-        halima: {
-          intro: 'Thread opened from your Bookings inbox',
-          messages: [
-            {
-              id: 'halima-1',
-              sender: 'customer' as const,
-              time: 'Oct 14',
-              text: 'I need to reschedule my Swedish massage to Thursday at 5:15pm.',
-            },
-            {
-              id: 'halima-2',
-              sender: 'merchant' as const,
-              time: 'Oct 14',
-              text: 'Done \u2014 you are booked for Thursday 5:15pm with Amina.',
-            },
-            {
-              id: 'halima-3',
-              sender: 'customer' as const,
-              time: 'Oct 14',
-              text: 'Thank you, see you then.',
-            },
-          ],
-        },
-      } as const,
     },
-    threads: [
-      {
-        id: 'sarah',
-        name: 'Sarah Adams',
-        time: '10:42 AM',
-        contextIcon: 'localOffer',
-        contextTone: 'discount',
-        context: 'Deal \u00b7 20% Lunch Combo',
-        preview:
-          'Hi, is the 20% lunch combo discount still available for 4 people today?',
-        outbound: false,
-        unread: 2,
-        online: true,
-        avatarAlt: 'Warm smiling businesswoman in a navy blazer in an upscale office',
-      },
-      {
-        id: 'michael',
-        name: 'Michael James',
-        time: '9:24 AM',
-        contextIcon: 'receipt',
-        contextTone: 'brand',
-        context: 'Order #VG-94021 \u00b7 Ribeye Steak',
-        preview: 'Your order is packed and ready for counter pickup!',
-        outbound: true,
-        unread: 0,
-        online: false,
-        avatarAlt: 'Young male professional in a smart casual outfit',
-      },
-      {
-        id: 'amaka',
-        name: 'Amaka Beauty & Wellness',
-        time: 'Yesterday',
-        contextIcon: 'inventory',
-        contextTone: 'brand',
-        context: 'Product \u00b7 Glow Radiance Serum',
-        preview: 'Do you have the 100ml bottle available in your Wuse II store?',
-        outbound: false,
-        unread: 1,
-        online: true,
-        avatarAlt: 'Stylish woman in a light blazer outside a storefront',
-      },
-      {
-        id: 'chidi',
-        name: 'Dr. Chidi Okafor',
-        time: 'Yesterday',
-        contextIcon: 'eventAvailable',
-        contextTone: 'neutral',
-        context: 'Booking \u00b7 Table Reservation (Sat 7:30 PM)',
-        preview: 'I would like to confirm our anniversary table booking for Saturday.',
-        outbound: true,
-        unread: 0,
-        online: false,
-        avatarAlt: 'Man in a blue suit smiling at the camera',
-      },
-      {
-        id: 'tunde',
-        name: 'Tunde Bakare',
-        time: 'Mon',
-        contextIcon: 'help',
-        contextTone: 'neutral',
-        context: 'General Inquiry',
-        preview: 'Yes, we accept direct bank transfers at the counter.',
-        outbound: true,
-        unread: 0,
-        online: false,
-        avatarAlt: 'Man in a light blue shirt outdoors',
-      },
-      {
-        id: 'halima',
-        name: 'Halima Yusuf',
-        time: 'Oct 14',
-        contextIcon: 'spa',
-        contextTone: 'neutral',
-        context: 'Booking \u00b7 Swedish Massage',
-        preview: 'Can I reschedule my 5:15 PM appointment to Thursday?',
-        outbound: false,
-        unread: 1,
-        online: false,
-        avatarAlt: 'Woman in a pink top receiving a wellness treatment',
-      },
-    ] as const,
   },
   businessHub: {
     title: 'Business Hub',
@@ -3915,17 +3955,6 @@ export const strings = {
     signOut: 'Sign Out of Business',
     buildFootnote: 'VEMTAP Business OS \u00b7 Version 2.4.0 (Build 9042)',
     complianceFootnote: 'NDPR Compliant \u00b7 ISO-27001 Certified Security',
-  },
-  personalHubShell: {
-    tabs: {
-      home: 'Home',
-      myDeals: 'My Deals',
-      messages: 'Messages',
-      orders: 'Orders',
-      more: 'More',
-    },
-    myDealsBadge: 3,
-    messagesBadge: 1,
   },
   businessIntelligence: {
     actions: {
@@ -4656,6 +4685,24 @@ export const strings = {
     posAmount: '\u20A6312,400.00',
     activityTitle: "Today's Activity",
     activityBadge: '4 require action',
+    /** Live-count copy: shown instead of the static rows when the API answers. */
+    activityOrdersTitle: (n: number) => `${n} New Order${n === 1 ? '' : 's'}`,
+    activityMessagesTitle: (n: number) => `${n} Unread Message${n === 1 ? '' : 's'}`,
+    activityClaimsTitle: (n: number) => `${n} Deal Claim${n === 1 ? '' : 's'} Pending`,
+    activityBadgeFor: (n: number) => `${n} require action`,
+    posTxnsFor: (n: number) => `${n} txns`,
+    ordersVolumeSuffix: ' vol',
+    /** Live copies for values that come from the dashboard payload. */
+    overviewMetaFor: (age: string) => `Updated ${age} · Real-time sync`,
+    weekChartPeakFor: (label: string) => `Peak: ${label}`,
+    activityDevicesTitle: (n: number) => `${n} Device${n === 1 ? '' : 's'} Need Sync`,
+    activityDevicesBody: 'Changes waiting to sync from a branch device',
+    recommendationsCta: 'Boost Deal Now',
+    recommendationsHighBadge: 'High priority',
+    growthTrialFor: (days: number) =>
+      `Growth Trial \u00b7 ${days} day${days === 1 ? '' : 's'} left`,
+    /** Metric tile value when the backend answered without that stat. */
+    emptyValue: '—',
     activity: [
       {
         id: 'orders',
@@ -6851,6 +6898,14 @@ export const strings = {
     headerTitle: 'Notification Center',
     markAllRead: 'Mark all as read',
     unreadLabel: '2 unread alerts',
+    /** Relative-time labels for the feed. `%s` is the count. */
+    justNow: 'Just now',
+    minutesAgo: '%sm ago',
+    hoursAgo: '%sh ago',
+    daysAgo: '%sd ago',
+    recentTime: 'Recently',
+    /** Shown when a row carries no CTA of its own. */
+    defaultCta: 'View details',
     tabs: {
       all: 'All',
       orders: 'Orders & POS',
@@ -6869,6 +6924,7 @@ export const strings = {
       feedback: 'Customer Feedback',
       billing: 'Billing & Subscription',
       sync: 'Till Sync & Hardware',
+      system: 'System & Account',
     } as const,
     emptyTitle: 'All caught up here!',
     emptyBody:
@@ -10362,6 +10418,28 @@ export const strings = {
     addBranch: '+ Add New Branch',
     liveSuffix: '(Live)',
     branches: businessBranchList,
+  },
+  /**
+   * New copy for the live merchant profile: the bundled Discover businesses all
+   * carry a rating and an "N active deals" line, and neither has a public
+   * source, so both are omitted rather than filled with a plausible number.
+   */
+  businessProfile: {
+    verified: 'Verified',
+    active: 'Active',
+    imageAlt: (name: string, category: string) =>
+      category ? `${name} — ${category}` : name,
+    /** New copy: the bundled businesses always resolve, so there is no designed failure state. */
+    unavailableBody: 'This business is not available right now. Try again later.',
+  },
+  dealDetail: {
+    /**
+     * New copy: the Stitch detail screens always showed a resolved offer, so
+     * there is no designed "gone" state. Kept to one sentence and paired with
+     * the existing `errors.notFound` / `errors.server` titles.
+     */
+    unavailableBody:
+      'This offer is no longer available. Browse nearby deals to find something else.',
   },
   errors: {
     network: 'Network error. Check your connection.',

@@ -28,7 +28,9 @@ export function NearbyDealListCard({
   onOpenDetail,
 }: NearbyDealListCardProps) {
   const liked = deal.liked === true;
-  const likeCount = deal.likes + (liked ? 1 : 0);
+  // Count comes from the engagement cache only — never +1 for `liked`, or a
+  // like would show twice (cache already includes this user's reaction).
+  const likeCount = deal.likes;
 
   return (
     <Pressable

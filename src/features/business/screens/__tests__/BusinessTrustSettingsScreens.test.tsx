@@ -11,7 +11,6 @@ import { SwitchToCustomerScreen } from '@features/business/screens/SwitchToCusto
 import {
   billingAddOns,
   billingHistory,
-  businessNotifications,
   businessReviews,
   knowledgeBase,
   settingsDispatchGroups,
@@ -23,6 +22,59 @@ import {
   verificationPerks,
   verificationPillars,
 } from '@features/business/data/businessTrustSettingsData';
+
+// The feed is API-driven now, so the centre renders whatever the backend sent
+// rather than a design list. These stand in for that response: one row per
+// category the mapper knows about, plus a stat block on one of them.
+const feedRows = [
+  {
+    id: 'notif-deal',
+    title: 'Deal Velocity Spiking',
+    message: '14 claims in the last 2h, against 10 at the same time last week.',
+    type: 'deal_spike',
+    isRead: false,
+    createdAt: new Date().toISOString(),
+    metadata: {
+      stat: { label: 'Claims in 2h', value: '14', trend: '+40% vs last week' },
+      cta: 'View Deals',
+    },
+  },
+  {
+    id: 'notif-pos',
+    title: 'Shift Closed',
+    message: 'Closed with ₦342,850.00 in gross sales.',
+    type: 'pos_shift',
+    isRead: false,
+    createdAt: new Date().toISOString(),
+    metadata: null,
+  },
+  {
+    id: 'notif-billing',
+    title: 'Growth Plan Renews in 5 Days',
+    message: 'Your subscription renews on Oct 25.',
+    // 'subscription' is what the mapper classifies as billing, which is the
+    // category this row is the sole member of.
+    type: 'subscription',
+    isRead: true,
+    createdAt: new Date().toISOString(),
+    metadata: null,
+  },
+];
+
+const mockBusinessFeed = jest.fn();
+
+jest.mock('@features/accountHub/hooks/useNotifications', () => ({
+  useBusinessNotifications: () => mockBusinessFeed(),
+  useMarkNotificationRead: () => ({ mutate: jest.fn() }),
+  useMarkAllNotificationsRead: () => ({ mutate: jest.fn() }),
+}));
+
+beforeEach(() => {
+  mockBusinessFeed.mockReset();
+  mockBusinessFeed.mockReturnValue({
+    data: { data: feedRows, total: feedRows.length, unreadCount: 2, page: 1, limit: 20 },
+  });
+});
 
 afterEach(cleanup);
 
@@ -47,10 +99,36 @@ describe('business notifications center', () => {
     copy.categories.forEach(category => {
       expect(view.getAllByLabelText(category.label).length).toBeGreaterThan(0);
     });
-    businessNotifications.forEach(item => {
-      expect(view.getAllByLabelText(item.title).length).toBeGreaterThan(0);
+    // Rows come from the API now, so what must appear is what it sent.
+    feedRows.forEach(row => {
+      expect(view.getAllByLabelText(row.title).length).toBeGreaterThan(0);
     });
     expect(view.getByText(copy.dispatchTitle)).toBeTruthy();
+  });
+
+  it('shows the stat block only on the rows that carry one', async () => {
+    const view = await render(<BusinessNotificationsCenterScreen />);
+
+    // The deal row sent metadata; the POS and billing rows did not.
+    expect(view.getAllByText('Claims in 2h').length).toBeGreaterThan(0);
+    expect(view.getAllByText('+40% vs last week').length).toBeGreaterThan(0);
+    expect(view.getAllByText('View Deals').length).toBeGreaterThan(0);
+  });
+
+  it('counts unread from the server so the badge cannot drift from the list', async () => {
+    mockBusinessFeed.mockReturnValue({
+      data: {
+        data: feedRows,
+        total: feedRows.length,
+        unreadCount: 7,
+        page: 1,
+        limit: 20,
+      },
+    });
+    const view = await render(<BusinessNotificationsCenterScreen />);
+
+    // Two of the three rows above are unread, so a local count would read 2.
+    expect(view.getByText(copy.unreadLabel.replace('2', '7'))).toBeTruthy();
   });
 
   it('filters the feed by category and opens an alert', async () => {
@@ -66,11 +144,16 @@ describe('business notifications center', () => {
     await pressAndSettle(view, copy.tabs.system);
     expect(onOpenCategory).toHaveBeenCalledWith('system');
 
-    await pressAndSettle(view, businessNotifications[3].title);
-    expect(onOpenNotification).toHaveBeenCalledWith(businessNotifications[3].id);
+    // Only the billing row lands in "system", so it is the one still on screen
+    // after the filter. Tapping a row hidden by the filter would prove nothing.
+    await pressAndSettle(view, feedRows[2].title);
+    expect(onOpenNotification).toHaveBeenCalledWith(feedRows[2].id);
   });
 
-  it('marks every alert as read', async () => {
+  it('shows the empty state once every row is read', async () => {
+    mockBusinessFeed.mockReturnValue({
+      data: { data: [], total: 0, unreadCount: 0, page: 1, limit: 20 },
+    });
     const onMarkAllRead = jest.fn();
     const view = await render(
       <BusinessNotificationsCenterScreen onMarkAllRead={onMarkAllRead} />,
@@ -79,7 +162,9 @@ describe('business notifications center', () => {
     await pressAndSettle(view, copy.markAllRead);
 
     expect(onMarkAllRead).toHaveBeenCalledTimes(1);
-    expect(view.getByText(copy.emptyTitle)).toBeTruthy();
+    // Twice by design: the summary line reads emptyTitle when nothing is
+    // unread, and the list itself renders the EmptyState with the same copy.
+    expect(view.getAllByText(copy.emptyTitle).length).toBeGreaterThan(0);
   });
 });
 
@@ -359,6 +444,23 @@ describe('switch to customer', () => {
       expect(view.getByText(card.hint)).toBeTruthy();
     });
     expect(view.getByText(copy.footer)).toBeTruthy();
+  });
+
+  it('shows the logged-in business and customer identity when provided', async () => {
+    const view = await render(
+      <SwitchToCustomerScreen
+        merchantName="Ada's Kitchen"
+        customerName="Ada Obi"
+        customerMeta="ada.obi@example.com"
+      />,
+    );
+
+    expect(view.getByText("Ada's Kitchen")).toBeTruthy();
+    expect(view.getByText('Ada Obi')).toBeTruthy();
+    expect(view.getByText('ada.obi@example.com')).toBeTruthy();
+    // Design placeholders are replaced, not duplicated.
+    expect(view.queryByText(copy.fromName)).toBeNull();
+    expect(view.queryByText(copy.toName)).toBeNull();
   });
 
   it('confirms the switch, stays in business and opens the deal', async () => {

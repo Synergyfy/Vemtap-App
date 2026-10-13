@@ -43,6 +43,25 @@ const tabs = copy.tabs.map(tab => ({
 /** 1 = full-bleed media cards, 2 = compact thumbnails, 3 = discovery + sheet. */
 export type CentralDealsLayout = 'hero' | 'compact' | 'discovery';
 
+/** Row shape the deals list renders; either live-mapped or prototype copy. */
+export interface CentralDealRow {
+  id: string;
+  title: string;
+  subtitle: string;
+  discount: string;
+  wasPrice: string;
+  price: string;
+  branches: string;
+  status: string;
+  schedule: string;
+  branches2?: string;
+  logistics: string;
+  claims: number | string;
+  redeemed: number | string;
+  conversion: number | string;
+  percent: number | string;
+}
+
 export interface CentralDealsManagementScreenProps {
   layout?: CentralDealsLayout;
   onNotifications?: () => void;
@@ -56,10 +75,12 @@ export interface CentralDealsManagementScreenProps {
   onDealActions?: (dealId: string) => void;
   onViewLedger?: () => void;
   onOpenDeal?: (dealId: string) => void;
+  /** Optional live deals from API. When provided, renders live data instead of prototype copy. */
+  deals?: CentralDealRow[];
 }
 
 interface DealCardProps {
-  deal: (typeof copy.variants)[number];
+  deal: CentralDealRow;
   imageUri: string;
   imageAlt: string;
   layout: CentralDealsLayout;
@@ -194,8 +215,8 @@ function DealCard({
 
           <BusinessProgressMeter
             label={`${deal.claims} · ${deal.redeemed}`}
-            value={deal.conversion}
-            percent={deal.percent}
+            value={String(Number(deal.conversion) || 0)}
+            percent={Number(deal.percent) || 0}
             tone={
               layout === 'discovery' && deal.id === 'cold-brew' ? 'tertiary' : 'primary'
             }
@@ -277,8 +298,8 @@ function DealCard({
 
       <BusinessProgressMeter
         label={`${deal.claims} · ${deal.redeemed}`}
-        value={deal.conversion}
-        percent={deal.percent}
+        value={String(Number(deal.conversion) || 0)}
+        percent={Number(deal.percent) || 0}
       />
 
       <View className="flex-row items-center gap-2">
@@ -327,6 +348,7 @@ export function CentralDealsManagementScreen({
   onDealActions,
   onViewLedger,
   onOpenDeal,
+  deals,
 }: CentralDealsManagementScreenProps) {
   const [tab, setTab] = useState('active');
   const [scope, setScope] = useState('wuse');
@@ -536,23 +558,44 @@ export function CentralDealsManagementScreen({
       ) : null}
 
       <View className="mt-3 gap-3">
-        {copy.variants.map(deal => {
-          const image = businessOpsImageById[deal.id] ?? businessOpsMedia.dealLunch;
-          return (
-            <DealCard
-              key={deal.id}
-              deal={deal}
-              imageUri={image.uri}
-              imageAlt={image.alt}
-              layout={layout}
-              onBoost={() => onBoostDeal?.(deal.id)}
-              onEdit={() => onEditDeal?.(deal.id)}
-              onPause={() => onPauseDeal?.(deal.id)}
-              onMore={isDiscovery ? () => setSheetDeal(deal.id) : undefined}
-              onOpen={() => onOpenDeal?.(deal.id)}
-            />
-          );
-        })}
+        {(() => {
+          const sourceDeals = deals?.length
+            ? deals.map(deal => ({
+                id: deal.id,
+                title: deal.title,
+                subtitle: deal.subtitle,
+                discount: deal.discount,
+                wasPrice: deal.wasPrice,
+                price: deal.price,
+                branches: deal.branches,
+                status: deal.status,
+                schedule: deal.schedule,
+                branches2: deal.branches2,
+                logistics: deal.logistics,
+                claims: deal.claims,
+                redeemed: deal.redeemed,
+                conversion: deal.conversion,
+                percent: deal.percent,
+              }))
+            : copy.variants;
+          return sourceDeals.map(deal => {
+            const image = businessOpsImageById[deal.id] ?? businessOpsMedia.dealLunch;
+            return (
+              <DealCard
+                key={deal.id}
+                deal={deal}
+                imageUri={image.uri}
+                imageAlt={image.alt}
+                layout={layout}
+                onBoost={() => onBoostDeal?.(deal.id)}
+                onEdit={() => onEditDeal?.(deal.id)}
+                onPause={() => onPauseDeal?.(deal.id)}
+                onMore={isDiscovery ? () => setSheetDeal(deal.id) : undefined}
+                onOpen={() => onOpenDeal?.(deal.id)}
+              />
+            );
+          });
+        })()}
       </View>
 
       {isCompact ? (

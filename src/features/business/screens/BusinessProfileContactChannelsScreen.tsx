@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { cssInterop } from 'nativewind';
@@ -44,6 +44,8 @@ export interface BusinessContactChannelsValue {
   whatsappAlerts: boolean;
 }
 
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export interface BusinessProfileContactChannelsScreenProps {
   onBack?: () => void;
   onComplete?: (value: BusinessContactChannelsValue) => void;
@@ -87,14 +89,33 @@ export function BusinessProfileContactChannelsScreen({
     }
   }, [onAddPresence]);
 
-  const value: BusinessContactChannelsValue = {
-    phone,
-    email,
-    website,
-    presences,
-    allowInAppChat: allowChat,
-    whatsappAlerts,
-  };
+  const value = useMemo<BusinessContactChannelsValue>(
+    () => ({
+      phone,
+      email,
+      website,
+      presences,
+      allowInAppChat: allowChat,
+      whatsappAlerts,
+    }),
+    [allowChat, email, phone, presences, website, whatsappAlerts],
+  );
+
+  // Phone feeds voucher verification; the email becomes the account identity
+  // and the invoices address on `register/owner` / `upgrade-to-owner`.
+  const phoneValid = phone.replace(/\D/g, '').length >= 7;
+  const emailValid = EMAIL_PATTERN.test(email.trim());
+  const blockingReason = !phoneValid
+    ? copy.contactChannels.phoneRequired
+    : !emailValid
+      ? copy.contactChannels.emailRequired
+      : null;
+  const canContinue = blockingReason === null;
+
+  const handleComplete = useCallback(() => {
+    if (!canContinue) return;
+    onComplete?.(value);
+  }, [canContinue, onComplete, value]);
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top', 'bottom']}>
@@ -268,9 +289,19 @@ export function BusinessProfileContactChannelsScreen({
       </ScrollView>
 
       <View className="gap-3 px-6 pb-6 pt-0">
+        {blockingReason ? (
+          <VemtapText
+            tone="secondary"
+            accessibilityRole="alert"
+            className="text-center text-caption"
+          >
+            {blockingReason}
+          </VemtapText>
+        ) : null}
         <PrimaryActionButton
           label={copy.contactChannels.complete}
-          onPress={() => onComplete?.(value)}
+          disabled={!canContinue}
+          onPress={handleComplete}
         />
         <TextActionButton
           label={copy.contactChannels.saveDraft}

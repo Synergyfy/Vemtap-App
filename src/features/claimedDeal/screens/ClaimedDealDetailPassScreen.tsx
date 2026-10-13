@@ -20,6 +20,8 @@ import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
 import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
 import { colors } from '@theme/colors';
+import { formatCurrency, formatWhen } from '@utils/formatters';
+import type { MyClaim } from '@api/claimApi';
 import { ClaimPassQrCode } from '../components/ClaimPassQrCode';
 
 cssInterop(View, { className: 'style' });
@@ -41,6 +43,12 @@ const region = {
 };
 
 export interface ClaimedDealDetailPassScreenProps {
+  /**
+   * The customer's claim row from `GET /me/claims`. When provided, the pass
+   * renders the real code, expiry, offer, prices and branch; the bundled demo
+   * (no claim) keeps the designed sample content.
+   */
+  claim?: MyClaim;
   onBack?: () => void;
   onShare?: () => void;
   onMore?: () => void;
@@ -53,6 +61,7 @@ export interface ClaimedDealDetailPassScreenProps {
 }
 
 export function ClaimedDealDetailPassScreen({
+  claim,
   onBack,
   onShare,
   onMore,
@@ -67,10 +76,42 @@ export function ClaimedDealDetailPassScreen({
   const me = useCurrentUserDisplay();
   const [copied, setCopied] = useState(false);
   const qrSize = Math.min(width - 104, 192);
+
+  const isActive = claim ? claim.status === 'ACTIVE' : true;
+  const statusLabel = claim
+    ? claim.status === 'ACTIVE'
+      ? copy.active
+      : claim.status === 'REDEEMED'
+        ? copy.redeemedStatus
+        : copy.expiredStatus
+    : copy.active;
+  const expiryLabel = claim
+    ? copy.expiresOnValue(formatWhen(claim.expiresAt))
+    : copy.expires;
+  const businessName = claim?.offer.businessName ?? copy.business;
+  const dealName = claim?.offer.name ?? copy.deal;
+  const address =
+    claim && (claim.offer.branchName || claim.offer.branchAddress)
+      ? [claim.offer.branchName, claim.offer.branchAddress].filter(Boolean).join(' • ')
+      : copy.address;
+  const priceLabel = claim ? formatCurrency(claim.offer.calculatedPrice) : copy.price;
+  const regularLabel = claim
+    ? copy.regularValue(formatCurrency(claim.offer.originalPrice))
+    : copy.regular;
+  const savings = claim ? claim.offer.originalPrice - claim.offer.calculatedPrice : 0;
+  const saveLabel =
+    claim && savings > 0 ? strings.deals.saveN(formatCurrency(savings)) : copy.save;
+  const discountLabel = claim
+    ? strings.deals.percentOff(claim.offer.discountPercent)
+    : copy.saved;
+  const reference = claim
+    ? copy.referenceFor(claim.id.slice(0, 8).toUpperCase())
+    : copy.reference;
+
   const copyCode = useCallback(() => {
-    Clipboard.setString(copy.code);
+    Clipboard.setString(claim?.claimCode ?? copy.code);
     setCopied(true);
-  }, []);
+  }, [claim?.claimCode]);
   const requestUse = useCallback(() => {
     Alert.alert(copy.useNow, copy.present, [
       { text: strings.common.cancel, style: 'cancel' },
@@ -101,19 +142,29 @@ export function ClaimedDealDetailPassScreen({
       >
         <View className="overflow-hidden rounded-card-lg bg-surface shadow-xl">
           <View className="flex-col justify-between gap-2 bg-surface-container-low p-4 sm:flex-row sm:items-center">
-            <View className="w-fit flex-row items-center gap-1.5 rounded-full bg-badge-discount-bg px-2 py-1">
-              <View className="h-2 w-2 rounded-full bg-badge-discount-text" />
+            <View
+              className={`w-fit flex-row items-center gap-1.5 rounded-full px-2 py-1 ${
+                isActive ? 'bg-badge-discount-bg' : 'bg-surface-container-high'
+              }`}
+            >
+              <View
+                className={`h-2 w-2 rounded-full ${
+                  isActive ? 'bg-badge-discount-text' : 'bg-text-secondary'
+                }`}
+              />
               <VemtapText
                 variant="labelSm"
-                className="font-sans-semibold uppercase tracking-wider text-badge-discount-text"
+                className={`font-sans-semibold uppercase tracking-wider ${
+                  isActive ? 'text-badge-discount-text' : 'text-text-secondary'
+                }`}
               >
-                {copy.active}
+                {statusLabel}
               </VemtapText>
             </View>
             <View className="min-w-0 flex-row items-center gap-1">
               <Icon name="hourglass" size={16} color={colors.tertiary} />
               <VemtapText variant="caption" tone="secondary">
-                {copy.expires}
+                {expiryLabel}
               </VemtapText>
             </View>
           </View>
@@ -131,24 +182,24 @@ export function ClaimedDealDetailPassScreen({
               <View className="absolute bottom-2 left-2 flex-row items-center gap-1 rounded-full bg-surface px-2 py-0.5">
                 <Icon name="fire" size={16} color={colors.primary} />
                 <VemtapText variant="labelSm" tone="brand" className="font-sans-semibold">
-                  {copy.saved}
+                  {discountLabel}
                 </VemtapText>
               </View>
             </View>
             <View>
               <View className="flex-row items-center gap-1">
                 <VemtapText variant="labelMd" className="font-sans-semibold">
-                  {copy.business}
+                  {businessName}
                 </VemtapText>
                 <Icon name="verified" size={16} color={colors.primary} />
               </View>
               <VemtapText variant="bodyMd" className="mt-0.5 font-sans-semibold">
-                {copy.deal}
+                {dealName}
               </VemtapText>
               <View className="mt-1 flex-row items-start gap-1">
                 <Icon name="pin" size={16} color={colors.primary} />
                 <VemtapText variant="caption" tone="secondary" className="min-w-0 flex-1">
-                  {copy.address}
+                  {address}
                 </VemtapText>
               </View>
             </View>
@@ -158,15 +209,15 @@ export function ClaimedDealDetailPassScreen({
                   {copy.discounted}
                 </VemtapText>
                 <VemtapText variant="labelMd" className="font-sans-bold text-primary">
-                  {copy.price}
+                  {priceLabel}
                 </VemtapText>
               </View>
               <View className="items-end">
                 <VemtapText variant="caption" tone="tertiary" className="line-through">
-                  {copy.regular}
+                  {regularLabel}
                 </VemtapText>
                 <VemtapText variant="labelSm" className="text-badge-discount-text">
-                  {copy.save}
+                  {saveLabel}
                 </VemtapText>
               </View>
             </View>
@@ -176,14 +227,22 @@ export function ClaimedDealDetailPassScreen({
             <View className="mx-4 flex-1 border-t-2 border-dashed border-outline" />
             <View className="-mr-3 h-6 w-6 rounded-full bg-background" />
           </View>
-          <PassCodes qrSize={qrSize} copied={copied} onCopy={copyCode} />
+          <PassCodes
+            qrSize={qrSize}
+            copied={copied}
+            onCopy={copyCode}
+            code={claim?.claimCode ?? copy.code}
+            showPin={!claim}
+          />
         </View>
-        <Button
-          label={copy.useNow}
-          labelVariant="labelMd"
-          leftIcon={<Icon name="checkCircle" size={18} color={colors.surface} />}
-          onPress={requestUse}
-        />
+        {isActive ? (
+          <Button
+            label={copy.useNow}
+            labelVariant="labelMd"
+            leftIcon={<Icon name="checkCircle" size={18} color={colors.surface} />}
+            onPress={requestUse}
+          />
+        ) : null}
         <View className="flex-row gap-2">
           <Button
             label={copy.chat}
@@ -208,9 +267,9 @@ export function ClaimedDealDetailPassScreen({
         </View>
         <DetailCard
           title={copy.verification}
-          badge={copy.reference}
+          badge={reference}
           rows={[
-            [copy.claimedOn, copy.claimedOnValue],
+            [copy.claimedOn, claim ? formatWhen(claim.claimedAt) : copy.claimedOnValue],
             [copy.holder, me.fullName],
             [copy.payment, copy.paymentValue],
             [copy.allocation, copy.personal],
@@ -355,24 +414,26 @@ export function ClaimedDealDetailPassScreen({
           </Pressable>
         </View>
       </ScrollView>
-      <View className="absolute inset-x-0 bottom-0 flex-row gap-2 border-t border-border bg-surface px-4 pb-2 pt-3">
-        <Button
-          label={copy.barcode}
-          variant="secondary"
-          labelVariant="labelSm"
-          fullWidth={false}
-          className="min-w-0 flex-1"
-          leftIcon={<Icon name="qrCodeScanner" size={17} color={colors.surfaceDark} />}
-          onPress={requestUse}
-        />
-        <Button
-          label={copy.useBarcode}
-          labelVariant="labelMd"
-          className="min-w-0 flex-[2]"
-          leftIcon={<Icon name="bolt" size={18} color={colors.surface} />}
-          onPress={requestUse}
-        />
-      </View>
+      {isActive ? (
+        <View className="absolute inset-x-0 bottom-0 flex-row gap-2 border-t border-border bg-surface px-4 pb-2 pt-3">
+          <Button
+            label={copy.barcode}
+            variant="secondary"
+            labelVariant="labelSm"
+            fullWidth={false}
+            className="min-w-0 flex-1"
+            leftIcon={<Icon name="qrCodeScanner" size={17} color={colors.surfaceDark} />}
+            onPress={requestUse}
+          />
+          <Button
+            label={copy.useBarcode}
+            labelVariant="labelMd"
+            className="min-w-0 flex-[2]"
+            leftIcon={<Icon name="bolt" size={18} color={colors.surface} />}
+            onPress={requestUse}
+          />
+        </View>
+      ) : null}
     </SafeAreaView>
   );
 }
@@ -381,10 +442,15 @@ function PassCodes({
   qrSize,
   copied,
   onCopy,
+  code,
+  showPin,
 }: {
   qrSize: number;
   copied: boolean;
   onCopy: () => void;
+  code: string;
+  /** The claim API exposes no cashier PIN; only the bundled demo shows one. */
+  showPin: boolean;
 }) {
   return (
     <View className="items-center gap-3 bg-surface-subtle p-4">
@@ -401,7 +467,7 @@ function PassCodes({
           </VemtapText>
           <View className="flex-row items-center gap-1">
             <VemtapText variant="labelMd" className="font-sans-bold">
-              {copy.code}
+              {code}
             </VemtapText>
             <Pressable
               accessibilityRole="button"
@@ -412,14 +478,16 @@ function PassCodes({
             </Pressable>
           </View>
         </View>
-        <View className="flex-1 items-center rounded-card bg-surface p-2">
-          <VemtapText variant="caption" tone="secondary">
-            {copy.cashierPin}
-          </VemtapText>
-          <VemtapText variant="labelMd" tone="brand" className="font-sans-bold">
-            {copy.pin}
-          </VemtapText>
-        </View>
+        {showPin ? (
+          <View className="flex-1 items-center rounded-card bg-surface p-2">
+            <VemtapText variant="caption" tone="secondary">
+              {copy.cashierPin}
+            </VemtapText>
+            <VemtapText variant="labelMd" tone="brand" className="font-sans-bold">
+              {copy.pin}
+            </VemtapText>
+          </View>
+        ) : null}
       </View>
       <VemtapText variant="caption" tone="secondary" className="text-center">
         {copy.present}

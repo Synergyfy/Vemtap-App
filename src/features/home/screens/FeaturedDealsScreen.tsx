@@ -3,17 +3,23 @@ import { Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { cssInterop } from 'nativewind';
 import { EmptyState } from '@components/shared/EmptyState';
+import { ErrorState } from '@components/shared/ErrorState';
+import { LoadingState } from '@components/shared/LoadingState';
+import { Avatar } from '@components/ui/Avatar';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
+import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
 import { EnrollmentPrompt } from '@components/home/EnrollmentPrompt';
 import { colors } from '@theme/colors';
 import { navbarBottomShadow } from '@theme/shadows';
 import { FeaturedDealsCard } from '@features/home/components/FeaturedDealsCard';
-import {
-  featuredListings,
-  type FeaturedListing,
-} from '@features/home/data/featuredDeals';
+import { type FeaturedListing } from '@features/home/data/featuredDeals';
+import { mapOfferToFeaturedListing } from '@features/home/utils/homeOfferMapper';
+import { usePublicOffersFeed } from '@features/deals/hooks/usePublicOffers';
+import { useSavedFeed, useToggleDealSave } from '@features/accountHub/hooks/useSavedHub';
+import { discoveryOrigin } from '@utils/geo';
+import { useLocationStore } from '@store/locationStore';
 
 cssInterop(View, { className: 'style' });
 cssInterop(Pressable, { className: 'style' });
@@ -42,8 +48,15 @@ function discountPercent(listing: FeaturedListing): number {
   return Math.round(((was - now) / was) * 100);
 }
 
+/**
+ * Metres when the origin is known. `null` (business without coordinates, or a
+ * signed-out user with no location) sorts last rather than pretending to be
+ * 0 km away.
+ */
 function distanceKm(listing: FeaturedListing): number {
-  return Number.parseFloat(listing.distance) || Number.MAX_SAFE_INTEGER;
+  return listing.distanceMeters == null
+    ? Number.MAX_SAFE_INTEGER
+    : listing.distanceMeters / 1000;
 }
 
 export interface FeaturedDealsScreenProps {
@@ -52,9 +65,7 @@ export interface FeaturedDealsScreenProps {
   onOpenFilters?: () => void;
   onOpenLocation?: () => void;
   onOpenRankingInfo?: () => void;
-  onToggleSave?: (dealId: string) => void;
   onOpenBusinessSetup?: () => void;
-  savedIds?: readonly string[];
   radiusKm?: number;
   maxDistanceKm?: number;
 }
@@ -73,18 +84,43 @@ export function FeaturedDealsScreen({
   onOpenFilters,
   onOpenLocation,
   onOpenRankingInfo,
-  onToggleSave,
   onOpenBusinessSetup,
-  savedIds = [],
   radiusKm = 10,
   maxDistanceKm = 10,
 }: FeaturedDealsScreenProps) {
+  const display = useCurrentUserDisplay();
   const [sort, setSort] = useState<SortKey>('closest');
   const [maxDistance, setMaxDistance] = useState<number>(maxDistanceKm);
 
+  const feed = usePublicOffersFeed(30);
+  // Saved state comes from the saved feed rather than a per-card status call:
+  // one request covers every card, and `useDealSave`'s client-only flag would
+  // show an already-saved deal as unsaved (and invert it on the next tap).
+  const savedDeals = useSavedFeed('DEAL');
+  const toggleDealSave = useToggleDealSave();
+  const savedIds = useMemo(
+    () =>
+      new Set(
+        (savedDeals.data?.data ?? [])
+          .filter(row => row.type === 'DEAL')
+          .map(row => row.item.offerId),
+      ),
+    [savedDeals.data],
+  );
+  const area = useLocationStore(state => state.area);
+  const coords = useLocationStore(state => state.coords);
+  const origin = useMemo(() => discoveryOrigin(area, coords), [area, coords]);
+  const liveListings = useMemo(
+    () => (feed.offers ?? []).map(offer => mapOfferToFeaturedListing(offer, origin)),
+    [feed.offers, origin],
+  );
+
   const listings = useMemo(() => {
-    const withinRange = featuredListings.filter(
-      listing => distanceKm(listing) <= maxDistance,
+    // A listing whose business has no coordinates has an unknown distance, not
+    // an infinite one — dropping those would empty the page for exactly the
+    // merchants we know least about. Sorting still puts them last.
+    const withinRange = liveListings.filter(
+      listing => listing.distanceMeters == null || distanceKm(listing) <= maxDistance,
     );
     const sorted = [...withinRange];
     if (sort === 'closest') {
@@ -100,7 +136,9 @@ export function FeaturedDealsScreen({
       sorted.sort((a, b) => a.id.localeCompare(b.id));
     }
     return sorted;
-  }, [maxDistance, sort]);
+    // `liveListings` was added when this page moved off its static array; without
+    // it here the list would stay frozen at its first (empty) render.
+  }, [liveListings, maxDistance, sort]);
 
   const openListing = useCallback((id: string) => onOpenDeal?.(id), [onOpenDeal]);
 
@@ -126,15 +164,9 @@ export function FeaturedDealsScreen({
               >
                 {copy.title}
               </VemtapText>
-              <View className="rounded-full bg-surface-tint px-1.5 py-0.5">
-                <VemtapText
-                  variant="caption"
-                  className="font-sans-semibold text-primary"
-                  numberOfLines={1}
-                >
-                  {copy.promoted}
-                </VemtapText>
-              </View>
+              {/* The design's "Promoted" pill is gone: this page now lists the
+                  general public feed, and the API publishes no sponsorship flag
+                  on an offer, so the label would claim something untrue. */}
             </View>
             <View className="flex-row items-center gap-1">
               <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
@@ -153,13 +185,13 @@ export function FeaturedDealsScreen({
           >
             <Icon name="tune" size={22} color={colors.textSecondary} />
           </Pressable>
-          <View
-            accessibilityRole="image"
+          <Avatar
+            name={display.fullName}
+            size="sm"
+            tone="brand"
+            className="shadow-sm"
             accessibilityLabel={copy.avatar}
-            className="h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary shadow-sm"
-          >
-            <Icon name="person" size={18} color={colors.surface} />
-          </View>
+          />
         </View>
       </SafeAreaView>
       <ScrollView
@@ -302,7 +334,13 @@ export function FeaturedDealsScreen({
         </View>
 
         <View className="gap-4 px-6 py-4">
-          {listings.length === 0 ? (
+          {/* Live feed now, so the page needs honest pending/failed states —
+              before this it rendered a hardcoded array that could never fail. */}
+          {feed.isLoading && listings.length === 0 ? (
+            <LoadingState label={strings.common.loading} />
+          ) : feed.isError && listings.length === 0 ? (
+            <ErrorState title={strings.common.error} onRetry={feed.refetch} />
+          ) : listings.length === 0 ? (
             <EmptyState
               variant="contained"
               title={copy.emptyTitle}
@@ -315,9 +353,9 @@ export function FeaturedDealsScreen({
               <FeaturedDealsCard
                 key={listing.id}
                 listing={listing}
-                saved={savedIds.includes(listing.id)}
+                saved={savedIds.has(listing.id)}
                 onOpen={openListing}
-                onToggleSave={onToggleSave}
+                onToggleSave={dealId => toggleDealSave.mutate(dealId)}
               />
             ))
           )}

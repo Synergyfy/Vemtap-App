@@ -446,6 +446,7 @@ export interface FieldInputProps {
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
   maxLength?: number;
   multiline?: boolean;
+  secureTextEntry?: boolean;
   tone?: 'subtle' | 'lowest';
   onTrailingIconPress?: () => void;
   className?: string;
@@ -461,10 +462,18 @@ export function FieldInput({
   leadingIcon,
   trailingIcon,
   trailingIconColor: trailingIconColorProp,
-  keyboardType,
+  /**
+   * `FieldInput` is the free-text field, so it opens the alphabet keyboard.
+   * It renders `BusinessNumberInput`, whose own default is `numeric` — passing
+   * `undefined` through would let that default win and raise a number pad under
+   * fields like "Business Name". Numeric callers still pass their own type
+   * (`numeric`, `phone-pad`, `email-address`).
+   */
+  keyboardType = 'default',
   autoCapitalize = 'sentences',
   maxLength,
   multiline = false,
+  secureTextEntry = false,
   tone = 'subtle',
   onTrailingIconPress,
   className,
@@ -496,6 +505,7 @@ export function FieldInput({
       autoCapitalize={autoCapitalize}
       maxLength={maxLength}
       multiline={multiline}
+      secureTextEntry={secureTextEntry}
       minHeight={multiline ? 96 : undefined}
       leadingIcon={
         leadingIcon ? (
@@ -652,6 +662,7 @@ export interface PrimaryActionButtonProps {
   label: string;
   onPress?: () => void;
   loading?: boolean;
+  disabled?: boolean;
   icon?: IconName;
   className?: string;
 }
@@ -660,6 +671,7 @@ export function PrimaryActionButton({
   label,
   onPress,
   loading = false,
+  disabled = false,
   icon = 'arrowForward',
   className,
 }: PrimaryActionButtonProps) {
@@ -668,6 +680,7 @@ export function PrimaryActionButton({
       label={label}
       labelVariant="labelMd"
       loading={loading}
+      disabled={disabled}
       onPress={onPress}
       className={className}
       rightIcon={<Icon name={icon} size={20} color={colors.surface} />}
@@ -735,7 +748,8 @@ export function SectionMetaRow({
 }
 
 export interface InlineImageCardProps {
-  uri: string;
+  /** Remote image. Omit for an empty slot — the card's own surface shows. */
+  uri?: string;
   /** Bundled asset source; wins over `uri` so local artwork never needs a network round trip. */
   source?: ImageSourcePropType;
   alt?: string;

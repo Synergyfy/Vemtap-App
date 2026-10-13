@@ -3,8 +3,6 @@ import {
   Clipboard,
   Image,
   Linking,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -18,6 +16,11 @@ import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { colors } from '@theme/colors';
 import { navbarBottomShadow } from '@theme/shadows';
+import {
+  composerLift,
+  composerPaddingBottom,
+  useKeyboardInset,
+} from '@features/merchantChat/hooks/useKeyboardInset';
 import type { AppStackParamList } from '@navigation/types';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'MerchantChat'>;
@@ -39,6 +42,10 @@ const merchantThumbnail = {
 export function MerchantChatScreen({ route, navigation }: Props) {
   const insets = useSafeAreaInsets();
   const streamRef = useRef<ScrollView>(null);
+  const { keyboardInset, dismissKeyboard } = useKeyboardInset();
+
+  const lift = composerLift(keyboardInset);
+  const isKeyboardOpen = keyboardInset > 0;
   const copyResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [draft, setDraft] = useState('');
   const [copied, setCopied] = useState(false);
@@ -91,10 +98,10 @@ export function MerchantChatScreen({ route, navigation }: Props) {
   }, []);
 
   return (
-    <KeyboardAvoidingView
-      className="flex-1 bg-surface-canvas"
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    // Lifted by the measured keyboard inset rather than a
+    // `KeyboardAvoidingView`, which cannot lift the composer where the window
+    // never resizes (iOS, and Android under Expo Go).
+    <View className="flex-1 bg-surface-canvas">
       <View
         style={[styles.header, { paddingTop: Math.max(insets.top, 8) + 8 }]}
         className="bg-surface-canvas px-6"
@@ -361,7 +368,16 @@ export function MerchantChatScreen({ route, navigation }: Props) {
 
       <View
         className="gap-2 bg-surface-canvas px-6 pt-2"
-        style={[navbarBottomShadow, { paddingBottom: Math.max(insets.bottom, 12) }]}
+        style={[
+          navbarBottomShadow,
+          {
+            // By exactly the keyboard's height, so the card's bottom edge rests
+            // directly on the keyboard.
+            marginBottom: lift > 0 ? lift : undefined,
+            // Inside the card, so the field keeps daylight above the keys.
+            paddingBottom: composerPaddingBottom(isKeyboardOpen, insets.bottom),
+          },
+        ]}
       >
         <ScrollView
           horizontal
@@ -396,6 +412,7 @@ export function MerchantChatScreen({ route, navigation }: Props) {
               accessibilityLabel={strings.merchantChat.messageLabel}
               value={draft}
               onChangeText={setDraft}
+              onBlur={dismissKeyboard}
               onSubmitEditing={sendMessage}
               placeholder={strings.merchantChat.messagePlaceholder}
               placeholderTextColor={colors.textTertiary}
@@ -426,7 +443,7 @@ export function MerchantChatScreen({ route, navigation }: Props) {
           </Pressable>
         </View>
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 

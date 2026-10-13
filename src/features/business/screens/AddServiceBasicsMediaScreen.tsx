@@ -26,10 +26,20 @@ import { colors } from '@theme/colors';
 cssInterop(Pressable, { className: 'style' });
 cssInterop(View, { className: 'style' });
 
+export type ServiceBasicsValue = {
+  title: string;
+  delivery: string;
+  description: string;
+  highlights: string[];
+  audience: string;
+  mainImage?: string;
+  galleryImages?: string[];
+};
+
 export interface AddServiceBasicsMediaScreenProps {
   onBack: () => void;
-  onNext: () => void;
-  onSaveDraft?: () => void;
+  onNext?: (value: ServiceBasicsValue) => void;
+  onSaveDraft?: (value: ServiceBasicsValue) => void;
 }
 
 export function AddServiceBasicsMediaScreen({
@@ -38,16 +48,31 @@ export function AddServiceBasicsMediaScreen({
   onSaveDraft,
 }: AddServiceBasicsMediaScreenProps) {
   const [title, setTitle] = useState<string>(serviceFlowDraft.title);
-  const [titleCount, setTitleCount] = useState(47);
+  const [description, setDescription] = useState<string>(serviceFlowDraft.description);
   const [delivery, setDelivery] = useState('in-salon');
   const [highlights, setHighlights] = useState(
     () => new Set(['Sensitive Skin Safe', 'Organic Botanicals']),
   );
   const [gender, setGender] = useState('all');
+  const [mainImage, _setMainImage] = useState<string | undefined>(
+    serviceFlowImages.cover.uri,
+  );
+  const [galleryImages, _setGalleryImages] = useState<string[]>(
+    serviceFlowImages.thumbnails.map(t => t.uri),
+  );
+
+  const currentValue: ServiceBasicsValue = {
+    title,
+    delivery,
+    description,
+    highlights: [...highlights],
+    audience: gender,
+    mainImage,
+    galleryImages,
+  };
 
   const handleTitleChange = (value: string) => {
     setTitle(value);
-    setTitleCount(value.length);
   };
 
   const toggleHighlight = (value: string) => {
@@ -63,13 +88,13 @@ export function AddServiceBasicsMediaScreen({
     <ServiceFlowPage
       title="Add Service   Step 1: Service Basics & Media"
       onBack={onBack}
-      onSaveDraft={onSaveDraft}
+      onSaveDraft={() => onSaveDraft?.(currentValue)}
       footer={
         <ServiceFlowFooter
           primaryLabel="Continue to Duration & Pricing"
-          onPrimary={onNext}
+          onPrimary={() => onNext?.(currentValue)}
           secondaryLabel="Save as Draft & Exit"
-          onSecondary={onSaveDraft}
+          onSecondary={() => onSaveDraft?.(currentValue)}
         />
       }
       contentContainerClassName="px-6 pb-10 pt-4"
@@ -101,8 +126,8 @@ export function AddServiceBasicsMediaScreen({
           </View>
           <View className="relative aspect-[4/3] w-full overflow-hidden rounded-card-lg bg-surface-container-high shadow-sm">
             <BusinessProductImage
-              source={{ uri: serviceFlowImages.cover.uri }}
-              alt={serviceFlowImages.cover.alt}
+              source={{ uri: mainImage }}
+              alt="Service cover photo"
               className="h-full w-full"
               resizeMode="cover"
             />
@@ -130,11 +155,11 @@ export function AddServiceBasicsMediaScreen({
             </Pressable>
           </View>
           <View className="flex-row gap-2">
-            {serviceFlowImages.thumbnails.map((image, index) => (
+            {galleryImages.map((uri, index) => (
               <ServiceMediaThumbnail
-                key={image.uri}
-                uri={image.uri}
-                alt={image.alt}
+                key={uri}
+                uri={uri}
+                alt={`Gallery image ${index + 1}`}
                 number={index + 1}
               />
             ))}
@@ -188,7 +213,7 @@ export function AddServiceBasicsMediaScreen({
               value={title}
               onChangeText={handleTitleChange}
               maxLength={80}
-              count={`${titleCount} / 80`}
+              count={`${title.length} / 80`}
               placeholder="e.g. 60 Min Classic Therapeutic Massage"
               hint="Be clear and descriptive so customers spot this immediately on search."
             />
@@ -285,7 +310,8 @@ export function AddServiceBasicsMediaScreen({
           <ServiceSection className="gap-3">
             <ServiceTextField
               label="Detailed Service Overview"
-              value={serviceFlowDraft.description}
+              value={description}
+              onChangeText={setDescription}
               placeholder="Describe what client experiences during this treatment..."
               multiline
             />

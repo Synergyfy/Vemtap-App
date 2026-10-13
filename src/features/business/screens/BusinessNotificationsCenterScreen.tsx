@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
-import { Icon } from '@components/ui/Icon';
+import { Icon, type IconName } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
 import { EmptyState } from '@components/shared/EmptyState';
@@ -12,12 +12,17 @@ import {
   BusinessIconWell,
 } from '@features/business/components/BusinessOpsPrimitives';
 import {
-  businessNotifications,
   notificationCategoryIcon,
   notificationToneIcon,
   notificationToneTile,
   type NotificationCategoryId,
 } from '@features/business/data/businessTrustSettingsData';
+import {
+  useMarkNotificationRead,
+  useMarkAllNotificationsRead,
+  useBusinessNotifications,
+} from '@features/accountHub/hooks/useNotifications';
+import { notificationStat, notificationText } from '@api/notificationsApi';
 
 const copy = strings.businessNotificationsCenter;
 
@@ -28,6 +33,101 @@ export interface BusinessNotificationsCenterScreenProps {
   onOpenCategory?: (categoryId: NotificationCategoryId) => void;
   onOpenNotification?: (notificationId: string) => void;
   onConfigureDispatch?: () => void;
+}
+
+/** One row of the venue feed, in the shape the design renders. */
+interface BusinessNotificationRow {
+  id: string;
+  kind: keyof typeof strings.businessNotificationsCenter.kinds;
+  icon: IconName;
+  iconTone: 'brand' | 'success' | 'tertiary' | 'secondary';
+  time: string;
+  title: string;
+  body: string;
+  /** Value is optional because `metadata.stat` is only loosely typed. */
+  stat?: { label?: string; value?: string; trend?: string };
+  footnote?: string;
+  cta: string;
+  unread: boolean;
+  categories: readonly NotificationCategoryId[];
+}
+
+/**
+ * The backend's `type` is a free varchar, so these are substring matches rather
+ * than an enum switch. Unknown types fall through to `info` instead of being
+ * dropped: a notification nobody classified is still a notification the venue
+ * needs to see.
+ */
+function rowKind(
+  type: string | null | undefined,
+): keyof typeof strings.businessNotificationsCenter.kinds {
+  const value = (type ?? '').toLowerCase();
+  if (value.includes('pos') || value.includes('shift')) return 'pos';
+  if (value.includes('feedback') || value.includes('rating')) return 'feedback';
+  if (value.includes('billing') || value.includes('subscription')) return 'billing';
+  if (value.includes('deal') || value.includes('spike') || value.includes('offer'))
+    return 'deal';
+  if (value.includes('sync')) return 'sync';
+  return 'system';
+}
+
+function rowIcon(type: string | null | undefined): IconName {
+  switch (rowKind(type)) {
+    case 'pos':
+      return 'pointOfSale';
+    case 'feedback':
+      return 'rateReview';
+    case 'billing':
+      return 'creditCard';
+    case 'deal':
+      return 'fire';
+    case 'sync':
+      return 'cloudDone';
+    default:
+      return 'announcement';
+  }
+}
+
+function rowTone(type: string | null | undefined): BusinessNotificationRow['iconTone'] {
+  const kind = rowKind(type);
+  if (kind === 'pos' || kind === 'sync') return 'success';
+  if (kind === 'deal') return 'tertiary';
+  if (kind === 'feedback') return 'secondary';
+  return 'brand';
+}
+
+function rowCategories(type: string | null | undefined): NotificationCategoryId[] {
+  const value = (type ?? '').toLowerCase();
+  const categories: NotificationCategoryId[] = [];
+  if (
+    value.includes('pos') ||
+    value.includes('order') ||
+    value.includes('shift') ||
+    value.includes('sync')
+  ) {
+    categories.push('orders');
+  }
+  if (value.includes('deal') || value.includes('spike') || value.includes('offer')) {
+    categories.push('campaigns');
+  }
+  if (value.includes('billing') || value.includes('subscription')) {
+    categories.push('system');
+  }
+  // Everything lands under "all"; an unmatched type still shows in the feed.
+  return ['all', ...categories];
+}
+
+/** "2h ago", "Yesterday" — a feed reads as recent-or-not, not as a timestamp. */
+function formatRelative(createdAt: string | null | undefined): string {
+  if (!createdAt) return copy.recentTime;
+  const then = new Date(createdAt).getTime();
+  if (Number.isNaN(then)) return copy.recentTime;
+  const minutes = Math.floor((Date.now() - then) / 60_000);
+  if (minutes < 1) return copy.justNow;
+  if (minutes < 60) return copy.minutesAgo.replace('%s', String(minutes));
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return copy.hoursAgo.replace('%s', String(hours));
+  return copy.daysAgo.replace('%s', String(Math.floor(hours / 24)));
 }
 
 /**
@@ -43,16 +143,54 @@ export function BusinessNotificationsCenterScreen({
   onOpenNotification,
   onConfigureDispatch,
 }: BusinessNotificationsCenterScreenProps) {
+  const markReadMutation = useMarkNotificationRead();
+  const markAllReadMutation = useMarkAllNotificationsRead();
+  const { data: feed } = useBusinessNotifications();
+
   const [category, setCategory] = useState<NotificationCategoryId>('all');
   const [readIds, setReadIds] = useState<string[]>([]);
 
+  // The feed is the venue's real events, not a design list of them. The
+  // fixture this screen was built against had a stat, a footnote and a CTA per
+  // row; the API carries that in `metadata`, so the mapping reads it from there
+  // and leaves the block out when a row has none — an empty container would be
+  // the design claiming a figure nobody sent.
+  const rows = useMemo<BusinessNotificationRow[]>(
+    () =>
+      (feed?.data ?? []).map(item => ({
+        id: item.id,
+        kind: rowKind(item.type),
+        icon: rowIcon(item.type),
+        iconTone: rowTone(item.type),
+        time: formatRelative(item.createdAt),
+        title: item.title,
+        body: item.message,
+        stat: notificationStat(item.metadata),
+        footnote: notificationText(item.metadata, 'footnote'),
+        cta: notificationText(item.metadata, 'cta') ?? copy.defaultCta,
+        unread: !item.isRead,
+        categories: rowCategories(item.type),
+      })),
+    [feed?.data],
+  );
+
   const visible =
-    category === 'all'
-      ? businessNotifications
-      : businessNotifications.filter(item => item.categories.includes(category));
-  const unread = businessNotifications.filter(
-    item => item.unread && !readIds.includes(item.id),
-  ).length;
+    category === 'all' ? rows : rows.filter(item => item.categories.includes(category));
+  // Trust the server's count: it is the same read the bell already shows, and
+  // deriving a second one here is how the badge and the list drift apart.
+  const unread = feed?.unreadCount ?? 0;
+
+  const categoryCounts = useMemo(() => {
+    // "all" already holds the total, so it is counted once up front rather than
+    // incremented per row below.
+    const counts: Record<string, number> = { all: rows.length };
+    for (const row of rows) {
+      for (const id of row.categories) {
+        if (id !== 'all') counts[id] = (counts[id] ?? 0) + 1;
+      }
+    }
+    return counts;
+  }, [rows]);
 
   return (
     <BusinessScreenLayout
@@ -80,7 +218,8 @@ export function BusinessNotificationsCenterScreen({
           accessibilityRole="button"
           accessibilityLabel={copy.markAllRead}
           onPress={() => {
-            setReadIds(businessNotifications.map(item => item.id));
+            markAllReadMutation.mutate();
+            setReadIds(rows.map(item => item.id));
             onMarkAllRead?.();
           }}
           className="min-h-9 shrink-0 flex-row items-center gap-1.5 rounded-full bg-surface-container px-3.5 py-1.5 active:scale-95"
@@ -102,7 +241,7 @@ export function BusinessNotificationsCenterScreen({
             key={item.id}
             label={item.label}
             icon={notificationCategoryIcon[item.id]}
-            count={item.count}
+            count={String(categoryCounts[item.id] ?? 0)}
             selected={item.id === category}
             onPress={() => {
               setCategory(item.id);
@@ -121,6 +260,7 @@ export function BusinessNotificationsCenterScreen({
               accessibilityRole="button"
               accessibilityLabel={item.title}
               onPress={() => {
+                markReadMutation.mutate(item.id);
                 setReadIds(ids => (ids.includes(item.id) ? ids : [...ids, item.id]));
                 onOpenNotification?.(item.id);
               }}

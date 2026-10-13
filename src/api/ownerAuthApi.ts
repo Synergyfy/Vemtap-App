@@ -80,6 +80,15 @@ export const ownerRegistrationSchema = z.object({
 export type OwnerRegistration = z.infer<typeof ownerRegistrationSchema>;
 
 /**
+ * Business fields the upgrade endpoint accepts. Credentials are not
+ * re-collected — the caller already has a session — but local-auth accounts
+ * must confirm their password.
+ */
+export type UpgradeToOwnerInput = Omit<OwnerRegistration, 'email' | 'password'> & {
+  password?: string;
+};
+
+/**
  * `check-status` is what an owner polls while waiting for admin approval.
  *
  * Only `exists` comes back when the account is unknown. For an account that does
@@ -169,6 +178,26 @@ export const ownerAuthApi = {
       {
         method: 'POST',
         url: '/auth/register/owner',
+        data: payload,
+        idempotencyKey: createIdempotencyKey(),
+        ...options,
+      },
+      sessionSchema,
+    );
+  },
+
+  /**
+   * Turn an already-authenticated customer into an owner in place. Keeps the
+   * customer side intact so the account can switch between both apps.
+   */
+  async upgradeToOwner(
+    payload: UpgradeToOwnerInput,
+    options: ApiRequestOptions = {},
+  ): Promise<Session> {
+    return requestValidated(
+      {
+        method: 'POST',
+        url: '/auth/upgrade-to-owner',
         data: payload,
         idempotencyKey: createIdempotencyKey(),
         ...options,

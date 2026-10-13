@@ -70,8 +70,6 @@ export type PopularProduct = {
   priceWas?: string;
 };
 
-const imgAvatar =
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuCg_httfgNB7CfMJOzfjKekJGnxgvueamRqqNg-Qyw7QV2HTVvlh6rZ845BYSp5dsQClaPlSKNd4B0_3aYGUcjlu-OUBeq56PilIeD6B9e1a0GFgvTtnkB0d8i16nw-kagt5rZUqAHNUNQUsH0WcGsyf8zaqNe1yx2Go9tQcdI6QPEzXRp2aZLqYGswotDnV391PXTZI3oVx9jzWC_ZogeqCUxsw3wWsr-xRkh4q33Ljntdo0P9MsadSA';
 const imgSteak =
   'https://lh3.googleusercontent.com/aida-public/AB6AXuBjiY_iENnE0_gULcgR0NDCqk6Kq3rgCPj9DF359T-LyeFJWB7z4VMHdARNHQeTTxaT4MiH_xMPLODviqw6_g4l50CwXnKwBrq6CQIuKBPTJ5PaasBnvsfniUvz2Oy9Vn5eguCjJ_CuTMKeUodWVLfHa5QV5UaTWJOtOFkXuzN4cYIDGKMq-sweeOEBfus9N8WLC_OkWiUkIw3S5qhnVtMq670laaL_UzGfesQ-k5inJfjattlJVEofGA';
 const imgSneaker =
@@ -92,8 +90,6 @@ const imgColdBrew =
   'https://lh3.googleusercontent.com/aida-public/AB6AXuAlu--zdTIFndoE_re3e7d2ZWRT66DCUwWSFuJ_o8tTQxAb-n4vobtrAVj0tyo4lLPedtoxx3qS4vmvz3MoB2zsrcJt2r7XjjvW1Mzru9aaFm58dRac7fc_d_jJMIA-Hx5RlFed4TJNLfUIa1skDV2Cbrw8XHr7kGIaA4VSxbk39Z6TP2toIFsK6OzNPVSdR90_BJVYtz6xG_ECuBhxw9Xmqix6DishY1dkDV84M8iyKggHLOkw_25KZg';
 const imgTote =
   'https://lh3.googleusercontent.com/aida-public/AB6AXuCl3DhxgtDFpU09y36kgIuvcv9jP98sFWO7v-7_DaTXaxzwZZu_4cAfj7zUCRbxqFHM7KWpgEnAraIT6NzaaMDeKwfmPJSixIOSUvCZYLK429TEailKfOgc0aN8yMPRSXkNU2eUaJCftiXfH2HuBgPQ1wyQG8FSLa5D9wXOhl7nsMiSWRlUVUEj0VOPm3_NhgKN2ORlYHY8rKI64KH0hc8OIuTxUF-_SZxjJ8DRDSMedAJGRhSChFmGxA';
-
-export const homeAvatar = { uri: imgAvatar };
 
 export const featuredDeal: FeaturedDeal = {
   id: 'featured-sky-lounge',

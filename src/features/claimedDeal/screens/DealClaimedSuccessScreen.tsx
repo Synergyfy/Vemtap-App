@@ -24,6 +24,7 @@ type Props = NativeStackScreenProps<AppStackParamList, 'DealClaimedSuccess'>;
 
 export function DealClaimedSuccessScreen({ route, navigation }: Props) {
   const [copied, setCopied] = useState(false);
+  const { claimCode } = route.params;
   const deal = dealsGrid.find(item => item.id === route.params.dealId) ?? dealsGrid[0];
 
   useEffect(() => {
@@ -34,10 +35,16 @@ export function DealClaimedSuccessScreen({ route, navigation }: Props) {
     return () => clearTimeout(timer);
   }, [copied]);
 
+  /**
+   * Copies the code the API actually issued. When there is none — the app's
+   * fictional deals are never claimed server-side — the copy control is hidden
+   * rather than copying a placeholder, which used to be a hardcoded 'VT-48291'.
+   */
   const handleCopy = useCallback(() => {
-    Clipboard.setString('VT-48291');
+    if (!claimCode) return;
+    Clipboard.setString(claimCode);
     setCopied(true);
-  }, []);
+  }, [claimCode]);
   const handleViewDeal = useCallback(
     () => navigation.navigate('MyClaimedDeal', { dealId: deal.id }),
     [deal.id, navigation],
@@ -106,29 +113,33 @@ export function DealClaimedSuccessScreen({ route, navigation }: Props) {
                     {strings.claimSuccess.activeClaim}
                   </VemtapText>
                 </View>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={
-                    copied ? strings.claimSuccess.copied : strings.claimSuccess.claimCode
-                  }
-                  onPress={handleCopy}
-                  className="min-w-0 flex-row items-center gap-1.5 rounded-lg bg-surface-container-low px-2.5 py-1 active:bg-surface-container-highest"
-                >
-                  <VemtapText
-                    variant="labelSm"
-                    className="shrink font-sans-semibold text-text"
-                    numberOfLines={1}
+                {claimCode ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={
+                      copied
+                        ? strings.claimSuccess.copied
+                        : `${strings.claimSuccess.claimCode} ${claimCode}`
+                    }
+                    onPress={handleCopy}
+                    className="min-w-0 flex-row items-center gap-1.5 rounded-lg bg-surface-container-low px-2.5 py-1 active:bg-surface-container-highest"
                   >
-                    {copied
-                      ? strings.claimSuccess.copied
-                      : strings.claimSuccess.claimCode}
-                  </VemtapText>
-                  <Icon
-                    name={copied ? 'check' : 'copy'}
-                    size={14}
-                    color={colors.textSecondary}
-                  />
-                </Pressable>
+                    {/* The code the API issued, not a label — this is the number
+                        the customer reads out at the counter. */}
+                    <VemtapText
+                      variant="labelSm"
+                      className="shrink font-sans-semibold text-text"
+                      numberOfLines={1}
+                    >
+                      {copied ? strings.claimSuccess.copied : claimCode}
+                    </VemtapText>
+                    <Icon
+                      name={copied ? 'check' : 'copy'}
+                      size={14}
+                      color={colors.textSecondary}
+                    />
+                  </Pressable>
+                ) : null}
               </View>
 
               <View className="mt-1 flex-row items-start gap-3">

@@ -231,25 +231,32 @@ the **Account / customer dashboard** flow is the current user.
     the status-bar area. Verify on iOS and Android after changes.
 
 21. **One screen → one bottom navigation. A screen belongs to exactly one shell.**
-    Bottom navigation is owned by a navigator, never by a screen, and the app has **three
-    shells** with different bars:
+    Bottom navigation is owned by a navigator, never by a screen, and the app has **two
+    shells with bars**:
 
-    | Shell                 | Owner                                        | Tabs                                           |
-    | --------------------- | -------------------------------------------- | ---------------------------------------------- |
-    | Consumer              | `TabNavigator` (`MainTabParamList`)          | Home · Deals · Discover · Saved · Account      |
-    | Customer personal hub | `PersonalHubNavigator` → `PersonalHubTabBar` | Home · My Deals · Messages · Orders · More     |
-    | Business              | `BusinessTabNavigator` → `BusinessTabBar`    | Overview · Orders · Messages · Business · More |
-    - The customer dashboard **general** flow (`Tabs` → Account) uses the consumer bar. The
-      **personal** flow (Customer Dashboard Personal Overview and everything reached from it)
-      uses the personal bar. They are separate shells, mounted as root-level siblings.
+    | Shell    | Owner                                     | Tabs                                           |
+    | -------- | ----------------------------------------- | ---------------------------------------------- |
+    | Consumer | `TabNavigator` (`MainTabParamList`)       | Home · Deals · Business · Account              |
+    | Business | `BusinessTabNavigator` → `BusinessTabBar` | Overview · Orders · Messages · Business · More |
+    - The customer dashboard **general** flow (`Tabs` → Account) uses the consumer bar.
+    - The **personal** flow (Customer Dashboard Personal Overview and everything reached from
+      it) is `PersonalHubNavigator` — a plain stack **nested inside the consumer Account tab**,
+      registered as `AccountStack.Screen name="PersonalHub"`. It owns no bar of its own, so the
+      consumer bar stays visible on every personal page. Missing that nesting is what puts a
+      bar-less page over the tabs. Each entry pushes one page and its back button pops to the
+      previous page (or straight back to the Account hub from the entry page).
+    - Screens reached from outside Account (the Home and Deals notification bells) address the
+      nested stack explicitly — `navigate('Account', { screen: 'PersonalHub', params: … })` —
+      because a sibling tab route cannot be reached by bubbling.
     - **Never register the same screen in two shells.** A screen rendered by two navigators
       shows a different bar depending on how it was opened — the "is this screen duplicated?"
       bug. Each personal-flow screen (dashboard overview, My Deals, Messages, Orders &
       Bookings, Rewards, Activity, Savings, Notifications, Settings, Edit Profile, Help
       Centre, Claimed Deal Pass, Order/Booking Detail, Conversation) is hosted by the
-      personal-hub shell **only**.
+      personal stack **only**. `AccountDashboard`, `MyDeals` and `Messages` still exist in
+      `AccountStack` as an **unreachable legacy duplicate** of those screens.
     - Rows that live outside the personal flow (Account hub, Account → More, Saved, Discover)
-      must **hand off** to the personal shell — `navigate('PersonalHub', { screen: … })` —
+      must **hand off** to the personal flow — `navigate('PersonalHub', { screen: … })` —
       rather than pushing a second copy of the screen inside their own stack.
     - Cross-shell navigation goes through the **root** stack. A NAVIGATE action only bubbles to
       _ancestors_, never to siblings: from the root-level `BusinessSetup` you must
@@ -258,8 +265,8 @@ the **Account / customer dashboard** flow is the current user.
       "Do you have a screen named …?" in dev. Type the navigation object against the
       navigator that actually owns the route; never cast it to paper over a mismatch.
     - Guard tests: `__tests__/NavigatorRouteNames.test.tsx` (no nested screen reuses an
-      ancestor route name) and `__tests__/AccountStack.test.tsx` (personal-flow rows land in
-      the personal shell). Run them after touching any navigator.
+      ancestor route name) and `__tests__/AccountStack.test.tsx` (personal-flow rows push a
+      bar-less page and back out to Account). Run them after touching any navigator.
 
 ## Key files
 

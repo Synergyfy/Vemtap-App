@@ -27,7 +27,7 @@ export function FeaturedDealOfDayCard({
   onOpenComments,
   onOpenDetail,
 }: FeaturedDealOfDayCardProps) {
-  const likeCount = deal.likes + (liked ? 1 : 0);
+  const likeCount = deal.likes;
 
   return (
     <Pressable

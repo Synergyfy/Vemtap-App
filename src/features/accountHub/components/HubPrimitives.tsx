@@ -2,8 +2,12 @@ import React from 'react';
 import { Image, Pressable, TextInput, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { Button } from '@components/ui/Button';
+import { Avatar } from '@components/ui/Avatar';
 import { Icon, type IconName } from '@components/ui/Icon';
+import { SearchClearButton } from '@components/ui/SearchClearButton';
 import { VemtapText } from '@components/ui/Text';
+import { strings } from '@constants/strings';
+import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
 import { colors } from '@theme/colors';
 import { navbarBottomShadow } from '@theme/shadows';
 import { cn } from '@utils/cn';
@@ -26,6 +30,8 @@ export function HubHeader({
   actionLabels = [],
   onActions = [],
   accountAction,
+  accountName,
+  onBack,
 }: {
   title: string;
   leadingIcon?: IconName;
@@ -34,13 +40,30 @@ export function HubHeader({
   actionLabels?: string[];
   onActions?: Array<(() => void) | undefined>;
   accountAction?: () => void;
+  /** Name the account avatar shows; defaults to the signed-in customer. */
+  accountName?: string;
+  /** Renders the standard leading back control when the screen was pushed. */
+  onBack?: () => void;
 }) {
+  const me = useCurrentUserDisplay();
+
   return (
     <View
       className="flex-row items-center justify-between bg-surface px-4 py-2"
       style={navbarBottomShadow}
     >
       <View className="min-w-0 flex-1 flex-row items-center gap-2">
+        {onBack ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={strings.common.goBack}
+            hitSlop={8}
+            onPress={onBack}
+            className="-ml-2 h-11 w-11 shrink-0 items-center justify-center rounded-full active:bg-surface-container-low"
+          >
+            <Icon name="back" size={24} color={colors.surfaceDark} />
+          </Pressable>
+        ) : null}
         {leadingIcon ? (
           <Icon name={leadingIcon} size={20} color={colors.primary} />
         ) : null}
@@ -71,7 +94,7 @@ export function HubHeader({
           onPress={accountAction}
           className="h-8 w-8 items-center justify-center rounded-full bg-primary"
         >
-          <Icon name="person" size={18} color={colors.surface} />
+          <Avatar name={accountName ?? me.fullName} size="sm" tone="brand" />
         </Pressable>
       </View>
     </View>
@@ -93,6 +116,7 @@ export function HubSearchField({
   onFilter?: () => void;
 }) {
   const showFilter = filterLabel !== undefined || onFilter !== undefined;
+  const canClear = value.length > 0;
   return (
     <View className="relative">
       <Icon
@@ -109,9 +133,15 @@ export function HubSearchField({
         placeholderTextColor={colors.textTertiary}
         className={cn(
           'h-12 w-full rounded-field bg-surface-container-lowest pl-11 text-body-md text-text shadow-sm',
-          showFilter ? 'pr-12' : 'pr-4',
+          canClear ? (showFilter ? 'pr-20' : 'pr-12') : showFilter ? 'pr-12' : 'pr-4',
         )}
       />
+      {canClear ? (
+        <SearchClearButton
+          className={cn('absolute top-[10px] z-10', showFilter ? 'right-12' : 'right-3')}
+          onClear={() => onChangeText('')}
+        />
+      ) : null}
       {showFilter ? (
         <Pressable
           accessibilityRole="button"
@@ -133,7 +163,7 @@ export function StatusPillTabs({
   onSelect,
   variant = 'solid',
   segmented = false,
-  disabledTabs = [],
+  disabledTabs,
 }: {
   labels: readonly string[];
   /** Optional per-tab badge counts (business Orders / Bookings switcher). */
@@ -146,22 +176,31 @@ export function StatusPillTabs({
   /** Tab indexes that must not react, e.g. a destination that is not wired yet. */
   disabledTabs?: readonly number[];
 }) {
+  // A stale bundle or a bad payload must never white-screen the tab row:
+  // normalize every prop before touching it so this render cannot throw.
+  const items = (Array.isArray(labels) ? labels : []).map((label, index) => {
+    if (typeof label === 'string') return label;
+    if (typeof label === 'number' || typeof label === 'boolean') return String(label);
+    return `${index}-${String(label ?? '')}`;
+  });
+  const badgeCounts = Array.isArray(counts) ? counts : undefined;
+  const disabled = Array.isArray(disabledTabs) ? disabledTabs : [];
   const activeClass =
     variant === 'subtle'
       ? 'shrink-0 rounded-full bg-surface-tint-blue px-4 py-2 shadow-sm'
       : 'shrink-0 rounded-full bg-primary px-4 py-2 shadow-sm';
   const inactiveClass =
     variant === 'subtle'
-      ? 'shrink-0 rounded-full bg-surface-container-high px-4 py-2'
-      : 'shrink-0 rounded-full bg-surface-container-high px-4 py-2';
+      ? 'shrink-0 rounded-full bg-surface-container-high px-4 py-2 shadow-none'
+      : 'shrink-0 rounded-full bg-surface-container-high px-4 py-2 shadow-none';
   const activeTextClass =
     variant === 'subtle' ? 'text-primary' : 'text-primary-foreground';
   if (variant === 'switcher') {
     return (
       <View className="flex-row items-center gap-1 rounded-card bg-surface-container-high p-1">
-        {labels.map((label, index) => {
+        {items.map((label, index) => {
           const isSelected = index === selected;
-          const isDisabled = disabledTabs.includes(index);
+          const isDisabled = disabled.includes(index);
           return (
             <Pressable
               key={label}
@@ -170,11 +209,14 @@ export function StatusPillTabs({
               accessibilityState={{ selected: isSelected, disabled: isDisabled }}
               accessibilityHint={isDisabled ? `${label} is unavailable` : undefined}
               disabled={isDisabled}
-              onPress={() => onSelect(index)}
+              onPress={() => onSelect?.(index)}
+              // Both branches must always set shadow/opacity utilities: gaining one
+              // after first render makes css-interop remount the pill (and, pre-patch,
+              // crash the app via its upgrade-warning props serializer).
               className={cn(
                 'min-w-0 flex-1 flex-row items-center justify-center gap-2 rounded-lg py-2',
-                isSelected && 'bg-surface-container-lowest shadow-sm',
-                isDisabled && 'opacity-40',
+                isSelected ? 'bg-surface-container-lowest shadow-sm' : 'shadow-none',
+                isDisabled ? 'opacity-40' : 'opacity-100',
               )}
             >
               <VemtapText
@@ -187,7 +229,7 @@ export function StatusPillTabs({
               >
                 {label}
               </VemtapText>
-              {counts?.[index] ? (
+              {badgeCounts?.[index] ? (
                 <View
                   className={cn(
                     'rounded-full px-1.5 py-0.5',
@@ -202,7 +244,7 @@ export function StatusPillTabs({
                         : 'font-sans-medium text-text-secondary',
                     )}
                   >
-                    {counts[index]}
+                    {badgeCounts[index]}
                   </VemtapText>
                 </View>
               ) : null}
@@ -215,16 +257,16 @@ export function StatusPillTabs({
   if (segmented) {
     return (
       <View className="flex-row gap-1 rounded-full bg-surface-container-low p-1">
-        {labels.map((label, index) => (
+        {items.map((label, index) => (
           <Pressable
             key={label}
             accessibilityRole="tab"
             accessibilityState={{ selected: index === selected }}
-            onPress={() => onSelect(index)}
+            onPress={() => onSelect?.(index)}
             className={
               index === selected
                 ? 'flex-1 items-center rounded-full bg-primary py-1.5 shadow-sm'
-                : 'flex-1 items-center rounded-full py-1.5'
+                : 'flex-1 items-center rounded-full py-1.5 shadow-none'
             }
           >
             <VemtapText
@@ -240,12 +282,12 @@ export function StatusPillTabs({
   }
   return (
     <View className="flex-row gap-2">
-      {labels.map((label, index) => (
+      {items.map((label, index) => (
         <Pressable
           key={label}
           accessibilityRole="tab"
           accessibilityState={{ selected: index === selected }}
-          onPress={() => onSelect(index)}
+          onPress={() => onSelect?.(index)}
           className={index === selected ? activeClass : inactiveClass}
         >
           <VemtapText

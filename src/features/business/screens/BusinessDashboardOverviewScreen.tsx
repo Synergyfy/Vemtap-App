@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Avatar } from '@components/ui/Avatar';
 import { Icon, type IconName } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { TwoColumnGrid } from '@components/shared/TwoColumnGrid';
@@ -15,6 +16,25 @@ import {
   SetupCard,
 } from '@features/business/components/BusinessPrimitives';
 import { BusinessBranchSwitcher } from '@features/business/components/BusinessBranchSwitcher';
+import {
+  activityPercents,
+  activityPointLabels,
+  countPendingClaims,
+  countUnreadMessages,
+  formatCompactNaira,
+  formatNaira,
+  formatUpdatedAgo,
+  pickStat,
+  toStatNumber,
+  useBusinessDashboard,
+  useBusinessSubscription,
+  useMyBusiness,
+  useNewOrdersCount,
+  usePendingClaims,
+  usePosDashboard,
+  useUnreadNotificationsCount,
+} from '@features/business/hooks/useBusinessDashboardData';
+import { useActiveBranch } from '@features/business/hooks/useActiveBranch';
 import { navbarBottomShadow } from '@theme/shadows';
 import { cn } from '@utils/cn';
 
@@ -58,10 +78,185 @@ export function BusinessDashboardOverviewScreen({
   onManageLocations,
   onOpenReport,
 }: BusinessDashboardOverviewScreenProps) {
-  const [activeBranch, setActiveBranch] = useState<string>(
-    copy.branches.find(branch => branch.active)?.id ?? copy.branches[0].id,
+  const myBusiness = useMyBusiness();
+  // One persisted active branch shared by Overview, Orders and More; the hook
+  // falls back to the designed list while the business query is offline.
+  const { branches, activeBranchId, setActiveBranch } = useActiveBranch();
+  const changeBranch = setActiveBranch;
+
+  // The dashboard/POS endpoints require a branchId, so they wait for the
+  // business payload rather than firing a request the API will reject.
+  const branchReady = myBusiness.isSuccess && Boolean(activeBranchId);
+  const dashboard = useBusinessDashboard(activeBranchId, branchReady);
+  const pos = usePosDashboard(activeBranchId, branchReady);
+  const unread = useUnreadNotificationsCount();
+  const newOrders = useNewOrdersCount();
+  const claims = usePendingClaims();
+
+  const stats = dashboard.data?.stats;
+  const statsLive = dashboard.isSuccess;
+  /** A tile reads the live stat when the query answered, else the design copy. */
+  const metricValue = (
+    keys: readonly string[],
+    fallback: string,
+    format: (value: number) => string = value => value.toLocaleString('en-US'),
+  ): string => {
+    if (!statsLive) return fallback;
+    const value = pickStat(stats, keys);
+    return value === undefined ? copy.emptyValue : format(value);
+  };
+  /** Deltas are live when the payload publishes one; otherwise design copy. */
+  const deltaLabel = (value: unknown): string | undefined => {
+    const delta = toStatNumber(value);
+    if (delta === undefined) return undefined;
+    return `${delta > 0 ? '+' : ''}${delta}%`;
+  };
+  const metricDelta = (fallback: string, liveValue?: unknown): string | undefined =>
+    statsLive ? deltaLabel(liveValue) : fallback;
+
+  const posRevenue = pos.isSuccess ? toStatNumber(pos.data?.revenue) : undefined;
+  const posTxns = pos.isSuccess ? toStatNumber(pos.data?.transactionCount) : undefined;
+  /** Once POS answers, its values are authoritative — "—" beats fake takings. */
+  const posAmountLabel = !pos.isSuccess
+    ? copy.posAmount
+    : posRevenue !== undefined
+      ? formatNaira(posRevenue)
+      : copy.emptyValue;
+  const posTxnsLabel = !pos.isSuccess
+    ? copy.posTxns
+    : posTxns !== undefined
+      ? copy.posTxnsFor(posTxns)
+      : copy.emptyValue;
+
+  const ordersCount = newOrders.data;
+  const messagesCount = dashboard.data
+    ? countUnreadMessages(dashboard.data.messages)
+    : undefined;
+  const claimsCount = claims.data ? countPendingClaims(claims.data) : undefined;
+  /** Branch devices reporting anything other than `active` need a sync. */
+  const offlineDeviceCount = dashboard.isSuccess
+    ? (dashboard.data?.devices ?? []).filter(
+        device => String(device.status ?? '').toLowerCase() !== 'active',
+      ).length
+    : undefined;
+  /** Rows whose live count is known and zero disappear instead of lying. */
+  const activityRows = copy.activity.flatMap(row => {
+    const count =
+      row.id === 'orders'
+        ? ordersCount
+        : row.id === 'messages'
+          ? messagesCount
+          : row.id === 'claims'
+            ? claimsCount
+            : row.id === 'pos'
+              ? offlineDeviceCount
+              : undefined;
+    if (count !== undefined && count <= 0) return [];
+    const title =
+      count === undefined
+        ? row.title
+        : row.id === 'orders'
+          ? copy.activityOrdersTitle(count)
+          : row.id === 'messages'
+            ? copy.activityMessagesTitle(count)
+            : row.id === 'claims'
+              ? copy.activityClaimsTitle(count)
+              : copy.activityDevicesTitle(count);
+    const body =
+      row.id === 'pos' && count !== undefined ? copy.activityDevicesBody : row.body;
+    return [{ ...row, title, body }];
+  });
+  const knownCounts = [ordersCount, messagesCount, claimsCount, offlineDeviceCount];
+  const knownTotal = knownCounts.reduce<number>((sum, count) => sum + (count ?? 0), 0);
+  const activityBadge =
+    knownCounts.every(count => count !== undefined) && knownTotal === 0
+      ? null
+      : knownCounts.every(count => count !== undefined)
+        ? copy.activityBadgeFor(knownTotal)
+        : copy.activityBadge;
+
+  const liveActivity = activityPercents(dashboard.data?.activityData);
+  const dayValues = liveActivity ?? [...copy.weekDayValues];
+  const dayLabels = activityPointLabels(dashboard.data?.activityData) ?? [
+    ...copy.weekDays,
+  ];
+  const peakIndex = dayValues.indexOf(Math.max(...dayValues));
+  const chartPeak = liveActivity
+    ? copy.weekChartPeakFor(dayLabels[peakIndex] ?? '')
+    : copy.weekChartPeak;
+
+  /** `weekly` carries the last 7 days of visits, claims and POS revenue. */
+  const weekly = dashboard.data?.weekly;
+  const weeklyStats = (() => {
+    if (!statsLive || !weekly) return copy.weekStats.map(stat => ({ ...stat }));
+    const visits = toStatNumber(weekly.visits);
+    const weeklyClaims = toStatNumber(weekly.claims);
+    const revenue = toStatNumber(weekly.revenue);
+    return copy.weekStats.map(stat => {
+      if (stat.id === 'views') {
+        return {
+          ...stat,
+          value: visits === undefined ? copy.emptyValue : visits.toLocaleString('en-US'),
+          delta: deltaLabel(stats?.visitorsDelta),
+        };
+      }
+      if (stat.id === 'claims') {
+        return {
+          ...stat,
+          value:
+            weeklyClaims === undefined
+              ? copy.emptyValue
+              : weeklyClaims.toLocaleString('en-US'),
+          delta: deltaLabel(stats?.claimsDelta),
+        };
+      }
+      return {
+        ...stat,
+        value: revenue === undefined ? copy.emptyValue : formatCompactNaira(revenue),
+        delta: deltaLabel(stats?.revenueDelta),
+      };
+    });
+  })();
+
+  /** Rules-based insights replace the designed recommendation cards. */
+  const liveInsights = (dashboard.data?.insights ?? [])
+    .filter(insight => insight.title && insight.message)
+    .map(insight => ({
+      id: insight.id || insight.title,
+      title: insight.title,
+      body: insight.message,
+      cta: copy.recommendationsCta,
+      badge: insight.priority === 'high' ? copy.recommendationsHighBadge : undefined,
+    }));
+  const recommendations = liveInsights.length > 0 ? liveInsights : copy.recommendations;
+
+  const updatedAgo = formatUpdatedAgo(dashboard.data?.generatedAt);
+  const overviewMeta = updatedAgo ? copy.overviewMetaFor(updatedAgo) : copy.overviewMeta;
+
+  /** Trial window / plan name for the status pill under the navbar. */
+  const subscription = useBusinessSubscription();
+  const trialLabel = (() => {
+    const sub = subscription.data;
+    if (!subscription.isSuccess || !sub) return copy.growthTrial;
+    if (sub.isTrial && sub.trialEndsAt) {
+      const end = Date.parse(sub.trialEndsAt);
+      if (Number.isFinite(end)) {
+        const days = Math.max(0, Math.ceil((end - Date.now()) / 86_400_000));
+        return copy.growthTrialFor(days);
+      }
+    }
+    return sub.plan?.name?.trim() ? sub.plan.name : copy.growthTrial;
+  })();
+
+  const businessName = myBusiness.data?.name ?? copy.pageTitle;
+  const businessLogo = myBusiness.data?.logoUrl || undefined;
+  const profileBranch = myBusiness.data?.branches?.find(
+    branch => branch.id === activeBranchId,
   );
-  const changeBranch = (branchId: string) => setActiveBranch(branchId);
+  const locationLabel =
+    profileBranch?.city || profileBranch?.address || copy.locationLabel;
+  const isVerified = myBusiness.data?.isVerified === true;
+  const unreadCount = unread.data ?? 0;
 
   // Dense hub: many rows read at a glance, so the subtree (navbar included)
   // uses the compact type density rather than per-row size overrides.
@@ -80,13 +275,21 @@ export function BusinessDashboardOverviewScreen({
                 className="min-w-0 flex-1 font-sans-semibold"
                 numberOfLines={1}
               >
-                {copy.pageTitle}
+                {businessName}
               </VemtapText>
-              <Icon name="verified" size={17} color={colors.primary} />
+              {isVerified ? (
+                <Icon name="verified" size={17} color={colors.primary} />
+              ) : null}
             </View>
             <View className="flex-row items-center gap-1">
-              <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-                {copy.locationLabel}
+              <VemtapText
+                variant="caption"
+                tone="secondary"
+                className="min-w-0 flex-1"
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                {locationLabel}
               </VemtapText>
               <Icon name="expandMore" size={14} color={colors.textSecondary} />
             </View>
@@ -99,18 +302,24 @@ export function BusinessDashboardOverviewScreen({
               className="relative h-9 w-9 items-center justify-center"
             >
               <Icon name="notifications" size={21} color={colors.text} />
-              <View className="absolute right-0.5 top-0.5 h-4 min-w-4 items-center justify-center rounded-full bg-error px-1">
-                <VemtapText
-                  variant="micro"
-                  className="font-sans-bold text-primary-foreground"
-                >
-                  {copy.notificationBadge}
-                </VemtapText>
-              </View>
+              {unreadCount > 0 ? (
+                <View className="absolute right-0.5 top-0.5 h-4 min-w-4 items-center justify-center rounded-full bg-error px-1">
+                  <VemtapText
+                    variant="micro"
+                    className="font-sans-bold text-primary-foreground"
+                  >
+                    {unreadCount}
+                  </VemtapText>
+                </View>
+              ) : null}
             </Pressable>
-            <View className="h-9 w-9 items-center justify-center rounded-full bg-primary">
-              <Icon name="person" size={18} color={colors.surface} />
-            </View>
+            <Avatar
+              uri={businessLogo}
+              name={businessName}
+              size="sm"
+              tone="brand"
+              accessibilityLabel={`${businessName} logo`}
+            />
           </View>
         </View>
 
@@ -120,19 +329,21 @@ export function BusinessDashboardOverviewScreen({
           showsVerticalScrollIndicator={false}
         >
           <View className="flex-row flex-wrap items-center gap-2">
-            <View className="flex-row items-center gap-1.5 rounded-full bg-badge-discount-bg px-2.5 py-1">
-              <Icon name="checkCircle" size={14} color={colors.badgeDiscountText} />
-              <VemtapText
-                variant="caption"
-                className="font-sans-semibold text-badge-discount-text"
-              >
-                {copy.verifiedBusiness}
-              </VemtapText>
-            </View>
+            {isVerified ? (
+              <View className="flex-row items-center gap-1.5 rounded-full bg-badge-discount-bg px-2.5 py-1">
+                <Icon name="checkCircle" size={14} color={colors.badgeDiscountText} />
+                <VemtapText
+                  variant="caption"
+                  className="font-sans-semibold text-badge-discount-text"
+                >
+                  {copy.verifiedBusiness}
+                </VemtapText>
+              </View>
+            ) : null}
             <View className="flex-row items-center gap-1.5 rounded-full bg-surface-tint-blue px-2.5 py-1">
               <Icon name="schedule" size={14} color={colors.primary} />
               <VemtapText variant="caption" tone="brand" className="font-sans-semibold">
-                {copy.growthTrial}
+                {trialLabel}
               </VemtapText>
             </View>
           </View>
@@ -206,8 +417,8 @@ export function BusinessDashboardOverviewScreen({
 
           <View className="flex-row items-center justify-between gap-2">
             <BusinessBranchSwitcher
-              branches={copy.branches}
-              activeBranchId={activeBranch}
+              branches={branches}
+              activeBranchId={activeBranchId ?? undefined}
               onChangeBranch={changeBranch}
               suffix={copy.branchLiveSuffix}
               trailingLabel={copy.allBranches}
@@ -222,7 +433,7 @@ export function BusinessDashboardOverviewScreen({
                   {copy.overviewTitle}
                 </VemtapText>
                 <VemtapText variant="caption" tone="secondary">
-                  {copy.overviewMeta}
+                  {overviewMeta}
                 </VemtapText>
               </View>
               <BusinessInlineAction
@@ -237,27 +448,63 @@ export function BusinessDashboardOverviewScreen({
             <MetricTile
               icon="visibility"
               label={copy.metrics.views}
-              value={copy.metrics.viewsValue}
-              delta={copy.metrics.viewsDelta}
+              value={metricValue(
+                ['totalViews', 'views', 'profileViews', 'impressions', 'dealViews'],
+                copy.metrics.viewsValue,
+              )}
+              delta={metricDelta(copy.metrics.viewsDelta, stats?.visitorsDelta)}
             />
             <MetricTile
               icon="groupAdd"
               label={copy.metrics.customers}
-              value={copy.metrics.customersValue}
-              delta={copy.metrics.customersDelta}
+              value={metricValue(
+                [
+                  'newVisitors',
+                  'totalVisitors',
+                  'customers',
+                  'newCustomers',
+                  'totalCustomers',
+                  'customersCount',
+                  'uniqueCustomers',
+                  'visitors',
+                ],
+                copy.metrics.customersValue,
+              )}
+              delta={metricDelta(copy.metrics.customersDelta, stats?.visitorsDelta)}
             />
           </View>
           <View className="flex-row gap-3">
             <MetricTile
               icon="localOffer"
               label={copy.metrics.dealsClaimed}
-              value={copy.metrics.dealsClaimedValue}
-              delta={copy.metrics.dealsClaimedDelta}
+              value={metricValue(
+                [
+                  'dealsClaimed',
+                  'claims',
+                  'totalClaims',
+                  'claimsCount',
+                  'redemptions',
+                  'redeemed',
+                ],
+                copy.metrics.dealsClaimedValue,
+              )}
+              delta={metricDelta(copy.metrics.dealsClaimedDelta, stats?.claimsDelta)}
             />
             <MetricTile
               icon="shoppingBag"
               label={copy.metrics.ordersBookings}
-              value={copy.metrics.ordersBookingsVolume}
+              value={metricValue(
+                [
+                  'ordersVolume',
+                  'ordersRevenue',
+                  'ordersBookingsVolume',
+                  'revenue',
+                  'totalRevenue',
+                  'ordersValue',
+                ],
+                copy.metrics.ordersBookingsVolume,
+                value => `${formatCompactNaira(value)}${copy.ordersVolumeSuffix}`,
+              )}
               tone="muted"
             />
           </View>
@@ -277,11 +524,11 @@ export function BusinessDashboardOverviewScreen({
               </VemtapText>
               <View className="mt-0.5 flex-row flex-wrap items-baseline gap-2">
                 <VemtapText variant="labelMd" className="font-sans-semibold">
-                  {copy.posAmount}
+                  {posAmountLabel}
                 </VemtapText>
                 <View className="rounded-full bg-badge-discount-bg px-1.5 py-0.5">
                   <VemtapText variant="micro" className="text-badge-discount-text">
-                    {copy.posTxns}
+                    {posTxnsLabel}
                   </VemtapText>
                 </View>
               </View>
@@ -294,13 +541,18 @@ export function BusinessDashboardOverviewScreen({
               <VemtapText variant="labelMd" className="font-sans-semibold">
                 {copy.activityTitle}
               </VemtapText>
-              <View className="rounded-full bg-tertiary-fixed px-2 py-0.5">
-                <VemtapText variant="micro" className="font-sans-semibold text-tertiary">
-                  {copy.activityBadge}
-                </VemtapText>
-              </View>
+              {activityBadge !== null ? (
+                <View className="rounded-full bg-tertiary-fixed px-2 py-0.5">
+                  <VemtapText
+                    variant="micro"
+                    className="font-sans-semibold text-tertiary"
+                  >
+                    {activityBadge}
+                  </VemtapText>
+                </View>
+              ) : null}
             </View>
-            {copy.activity.map(item => (
+            {activityRows.map(item => (
               <View
                 key={item.id}
                 className="flex-row items-center gap-3 rounded-card bg-surface p-3 shadow-sm"
@@ -401,7 +653,7 @@ export function BusinessDashboardOverviewScreen({
               <BusinessInlineAction label={copy.weekCta} onPress={onOpenReport} />
             </View>
             <View className="flex-row gap-2">
-              {copy.weekStats.map(stat => (
+              {weeklyStats.map(stat => (
                 <View key={stat.id} className="min-w-0 flex-1 gap-0.5">
                   <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
                     {stat.label}
@@ -413,12 +665,14 @@ export function BusinessDashboardOverviewScreen({
                   >
                     {stat.value}
                   </VemtapText>
-                  <View className="flex-row items-center gap-0.5">
-                    <Icon name="trendingUp" size={12} color={colors.success} />
-                    <VemtapText variant="micro" className="text-success">
-                      {stat.delta}
-                    </VemtapText>
-                  </View>
+                  {stat.delta ? (
+                    <View className="flex-row items-center gap-0.5">
+                      <Icon name="trendingUp" size={12} color={colors.success} />
+                      <VemtapText variant="micro" className="text-success">
+                        {stat.delta}
+                      </VemtapText>
+                    </View>
+                  ) : null}
                 </View>
               ))}
             </View>
@@ -428,16 +682,16 @@ export function BusinessDashboardOverviewScreen({
                   {copy.weekChartTitle}
                 </VemtapText>
                 <VemtapText variant="micro" tone="brand" numberOfLines={1}>
-                  {copy.weekChartPeak}
+                  {chartPeak}
                 </VemtapText>
               </View>
               <View className="h-24 flex-row items-end gap-1.5">
-                {copy.weekDayValues.map((value, index) => {
-                  const isPeak = index === 4;
-                  const isToday = index === copy.weekDayValues.length - 1;
+                {dayValues.map((value, index) => {
+                  const isPeak = index === peakIndex;
+                  const isToday = index === dayValues.length - 1;
                   return (
                     <View
-                      key={copy.weekDays[index]}
+                      key={dayLabels[index] ?? index}
                       className="min-w-0 flex-1 items-center gap-1"
                     >
                       <View
@@ -456,7 +710,7 @@ export function BusinessDashboardOverviewScreen({
                         tone={isToday ? 'brand' : 'tertiary'}
                         numberOfLines={1}
                       >
-                        {copy.weekDays[index]}
+                        {dayLabels[index]}
                       </VemtapText>
                     </View>
                   );
@@ -476,7 +730,7 @@ export function BusinessDashboardOverviewScreen({
                 </VemtapText>
               </View>
             </View>
-            {copy.recommendations.map(item => (
+            {recommendations.map(item => (
               <SetupCard key={item.id} className="gap-2">
                 <View className="flex-row items-start gap-2.5">
                   <View className="h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-surface-tint">

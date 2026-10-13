@@ -69,16 +69,22 @@ export function FeaturedDealsCard({
               {listing.discount}
             </VemtapText>
           </View>
-          <View className="rounded-full bg-inverse-surface/85 px-2 py-0.5">
-            <VemtapText
-              variant="caption"
-              className="font-sans-medium text-inverse-on-surface"
-              numberOfLines={1}
-            >
-              {listing.promotion}
-            </VemtapText>
-          </View>
-          <View className="h-1.5 w-1.5 rounded-full bg-primary-fixed" />
+          {/* Sponsorship has no server-side signal on a public offer — the
+              badge is hidden rather than filled with a fabricated label. */}
+          {listing.promotion ? (
+            <>
+              <View className="rounded-full bg-inverse-surface/85 px-2 py-0.5">
+                <VemtapText
+                  variant="caption"
+                  className="font-sans-medium text-inverse-on-surface"
+                  numberOfLines={1}
+                >
+                  {listing.promotion}
+                </VemtapText>
+              </View>
+              <View className="h-1.5 w-1.5 rounded-full bg-primary-fixed" />
+            </>
+          ) : null}
         </View>
 
         <Pressable
@@ -111,12 +117,14 @@ export function FeaturedDealsCard({
           </VemtapText>
         </View>
 
-        <View className="absolute bottom-3 right-3 flex-row items-center gap-1 rounded-full bg-surface/90 px-2 py-1">
-          <Icon name={listing.urgencyIcon} size={13} color={colors.tertiary} />
-          <VemtapText variant="caption" numberOfLines={1}>
-            {listing.urgency}
-          </VemtapText>
-        </View>
+        {listing.urgency && listing.urgencyIcon ? (
+          <View className="absolute bottom-3 right-3 flex-row items-center gap-1 rounded-full bg-surface/90 px-2 py-1">
+            <Icon name={listing.urgencyIcon} size={13} color={colors.tertiary} />
+            <VemtapText variant="caption" numberOfLines={1}>
+              {listing.urgency}
+            </VemtapText>
+          </View>
+        ) : null}
       </View>
 
       <View className="gap-2 p-4">
@@ -134,12 +142,16 @@ export function FeaturedDealsCard({
               {copy.verifiedPartner}
             </VemtapText>
           </View>
-          <View className="shrink-0 flex-row items-center gap-0.5">
-            <Icon name="star" size={15} color={colors.tertiary} />
-            <VemtapText variant="caption" className="font-sans-bold" numberOfLines={1}>
-              {listing.rating}
-            </VemtapText>
-          </View>
+          {/* Offers expose no rating; Home's cards likewise show none rather
+              than printing a number the API cannot back. */}
+          {listing.rating ? (
+            <View className="shrink-0 flex-row items-center gap-0.5">
+              <Icon name="star" size={15} color={colors.tertiary} />
+              <VemtapText variant="caption" className="font-sans-bold" numberOfLines={1}>
+                {listing.rating}
+              </VemtapText>
+            </View>
+          ) : null}
         </View>
 
         <VemtapText

@@ -1,17 +1,28 @@
-import React, { useState } from 'react';
-import { View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Alert, Linking, View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useRoute, type RouteProp } from '@react-navigation/native';
 import { strings } from '@constants/strings';
-import { BusinessTabBar } from '@features/business/components/BusinessTabBar';
+import { useTabBarStore } from '@store/tabBarStore';
+import { useHideTabBarOnFocus } from '@navigation/useHideTabBarOnFocus';
+import {
+  BusinessTabBar,
+  type BusinessTabBadge,
+} from '@features/business/components/BusinessTabBar';
 import { BusinessDashboardOverviewScreen } from '@features/business/screens/BusinessDashboardOverviewScreen';
 import { BusinessOrdersHubScreen } from '@features/business/screens/BusinessOrdersHubScreen';
 import { OrderDetailScreen } from '@features/business/screens/BusinessOrderDetailScreen';
 import { BusinessBookingsHubScreen } from '@features/business/screens/BusinessBookingsHubScreen';
 import { BusinessPosOrdersViewScreen } from '@features/business/screens/BusinessPosOrdersViewScreen';
-import { BusinessMessagesHomeScreen } from '@features/business/screens/BusinessMessagesHomeScreen';
-import { BusinessConversationScreen } from '@features/business/screens/BusinessConversationScreen';
+import {
+  BusinessMessagesHomeScreen,
+  toBusinessMessageThreadView,
+} from '@features/business/screens/BusinessMessagesHomeScreen';
+import {
+  BusinessConversationScreen,
+  toBusinessConversationMessage,
+} from '@features/business/screens/BusinessConversationScreen';
 import { BusinessHubCentralManagementScreen } from '@features/business/screens/BusinessHubCentralManagementScreen';
 import { BusinessMoreHubScreen } from '@features/business/screens/BusinessMoreHubScreen';
 import { BusinessManagementHubScreen } from '@features/business/screens/BusinessManagementHubScreen';
@@ -19,6 +30,10 @@ import { BusinessProfilePreviewScreen } from '@features/business/screens/Busines
 import { CentralDealsManagementScreen } from '@features/business/screens/CentralDealsManagementScreen';
 import { DealDetailsPerformanceScreen } from '@features/business/screens/DealDetailsPerformanceScreen';
 import { CreateDealLocationAssignmentScreen } from '@features/business/screens/CreateDealLocationAssignmentScreen';
+import { CreateDealStep1DiscountStrategyScreen } from '@features/business/screens/CreateDealStep1DiscountStrategyScreen';
+import { CreateDealStep2LimitsGiftingRulesScreen } from '@features/business/screens/CreateDealStep2LimitsGiftingRulesScreen';
+import { CreateDealStep3ParticipatingBranchesScheduleScreen } from '@features/business/screens/CreateDealStep3ParticipatingBranchesScheduleScreen';
+import { CreateDealStep4ReviewLaunchScreen } from '@features/business/screens/CreateDealStep4ReviewLaunchScreen';
 import { DealLocationAssignmentPricingScreen } from '@features/business/screens/DealLocationAssignmentPricingScreen';
 import { LocationAssignmentBranchPricingScreen } from '@features/business/screens/LocationAssignmentBranchPricingScreen';
 import { BranchAvailabilityLocationPricingScreen } from '@features/business/screens/BranchAvailabilityLocationPricingScreen';
@@ -48,6 +63,70 @@ import { BusinessVerificationTrustScreen } from '@features/business/screens/Busi
 import { BusinessSupportHelpScreen } from '@features/business/screens/BusinessSupportHelpScreen';
 import { BusinessSettingsScreen } from '@features/business/screens/BusinessSettingsScreen';
 import { SwitchToCustomerScreen } from '@features/business/screens/SwitchToCustomerScreen';
+import {
+  countUnreadMessages,
+  useBusinessDashboard,
+  useMyBusiness,
+  usePosDashboard,
+} from '@features/business/hooks/useBusinessDashboardData';
+import { useActiveBranch } from '@features/business/hooks/useActiveBranch';
+import {
+  useBusinessHubData,
+  useBusinessOffers,
+} from '@features/business/hooks/useBusinessHubData';
+import {
+  useBusinessThreadMessages,
+  useBusinessThreads,
+  useMarkBusinessThreadRead,
+  useSendBusinessReply,
+} from '@features/business/hooks/useBusinessMessaging';
+import { useBusinessMessagingRealtime } from '@features/business/hooks/useBusinessMessagingRealtime';
+import {
+  emitMessagingTyping,
+  joinMessagingThread,
+  leaveMessagingThread,
+  setActiveMessagingThread,
+} from '@api/messagingSocket';
+import {
+  presentOrder,
+  presentOrderDetail,
+  useBusinessOrderCounts,
+  useBusinessOrderDetail,
+  useBusinessOrders,
+  useUpdateOrderStatus,
+} from '@features/business/hooks/useBusinessOrders';
+import {
+  presentBooking,
+  useBusinessBookings,
+  useUpdateBookingStatus,
+} from '@features/business/hooks/useBusinessBookings';
+import { useAuthStore } from '@store/authStore';
+import { showError, showSuccess } from '@components/shared';
+import { useCatalogueDraftStore } from '@store/catalogueDraftStore';
+import {
+  useBusinessBranches,
+  useCatalogueCategories,
+  useDeleteCatalogueCategory,
+  usePublishCatalogueItem,
+  usePublishCatalogueOffer,
+  useReorderCatalogueCategories,
+  useUpdateCatalogueCategory,
+  useUpdateCatalogueItemDetails,
+  useUpdateCatalogueItemStatus,
+  useUpdateOfferStatus,
+} from '@features/business/hooks/useCatalogueMutations';
+import { CategoryReorderSheet } from '@features/business/components/CategoryReorderSheet';
+import { PromptDialog } from '@features/business/components/PromptDialog';
+import { catalogueApi } from '@api/catalogueApi';
+import { useBusinessCatalogue } from '@features/business/hooks/useBusinessCatalogue';
+import {
+  catalogueCategoryToRow,
+  catalogueItemToCentralRow,
+  catalogueItemToServiceRow,
+  offerToCentralDealRow,
+} from '@features/business/utils/catalogueHubRowMappers';
+import { endSession } from '@features/auth/endSession';
+import { navigationRef } from '@navigation/navigationRef';
 import { CampaignsHubScreen } from '@features/business/screens/CampaignsHubScreen';
 import { CustomerSegmentsScreen } from '@features/business/screens/CustomerSegmentsScreen';
 import { BoostEngineScreen } from '@features/business/screens/BoostEngineScreen';
@@ -74,6 +153,10 @@ import {
   CreateCustomSegmentScreen,
   SegmentAudienceDetailsScreen,
 } from '@features/business/screens';
+import { AddServiceAvailabilityRulesScreen } from '@features/business/screens/AddServiceAvailabilityRulesScreen';
+import { AddServiceBasicsMediaScreen } from '@features/business/screens/AddServiceBasicsMediaScreen';
+import { AddServiceDurationPricingScreen } from '@features/business/screens/AddServiceDurationPricingScreen';
+import { ReviewServiceSummaryScreen } from '@features/business/screens/ReviewServiceSummaryScreen';
 import { BusinessQrScreen } from '@features/business/screens/BusinessQrScreen';
 import { LocationQrScreen } from '@features/business/screens/LocationQrScreen';
 import { BusinessDiscoveryFeedScreen } from '@features/business/screens/BusinessDiscoveryFeedScreen';
@@ -115,6 +198,9 @@ import { ReferralDetailScreen } from '@features/business/screens/ReferralDetailS
 import { BusinessNetworkActiveDashboardScreen } from '@features/business/screens/BusinessNetworkActiveDashboardScreen';
 import { InviteABusinessSheet } from '@features/business/screens/InviteABusinessSheet';
 import { TypeDensityProvider } from '@theme/TypeDensityProvider';
+import { useSwitchRole } from '@features/auth/hooks/useSwitchRole';
+import { useBusinessNotifications } from '@features/accountHub/hooks/useNotifications';
+import { matchSegment } from '@navigation/notificationRoutes';
 import { useBusinessNavigation } from './useBusinessNavigation';
 import type { BusinessTabParamList } from './types';
 
@@ -138,59 +224,137 @@ function BusinessOverviewRoute() {
   const navigation = useBusinessNavigation();
   return (
     <BusinessDashboardOverviewScreen
+      onOpenAnalytics={() => navigation.navigate('BusinessAnalytics')}
       onOpenOrders={() => navigation.navigate('BusinessOrders')}
       onOpenMessages={() => navigation.navigate('BusinessMessages')}
-      onManageLocations={() => navigation.navigate('BusinessHub')}
-      onAddBranch={() => navigation.navigate('BusinessHub')}
+      // Quick shortcuts + the rows/cards that share their handlers.
+      onOpenScanner={() => navigation.navigate('PosCustomerLookupActive')}
+      onOpenPos={() => navigation.navigate('PosHomeSalesOperations')}
+      onCreateDeal={() => navigation.navigate('CreateDealLocationAssignment')}
+      onAddProduct={() => navigation.navigate('AddProductBasicsMedia')}
+      onBoostDeal={() => navigation.navigate('BoostEngine')}
+      onOpenPosSync={() => navigation.navigate('PosSyncReconciliation')}
+      onAddBranch={() => navigation.navigate('LocationsBranches')}
+      onManageLocations={() => navigation.navigate('LocationsBranches')}
+      onOpenReport={() => navigation.navigate('AnalyticsExportReport')}
     />
   );
 }
 
 /**
- * Orders <-> Bookings switcher. Both surfaces live in the same stack, so the
- * switcher returns to the existing Orders screen instead of pushing a second
- * copy: `navigate` on a route already in the stack pops back to it.
+ * Orders <-> Bookings switcher. Both surfaces live in this screen: the
+ * Bookings tab renders the shared booking feed inline instead of pushing the
+ * standalone bookings screen.
  */
 function BusinessOrdersSurfaceRoute() {
   const navigation = useBusinessNavigation();
+  const { branches, activeBranchId, setActiveBranch } = useActiveBranch();
+  const [status, setStatus] = useState<string | undefined>(undefined);
+  const [bookingDay, setBookingDay] = useState<string | undefined>(undefined);
+  const [bookingFilter, setBookingFilter] = useState<{
+    status?: string;
+    date?: string;
+  }>({});
+  const ordersQuery = useBusinessOrders({
+    type: 'order',
+    status,
+    branchId: activeBranchId ?? undefined,
+  });
+  const bookingsQuery = useBusinessBookings({
+    branchId: activeBranchId ?? undefined,
+    date: bookingDay,
+    status: bookingFilter.status,
+  });
+  const counts = useBusinessOrderCounts(activeBranchId);
+  const updateStatus = useUpdateOrderStatus();
+  const updateBookingStatus = useUpdateBookingStatus();
+
   return (
     <BusinessOrdersHubScreen
-      // Branch changes are reported by the shared switcher; this flow has no
-      // per-branch data fetch yet, so the selection stays local to the control.
-      // Adding a location lives in the setup stack, which this nested Orders
-      // screen cannot address; hand off to the branch management surface here.
-      onAddBranch={() => navigation.navigate('BusinessManagementHub')}
+      branches={branches}
+      activeBranchId={activeBranchId ?? undefined}
+      onChangeBranch={setActiveBranch}
+      onAddBranch={() => navigation.navigate('LocationsBranches')}
       onOpenPosOrders={() => navigation.navigate('BusinessPosOrders')}
-      onOpenOrder={orderId =>
-        navigation.navigate('BusinessOrderDetail', { orderId: orderId ?? 'vg-94021' })
+      onOpenOrder={orderId => navigation.navigate('BusinessOrderDetail', { orderId })}
+      onSelectStatus={setStatus}
+      onUpdateOrderStatus={(id, nextStatus) =>
+        updateStatus.mutate({ id, status: nextStatus })
       }
-      onAcceptOrder={() => undefined}
-      onSendToKitchen={() => undefined}
+      orders={ordersQuery.isSuccess ? ordersQuery.data.data.map(presentOrder) : undefined}
+      orderCounts={counts.counts}
+      orderTotal={counts.orderTotal}
+      bookingTotal={counts.bookingTotal}
+      bookings={
+        bookingsQuery.isSuccess ? bookingsQuery.data.data.map(presentBooking) : undefined
+      }
+      onSelectDay={setBookingDay}
+      onSelectFilter={setBookingFilter}
+      onOpenBooking={orderId => navigation.navigate('BusinessOrderDetail', { orderId })}
+      onCheckIn={bookingId =>
+        updateBookingStatus.mutate({ id: bookingId, status: 'completed' })
+      }
     />
   );
 }
 
 function BusinessOrderDetailRoute() {
   const navigation = useBusinessNavigation();
+  const route = useRoute<RouteProp<BusinessTabParamList, 'BusinessOrderDetail'>>();
+  const orderId = route.params?.orderId;
+  const orderQuery = useBusinessOrderDetail(orderId);
+  const updateStatus = useUpdateOrderStatus();
+
+  const setStatus = (status: string) => {
+    if (orderId) updateStatus.mutate({ id: orderId, status });
+  };
+
   return (
     <OrderDetailScreen
       onBack={navigation.goBack}
-      onMarkProcessing={() => undefined}
-      onMarkReady={() => undefined}
-      onConfirmPayment={() => undefined}
-      onAdjustRefund={() => undefined}
+      detail={orderQuery.isSuccess ? presentOrderDetail(orderQuery.data) : undefined}
+      onAcceptOrder={() => setStatus('processing')}
+      onDeclineOrder={() => setStatus('rejected')}
+      onMarkProcessing={() => setStatus('processing')}
+      onMarkReady={() => setStatus('ready')}
+      onConfirmPayment={() => setStatus('completed')}
+      onAdjustRefund={() => setStatus('refunded')}
+      onCallCustomer={() => {
+        const phone = orderQuery.data?.customer?.phone;
+        if (phone) {
+          Linking.openURL(`tel:${phone}`).catch(() => undefined);
+        }
+      }}
       onOpenChat={() => navigation.navigate('BusinessMessages')}
+      onOpenBranchSwitcher={() => navigation.navigate('LocationsBranches')}
     />
   );
 }
 
 function BusinessBookingsRoute() {
   const navigation = useBusinessNavigation();
+  const { branches, activeBranchId, setActiveBranch } = useActiveBranch();
+  const [day, setDay] = useState<string | undefined>(undefined);
+  const [filter, setFilter] = useState<{ status?: string; date?: string }>({});
+  const bookingsQuery = useBusinessBookings({
+    branchId: activeBranchId ?? undefined,
+    date: day,
+    status: filter.status,
+  });
+  const counts = useBusinessOrderCounts(activeBranchId);
+  const updateStatus = useUpdateBookingStatus();
+
+  const activeBranchName = branches.find(branch => branch.id === activeBranchId)?.name;
+
   return (
     <BusinessBookingsHubScreen
-      // Returns to the Orders surface already sitting below in this stack, so
-      // switching never pushes a duplicate screen. If Bookings was opened
-      // directly (deep link) there is nothing to pop, so navigate instead.
+      branchName={activeBranchName}
+      bookings={
+        bookingsQuery.isSuccess ? bookingsQuery.data.data.map(presentBooking) : undefined
+      }
+      orderTotal={counts.orderTotal}
+      bookingTotal={counts.bookingTotal}
+      onOpenBranchSwitcher={() => setActiveBranch(activeBranchId ?? '')}
       onOpenOrders={() => {
         if (navigation.canGoBack()) {
           navigation.goBack();
@@ -198,15 +362,23 @@ function BusinessBookingsRoute() {
           navigation.navigate('BusinessOrdersHome');
         }
       }}
-      onCheckIn={() => undefined}
+      onSelectDay={setDay}
+      onSelectFilter={setFilter}
+      onCheckIn={id => updateStatus.mutate({ id, status: 'completed' })}
+      onOpenBooking={id => navigation.navigate('BusinessOrderDetail', { orderId: id })}
     />
   );
 }
 
 function BusinessPosOrdersRoute() {
   const navigation = useBusinessNavigation();
+  const { activeBranchId } = useActiveBranch();
+  const posQuery = usePosDashboard(activeBranchId);
+  // The screen presents the payload itself; undefined (still loading or failed)
+  // keeps the designed figures rather than flashing zeros.
   return (
     <BusinessPosOrdersViewScreen
+      pos={posQuery.data}
       onBack={navigation.goBack}
       // Opening a transaction hands the terminal over to the customer-facing
       // table display, which continues through payment, rating and receipt.
@@ -218,33 +390,100 @@ function BusinessPosOrdersRoute() {
 
 function BusinessMessagesRoute() {
   const navigation = useBusinessNavigation();
+  const { activeBranchId, branches } = useActiveBranch();
+  const threadsQuery = useBusinessThreads(activeBranchId);
+
+  const threads = threadsQuery.isSuccess
+    ? threadsQuery.data.map(toBusinessMessageThreadView)
+    : undefined;
+  const activeBranchName = branches.find(branch => branch.id === activeBranchId)?.name;
+
   return (
     <BusinessMessagesHomeScreen
+      threads={threads}
+      isLoading={threadsQuery.isLoading}
+      isError={threadsQuery.isError}
+      onRetry={() => {
+        threadsQuery.refetch();
+      }}
+      branchName={activeBranchName}
+      onOpenBranchSwitcher={() => navigation.navigate('LocationsBranches')}
       onOpenThread={threadId => navigation.navigate('BusinessConversation', { threadId })}
     />
   );
 }
 
 function BusinessConversationRoute() {
+  // The chat is a full-height canvas: the footer would otherwise sit between the
+  // composer and the keyboard once the window shrinks on Android.
+  useHideTabBarOnFocus();
+
   const navigation = useBusinessNavigation();
   const route = useRoute<RouteProp<BusinessTabParamList, 'BusinessConversation'>>();
-  const threadId = route.params?.threadId ?? strings.businessMessages.threads[0].id;
-  const thread = strings.businessMessages.threads.find(item => item.id === threadId);
+  const threadId = route.params?.threadId;
+  const { activeBranchId } = useActiveBranch();
+  const threadsQuery = useBusinessThreads(activeBranchId);
+  const messagesQuery = useBusinessThreadMessages(threadId, activeBranchId);
+  const sendReply = useSendBusinessReply();
+  const { mutate: markThreadRead } = useMarkBusinessThreadRead();
+
+  const thread = threadsQuery.data?.find(item => item.id === threadId);
+  const headerThread = thread ? toBusinessMessageThreadView(thread) : undefined;
+
+  useEffect(() => {
+    if (!threadId) return;
+    setActiveMessagingThread(threadId);
+    joinMessagingThread(threadId);
+    return () => {
+      setActiveMessagingThread(null);
+      leaveMessagingThread(threadId);
+    };
+  }, [threadId]);
+
+  useEffect(() => {
+    if (!threadId || !activeBranchId) return;
+    markThreadRead({ threadId, branchId: activeBranchId });
+  }, [activeBranchId, markThreadRead, threadId]);
+
+  if (!threadId) return null;
+
+  const messages = messagesQuery.isSuccess
+    ? messagesQuery.data.map(toBusinessConversationMessage)
+    : undefined;
 
   return (
     <BusinessConversationScreen
-      threadId={threadId}
       onBack={navigation.goBack}
       thread={
-        thread
+        headerThread
           ? {
-              name: thread.name,
-              time: thread.time,
-              context: thread.context,
-              contextIcon: thread.contextIcon,
+              name: headerThread.name,
+              time: headerThread.time,
+              context: headerThread.context,
+              contextIcon: headerThread.contextIcon,
             }
           : undefined
       }
+      messages={messages}
+      isLoading={messagesQuery.isLoading}
+      isSending={sendReply.isPending}
+      onTyping={isTyping => emitMessagingTyping(threadId, isTyping)}
+      onSend={content => {
+        if (!activeBranchId) return;
+        sendReply.mutate({
+          threadId,
+          branchId: activeBranchId,
+          payload: { content },
+        });
+      }}
+      onSendMedia={(content, mediaUrl) => {
+        if (!activeBranchId) return;
+        sendReply.mutate({
+          threadId,
+          branchId: activeBranchId,
+          payload: { content, mediaUrl },
+        });
+      }}
     />
   );
 }
@@ -252,8 +491,19 @@ function BusinessConversationRoute() {
 /** Every Business-tab module id resolves to exactly one destination. */
 function BusinessHubRoute() {
   const navigation = useBusinessNavigation();
+  const { branches, activeBranchId, setActiveBranch } = useActiveBranch();
+  const { view } = useBusinessHubData(activeBranchId);
+
+  const openExternal = (url: string) => {
+    if (url) Linking.openURL(url).catch(() => undefined);
+  };
+
   return (
     <BusinessHubCentralManagementScreen
+      hub={view}
+      branches={branches}
+      activeBranchId={activeBranchId ?? undefined}
+      onChangeBranch={setActiveBranch}
       onOpenDeals={() =>
         navigation.navigate('CentralDealsManagement', { layout: 'hero' })
       }
@@ -266,6 +516,18 @@ function BusinessHubRoute() {
       onOpenStaff={() => navigation.navigate('StaffDirectory')}
       onEditProfile={() => navigation.navigate('BusinessProfilePreview')}
       onOpenLocationSwitcher={() => navigation.navigate('BusinessManagementHub')}
+      onPreviewStorefront={() => navigation.navigate('BusinessProfilePreview')}
+      onCall={() => openExternal(view.phone ? `tel:${view.phone}` : '')}
+      onOpenWebsite={() =>
+        openExternal(
+          view.website
+            ? /^https?:\/\//i.test(view.website)
+              ? view.website
+              : `https://${view.website}`
+            : '',
+        )
+      }
+      onOpenReader={() => navigation.navigate('PaymentHardwareSetup')}
     />
   );
 }
@@ -310,8 +572,12 @@ function BusinessManagementHubRoute() {
 
 function BusinessProfilePreviewRoute() {
   const navigation = useBusinessNavigation();
+  // Read live so the amenity toggles reflect what is actually saved; a save
+  // built from the design defaults would overwrite them.
+  const myBusiness = useMyBusiness();
   return (
     <BusinessProfilePreviewScreen
+      initialAmenities={myBusiness.data?.amenities ?? undefined}
       onBack={navigation.goBack}
       onMoreActions={() => undefined}
       onChangeCover={() => undefined}
@@ -332,20 +598,39 @@ function CentralDealsManagementRoute() {
   const navigation = useBusinessNavigation();
   const route = useRoute<RouteProp<BusinessTabParamList, 'CentralDealsManagement'>>();
   const layout = route.params?.layout ?? 'hero';
+  const updateOfferStatus = useUpdateOfferStatus();
+  const offers = useBusinessOffers(null);
   return (
     <CentralDealsManagementScreen
       layout={layout}
       onNotifications={() => undefined}
-      onCreateDeal={() => navigation.navigate('CreateDealLocationAssignment')}
+      onCreateDeal={() => navigation.navigate('CreateDealStep1')}
       onSearch={() => undefined}
       onFilter={() => undefined}
       onChangeScope={() => undefined}
       onBoostDeal={() => undefined}
       onEditDeal={() => navigation.navigate('DealLocationAssignmentPricing')}
-      onPauseDeal={() => undefined}
-      onDealActions={() => undefined}
+      onPauseDeal={dealId => {
+        updateOfferStatus.mutate(
+          { offerId: dealId, status: 'inactive' },
+          {
+            onSuccess: () => showSuccess('Deal paused.'),
+            onError: () => showError('Could not pause the deal.'),
+          },
+        );
+      }}
+      onDealActions={dealId => {
+        updateOfferStatus.mutate(
+          { offerId: dealId, status: 'inactive' },
+          {
+            onSuccess: () => showSuccess('Deal paused.'),
+            onError: () => showError('Could not pause the deal.'),
+          },
+        );
+      }}
       onViewLedger={() => undefined}
       onOpenDeal={() => navigation.navigate('DealDetailsPerformance')}
+      deals={(offers.data ?? []).map(offerToCentralDealRow)}
     />
   );
 }
@@ -370,12 +655,36 @@ function DealDetailsPerformanceRoute() {
 
 function CreateDealLocationAssignmentRoute() {
   const navigation = useBusinessNavigation();
+  const setDeal = useCatalogueDraftStore(state => state.setDeal);
+  const publish = usePublishCatalogueOffer();
+  const branches = useBusinessBranches();
+
+  const submit = (status: 'active' | 'inactive') => {
+    const all = (branches.data ?? []).map(branch => branch.id);
+    if (!all.length) {
+      showError('No branches available for this deal.');
+      return;
+    }
+    setDeal({ branchIds: all });
+    publish.mutate(
+      { status, branchId: all[0] },
+      {
+        onSuccess: () => {
+          showSuccess(status === 'active' ? 'Deal launched.' : 'Deal saved as draft.');
+          navigation.goBack();
+        },
+        onError: error =>
+          showError(error instanceof Error ? error.message : 'Could not launch the deal'),
+      },
+    );
+  };
+
   return (
     <CreateDealLocationAssignmentScreen
       onBack={navigation.goBack}
       onMoreActions={() => undefined}
-      onReviewLaunch={navigation.goBack}
-      onSaveDraft={navigation.goBack}
+      onReviewLaunch={() => submit('active')}
+      onSaveDraft={() => submit('inactive')}
       onManageMerchantTier={() => undefined}
     />
   );
@@ -383,12 +692,143 @@ function CreateDealLocationAssignmentRoute() {
 
 function DealLocationAssignmentPricingRoute() {
   const navigation = useBusinessNavigation();
+  const setDeal = useCatalogueDraftStore(state => state.setDeal);
+  const publish = usePublishCatalogueOffer();
+  const branches = useBusinessBranches();
+
+  const submit = (status: 'active' | 'inactive') => {
+    const all = (branches.data ?? []).map(branch => branch.id);
+    if (!all.length) {
+      showError('No branches available for this deal.');
+      return;
+    }
+    setDeal({ branchIds: all });
+    publish.mutate(
+      { status, branchId: all[0] },
+      {
+        onSuccess: () => {
+          showSuccess(status === 'active' ? 'Deal launched.' : 'Deal saved as draft.');
+          navigation.goBack();
+        },
+        onError: error =>
+          showError(error instanceof Error ? error.message : 'Could not launch the deal'),
+      },
+    );
+  };
+
   return (
     <DealLocationAssignmentPricingScreen
       onBack={navigation.goBack}
       onMoreActions={() => undefined}
-      onSave={navigation.goBack}
+      onSave={() => submit('active')}
       onCancel={navigation.goBack}
+    />
+  );
+}
+
+/**
+ * The four-step create-deal wizard in the hub stack. Mirrors the
+ * `BusinessSetup` deal routes: each step merges its slice into the shared
+ * deal draft store, and step 4 publishes through
+ * `usePublishCatalogueOffer` (falling back to every live branch when the
+ * draft carries none). Publishing exits back to the hub home.
+ */
+function CreateDealStep1Route() {
+  const navigation = useBusinessNavigation();
+  const setDeal = useCatalogueDraftStore(state => state.setDeal);
+  return (
+    <CreateDealStep1DiscountStrategyScreen
+      onBack={navigation.goBack}
+      onChangeItem={() => navigation.goBack()}
+      onContinue={value => {
+        setDeal({ strategy: value.strategy, discountRate: value.discountRate });
+        navigation.navigate('CreateDealStep2');
+      }}
+      onSave={value => {
+        setDeal({ strategy: value.strategy, discountRate: value.discountRate });
+        navigation.navigate('CreateDealStep2');
+      }}
+    />
+  );
+}
+
+function CreateDealStep2Route() {
+  const navigation = useBusinessNavigation();
+  const setDeal = useCatalogueDraftStore(state => state.setDeal);
+  return (
+    <CreateDealStep2LimitsGiftingRulesScreen
+      onBack={navigation.goBack}
+      onContinue={value => {
+        setDeal({
+          totalVouchers: String(value.totalVouchers),
+          claimFrequency: value.claimFrequency,
+          maxClaimsPerMonth: value.maxClaimsPerMonth,
+          acceptGifting: value.acceptGifting,
+        });
+        navigation.navigate('CreateDealStep3');
+      }}
+      onSave={value => {
+        setDeal({
+          totalVouchers: String(value.totalVouchers),
+          claimFrequency: value.claimFrequency,
+          maxClaimsPerMonth: value.maxClaimsPerMonth,
+          acceptGifting: value.acceptGifting,
+        });
+        navigation.navigate('CreateDealStep3');
+      }}
+    />
+  );
+}
+
+function CreateDealStep3Route() {
+  const navigation = useBusinessNavigation();
+  const setDeal = useCatalogueDraftStore(state => state.setDeal);
+  return (
+    <CreateDealStep3ParticipatingBranchesScheduleScreen
+      onBack={navigation.goBack}
+      onSave={value => {
+        setDeal(value);
+        navigation.navigate('CreateDealStep4');
+      }}
+    />
+  );
+}
+
+function CreateDealStep4Route() {
+  const navigation = useBusinessNavigation();
+  const publish = usePublishCatalogueOffer();
+  const branches = useBusinessBranches();
+
+  const submit = (status: 'active' | 'inactive') => {
+    const { deal } = useCatalogueDraftStore.getState();
+    const all = (branches.data ?? []).map(branch => branch.id);
+    const branchId = deal.branchIds[0] ?? all[0];
+    if (!branchId) {
+      showError('No branches available for this deal.');
+      return;
+    }
+    publish.mutate(
+      { status, branchId },
+      {
+        onSuccess: () => {
+          showSuccess(status === 'active' ? 'Deal launched.' : 'Deal saved as draft.');
+          navigation.navigate('BusinessHubHome');
+        },
+        onError: error =>
+          showError(error instanceof Error ? error.message : 'Could not launch the deal'),
+      },
+    );
+  };
+
+  return (
+    <CreateDealStep4ReviewLaunchScreen
+      onBack={navigation.goBack}
+      onEditOffer={() => navigation.navigate('CreateDealStep1')}
+      onEditRules={() => navigation.navigate('CreateDealStep2')}
+      onEditBranches={() => navigation.navigate('CreateDealStep3')}
+      onLaunch={() => submit('active')}
+      onSaveDraft={() => submit('inactive')}
+      onSave={() => navigation.navigate('BusinessHubHome')}
     />
   );
 }
@@ -406,11 +846,36 @@ function ProductLocationAssignmentRoute() {
 
 function BranchAvailabilityLocationPricingRoute() {
   const navigation = useBusinessNavigation();
+  const branches = useBusinessBranches();
+  const publish = usePublishCatalogueItem();
   return (
     <BranchAvailabilityLocationPricingScreen
       onBack={navigation.goBack}
       onMoreActions={() => undefined}
-      onSaveContinue={navigation.goBack}
+      onSaveContinue={() => {
+        const store = useCatalogueDraftStore.getState();
+        if (!store.product.branchIds.length) {
+          const all = (branches.data ?? []).map(branch => branch.id);
+          if (!all.length) {
+            showError('No branches available to stock this product.');
+            return;
+          }
+          store.setProduct({ branchIds: all });
+        }
+        publish.mutate(
+          { kind: 'product', status: 'active' },
+          {
+            onSuccess: () => {
+              showSuccess('Product published to your branches.');
+              navigation.goBack();
+            },
+            onError: error =>
+              showError(
+                error instanceof Error ? error.message : 'Failed to publish product.',
+              ),
+          },
+        );
+      }}
     />
   );
 }
@@ -419,46 +884,484 @@ function CentralCatalogueRoute() {
   const navigation = useBusinessNavigation();
   const route = useRoute<RouteProp<BusinessTabParamList, 'CentralCatalogue'>>();
   const layout = route.params?.layout ?? 'directory';
+  const updateItemStatus = useUpdateCatalogueItemStatus();
+  const updateDetails = useUpdateCatalogueItemDetails();
+  const catalogue = useBusinessCatalogue();
+  const [editing, setEditing] = useState<{
+    id: string;
+    name: string;
+    price: string;
+  } | null>(null);
+  const items = catalogue.data?.data ?? [];
   return (
-    <CentralCatalogueScreen
-      layout={layout}
-      onNotifications={() => undefined}
-      onQuickSwitch={() => undefined}
-      onSearch={() => undefined}
-      onChangeScope={() => undefined}
-      onAddProduct={() => navigation.navigate('AddProductBasicsMedia')}
-      onAddService={() => navigation.navigate('ServicesCategories')}
-      onEditItem={() => undefined}
-      onToggleStock={() => undefined}
-      onSheetAction={() => undefined}
-    />
+    <>
+      <CentralCatalogueScreen
+        layout={layout}
+        onNotifications={() => undefined}
+        onQuickSwitch={() => undefined}
+        onSearch={() => undefined}
+        onChangeScope={() => undefined}
+        onAddProduct={() => navigation.navigate('AddProductBasicsMedia')}
+        onAddService={() => navigation.navigate('ServicesCategories')}
+        onEditItem={itemId => {
+          const item = items.find(candidate => candidate.id === itemId);
+          if (!item) return;
+          setEditing({
+            id: itemId,
+            name: item.name,
+            price: item.price != null ? String(item.price) : '',
+          });
+        }}
+        onToggleStock={(itemId, value) => {
+          updateItemStatus.mutate(
+            { itemId, status: value ? 'active' : 'inactive' },
+            {
+              onSuccess: () => showSuccess(value ? 'Item is live.' : 'Item paused.'),
+              onError: () => showError('Could not update the item.'),
+            },
+          );
+        }}
+        onSheetAction={(actionId, itemId) => {
+          if (actionId === 'delete') {
+            updateItemStatus.mutate(
+              { itemId, status: 'archived' },
+              {
+                onSuccess: () =>
+                  showSuccess('Item archived. Customers no longer see it.'),
+                onError: () => showError('Could not archive the item.'),
+              },
+            );
+          } else if (actionId === 'archive' || actionId === 'pause') {
+            updateItemStatus.mutate(
+              { itemId, status: 'inactive' },
+              {
+                onSuccess: () => showSuccess('Item paused.'),
+                onError: () => showError('Could not pause the item.'),
+              },
+            );
+          } else {
+            showError('This item action is not yet available.');
+          }
+        }}
+        items={items.map(catalogueItemToCentralRow)}
+      />
+      <PromptDialog
+        visible={Boolean(editing)}
+        title="Edit item"
+        fields={[
+          { key: 'name', label: 'Name', value: editing?.name ?? '' },
+          {
+            key: 'price',
+            label: 'Price (₦)',
+            value: editing?.price ?? '',
+            keyboardType: 'decimal-pad',
+          },
+        ]}
+        confirmLabel="Save"
+        onCancel={() => setEditing(null)}
+        onConfirm={values => {
+          if (!editing) return;
+          const parsedPrice = Number(values.price.replace(/[^\d.]/g, ''));
+          updateDetails.mutate(
+            {
+              itemId: editing.id,
+              name: values.name.trim() || undefined,
+              price: Number.isFinite(parsedPrice) ? parsedPrice : undefined,
+            },
+            {
+              onSuccess: () => {
+                showSuccess('Item updated.');
+                setEditing(null);
+              },
+              onError: () => showError('Could not update the item.'),
+            },
+          );
+        }}
+      />
+    </>
   );
 }
 
 function ServicesCategoriesRoute() {
+  const navigation = useBusinessNavigation();
+  const updateItemStatus = useUpdateCatalogueItemStatus();
+  const updateDetails = useUpdateCatalogueItemDetails();
+  const updateCategory = useUpdateCatalogueCategory();
+  const deleteCategory = useDeleteCatalogueCategory();
+  const reorderCategories = useReorderCatalogueCategories();
+  const services = useBusinessCatalogue({ itemType: 'service' });
+  const categories = useCatalogueCategories();
+  const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
+  const [editingService, setEditingService] = useState<{
+    id: string;
+    name: string;
+    price: string;
+  } | null>(null);
+  const [reordering, setReordering] = useState(false);
+  const serviceItems = services.data?.data ?? [];
+  const categoryItems = (categories.data ?? []).map(c => ({ id: c.id, name: c.name }));
   return (
-    <ServicesCategoriesManagementScreen
-      onNotifications={() => undefined}
-      onAddService={() => undefined}
-      onAddCategory={() => undefined}
-      onEditService={() => undefined}
-      onServiceAction={() => undefined}
-      onEditCategory={() => undefined}
-      onArchiveCategory={() => undefined}
-      onReorderCategory={() => undefined}
+    <>
+      <ServicesCategoriesManagementScreen
+        onNotifications={() => undefined}
+        onAddService={() => {
+          navigation.navigate('AddServiceBasics');
+        }}
+        onAddCategory={async () => {
+          try {
+            await catalogueApi.createCatalogueCategory('New Category');
+            showSuccess('Category created.');
+          } catch {
+            showError('Could not create the category.');
+          }
+        }}
+        onEditService={serviceId => {
+          const service = serviceItems.find(candidate => candidate.id === serviceId);
+          if (!service) return;
+          setEditingService({
+            id: serviceId,
+            name: service.name,
+            price: service.price != null ? String(service.price) : '',
+          });
+        }}
+        onServiceAction={(actionId, serviceId) => {
+          if (actionId === 'delete') {
+            updateItemStatus.mutate(
+              { itemId: serviceId, status: 'archived' },
+              {
+                onSuccess: () => showSuccess('Service archived.'),
+                onError: () => showError('Could not archive the service.'),
+              },
+            );
+          } else if (actionId === 'archive' || actionId === 'pause') {
+            updateItemStatus.mutate(
+              { itemId: serviceId, status: 'inactive' },
+              {
+                onSuccess: () => showSuccess('Service paused.'),
+                onError: () => showError('Could not pause the service.'),
+              },
+            );
+          } else {
+            showError('This service action is not yet available.');
+          }
+        }}
+        onEditCategory={categoryId => {
+          const category = (categories.data ?? []).find(
+            candidate => candidate.id === categoryId,
+          );
+          if (!category) return;
+          setRenaming({ id: categoryId, name: category.name });
+        }}
+        onArchiveCategory={categoryId => {
+          deleteCategory.mutate(categoryId, {
+            onSuccess: () => showSuccess('Category archived.'),
+            onError: () => showError('Could not archive the category.'),
+          });
+        }}
+        onReorderCategory={() => {
+          setReordering(true);
+        }}
+        services={serviceItems.map(catalogueItemToServiceRow)}
+        categories={(categories.data ?? []).map(catalogueCategoryToRow)}
+      />
+      <CategoryReorderSheet
+        visible={reordering}
+        categories={categoryItems}
+        onClose={() => setReordering(false)}
+        onSubmit={orderedIds =>
+          reorderCategories.mutate(orderedIds, {
+            onSuccess: () => showSuccess('Category order updated.'),
+            onError: () => showError('Could not reorder categories.'),
+          })
+        }
+      />
+      <PromptDialog
+        visible={Boolean(renaming)}
+        title="Rename category"
+        fields={[{ key: 'name', label: 'Name', value: renaming?.name ?? '' }]}
+        confirmLabel="Save"
+        onCancel={() => setRenaming(null)}
+        onConfirm={values => {
+          if (!renaming) return;
+          const name = values.name.trim();
+          if (!name) return;
+          updateCategory.mutate(
+            { categoryId: renaming.id, name },
+            {
+              onSuccess: () => {
+                showSuccess('Category renamed.');
+                setRenaming(null);
+              },
+              onError: () => showError('Could not rename the category.'),
+            },
+          );
+        }}
+      />
+      <PromptDialog
+        visible={Boolean(editingService)}
+        title="Edit service"
+        fields={[
+          { key: 'name', label: 'Name', value: editingService?.name ?? '' },
+          {
+            key: 'price',
+            label: 'Price (₦)',
+            value: editingService?.price ?? '',
+            keyboardType: 'decimal-pad',
+          },
+        ]}
+        confirmLabel="Save"
+        onCancel={() => setEditingService(null)}
+        onConfirm={values => {
+          if (!editingService) return;
+          const parsedPrice = Number(values.price.replace(/[^\d.]/g, ''));
+          updateDetails.mutate(
+            {
+              itemId: editingService.id,
+              name: values.name.trim() || undefined,
+              price: Number.isFinite(parsedPrice) ? parsedPrice : undefined,
+            },
+            {
+              onSuccess: () => {
+                showSuccess('Service updated.');
+                setEditingService(null);
+              },
+              onError: () => showError('Could not update the service.'),
+            },
+          );
+        }}
+      />
+    </>
+  );
+}
+
+function AddServiceBasicsRoute() {
+  const navigation = useBusinessNavigation();
+  const setService = useCatalogueDraftStore(state => state.setService);
+  const publish = usePublishCatalogueItem();
+  return (
+    <AddServiceBasicsMediaScreen
+      onBack={navigation.goBack}
+      onNext={value => {
+        setService({
+          name: value.title,
+          description: value.description,
+          deliveryMode: value.delivery,
+          highlights: value.highlights,
+          audience: value.audience,
+          // Uploaded service media — without these the published item goes
+          // out imageless even though the owner picked photos (the old dead
+          // end: the tiles were demo assets with no picker behind them).
+          mainImage: value.mainImage,
+          galleryImages: value.galleryImages,
+        });
+        navigation.navigate('AddServiceDurationPricing');
+      }}
+      onSaveDraft={value => {
+        setService({
+          name: value.title,
+          description: value.description,
+          deliveryMode: value.delivery,
+          highlights: value.highlights,
+          audience: value.audience,
+          // Uploaded service media — without these the published item goes
+          // out imageless even though the owner picked photos (the old dead
+          // end: the tiles were demo assets with no picker behind them).
+          mainImage: value.mainImage,
+          galleryImages: value.galleryImages,
+        });
+        const { service } = useCatalogueDraftStore.getState();
+        if (!service.branchIds.length) {
+          showError('Select branches first, then save the draft.');
+          return;
+        }
+        publish.mutate(
+          { kind: 'service', status: 'inactive' },
+          {
+            onSuccess: () => {
+              showSuccess('Service saved as draft.');
+              navigation.navigate('ServicesCategories');
+            },
+            onError: error =>
+              showError(
+                error instanceof Error ? error.message : 'Could not save the draft.',
+              ),
+          },
+        );
+      }}
+    />
+  );
+}
+
+function AddServiceDurationPricingRoute() {
+  const navigation = useBusinessNavigation();
+  const setService = useCatalogueDraftStore(state => state.setService);
+  const publish = usePublishCatalogueItem();
+  return (
+    <AddServiceDurationPricingScreen
+      onBack={navigation.goBack}
+      onNext={value => {
+        setService({
+          basePrice: value.basePrice,
+          compareAtPrice: value.compareAtPrice,
+          duration: value.duration,
+          bookingEnabled: value.bookingEnabled,
+        });
+        navigation.navigate('AddServiceAvailabilityRules');
+      }}
+      onSaveDraft={value => {
+        setService({
+          basePrice: value.basePrice,
+          compareAtPrice: value.compareAtPrice,
+          duration: value.duration,
+          bookingEnabled: value.bookingEnabled,
+        });
+        const { service } = useCatalogueDraftStore.getState();
+        if (!service.branchIds.length) {
+          showError('Select branches first, then save the draft.');
+          return;
+        }
+        publish.mutate(
+          { kind: 'service', status: 'inactive' },
+          {
+            onSuccess: () => {
+              showSuccess('Service saved as draft.');
+              navigation.navigate('ServicesCategories');
+            },
+            onError: error =>
+              showError(
+                error instanceof Error ? error.message : 'Could not save the draft.',
+              ),
+          },
+        );
+      }}
+    />
+  );
+}
+
+function AddServiceAvailabilityRulesRoute() {
+  const navigation = useBusinessNavigation();
+  const setService = useCatalogueDraftStore(state => state.setService);
+  const publish = usePublishCatalogueItem();
+  return (
+    <AddServiceAvailabilityRulesScreen
+      onBack={navigation.goBack}
+      onNext={value => {
+        setService({
+          branchIds: value.branchIds,
+          serviceMode: value.serviceMode,
+          isBookable: value.isBookable,
+        });
+        navigation.navigate('ReviewServiceSummary');
+      }}
+      onSaveDraft={value => {
+        setService({
+          branchIds: value.branchIds,
+          serviceMode: value.serviceMode,
+          isBookable: value.isBookable,
+        });
+        const { service } = useCatalogueDraftStore.getState();
+        if (!service.branchIds.length) {
+          showError('Select branches first, then save the draft.');
+          return;
+        }
+        publish.mutate(
+          { kind: 'service', status: 'inactive' },
+          {
+            onSuccess: () => {
+              showSuccess('Service saved as draft.');
+              navigation.navigate('ServicesCategories');
+            },
+            onError: error =>
+              showError(
+                error instanceof Error ? error.message : 'Could not save the draft.',
+              ),
+          },
+        );
+      }}
+    />
+  );
+}
+
+function ReviewServiceSummaryRoute() {
+  const navigation = useBusinessNavigation();
+  const draft = useCatalogueDraftStore(state => state.service);
+  const publish = usePublishCatalogueItem();
+
+  const submit = (status: 'active' | 'inactive') => {
+    publish.mutate(
+      { kind: 'service', status },
+      {
+        onSuccess: () => {
+          showSuccess(
+            status === 'active' ? 'Service published.' : 'Service saved as draft.',
+          );
+          navigation.navigate('ServicesCategories');
+        },
+        onError: error =>
+          showError(
+            error instanceof Error ? error.message : 'Could not publish the service',
+          ),
+      },
+    );
+  };
+
+  return (
+    <ReviewServiceSummaryScreen
+      draft={draft}
+      publishing={publish.isPending}
+      onBack={navigation.goBack}
+      onPublish={() => submit('active')}
+      onSaveDraft={() => submit('inactive')}
     />
   );
 }
 
 function AddProductBasicsMediaRoute() {
   const navigation = useBusinessNavigation();
+  const publish = usePublishCatalogueItem();
   return (
     <AddProductBasicsMediaScreen
       onBack={navigation.goBack}
-      onContinue={() => navigation.navigate('ProductLocationAssignment')}
-      onSaveDraft={navigation.goBack}
+      onContinue={value => {
+        useCatalogueDraftStore.getState().setProduct({
+          name: value.title,
+          brand: value.producer,
+          description: value.description,
+          attributes: value.attributes,
+          condition: value.condition,
+          galleryImages: value.gallery,
+          mainImage: value.mainImage,
+        });
+        navigation.navigate('ProductLocationAssignment');
+      }}
+      onSaveDraft={value => {
+        useCatalogueDraftStore.getState().setProduct({
+          name: value.title,
+          brand: value.producer,
+          description: value.description,
+          attributes: value.attributes,
+          condition: value.condition,
+          galleryImages: value.gallery,
+          mainImage: value.mainImage,
+        });
+        const { product } = useCatalogueDraftStore.getState();
+        if (!product.branchIds.length) {
+          showError('Select branches first, then save the draft.');
+          return;
+        }
+        publish.mutate(
+          { kind: 'product', status: 'inactive' },
+          {
+            onSuccess: () => {
+              showSuccess('Draft saved.');
+              navigation.goBack();
+            },
+            onError: error =>
+              showError(error instanceof Error ? error.message : 'Failed to save draft.'),
+          },
+        );
+      }}
       onChangeCategory={() => undefined}
-      onAddMedia={() => undefined}
     />
   );
 }
@@ -796,13 +1699,37 @@ function DigitalEReceiptRoute() {
 
 function BusinessNotificationsRoute() {
   const navigation = useBusinessNavigation();
+  const { data: feed } = useBusinessNotifications();
+
+  // Same allowlist as the consumer side, mapped onto the business stacks.
+  // Navigating to `BusinessNotifications` here — the screen the row lives on —
+  // would push a duplicate of the list onto itself every tap.
+  const openNotification = (id: string) => {
+    const actionUrl = feed?.data.find(row => row.id === id)?.actionUrl;
+    const orderId = matchSegment(actionUrl, 'orders');
+    if (orderId) {
+      navigation.navigate('BusinessOrders', {
+        screen: 'BusinessOrderDetail',
+        params: { orderId },
+      });
+      return;
+    }
+    const threadId = matchSegment(actionUrl, 'messages');
+    if (threadId) {
+      navigation.navigate('BusinessMessages', {
+        screen: 'BusinessConversation',
+        params: { threadId },
+      });
+    }
+  };
+
   return (
     <BusinessNotificationsCenterScreen
       onBack={navigation.goBack}
       onOpenProfile={() => undefined}
       onMarkAllRead={() => undefined}
       onOpenCategory={() => undefined}
-      onOpenNotification={() => undefined}
+      onOpenNotification={openNotification}
       onConfigureDispatch={() => undefined}
     />
   );
@@ -870,14 +1797,46 @@ function BusinessSettingsRoute() {
 
 function SwitchToCustomerRoute() {
   const navigation = useBusinessNavigation();
+  const switchRole = useSwitchRole();
+  const user = useAuthStore(state => state.user);
+  const { data: myBusiness } = useMyBusiness();
+
+  const customerName = [user?.firstName, user?.lastName].filter(Boolean).join(' ').trim();
+  const customerMeta = user?.email || user?.phone || undefined;
+
   return (
     <SwitchToCustomerScreen
+      merchantName={myBusiness?.name}
+      customerName={customerName || undefined}
+      customerMeta={customerMeta}
       onBack={navigation.goBack}
       onOpenProfile={() => undefined}
       onConfirmSwitch={() =>
-        navigation.getParent()?.navigate('Tabs', { screen: 'Account' })
+        switchRole.mutate('customer', {
+          onSuccess: () => {
+            // The customer app lives in AppStack on the root stack; the
+            // business shell is a sibling, so navigate through the root ref
+            // instead of the shell's immediate parent.
+            if (navigationRef?.isReady()) {
+              navigationRef.navigate('AppStack', {
+                screen: 'Tabs',
+                params: { screen: 'Account' },
+              });
+              return;
+            }
+            navigation.raw.navigate('AppStack', {
+              screen: 'Tabs',
+              params: { screen: 'Account' },
+            });
+          },
+          onError: error =>
+            Alert.alert(
+              strings.switchToCustomer.error.title,
+              error.message || strings.switchToCustomer.error.body,
+            ),
+        })
       }
-      onStayInBusiness={() => navigation.goBack()}
+      onStayInBusiness={navigation.goBack}
       onOpenDeal={() => undefined}
     />
   );
@@ -1594,6 +2553,40 @@ function BusinessNetworkDashboardRoute() {
  * resolves inside the *current* stack, so every cross-stack target is addressed
  * through its owning tab rather than by screen name.
  */
+/**
+ * "Sign Out of Business" — the shared session teardown, then leave the shell.
+ *
+ * `endSession` covers secure storage, the query cache, the auth store and the
+ * realtime socket, the same as an expiry, so a manual sign-out cannot drift
+ * from one.
+ *
+ * BusinessTabs is a root sibling of AppStack/AuthStack, so flipping the
+ * session only swaps the stack *underneath* the shell; without a root reset
+ * the user would sit in a signed-out business dashboard, and back would
+ * reopen it. The reset waits a frame so RootNavigator has re-rendered
+ * AuthStack into the root before we target it.
+ */
+const signOut = () => {
+  const store = useAuthStore.getState();
+  const leaveBusinessShell = () => {
+    requestAnimationFrame(() => {
+      if (navigationRef?.isReady()) {
+        navigationRef.resetRoot({ index: 0, routes: [{ name: 'AuthStack' }] });
+      }
+    });
+  };
+
+  if (store.status === 'authenticated') {
+    // Same teardown an expiry performs, then back to the auth stack.
+    endSession()
+      .catch(() => undefined)
+      .finally(() => leaveBusinessShell());
+  } else {
+    store.markUnauthenticated();
+    leaveBusinessShell();
+  }
+};
+
 function BusinessMoreHubOperationsRoute() {
   const navigation = useBusinessNavigation();
 
@@ -1709,7 +2702,7 @@ function BusinessMoreHubOperationsRoute() {
       onOpenPosTile={goToPosTile}
       onOpenRow={goToRow}
       onSwitchToCustomer={() => navigation.navigate('SwitchToCustomer')}
-      onSignOut={() => undefined}
+      onSignOut={signOut}
     />
   );
 }
@@ -2278,8 +3271,14 @@ function BusinessMoreRoute() {
   // the root for a sibling stack does not bubble, so each row takes the
   // shortest correct path.
   const navigation = useBusinessNavigation();
+  const { branches, activeBranchId, setActiveBranch } = useActiveBranch();
+  const { view } = useBusinessHubData(activeBranchId);
   return (
     <BusinessMoreHubScreen
+      hub={view}
+      branches={branches}
+      activeBranchId={activeBranchId ?? undefined}
+      onChangeBranch={setActiveBranch}
       onAddBranch={() => navigation.navigate('BusinessManagementHub')}
       onOpenRow={id => {
         switch (id) {
@@ -2331,6 +3330,7 @@ function BusinessMoreRoute() {
         }
       }}
       onSwitchToCustomer={() => navigation.navigate('SwitchToCustomer')}
+      onSignOut={signOut}
     />
   );
 }
@@ -2519,6 +3519,10 @@ function BusinessHubTabNavigator() {
         name="DealLocationAssignmentPricing"
         component={DealLocationAssignmentPricingRoute}
       />
+      <HubStack.Screen name="CreateDealStep1" component={CreateDealStep1Route} />
+      <HubStack.Screen name="CreateDealStep2" component={CreateDealStep2Route} />
+      <HubStack.Screen name="CreateDealStep3" component={CreateDealStep3Route} />
+      <HubStack.Screen name="CreateDealStep4" component={CreateDealStep4Route} />
       <HubStack.Screen
         name="ProductLocationAssignment"
         component={ProductLocationAssignmentRoute}
@@ -2532,6 +3536,19 @@ function BusinessHubTabNavigator() {
       <HubStack.Screen
         name="AddProductBasicsMedia"
         component={AddProductBasicsMediaRoute}
+      />
+      <HubStack.Screen name="AddServiceBasics" component={AddServiceBasicsRoute} />
+      <HubStack.Screen
+        name="AddServiceDurationPricing"
+        component={AddServiceDurationPricingRoute}
+      />
+      <HubStack.Screen
+        name="AddServiceAvailabilityRules"
+        component={AddServiceAvailabilityRulesRoute}
+      />
+      <HubStack.Screen
+        name="ReviewServiceSummary"
+        component={ReviewServiceSummaryRoute}
       />
       <HubStack.Screen name="LocationsBranches" component={LocationsBranchesRoute} />
       <HubStack.Screen name="WuseBranchDetails" component={WuseBranchDetailsRoute} />
@@ -2661,12 +3678,52 @@ function BusinessMoreTabNavigator() {
   );
 }
 
+/**
+ * Live bottom-bar badges. Orders shows how many orders are still `new`
+ * (awaiting acceptance); Messages shows the unread message count from the
+ * dashboard payload. Both stay hidden while the API hasn't answered, so the
+ * footer can never display a designed/fake number.
+ */
+function BusinessTabBarWithLiveBadges(
+  props: React.ComponentProps<typeof BusinessTabBar>,
+) {
+  const { activeBranchId } = useActiveBranch();
+  const isTabBarHidden = useTabBarStore(state => state.isTabBarHidden);
+  const counts = useBusinessOrderCounts(activeBranchId);
+  const dashboard = useBusinessDashboard(activeBranchId, Boolean(activeBranchId));
+
+  // A focused screen that wants the full canvas (the chat) has taken over the
+  // footer, so it is rendered away entirely rather than left floating over or
+  // squeezed above the keyboard.
+  if (isTabBarHidden) return null;
+
+  const badges: Partial<Record<string, BusinessTabBadge>> = {};
+
+  if (counts.counts.new > 0) {
+    badges.BusinessOrders = { count: counts.counts.new, tone: 'brand' };
+  }
+
+  const unreadMessages = dashboard.data
+    ? countUnreadMessages(dashboard.data.messages)
+    : 0;
+  if (unreadMessages > 0) {
+    badges.BusinessMessages = { count: unreadMessages, tone: 'error' };
+  }
+
+  return <BusinessTabBar {...props} badges={badges} />;
+}
+
 export function BusinessTabNavigator() {
+  // One socket + one realtime bridge for the whole business shell: the inbox,
+  // the open thread, and the live Messages tab badge all stay in sync.
+  const { activeBranchId } = useActiveBranch();
+  useBusinessMessagingRealtime(activeBranchId);
+
   return (
     <TypeDensityProvider density="compact">
       <Tab.Navigator
         screenOptions={{ headerShown: false }}
-        tabBar={props => <BusinessTabBar {...props} />}
+        tabBar={props => <BusinessTabBarWithLiveBadges {...props} />}
       >
         <Tab.Screen
           name="BusinessOverview"

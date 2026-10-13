@@ -75,6 +75,32 @@ test('branches and rewards default to empty arrays', () => {
   expect(parsed.data.isVerified).toBe(false);
 });
 
+test('normalizes the merchant-form hours shape into from/to/isClosed', () => {
+  // The profile form sends `{ open, close, closed }` and `updateBusiness` puts
+  // it into the column verbatim — without normalizing, those days would parse
+  // as null times and an "open now" check could never be true for them.
+  const parsed = businessProfileSchema.safeParse({
+    id: 'b1',
+    uniqueCode: 'ABCD12345',
+    name: 'Form Hours',
+    status: 'active',
+    openingHours: {
+      Monday: { open: '09:00', close: '17:30', closed: false },
+      Sunday: { open: '10:00', close: '14:00', closed: true },
+    },
+  });
+
+  expect(parsed.success).toBe(true);
+  if (!parsed.success) return;
+
+  expect(parsed.data.openingHours?.Monday).toEqual({
+    from: '09:00',
+    to: '17:30',
+    isClosed: false,
+  });
+  expect(parsed.data.openingHours?.Sunday?.isClosed).toBe(true);
+});
+
 test('rejects a profile missing its code or status', () => {
   expect(
     businessProfileSchema.safeParse({ id: 'b1', name: 'x', status: 'active' }).success,

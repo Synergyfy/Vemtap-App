@@ -1,53 +1,117 @@
-import React, { useState } from 'react';
-import { Image, Pressable, ScrollView, View } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { Pressable, ScrollView, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { Button } from '@components/ui/Button';
-import { Icon } from '@components/ui/Icon';
+import { Icon, type IconName } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
+import { EmptyState } from '@components/shared/EmptyState';
+import { LoadingState } from '@components/shared/LoadingState';
 import { strings } from '@constants/strings';
 import { TypeDensityProvider } from '@theme/TypeDensityProvider';
 import { colors } from '@theme/colors';
+import { formatWhen } from '@utils/formatters';
 import {
   BusinessScreenLayout,
   BusinessSelectionChip,
   BusinessStatusPill,
 } from '@features/business/components/BusinessPrimitives';
+import { BusinessInitialsAvatar } from '@features/business/components/BusinessPosPrimitives';
 import { HubSearchField } from '@features/accountHub/components/HubPrimitives';
-import { businessMessagePortraits } from '@features/business/data/businessMessagesImages';
-import { cn } from '@utils/cn';
+import { ConversationListCard } from '@features/merchantChat/components/ConversationListCard';
+import type { ConversationThread } from '@api/messagingApi';
 
-cssInterop(Pressable, { className: 'style' });
 cssInterop(ScrollView, {
   className: 'style',
   contentContainerClassName: 'contentContainerStyle',
 });
-// Required for the thread portraits: without it their `className` is dropped
-// and each avatar renders unsized instead of as a 48px circle.
-cssInterop(Image, { className: 'style' });
 
 const copy = strings.businessMessages;
 
-type ContextTone = (typeof copy.threads)[number]['contextTone'];
+type ContextTone = 'brand' | 'discount' | 'neutral';
 
-const contextStyles: Record<ContextTone, { chip: string; text: string; icon: string }> = {
-  discount: {
-    chip: 'bg-badge-discount-bg',
-    text: 'text-badge-discount-text',
-    icon: colors.badgeDiscountText,
-  },
-  brand: {
-    chip: 'bg-surface-tint-blue',
-    text: 'text-primary',
-    icon: colors.primary,
-  },
-  neutral: {
-    chip: 'bg-surface-container-high',
-    text: 'text-on-surface-variant',
-    icon: colors.onSurfaceVariant,
-  },
-};
+export type BusinessMessageCategory = 'unread' | 'orders' | 'deals' | 'bookings';
+
+/** One conversation row, fully derived from a `ConversationThread`. */
+export interface BusinessMessageThreadView {
+  id: string;
+  name: string;
+  initials: string;
+  avatarUri?: string;
+  preview: string;
+  time: string;
+  unread: number;
+  context: string;
+  contextIcon: IconName;
+  contextTone: ContextTone;
+  categories: BusinessMessageCategory[];
+}
+
+const SUBJECT_META: Record<string, { label: string; icon: IconName; tone: ContextTone }> =
+  {
+    GENERAL: { label: copy.context.general, icon: 'help', tone: 'neutral' },
+    DEAL: { label: copy.context.deal, icon: 'localOffer', tone: 'discount' },
+    CLAIM: { label: copy.context.claim, icon: 'localOffer', tone: 'discount' },
+    ORDER: { label: copy.context.order, icon: 'receipt', tone: 'brand' },
+    BOOKING: { label: copy.context.booking, icon: 'eventAvailable', tone: 'neutral' },
+  };
+
+export function initialsForName(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  const first = parts[0] ?? '';
+  const last = parts.length > 1 ? (parts[parts.length - 1] ?? '') : '';
+  const letters = `${first.charAt(0)}${last.charAt(0)}`;
+  return (letters || '?').toUpperCase();
+}
+
+/** API thread → row view-model; nothing is invented when a field is missing. */
+export function toBusinessMessageThreadView(
+  thread: ConversationThread,
+): BusinessMessageThreadView {
+  const name =
+    thread.customer?.name ||
+    [thread.customer?.firstName, thread.customer?.lastName]
+      .filter(Boolean)
+      .join(' ')
+      .trim() ||
+    copy.customerFallback;
+  const subject = (thread.subjectType ?? 'GENERAL').toUpperCase();
+  const meta = SUBJECT_META[subject] ?? SUBJECT_META.GENERAL!;
+  const unread = thread.branchUnreadCount ?? 0;
+  const categories: BusinessMessageCategory[] = [];
+  if (unread > 0) categories.push('unread');
+  if (subject === 'ORDER') categories.push('orders');
+  if (subject === 'DEAL' || subject === 'CLAIM') categories.push('deals');
+  if (subject === 'BOOKING') categories.push('bookings');
+
+  return {
+    id: thread.id,
+    name,
+    initials: initialsForName(name),
+    avatarUri: thread.customer?.avatar ?? undefined,
+    preview: thread.lastMessageContent ?? '',
+    time: thread.lastActivityAt ? formatWhen(thread.lastActivityAt) : '',
+    unread,
+    context: meta.label,
+    contextIcon: meta.icon,
+    contextTone: meta.tone,
+    categories,
+  };
+}
+
+const FILTER_KEYS: readonly ('all' | BusinessMessageCategory)[] = [
+  'all',
+  'unread',
+  'orders',
+  'deals',
+  'bookings',
+];
 
 export interface BusinessMessagesHomeScreenProps {
+  threads?: BusinessMessageThreadView[];
+  isLoading?: boolean;
+  isError?: boolean;
+  onRetry?: () => void;
+  branchName?: string;
   onOpenBranchSwitcher?: () => void;
   onOpenThread?: (id: string) => void;
   onNewMessage?: () => void;
@@ -57,6 +121,11 @@ export interface BusinessMessagesHomeScreenProps {
 }
 
 export function BusinessMessagesHomeScreen({
+  threads,
+  isLoading = false,
+  isError = false,
+  onRetry,
+  branchName,
   onOpenBranchSwitcher,
   onOpenThread,
   onNewMessage,
@@ -66,6 +135,36 @@ export function BusinessMessagesHomeScreen({
 }: BusinessMessagesHomeScreenProps) {
   const [filter, setFilter] = useState(0);
   const [query, setQuery] = useState('');
+
+  const filterCounts = useMemo(() => {
+    const list = threads ?? [];
+    return [
+      list.length,
+      list.filter(thread => thread.categories.includes('unread')).length,
+      list.filter(thread => thread.categories.includes('orders')).length,
+      list.filter(thread => thread.categories.includes('deals')).length,
+      list.filter(thread => thread.categories.includes('bookings')).length,
+    ];
+  }, [threads]);
+
+  const visibleThreads = useMemo(() => {
+    const normalized = query.trim().toLowerCase();
+    const activeKey = FILTER_KEYS[filter];
+    return (threads ?? []).filter(thread => {
+      const matchesSearch =
+        !normalized ||
+        `${thread.name} ${thread.preview}`.toLowerCase().includes(normalized);
+      const matchesFilter =
+        activeKey === 'all' ||
+        activeKey === undefined ||
+        thread.categories.includes(activeKey);
+      return matchesSearch && matchesFilter;
+    });
+  }, [filter, query, threads]);
+
+  const hasConstraint = filter !== 0 || query.trim().length > 0;
+  const emptyTitle = hasConstraint ? copy.emptyFilteredTitle : copy.emptyTitle;
+  const emptyBody = hasConstraint ? copy.emptyFilteredBody : copy.emptyBody;
 
   // Dense hub: many rows read at a glance, so the subtree (navbar included)
   // uses the compact type density rather than per-row size overrides.
@@ -115,7 +214,7 @@ export function BusinessMessagesHomeScreen({
             {copy.filters.map((chip, index) => (
               <BusinessSelectionChip
                 key={chip.label}
-                label={`${chip.label} ${chip.count}`}
+                label={`${chip.label} (${filterCounts[index] ?? 0})`}
                 selected={index === filter}
                 onPress={() => setFilter(index)}
                 tone="brand"
@@ -165,104 +264,54 @@ export function BusinessMessagesHomeScreen({
               variant="caption"
               className="font-sans-semibold text-badge-discount-text"
             >
-              {copy.hubBranch}
+              {branchName ?? copy.hubBranch}
             </VemtapText>
             <Icon name="expandMore" size={14} color={colors.badgeDiscountText} />
           </View>
         </Pressable>
 
-        <View className="gap-1">
-          {copy.threads.map(thread => (
-            <Pressable
-              key={thread.id}
-              accessibilityRole="button"
-              accessibilityLabel={thread.name}
-              onPress={() => onOpenThread?.(thread.id)}
-              className="flex-row items-start gap-3 rounded-card bg-surface p-3 shadow-sm active:scale-[0.99]"
-            >
-              <View className="shrink-0">
-                <Image
-                  source={{ uri: businessMessagePortraits[thread.id].uri }}
-                  accessibilityLabel={businessMessagePortraits[thread.id].alt}
-                  className="h-12 w-12 rounded-full bg-surface-container"
-                  resizeMode="cover"
-                />
-                {thread.online ? (
-                  <View className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-surface bg-badge-discount-text" />
-                ) : null}
-              </View>
-
-              <View className="min-w-0 flex-1 gap-1.5">
-                <View className="flex-row items-center justify-between gap-2">
-                  <VemtapText
-                    variant="labelMd"
-                    className="min-w-0 flex-1 font-sans-semibold"
-                    numberOfLines={1}
-                  >
-                    {thread.name}
-                  </VemtapText>
-                  <VemtapText
-                    variant="caption"
-                    tone={thread.unread > 0 ? 'brand' : 'tertiary'}
-                    className="shrink-0 font-sans-semibold"
-                  >
-                    {thread.time}
-                  </VemtapText>
-                </View>
-
-                <View
-                  className={cn(
-                    'flex-row items-center gap-1 self-start rounded-full px-2 py-0.5',
-                    contextStyles[thread.contextTone].chip,
-                  )}
-                >
-                  <Icon
-                    name={thread.contextIcon}
-                    size={12}
-                    color={contextStyles[thread.contextTone].icon}
+        {isLoading ? (
+          <LoadingState label={strings.common.loading} />
+        ) : isError ? (
+          <EmptyState
+            variant="contained"
+            icon="cloudOff"
+            title={strings.common.error}
+            actionLabel={strings.common.retry}
+            onAction={onRetry}
+          />
+        ) : visibleThreads.length === 0 ? (
+          <EmptyState
+            variant="contained"
+            icon="message"
+            title={emptyTitle}
+            description={emptyBody}
+          />
+        ) : (
+          <View className="gap-1">
+            {visibleThreads.map(thread => (
+              <ConversationListCard
+                key={thread.id}
+                image={thread.avatarUri ? { uri: thread.avatarUri } : undefined}
+                avatarFallback={
+                  <BusinessInitialsAvatar
+                    initials={thread.initials}
+                    size="md"
+                    className="h-[52px] w-[52px]"
                   />
-                  <VemtapText
-                    variant="micro"
-                    className={cn(
-                      'font-sans-medium',
-                      contextStyles[thread.contextTone].text,
-                    )}
-                    numberOfLines={1}
-                  >
-                    {thread.context}
-                  </VemtapText>
-                </View>
-
-                <View className="flex-row items-center justify-between gap-2">
-                  {thread.outbound ? (
-                    <Icon name="doneAll" size={15} color={colors.primary} />
-                  ) : null}
-                  <VemtapText
-                    variant="bodyMd"
-                    tone={thread.unread > 0 ? 'default' : 'secondary'}
-                    className={cn(
-                      'min-w-0 flex-1',
-                      thread.unread > 0 && 'font-sans-medium',
-                    )}
-                    numberOfLines={1}
-                  >
-                    {thread.preview}
-                  </VemtapText>
-                  {thread.unread > 0 ? (
-                    <View className="h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary">
-                      <VemtapText
-                        variant="micro"
-                        className="font-sans-bold text-primary-foreground"
-                      >
-                        {String(thread.unread)}
-                      </VemtapText>
-                    </View>
-                  ) : null}
-                </View>
-              </View>
-            </Pressable>
-          ))}
-        </View>
+                }
+                name={thread.name}
+                time={thread.time}
+                message={thread.preview}
+                context={thread.context}
+                contextIcon={thread.contextIcon}
+                contextTone={thread.contextTone}
+                unread={thread.unread}
+                onPress={() => onOpenThread?.(thread.id)}
+              />
+            ))}
+          </View>
+        )}
       </BusinessScreenLayout>
     </TypeDensityProvider>
   );

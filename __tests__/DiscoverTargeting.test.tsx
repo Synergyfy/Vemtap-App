@@ -8,6 +8,25 @@ import { CategoryChips } from '@components/home/CategoryChips';
 import { DiscoverScreen } from '@features/discover/screens/DiscoverScreen';
 import { AppStack } from '@navigation/AppStack';
 
+jest.mock('@features/home/hooks/useNearbyBusinesses', () =>
+  jest.requireActual('./helpers/mockHomeBusinesses').mockHomeBusinessesModule(),
+);
+jest.mock('@features/home/hooks/useNearbyProducts', () =>
+  jest.requireActual('./helpers/mockHomeProducts').mockHomeProductsModule(),
+);
+
+// Home reads the live offers feed through React Query, so any test that mounts
+// the real shell needs the feed double (and its neutral engagement hooks).
+jest.mock('@features/deals/hooks/usePublicOffers', () =>
+  jest.requireActual('./helpers/mockOffersFeed').mockOffersFeedModule(),
+);
+jest.mock('@features/deals/hooks/useDealEngagementActions', () =>
+  jest.requireActual('./helpers/mockOffersFeed').mockDealEngagementActionsModule(),
+);
+jest.mock('@features/discover/hooks/useDiscoverBusinesses', () =>
+  jest.requireActual('./helpers/mockDiscoverBusinesses').mockDiscoverBusinessesModule(),
+);
+
 const { homeLocation: loc, home } = strings;
 
 /** The chip scroller's content-container class, read off the rendered tree. */
@@ -119,7 +138,7 @@ describe('discover targeting controls', () => {
       </NavigationContainer>,
     );
     await act(async () => {
-      fireEvent.press(screen.getByLabelText(/Discover, tab/i));
+      fireEvent.press(screen.getByLabelText(/Business, tab/i));
     });
     await act(async () => {
       fireEvent.press(screen.getByLabelText(`${AREA_PILL_LABELS[DEFAULT_AREA]}, Abuja`));

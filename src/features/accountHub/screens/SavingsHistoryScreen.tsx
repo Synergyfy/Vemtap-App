@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Image, Pressable, View } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { Image, Linking, Pressable, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { cssInterop } from 'nativewind';
 import {
@@ -7,31 +7,69 @@ import {
   PageScroll,
 } from '@features/accountHub/components/AccountScreensPrimitives';
 import { StatusPillTabs } from '@features/accountHub/components/HubPrimitives';
+import {
+  SAVINGS_RANGE_DAYS,
+  useSavingsCategories,
+  useSavingsLedger,
+  type SavingsRange,
+} from '@features/accountHub/hooks/useSavings';
+import {
+  useLoyaltyAnalytics,
+  useLoyaltyBalance,
+} from '@features/accountHub/hooks/useLoyalty';
+import { savingsApi } from '@api/savingsApi';
 import { Button } from '@components/ui/Button';
-import { Icon } from '@components/ui/Icon';
+import { Icon, type IconName } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
 import { colors } from '@theme/colors';
 import { cn } from '@utils/cn';
+import {
+  formatCompactNaira,
+  formatCurrency,
+  formatPoints,
+  formatWhen,
+} from '@utils/formatters';
 
 cssInterop(Pressable, { className: 'style' });
 cssInterop(Image, { className: 'style' });
 
 const copy = strings.accountScreens.savings;
 
-/** Merchant imagery for the ledger cards, keyed by `strings.accountScreens.savings.entries` id. */
-const entryImages: Record<string, string> = {
-  'urban-grill':
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuCDpJzehdTIakEd1l0aHtXcEENngWKwUL79INnAJtrU09GrivYgMJR4bfgrzFW318ScXl0skr_aEHzNQD7QfiJsaiqoijzaaynQlWxZyBYVXbPuzyXRFL0KhJm_qz0GVXxnnzaYO7EtTpNNxAfyVpFtKxpzJr2p9OsYYpi8vyqER9UYoSuziYcx3K51XiE0wupPjYGE5yh58M5pAMtp1GABh-h5X8PLxP_vgJqz6wg6-gNeyqKdFvUXKA',
-  'glow-serenity':
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuAXMfSfZGmy3oINAHONydpb5CJi5oKMrEIJzLcwXjGwSL5LXAuV1NIoEFEQBwRVTR9qfVCIVXApxL9rJR9Cysn6trPdZ2CZQYtCYWONxf_AGSTYprhNQWKz-LEMe2lXnULPYwdfbUuwbvieSnkuCHrs8z9zu0Q_lY5eLIGg2EeFpBnQgpRA0XPnyDHEltjX5gXIwODoDViuvn9CyvTa272siegnOxY7E2S_dqdSiMzRk25EQPWHuj3uNg',
-  'daily-knead':
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuC16GrqfAPlFKScFIyWtL5Ht6ORXy6PLGkXXX42qPyfLAx1VNz3aRXLC_nm8l550rsb_M_jsAQZy74_g2JGZlEZN2pXJBIuIgoefbc3asRpC4idVjY6fb39GjFKbmlwj2zFgBeVOW8-amrF-gvQhwhBgShtReKeHuonzYu7P0HRdZrKbUZS1IooMD7lGjeJA4u9jv2VD4E57buWekoGkTC2vKmP7TtdS2IfFz4icwQ6SV4qftT0dhwfUw',
-  'sole-district':
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuDeyOzl-DW9E35EiZof0vPXfxq1u2rQ3OTRVxGI0PvxMsUwbYwmacHMinRDAiuipZwtB8vnuTK6DhNAVygBtodPYaGnXUCohJw6NuBK4zF5n7sQC7l-uQszgaoUzlS1w0xkg-v1qZYJta_rwdVEVsWAXqWg1NF8cYciDe6bO50phJmxCx9yIOnLlJDil_IHxxATHKRPYfwTWRtdAAZFcFiQ28h4xAPjW0IGfrpsRWPNElgvlShg1jh9aQ',
+type ExportPhase = 'idle' | 'preparing' | 'done';
+
+/** Timeframe chips, in design order, mapped to the `days` window they request. */
+const RANGE_ORDER: readonly SavingsRange[] = ['month', 'quarter', 'allTime'];
+
+/** Category icons by name; anything unrecognised falls back to a generic tag. */
+const CATEGORY_ICONS: Record<string, IconName> = {
+  'food & dining': 'restaurant',
+  'food & beverage': 'restaurant',
+  'wellness & beauty': 'spa',
+  'fashion & retail': 'shoppingBag',
 };
 
-type ExportPhase = 'idle' | 'preparing' | 'done';
+/** Shared colour/icon treatments cycled across the category rows. */
+const CATEGORY_TONES = [
+  {
+    tone: 'brand',
+    iconColor: colors.primary,
+    bg: 'bg-surface-tint-blue',
+    bar: 'bg-primary',
+  },
+  {
+    tone: 'secondary',
+    iconColor: colors.secondary,
+    bg: 'bg-surface-container',
+    bar: 'bg-secondary-container',
+  },
+  {
+    tone: 'tertiary',
+    iconColor: colors.tertiary,
+    bg: 'bg-tertiary-fixed',
+    bar: 'bg-tertiary-fixed',
+  },
+] as const;
 
 export interface SavingsHistoryScreenProps {
   onBack?: () => void;
@@ -44,31 +82,65 @@ export function SavingsHistoryScreen({
   onExport,
   onDisputeHelp,
 }: SavingsHistoryScreenProps) {
-  const [timeframe, setTimeframe] = useState(0);
+  const [rangeIndex, setRangeIndex] = useState(0);
   const [exportPhase, setExportPhase] = useState<ExportPhase>('idle');
-  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const range = RANGE_ORDER[rangeIndex] ?? 'allTime';
+  const days = SAVINGS_RANGE_DAYS[range];
 
-  useEffect(() => {
-    const pending = timers.current;
-    return () => {
-      pending.forEach(clearTimeout);
-    };
-  }, []);
+  const ledger = useSavingsLedger(days);
+  const breakdown = useSavingsCategories(days);
+  const analytics = useLoyaltyAnalytics(days ?? 365);
+  const balance = useLoyaltyBalance(null);
 
-  const runExport = () => {
+  const entries = ledger.data?.data ?? [];
+  const total = ledger.data?.total ?? 0;
+  const loading = ledger.isPending;
+  const failed = ledger.isError;
+  const empty = !loading && !failed && entries.length === 0;
+
+  // Hero figures: the ledger total is authoritative for naira saved in the
+  // window; the analytics call supplies the metrics the ledger has no counter
+  // for (redemption count, average discount, growth vs the previous window).
+  const totals = analytics.data?.totals ?? null;
+  const dealsRedeemed = totals?.dealsRedeemed ?? null;
+  const avgDiscount = totals?.avgDiscountPercent ?? null;
+  const points = balance.data ?? null;
+  const growth = analytics.data?.growth?.netSavings?.percent ?? null;
+  const savedTotal = formatCompactNaira(ledger.data?.totalSavedAmount ?? 0);
+  const { unknown } = copy;
+
+  const categoryCount = breakdown.data?.data?.length;
+  const categories = useMemo(
+    () =>
+      (breakdown.data?.data ?? []).map((category, index) => {
+        const style = CATEGORY_TONES[index % CATEGORY_TONES.length];
+        return {
+          key: category.id ?? category.name,
+          name: category.name,
+          icon: CATEGORY_ICONS[category.name.toLowerCase()] ?? 'localOffer',
+          amount: formatCurrency(category.savedAmount),
+          meta: `${category.redemptions} ${copy.redemptions} • ${Math.round(category.sharePercent ?? 0)}%`,
+          share: Math.max(0, category.sharePercent ?? 0),
+          ...style,
+        };
+      }),
+    [breakdown.data],
+  );
+
+  const runExport = async () => {
     if (exportPhase !== 'idle') return;
     setExportPhase('preparing');
     onExport?.();
-    timers.current.push(
-      setTimeout(() => {
-        setExportPhase('done');
-        timers.current.push(
-          setTimeout(() => {
-            setExportPhase('idle');
-          }, 2000),
-        );
-      }, 1200),
-    );
+    try {
+      // The endpoint streams a CSV attachment; the browser handles the download
+      // and we have no filesystem/share dependency to write it ourselves.
+      await Linking.openURL(savingsApi.exportUrl({ days }));
+      setExportPhase('done');
+    } catch {
+      setExportPhase('idle');
+      return;
+    }
+    setTimeout(() => setExportPhase('idle'), 2000);
   };
 
   return (
@@ -102,8 +174,8 @@ export function SavingsHistoryScreen({
             <StatusPillTabs
               segmented
               labels={copy.timeframes}
-              selected={timeframe}
-              onSelect={setTimeframe}
+              selected={rangeIndex}
+              onSelect={setRangeIndex}
             />
 
             <View className="gap-1 pt-1">
@@ -115,32 +187,36 @@ export function SavingsHistoryScreen({
               </View>
               <View className="flex-row flex-wrap items-baseline gap-2">
                 <VemtapText variant="headingSm" className="text-heading-sm">
-                  {copy.lifetimeTotals[timeframe]}
+                  {loading ? unknown : savedTotal}
                 </VemtapText>
-                <View className="rounded-full bg-badge-discount-bg px-2 py-0.5">
-                  <VemtapText variant="caption" className="text-badge-discount-text">
-                    {copy.growthPill}
-                  </VemtapText>
-                </View>
+                {/* Growth is null when the previous window had no activity —
+                    the API deliberately reports no percentage there. */}
+                {growth !== null ? (
+                  <View className="rounded-full bg-badge-discount-bg px-2 py-0.5">
+                    <VemtapText variant="caption" className="text-badge-discount-text">
+                      {copy.growthPill(Math.round(growth))}
+                    </VemtapText>
+                  </View>
+                ) : null}
               </View>
             </View>
 
             <View className="flex-row gap-1 pt-1">
               <MiniStat
                 label={copy.dealsRedeemedLabel}
-                value={copy.dealsRedeemedValue}
+                value={dealsRedeemed == null ? unknown : formatPoints(dealsRedeemed)}
                 unit={copy.dealsRedeemedUnit}
                 valueClassName="text-text"
               />
               <MiniStat
                 label={copy.avgDiscountLabel}
-                value={copy.avgDiscountValue}
+                value={avgDiscount == null ? unknown : `${Math.round(avgDiscount)}%`}
                 unit={copy.avgDiscountUnit}
                 valueClassName="text-primary"
               />
               <MiniStat
                 label={copy.pointsLabel}
-                value={copy.pointsValue}
+                value={points == null ? unknown : formatPoints(points)}
                 unit={copy.pointsUnit}
                 valueClassName="text-badge-discount-text"
               />
@@ -154,53 +230,32 @@ export function SavingsHistoryScreen({
               {copy.categoryTitle}
             </VemtapText>
             <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-              {copy.categoryCount}
+              {categoryCount == null ? unknown : copy.categoryCount(categoryCount)}
             </VemtapText>
           </View>
           <View className="gap-4 rounded-card bg-surface-container-lowest p-4 shadow-sm">
             <View className="h-2.5 flex-row overflow-hidden rounded-full bg-surface-container-low">
-              {copy.categories.map(category => (
+              {categories.map(category => (
                 <View
-                  key={category.id}
-                  className={cn(
-                    'h-full',
-                    category.tone === 'brand'
-                      ? 'bg-primary'
-                      : category.tone === 'secondary'
-                        ? 'bg-secondary-container'
-                        : 'bg-tertiary-fixed',
-                  )}
+                  key={category.key}
+                  className={cn('h-full', category.bar)}
                   style={{ width: `${category.share}%` }}
                 />
               ))}
             </View>
-            {copy.categories.map(category => (
+            {categories.map(category => (
               <View
-                key={category.id}
+                key={category.key}
                 className="flex-row items-center justify-between gap-3"
               >
                 <View className="min-w-0 flex-row items-center gap-3">
                   <View
                     className={cn(
                       'h-8 w-8 shrink-0 items-center justify-center rounded-full',
-                      category.tone === 'brand'
-                        ? 'bg-surface-tint-blue'
-                        : category.tone === 'secondary'
-                          ? 'bg-surface-container'
-                          : 'bg-tertiary-fixed',
+                      category.bg,
                     )}
                   >
-                    <Icon
-                      name={category.icon}
-                      size={18}
-                      color={
-                        category.tone === 'brand'
-                          ? colors.primary
-                          : category.tone === 'secondary'
-                            ? colors.secondary
-                            : colors.tertiary
-                      }
-                    />
+                    <Icon name={category.icon} size={18} color={category.iconColor} />
                   </View>
                   <View className="min-w-0">
                     <VemtapText variant="labelMd" numberOfLines={1}>
@@ -216,6 +271,11 @@ export function SavingsHistoryScreen({
                 </VemtapText>
               </View>
             ))}
+            {!breakdown.isPending && categories.length === 0 ? (
+              <VemtapText variant="caption" tone="tertiary" className="text-center">
+                {copy.noCategories}
+              </VemtapText>
+            ) : null}
           </View>
         </View>
 
@@ -230,7 +290,7 @@ export function SavingsHistoryScreen({
                   variant="caption"
                   className="font-sans-semibold text-on-secondary-container"
                 >
-                  {copy.ledgerCount}
+                  {loading ? unknown : copy.ledgerCount(total)}
                 </VemtapText>
               </View>
             </View>
@@ -242,35 +302,55 @@ export function SavingsHistoryScreen({
             </View>
           </View>
 
-          {copy.entries.map(entry => (
+          {failed ? (
+            <VemtapText variant="caption" tone="tertiary" className="text-center">
+              {copy.loadFailed}
+            </VemtapText>
+          ) : null}
+
+          {loading ? (
+            <VemtapText variant="caption" tone="tertiary" className="text-center">
+              {strings.common.loading}
+            </VemtapText>
+          ) : null}
+
+          {empty ? (
+            <VemtapText variant="caption" tone="tertiary" className="text-center">
+              {copy.noRedemptions}
+            </VemtapText>
+          ) : null}
+
+          {entries.map(entry => (
             <View
               key={entry.id}
               className="gap-2 rounded-card bg-surface-container-lowest p-4 shadow-sm"
             >
               <View className="flex-row items-start justify-between gap-2">
                 <View className="min-w-0 flex-1 flex-row gap-3">
-                  <View className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-surface-container">
-                    <Image
-                      source={{ uri: entryImages[entry.id] }}
-                      accessibilityLabel={entry.imageAlt}
-                      className="h-full w-full"
-                      resizeMode="cover"
-                    />
-                  </View>
+                  {entry.merchantImageUrl ? (
+                    <View className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-surface-container">
+                      <Image
+                        source={{ uri: entry.merchantImageUrl ?? '' }}
+                        accessibilityLabel={entry.merchantName}
+                        className="h-full w-full"
+                        resizeMode="cover"
+                      />
+                    </View>
+                  ) : null}
                   <View className="min-w-0 flex-1">
                     <VemtapText
                       variant="labelMd"
                       className="font-sans-semibold"
                       numberOfLines={1}
                     >
-                      {entry.merchant}
+                      {entry.merchantName}
                     </VemtapText>
                     <VemtapText variant="caption" tone="tertiary" numberOfLines={1}>
-                      {entry.timestamp}
+                      {entry.redeemedAt ? formatWhen(entry.redeemedAt) : ''}
                     </VemtapText>
                     <View className="mt-1 max-w-full self-start rounded bg-surface-container-low px-1.5 py-0.5">
                       <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-                        {`${copy.codeLabel} ${entry.code}`}
+                        {`${copy.codeLabel} ${entry.claimCode ?? '—'}`}
                       </VemtapText>
                     </View>
                   </View>
@@ -281,7 +361,7 @@ export function SavingsHistoryScreen({
                     className="font-sans-semibold text-badge-discount-text"
                     numberOfLines={1}
                   >
-                    {`${copy.savedPrefix} ${entry.saved}`}
+                    {`${copy.savedPrefix} ${formatCurrency(entry.savedAmount, entry.currency)}`}
                   </VemtapText>
                 </View>
               </View>
@@ -293,7 +373,7 @@ export function SavingsHistoryScreen({
                     className="font-sans-medium text-text-secondary"
                     numberOfLines={2}
                   >
-                    {entry.item}
+                    {entry.offerName}
                   </VemtapText>
                   <View className="mt-0.5 flex-row flex-wrap items-baseline gap-x-2">
                     <VemtapText
@@ -302,14 +382,14 @@ export function SavingsHistoryScreen({
                       className="line-through"
                       numberOfLines={1}
                     >
-                      {entry.original}
+                      {formatCurrency(entry.originalAmount, entry.currency)}
                     </VemtapText>
                     <VemtapText
                       variant="labelSm"
                       className="font-sans-bold"
                       numberOfLines={1}
                     >
-                      {`${copy.paidPrefix} ${entry.paid}`}
+                      {`${copy.paidPrefix} ${formatCurrency(entry.paidAmount, entry.currency)}`}
                     </VemtapText>
                   </View>
                 </View>

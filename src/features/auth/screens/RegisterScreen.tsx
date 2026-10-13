@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useForm } from 'react-hook-form';
@@ -16,6 +16,7 @@ import { colors } from '@theme/colors';
 import { strings } from '@constants/strings';
 import type { AuthStackParamList, RootStackParamList } from '@navigation/types';
 import { useRequestSignupOtp } from '@features/auth/hooks/useCustomerRegister';
+import vemtapLogo from '@assets/images/vemtap-square-logo.png';
 
 cssInterop(View, { className: 'style' });
 cssInterop(ScrollView, {
@@ -24,6 +25,10 @@ cssInterop(ScrollView, {
 });
 cssInterop(SafeAreaView, { className: 'style' });
 cssInterop(Pressable, { className: 'style' });
+
+const styles = StyleSheet.create({
+  logo: { width: 64 * 1.3 * 1.3, height: 64 * 1.3 * 1.3, marginBottom: 16 },
+});
 
 const registerSchema = z.object({ email: emailSchema });
 type RegisterInput = z.infer<typeof registerSchema>;
@@ -41,11 +46,14 @@ export function RegisterScreen() {
   const [submitState, setSubmitState] = useState<'idle' | 'sending' | 'sent'>('idle');
   const requestOtp = useRequestSignupOtp();
 
-  const { control, handleSubmit, formState } = useForm<RegisterInput>({
+  const { control, handleSubmit, watch } = useForm<RegisterInput>({
     resolver: zodResolver(registerSchema),
     defaultValues: { email: '' },
     mode: 'onBlur',
   });
+
+  const emailValue = watch('email');
+  const hasValue = (emailValue ?? '').trim().length > 0;
 
   const onSubmit = useCallback(
     (values: RegisterInput) => {
@@ -97,12 +105,12 @@ export function RegisterScreen() {
 
         {/* App Brand Header */}
         <View className="mb-8 items-center text-center">
-          <View className="mb-4 h-12 w-12 items-center justify-center rounded-2xl bg-surface-tint shadow-sm">
-            <Icon name="localMall" size={28} color={colors.primary} />
-          </View>
-          <VemtapText className="mb-1 font-sans-bold text-label-sm uppercase tracking-widest text-primary">
-            VEMTAP
-          </VemtapText>
+          <Image
+            source={vemtapLogo}
+            style={styles.logo}
+            resizeMode="contain"
+            accessibilityLabel="VEMTAP"
+          />
           <VemtapText
             variant="headingXl"
             accessibilityRole="header"
@@ -158,7 +166,7 @@ export function RegisterScreen() {
                   : strings.auth.registerContinue
             }
             loading={submitState === 'sending'}
-            disabled={!formState.isValid && submitState === 'idle'}
+            disabled={!hasValue && submitState === 'idle'}
             className="mt-1"
             rightIcon={
               submitState === 'sent' ? null : (

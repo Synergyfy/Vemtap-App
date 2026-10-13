@@ -23,7 +23,15 @@
 import { ownerAuthApi, isOtpVerifiedError } from '@api/ownerAuthApi';
 import { categoriesApi } from '@api/categoriesApi';
 import { dealsApi } from '@api/dealsApi';
+import { publicBusinessApi } from '@api/publicBusinessApi';
+import { claimApi } from '@api/claimApi';
+import { catalogueApi } from '@api/catalogueApi';
+import { publicSearchApi } from '@api/publicSearchApi';
+import { areaCoords } from '@constants/locations';
 import { ApiError } from '@api/ApiError';
+
+/** Unique per run so repeated runs do not collide on the pending claim OTP. */
+const claimEmail = `claim.contract.${Date.now()}@vemtap-test.dev`;
 
 const LIVE = process.env.LIVE_API_TESTS === '1';
 const describeLive = LIVE ? describe : describe.skip;
@@ -74,6 +82,325 @@ describeLive('public API — live contract', () => {
         expect(offer.name).toBeTruthy();
         // `price` is what the mapper computes; it must survive a real payload.
         expect(offer.pricingType).toBeTruthy();
+      }
+    });
+
+    /**
+     * The proximity filter the app now relies on. `radius` was confirmed to be
+     * kilometres (not metres) against this API, so a 1 km circle around Apo
+     * returns nothing while the same centre with a 5 km radius returns offers —
+     * which is also why a wrong unit would silently empty the feed rather than
+     * error.
+     */
+    it('narrows by radius in kilometres', async () => {
+      const apo = areaCoords('Apo');
+
+      const tight = await dealsApi.listPublicOffers({
+        limit: 50,
+        lat: apo.latitude,
+        lng: apo.longitude,
+        radius: 1,
+      });
+      const wider = await dealsApi.listPublicOffers({
+        limit: 50,
+        lat: apo.latitude,
+        lng: apo.longitude,
+        radius: 5,
+      });
+
+      expect(tight.data.length).toBeLessThan(wider.data.length);
+      expect(wider.data.length).toBeGreaterThan(0);
+    });
+
+    it('returns fewer offers without a proximity filter than with one', async () => {
+      const apo = areaCoords('Apo');
+
+      const unfiltered = await dealsApi.listPublicOffers({ limit: 50 });
+      const nearby = await dealsApi.listPublicOffers({
+        limit: 50,
+        lat: apo.latitude,
+        lng: apo.longitude,
+        radius: 5,
+      });
+
+      // Guards the contract this change depends on: the radius parameter is
+      // actually applied rather than accepted and ignored.
+      expect(nearby.data.length).toBeLessThan(unfiltered.data.length);
+    });
+
+    it('returns nothing when no business is within the radius', async () => {
+      // An empty result is a valid state (the radius sheet promises "within
+      // N km"), so the parser and mapper have to survive it.
+      const empty = await dealsApi.listPublicOffers({
+        limit: 50,
+        lat: areaCoords('Apo').latitude,
+        lng: areaCoords('Apo').longitude,
+        radius: 0.1,
+      });
+
+      expect(empty.data).toEqual([]);
+      expect(empty.total).toBe(0);
+    });
+  });
+
+  describe('GET /catalogue/offers/public/details/:id', () => {
+    /**
+     * The feed's own first offer, so this reads whatever the server currently
+     * has rather than a hardcoded id that may be deleted later.
+     */
+    const liveOffer = async () => {
+      const feed = await dealsApi.listPublicOffers({ limit: 1, radius: 50 });
+      const offer = feed.data[0];
+      if (!offer) throw new Error('feed returned no offers to follow');
+      return offer;
+    };
+
+    it('returns a detail payload the deal page can render', async () => {
+      const offer = await liveOffer();
+      const detail = await dealsApi.getPublicOfferDetails(offer.id);
+
+      expect(detail.id).toBe(offer.id);
+      expect(detail.name).toBeTruthy();
+      expect(detail.business?.slug).toBeTruthy();
+      // The detail payload sends prices as strings while the feed sends
+      // numbers — the `money` union has to accept both or this fails.
+      expect(
+        detail.calculatedPrice === null || detail.calculatedPrice !== undefined,
+      ).toBe(true);
+    });
+
+    it('carries the fields the feed omits and the detail page needs', async () => {
+      const offer = await liveOffer();
+      const detail = await dealsApi.getPublicOfferDetails(offer.id);
+
+      // Present as keys (possibly falsy), which is what the schema must tolerate.
+      expect('endDate' in detail).toBe(true);
+      expect('longDescription' in detail).toBe(true);
+      expect('likesCount' in detail).toBe(true);
+      expect('isVerified' in (detail.business ?? {})).toBe(true);
+    });
+
+    it('reports an unknown offer as 404 rather than an empty payload', async () => {
+      const error = await dealsApi
+        .getPublicOfferDetails('00000000-0000-4000-8000-000000000000')
+        .catch((caught: unknown) => caught);
+
+      expect(error).toBeInstanceOf(ApiError);
+      expect((error as ApiError).status).toBe(404);
+    });
+
+    /**
+     * Locks in why callers must resolve fictional deals locally: a seed id is
+     * not an unknown offer, it is a validation error.
+     */
+    it('rejects a non-UUID id with 400, so seed ids must never be sent', async () => {
+      const error = await dealsApi
+        .getPublicOfferDetails('urban-grill-lunch')
+        .catch((caught: unknown) => caught);
+
+      expect(error).toBeInstanceOf(ApiError);
+      expect((error as ApiError).status).toBe(400);
+    });
+  });
+
+  describe('GET /public/businesses/code/:code', () => {
+    it('resolves the merchant behind a live offer', async () => {
+      const feed = await dealsApi.listPublicOffers({ limit: 1, radius: 50 });
+      const code = feed.data[0]?.business?.slug;
+      if (!code) throw new Error('feed offer carried no business code');
+
+      const business = await publicBusinessApi.getByCode(code);
+
+      expect(business.uniqueCode).toBe(code);
+      expect(business.name).toBeTruthy();
+      expect(typeof business.isVerified).toBe('boolean');
+    });
+
+    it('returns 404 for an unknown code', async () => {
+      const error = await publicBusinessApi
+        .getByCode('ZZZZZZZZZ')
+        .catch((caught: unknown) => caught);
+
+      expect(error).toBeInstanceOf(ApiError);
+      expect((error as ApiError).status).toBe(404);
+    });
+  });
+
+  describe('consumer promotion claim', () => {
+    const liveOfferId = async () => {
+      const feed = await dealsApi.listPublicOffers({ limit: 1, radius: 50 });
+      const id = feed.data[0]?.id;
+      if (!id) throw new Error('feed returned no offers to claim');
+      return id;
+    };
+
+    it('accepts a claim request for a real offer', async () => {
+      // The docs say 201; the API answers 200. Asserting the parsed body rather
+      // than the status keeps the test honest about what we depend on.
+      await expect(
+        claimApi.requestClaimOtp({
+          offerId: await liveOfferId(),
+          firstName: 'Contract',
+          lastName: 'Probe',
+          email: claimEmail,
+          phone: '+2348012345678',
+        }),
+      ).resolves.toBeUndefined();
+    });
+
+    it('rejects a claim request missing the claimant phone', async () => {
+      const error = await claimApi
+        .requestClaimOtp({
+          offerId: await liveOfferId(),
+          firstName: 'Contract',
+          lastName: 'Probe',
+          email: claimEmail,
+          phone: '',
+        })
+        .catch((caught: unknown) => caught);
+
+      expect(error).toBeInstanceOf(ApiError);
+      expect((error as ApiError).status).toBe(400);
+    });
+
+    it('rejects a wrong code with the documented message', async () => {
+      const offerId = await liveOfferId();
+      await claimApi.requestClaimOtp({
+        offerId,
+        firstName: 'Contract',
+        lastName: 'Probe',
+        email: claimEmail,
+        phone: '+2348012345678',
+      });
+
+      const error = await claimApi
+        .verifyClaim({ email: claimEmail, offerId, code: '0000' })
+        .catch((caught: unknown) => caught);
+
+      expect(error).toBeInstanceOf(ApiError);
+      expect((error as ApiError).status).toBe(400);
+      expect((error as ApiError).message).toMatch(/invalid otp/i);
+    });
+
+    /**
+     * The OTP is 4–6 characters, not a fixed width. Verified live: a 3-character
+     * code is rejected on length, a 7-character one likewise, and anything in
+     * between passes length validation and then fails as an invalid OTP. The
+     * verification field must therefore not hard-code six cells.
+     */
+    it('accepts 4 to 6 characters and rejects lengths outside it', async () => {
+      const offerId = await liveOfferId();
+
+      const tooShort = await claimApi
+        .verifyClaim({ email: claimEmail, offerId, code: '123' })
+        .catch((caught: unknown) => caught);
+      expect((tooShort as ApiError).message).toMatch(/longer than or equal to 4/i);
+
+      const tooLong = await claimApi
+        .verifyClaim({ email: claimEmail, offerId, code: '1234567' })
+        .catch((caught: unknown) => caught);
+      expect((tooLong as ApiError).message).toMatch(/shorter than or equal to 6/i);
+
+      // In range: fails on the value, not the length.
+      const wrongValue = await claimApi
+        .verifyClaim({ email: claimEmail, offerId, code: '1234' })
+        .catch((caught: unknown) => caught);
+      expect((wrongValue as ApiError).message).toMatch(/invalid otp/i);
+    });
+  });
+
+  describe('GET /public/search', () => {
+    /**
+     * This is what Home's search will use, and it already works — so the search
+     * integration needs no backend change. These tests exist to prove that and to
+     * catch a regression in a contract we do not own.
+     */
+    it('finds deals by name', async () => {
+      const result = await publicSearchApi.search({ q: 'tea' });
+
+      expect(result.deals.length).toBeGreaterThan(0);
+      expect(result.deals[0].name.toLowerCase()).toContain('tea');
+    });
+
+    it('finds businesses by name', async () => {
+      const result = await publicSearchApi.search({ q: 'beauty' });
+
+      expect(result.businesses.length).toBeGreaterThan(0);
+      expect(result.businesses[0].name.toLowerCase()).toContain('beauty');
+    });
+
+    it('returns all three groups with real shapes', async () => {
+      const result = await publicSearchApi.search({ q: 'Test store', limit: 5 });
+
+      // Deal and business groups reuse the feed/list schemas, so a search result
+      // renders through the same mappers as a feed row.
+      expect(result.deals[0]?.id).toBeTruthy();
+      expect(result.businesses[0]?.name).toBeTruthy();
+    });
+
+    it('returns empty groups for an unmatched term rather than failing', async () => {
+      const result = await publicSearchApi.search({ q: 'zzzznotathing' });
+
+      expect(result.deals).toEqual([]);
+      expect(result.businesses).toEqual([]);
+    });
+
+    it('returns categories as real named categories, not empty objects', async () => {
+      const result = await publicSearchApi.search({ q: 'Technology', limit: 5 });
+
+      expect(result.categories.length).toBeGreaterThan(0);
+      // An earlier probe suggested these serialised as `{}` — that was an
+      // artifact of indexing an empty list, and the real payload is complete.
+      for (const category of result.categories) {
+        expect(category.id).toBeTruthy();
+        expect(category.name).toBeTruthy();
+      }
+    });
+  });
+
+  describe('GET /products', () => {
+    /**
+     * The endpoint is now backed by real catalogue items (active, non-suspended,
+     * across all branches) instead of the legacy empty products table, so these
+     * assert the envelope and the item shape Home's section parses — no longer
+     * the old "empty catalogue" state.
+     */
+    it('returns the catalogue-item page envelope', async () => {
+      const feed = await catalogueApi.listPublishedProducts({
+        limit: 10,
+        itemType: 'product',
+      });
+
+      expect(Array.isArray(feed.data)).toBe(true);
+      expect(feed.total).toBeGreaterThanOrEqual(feed.data.length);
+      expect(typeof feed.hasNextPage).toBe('boolean');
+      expect(typeof feed.hasPrevPage).toBe('boolean');
+    });
+
+    it('returns catalogue items with a name and a price field', async () => {
+      const feed = await catalogueApi.listPublishedProducts({
+        limit: 5,
+        itemType: 'product',
+      });
+
+      for (const item of feed.data) {
+        expect(item.id).toBeTruthy();
+        expect(item.name).toBeTruthy();
+        // Money arrives as a number or numeric string; `null` is allowed.
+        expect(
+          item.price === null || ['string', 'number'].includes(typeof item.price),
+        ).toBe(true);
+      }
+    });
+
+    it('keeps itemType=product exclusive of services', async () => {
+      const feed = await catalogueApi.listPublishedProducts({
+        limit: 20,
+        itemType: 'product',
+      });
+
+      for (const item of feed.data) {
+        expect(item.itemType).toBe('product');
       }
     });
   });

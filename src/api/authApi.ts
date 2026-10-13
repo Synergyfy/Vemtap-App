@@ -49,9 +49,11 @@ export const registerInputSchema = z.object({
  */
 export const userSchema = z.object({
   // Required by the API; kept strict so real contract breaks are caught.
+  id: z.string().uuid(),
   email: z.string(),
   firstName: z.string().default(''),
   lastName: z.string().default(''),
+  gender: z.string().nullable().optional(),
   role: z.string().default('customer'),
   status: z.string().default(''),
   authProvider: z.string().default('customer'),
@@ -94,10 +96,23 @@ export const sessionSchema = z.object({
 });
 
 export type LoginInput = z.infer<typeof loginInputSchema>;
+
+/** The editable slice of a profile, as the edit screen collects it. */
+export interface UpdateProfileInput {
+  firstName: string;
+  lastName: string;
+  gender?: string;
+}
 export type RegisterInput = z.infer<typeof registerInputSchema>;
 export type User = z.infer<typeof userSchema>;
 /** Session as the API returns it. The access token is stored in secure storage, not here. */
 export type Session = z.infer<typeof sessionSchema>;
+
+/** Only the two sides of a dual-role account are switchable. */
+export const switchRoleInputSchema = z.object({
+  role: z.enum(['Owner', 'Customer']),
+});
+export type SwitchRoleInput = z.infer<typeof switchRoleInputSchema>;
 
 export const authApi = {
   async login(input: LoginInput, options: ApiRequestOptions = {}): Promise<Session> {
@@ -133,6 +148,45 @@ export const authApi = {
     return requestValidated<User>(
       { method: 'GET', url: '/auth/profile', ...options },
       userSchema,
+    );
+  },
+
+  /**
+   * Persist the editable profile fields.
+   *
+   * Only the fields the edit screen actually owns are sent — `phone` is
+   * deliberately absent because changing it needs its own verification flow,
+   * and `email` likewise goes through verification rather than a profile edit.
+   * The response is the updated user, so callers can refresh the session
+   * without a second read.
+   */
+  async updateProfile(
+    input: UpdateProfileInput,
+    options: ApiRequestOptions = {},
+  ): Promise<User> {
+    return requestValidated<User>(
+      { method: 'PATCH', url: '/users/profile', data: input, ...options },
+      userSchema,
+    );
+  },
+
+  /**
+   * Flip the active side of a dual-role account. The API returns a scoped
+   * session: CUSTOMER tokens carry no business context, OWNER tokens do.
+   */
+  async switchRole(
+    input: SwitchRoleInput,
+    options: ApiRequestOptions = {},
+  ): Promise<Session> {
+    return requestValidated<Session>(
+      {
+        method: 'POST',
+        url: '/auth/switch-role',
+        data: input,
+        idempotencyKey: createIdempotencyKey(),
+        ...options,
+      },
+      sessionSchema,
     );
   },
 

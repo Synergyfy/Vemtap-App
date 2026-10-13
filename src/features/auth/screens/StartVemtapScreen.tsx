@@ -92,8 +92,7 @@ export function StartVemtapScreen() {
         <OnboardingHeader
           showBack
           onBack={() => navigation.goBack()}
-          showSkip
-          onSkip={() => navigation.navigate('Register')}
+          showSkip={false}
           center="progress"
           progress={{ activeIndex: 2, total: 3 }}
         />

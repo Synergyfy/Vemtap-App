@@ -17,6 +17,8 @@ import {
   serviceTiers,
 } from '@features/business/data/serviceFlowData';
 import { BusinessProductImage } from '@features/business/components/BusinessPrimitives';
+import { useBusinessBranches } from '@features/business/hooks/useCatalogueMutations';
+import type { ServiceDraft } from '@store/catalogueDraftStore';
 import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
@@ -26,18 +28,38 @@ cssInterop(Pressable, { className: 'style' });
 cssInterop(View, { className: 'style' });
 
 export interface ReviewServiceSummaryScreenProps {
+  /** Live draft from the setup wizard. Absent in standalone (storybook) use. */
+  draft?: ServiceDraft;
+  publishing?: boolean;
   onBack: () => void;
-  onNext: () => void;
+  onPublish?: () => void;
   onSaveDraft?: () => void;
   onPreview?: () => void;
 }
 
 export function ReviewServiceSummaryScreen({
+  draft,
+  publishing = false,
   onBack,
-  onNext,
+  onPublish,
   onSaveDraft,
   onPreview,
 }: ReviewServiceSummaryScreenProps) {
+  const liveBranches = useBusinessBranches();
+  const shownBranches =
+    draft && liveBranches.data
+      ? liveBranches.data
+          .filter(branch => draft.branchIds.includes(branch.id))
+          .map(branch => ({
+            name: branch.name,
+            summary: `₦${draft.basePrice || '0'} Base`,
+            badge: 'Active',
+          }))
+      : serviceBranches;
+  const shownBranchCount = draft ? draft.branchIds.length : 2;
+  const shownHighlights = draft?.highlights.length
+    ? draft.highlights
+    : serviceReviewHighlights;
   return (
     <ServiceFlowPage
       title="Add Service   Step 4: Review Service Summary"
@@ -110,7 +132,7 @@ export function ReviewServiceSummaryScreen({
             </VemtapText>
           </View>
           <VemtapText variant="headingMd" className="text-heading-md text-text">
-            {serviceFlowDraft.title}
+            {draft?.name || serviceFlowDraft.title}
           </VemtapText>
           <VemtapText variant="bodyMd" tone="secondary">
             {serviceFlowDraft.primaryCategory} &gt; {serviceFlowDraft.subCategory}
@@ -133,13 +155,15 @@ export function ReviewServiceSummaryScreen({
             </VemtapText>
             <View className="mt-0.5 flex-row flex-wrap items-baseline gap-2">
               <VemtapText variant="headingSm" className="font-sans-bold text-text">
-                {serviceFlowDraft.basePriceFormatted}
+                ₦{draft?.basePrice || '0'}
               </VemtapText>
               <VemtapText variant="caption" tone="tertiary" className="line-through">
-                {serviceFlowDraft.compareAtPriceFormatted}
+                {draft?.compareAtPrice
+                  ? `₦${draft.compareAtPrice}`
+                  : serviceFlowDraft.compareAtPriceFormatted}
               </VemtapText>
               <VemtapText variant="caption" tone="secondary">
-                • {serviceFlowDraft.duration}
+                • {draft?.duration || serviceFlowDraft.duration}
               </VemtapText>
             </View>
           </View>
@@ -188,13 +212,13 @@ export function ReviewServiceSummaryScreen({
         <ServiceSectionHeader
           icon="locationOn"
           title="Branch Availability"
-          subtitle="2 Active Studios Serving This Treatment"
+          subtitle={`${shownBranchCount} Active Studios Serving This Treatment`}
           actionLabel="Edit"
           boxedIcon
         />
         <View className="gap-1.5">
-          {serviceBranches.map((branch, index) => (
-            <View key={branch.id} className="gap-1 rounded-lg bg-surface-muted p-3">
+          {shownBranches.map((branch, index) => (
+            <View key={branch.name} className="gap-1 rounded-lg bg-surface-muted p-3">
               <View className="flex-row flex-wrap items-center justify-between gap-2">
                 <VemtapText variant="labelMd" className="font-sans-semibold text-text">
                   {branch.name}
@@ -260,10 +284,10 @@ export function ReviewServiceSummaryScreen({
           boxedIcon
         />
         <VemtapText variant="bodyMd" tone="secondary" className="leading-relaxed">
-          {serviceFlowDraft.reviewDescription}
+          {draft?.description || serviceFlowDraft.reviewDescription}
         </VemtapText>
         <View className="flex-row flex-wrap gap-1">
-          {serviceReviewHighlights.map(highlight => (
+          {shownHighlights.map(highlight => (
             <View key={highlight} className="rounded-full bg-surface-muted px-3 py-1">
               <VemtapText variant="caption" tone="secondary">
                 {highlight}
@@ -301,10 +325,11 @@ export function ReviewServiceSummaryScreen({
 
       <View className="gap-3 pt-1">
         <Button
-          label="Publish Service to Storefront 🚀"
+          label={publishing ? 'Publishing…' : 'Publish Service to Storefront 🚀'}
           labelVariant="labelMd"
           labelNumberOfLines={2}
-          onPress={onNext}
+          disabled={publishing}
+          onPress={onPublish}
         />
         <Button
           label="Save as Draft"

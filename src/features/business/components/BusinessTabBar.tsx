@@ -10,6 +10,7 @@ import { colors } from '@theme/colors';
 import { tabBarTopShadow } from '@theme/shadows';
 import { typeMetrics } from '@theme/typography';
 import { cn } from '@utils/cn';
+import { businessTabBarRePress } from '@navigation/navigationHistory';
 
 cssInterop(Pressable, { className: 'style' });
 cssInterop(View, { className: 'style' });
@@ -26,6 +27,8 @@ export interface BusinessTabMeta {
   icon: IconName;
   label: string;
   badge?: BusinessTabBadge;
+  /** The screen this tab's stack starts on, so a re-tap can unwind to it. */
+  baseScreen: string;
 }
 
 /**
@@ -37,24 +40,28 @@ export const businessTabMeta: Record<string, BusinessTabMeta> = {
   BusinessOverview: {
     icon: 'dashboard',
     label: strings.businessShell.tabs.overview,
+    baseScreen: 'BusinessOverviewHome',
   },
   BusinessOrders: {
     icon: 'receipt',
     label: strings.businessShell.tabs.orders,
-    badge: { count: strings.businessShell.ordersBadge, tone: 'brand' },
+    baseScreen: 'BusinessOrdersHome',
+    // Badges are live (`BusinessTabBarWithLiveBadges`); never bake fake counts.
   },
   BusinessMessages: {
     icon: 'message',
     label: strings.businessShell.tabs.messages,
-    badge: { count: strings.businessShell.messagesBadge, tone: 'error' },
+    baseScreen: 'BusinessMessagesHome',
   },
   BusinessHub: {
     icon: 'storefront',
     label: strings.businessShell.tabs.business,
+    baseScreen: 'BusinessHubHome',
   },
   BusinessMore: {
     icon: 'gridView',
     label: strings.businessShell.tabs.more,
+    baseScreen: 'BusinessMoreHome',
   },
 };
 
@@ -91,9 +98,21 @@ export function BusinessTabBar({ state, navigation, badges }: BusinessTabBarProp
               target: route.key,
               canPreventDefault: true,
             });
-            if (!focused && !event.defaultPrevented) {
-              navigation.navigate(route.name, route.params);
+            if (event.defaultPrevented) return;
+
+            if (focused) {
+              // Asking for the tab you are already on means "take me to its
+              // base screen": the tab keeps whatever nested screen it had while
+              // you were away, but a second tap unwinds it. The nested screen
+              // may itself have arrived through a cross-tab hop, in which case
+              // the stack was built straight onto it and only a rebuild gets
+              // back to the base screen. When the tab already rests on its
+              // base there is nothing to unwind, so the press does nothing
+              // rather than falling through to a redundant navigate.
+              businessTabBarRePress(navigation.dispatch, state, route, meta.baseScreen);
+              return;
             }
+            navigation.navigate(route.name, route.params);
           };
 
           return (

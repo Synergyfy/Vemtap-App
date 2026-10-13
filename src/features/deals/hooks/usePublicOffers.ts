@@ -1,6 +1,10 @@
-import { useQuery } from '@tanstack/react-query';
-import { dealsApi, type Offer } from '@api/dealsApi';
+import { useMemo } from 'react';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { dealsApi, type Offer, type OfferFeed } from '@api/dealsApi';
 import { useLocationStore } from '@store/locationStore';
+import { useDealsFilterStore } from '@store/dealsFilterStore';
+import { discoveryOrigin } from '@utils/geo';
+import { applyDealsFilters } from '@features/deals/utils/dealsFilter';
 import {
   mapOfferToFeatured,
   mapOfferToGridItem,
@@ -9,17 +13,150 @@ import {
 } from '@features/deals/utils/offerMapper';
 
 /**
- * The live offers feed. Distance is derived client-side from the selected
- * district, so the selected area is part of the query key and changing it
- * refetches rather than showing stale distances.
+ * The live offers feed, filtered to what is actually nearby.
+ *
+ * The origin is the user's real position when they used "use my location", and
+ * the centre of the district they picked otherwise, so the same origin drives
+ * both the `lat`/`lng`/`radius` the API filters on and the distance printed on
+ * each card. Origin and radius are part of the query key: moving the device or
+ * widening the radius has to refetch, otherwise the feed would keep serving
+ * results for the previous position.
+ *
+ * Phase 2 moved price and discount narrowing to the server (`minPrice`,
+ * `maxPrice`, `minDiscount`), so the loaded page is no longer an arbitrary
+ * subset that the client then thins out. Only two refinements stay client-side:
+ *
+ *  - **Category** — the design asks for multi-select, the API takes one
+ *    `categoryId`, and the feed carries `categoryName`, so names are matched
+ *    against the loaded page.
+ *  - **Availability** — the API exposes no availability signal.
+ *
+ * Pagination is cursor-based: `nextCursor` from the response is fed back as
+ * `cursor`, and pages accumulate in one infinite query. `popular`/`featured`
+ * sorts return no cursor, so `hasNextPage` simply stops the chain there.
  */
 export function usePublicOffersFeed(limit = 20) {
   const area = useLocationStore(state => state.area);
+  const coords = useLocationStore(state => state.coords);
+  const radiusKm = useLocationStore(state => state.radiusKm);
+  const categoryNames = useDealsFilterStore(state => state.categoryNames);
+  const minPrice = useDealsFilterStore(state => state.minPrice);
+  const maxPrice = useDealsFilterStore(state => state.maxPrice);
+  const minDiscountPercent = useDealsFilterStore(state => state.minDiscountPercent);
+  const availability = useDealsFilterStore(state => state.availability);
 
-  const query = useQuery({
-    queryKey: ['offers', 'public', area, limit],
-    queryFn: () => dealsApi.listPublicOffers({ limit }),
+  const origin = useMemo(() => discoveryOrigin(area, coords), [area, coords]);
+
+  // The client-side criteria still applied to the raw payload. Price/discount
+  // are null on purpose: the server already applied them.
+  const criteria = useMemo(
+    () => ({
+      categoryNames,
+      minPrice: null,
+      maxPrice: null,
+      minDiscountPercent: null,
+      availability,
+    }),
+    [categoryNames, availability],
+  );
+
+  const query = useInfiniteQuery<
+    OfferFeed,
+    Error,
+    Offer[],
+    readonly unknown[],
+    string | undefined
+  >({
+    queryKey: [
+      'offers',
+      'public',
+      origin.latitude,
+      origin.longitude,
+      radiusKm,
+      limit,
+      minPrice,
+      maxPrice,
+      minDiscountPercent,
+    ],
+    queryFn: ({ pageParam }) =>
+      dealsApi.listPublicOffers({
+        limit,
+        lat: origin.latitude,
+        lng: origin.longitude,
+        radius: radiusKm,
+        minPrice: minPrice ?? undefined,
+        maxPrice: maxPrice ?? undefined,
+        minDiscount: minDiscountPercent ?? undefined,
+        cursor: pageParam,
+      }),
+    initialPageParam: undefined,
+    getNextPageParam: last =>
+      last.hasNextPage && last.nextCursor ? last.nextCursor : undefined,
+    // Applied in `select` rather than sent to the API: the raw payload stays
+    // cached unfiltered, so clearing a category/availability filter is instant
+    // and never refetches.
+    select: result =>
+      applyDealsFilters(
+        result.pages.flatMap(page => page.data ?? []),
+        criteria,
+      ),
     staleTime: 60_000,
+  });
+
+  const offers: Offer[] = query.data ?? [];
+
+  return {
+    ...query,
+    offers,
+    feed: {
+      // The label the navbar shows; distances come from `origin`.
+      area,
+      featured: offers[0] ? mapOfferToFeatured(offers[0], origin) : null,
+      list: offers.map(offer => mapOfferToListItem(offer, origin)),
+      grid: offers.map(offer => mapOfferToGridItem(offer, origin)),
+    } satisfies MappedFeed,
+  };
+}
+
+/**
+ * "Deals You May Like" — the customer-only ranked feed (`GET /recommendations`).
+ *
+ * Same origin and radius as `usePublicOffersFeed`, so both cards agree on what
+ * "nearby" means, but two things are deliberately different:
+ *
+ *  - **No client filters.** This endpoint is a fixed ranked list, so the price /
+ *    discount / category / availability criteria do not apply here.
+ *  - **No distances.** The server filters by proximity but omits `distanceKm`,
+ *    so cards must render without it; the mapper is fed the same origin purely
+ *    for its formatting helpers.
+ *
+ * A 401/403 (anonymous visitor, or a signed-in owner) is not an error worth
+ * showing: the caller falls back to the plain public feed, which is why
+ * `enabled` stays on and the query is allowed to fail quietly.
+ */
+export function useRecommendations(limit = 10) {
+  const area = useLocationStore(state => state.area);
+  const coords = useLocationStore(state => state.coords);
+  const radiusKm = useLocationStore(state => state.radiusKm);
+  const origin = useMemo(() => discoveryOrigin(area, coords), [area, coords]);
+
+  const query = useQuery<OfferFeed>({
+    queryKey: [
+      'offers',
+      'recommendations',
+      origin.latitude,
+      origin.longitude,
+      radiusKm,
+      limit,
+    ],
+    queryFn: () =>
+      dealsApi.getRecommendations({
+        limit,
+        lat: origin.latitude,
+        lng: origin.longitude,
+        radius: radiusKm,
+      }),
+    staleTime: 300_000,
   });
 
   const offers: Offer[] = query.data?.data ?? [];
@@ -27,12 +164,12 @@ export function usePublicOffersFeed(limit = 20) {
   return {
     ...query,
     offers,
-    feed: {
-      area,
-      featured: offers[0] ? mapOfferToFeatured(offers[0], area) : null,
-      list: offers.map(offer => mapOfferToListItem(offer, area)),
-      grid: offers.map(offer => mapOfferToGridItem(offer, area)),
-    } satisfies MappedFeed,
+    /** Same mapper as the public feed, minus any distance rendering: the
+     * endpoint omits `distanceKm`. */
+    list: offers.map(offer => mapOfferToListItem(offer, origin)),
+    /** True once the call has actually succeeded, so the caller knows the
+     * recommendations (not the fallback feed) are on screen. */
+    hasRecommendations: query.isSuccess,
   };
 }
 

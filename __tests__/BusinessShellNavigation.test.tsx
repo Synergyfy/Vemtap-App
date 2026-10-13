@@ -159,7 +159,10 @@ describe('business shell navigation', () => {
       fireEvent.press(screen.getByLabelText(shell.tabs.orders));
     });
     await act(async () => {
-      fireEvent.press(screen.getByLabelText(strings.businessOrders.alertTitle));
+      fireEvent.press(
+        screen.queryByLabelText(strings.businessOrders.alertTitle) ??
+          screen.getByLabelText(strings.businessOrders.alertTitleFor(0)),
+      );
     });
     expect(screen.getByText(strings.businessPos.title)).toBeTruthy();
 

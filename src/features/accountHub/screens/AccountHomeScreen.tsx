@@ -2,12 +2,18 @@ import React from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Button } from '@components/ui/Button';
+import { Avatar } from '@components/ui/Avatar';
 import { Icon, type IconName } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
 import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
+import { useLoyaltyAnalytics } from '@features/accountHub/hooks/useLoyalty';
+import { useSavedTotals } from '@features/accountHub/hooks/useSavedHub';
+import { useActiveClaimsCount } from '@features/myDeals/hooks/useMyClaims';
+import { useCustomerOrders } from '@features/order/hooks/useCustomerOrders';
+import { isActiveStatus } from '@features/order/orderStatus';
+import { formatCompactNaira } from '@utils/formatters';
 import { colors } from '@theme/colors';
 import { navbarBottomShadow } from '@theme/shadows';
 
@@ -104,6 +110,7 @@ export interface AccountHomeScreenProps {
   onOpenAccountMenu?: () => void;
   onEditProfile?: () => void;
   onOpenCustomerDashboard?: () => void;
+  onOpenMessages?: () => void;
   onOpenDeals?: () => void;
   onOpenOrders?: () => void;
   onOpenSavings?: () => void;
@@ -115,6 +122,8 @@ export interface AccountHomeScreenProps {
   onOpenContactSupport?: () => void;
   onOpenTerms?: () => void;
   onOpenBusinessSetup?: () => void;
+  /** Overrides the default "Set up your business" label for dual-role owners. */
+  businessCtaLabel?: string;
   onSignOut?: () => void;
 }
 
@@ -124,6 +133,7 @@ export function AccountHomeScreen({
   onOpenAccountMenu,
   onEditProfile,
   onOpenCustomerDashboard,
+  onOpenMessages,
   onOpenDeals,
   onOpenOrders,
   onOpenSavings,
@@ -135,9 +145,43 @@ export function AccountHomeScreen({
   onOpenContactSupport,
   onOpenTerms,
   onOpenBusinessSetup,
+  businessCtaLabel,
   onSignOut,
 }: AccountHomeScreenProps) {
   const me = useCurrentUserDisplay();
+  const analytics = useLoyaltyAnalytics();
+  const savedTotals = useSavedTotals();
+  const activeClaims = useActiveClaimsCount();
+
+  // Same source as the dashboard's "Saved Total": the customer's net savings
+  // across all businesses. `—` until the query settles, so the tile can never
+  // print a stale or invented figure.
+  const totalSaved = analytics.isSuccess
+    ? formatCompactNaira(analytics.data?.totals?.netSavings ?? 0)
+    : strings.customerDashboard.metricUnavailable;
+  // The effective active-pass count from `GET /me/claims`; unavailable for
+  // non-customer sessions, so the tile shows `—` rather than an invented zero.
+  const activeDeals = activeClaims.isSuccess
+    ? copy.activeDealsValueFor(activeClaims.data ?? 0)
+    : strings.customerDashboard.metricUnavailable;
+  const myDealsBadge = activeClaims.isSuccess
+    ? copy.myDealsBadgeFor(activeClaims.data ?? 0)
+    : undefined;
+
+  // Orders are real, so the "Pending" badge is a live count of the ones still
+  // open.
+  const orders = useCustomerOrders();
+  const pendingOrders = (orders.data ?? []).filter(order =>
+    isActiveStatus(order.status),
+  ).length;
+  const pendingBadge = orders.isSuccess
+    ? copy.ordersBookingsBadgeFor(pendingOrders)
+    : undefined;
+  // The unified saved feed totals across deals, businesses and services; the
+  // badge stays hidden until it settles so it can never print an invented zero.
+  const savedBadge = savedTotals.isSuccess
+    ? copy.savedItemsBadgeFor(savedTotals.all ?? 0)
+    : undefined;
   return (
     <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-background">
       <View
@@ -189,7 +233,7 @@ export function AccountHomeScreen({
             onPress={onOpenAccountMenu}
             className="h-9 w-9 items-center justify-center rounded-full bg-primary"
           >
-            <Icon name="person" size={18} color={colors.surface} />
+            <Avatar name={me.fullName} size="sm" tone="brand" />
           </Pressable>
         </View>
       </View>
@@ -248,7 +292,7 @@ export function AccountHomeScreen({
                   className="font-sans-bold text-badge-discount-text"
                   numberOfLines={1}
                 >
-                  {copy.totalSavedValue}
+                  {totalSaved}
                 </VemtapText>
               </View>
             </View>
@@ -263,97 +307,52 @@ export function AccountHomeScreen({
                   className="font-sans-bold"
                   numberOfLines={1}
                 >
-                  {copy.activeDealsValue}
+                  {activeDeals}
                 </VemtapText>
               </View>
             </View>
           </View>
         </View>
 
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={copy.goToDashboard}
-          onPress={onOpenCustomerDashboard}
-          className="w-full overflow-hidden rounded-card shadow-md active:scale-[0.99]"
-        >
-          <LinearGradient
-            colors={[colors.primaryContainer, colors.primaryContainer, colors.navy]}
-            locations={[0, 0.3, 1]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            className="p-4"
-          >
-            <View className="flex-row items-start justify-between gap-2">
-              <View className="min-w-0 flex-row items-center gap-2">
-                <View className="flex-row items-center gap-1.5 rounded-full bg-surface/20 px-2 py-1">
-                  <View className="h-1.5 w-1.5 rounded-full bg-surface" />
-                  <VemtapText
-                    variant="caption"
-                    className="font-sans-semibold text-surface"
-                    numberOfLines={1}
-                  >
-                    {copy.liveHub}
-                  </VemtapText>
-                </View>
-                <VemtapText variant="caption" className="text-surface" numberOfLines={1}>
-                  {copy.goToDashboardShort}
-                </VemtapText>
-              </View>
-              <View className="h-7 w-7 shrink-0 items-center justify-center rounded-full bg-surface/20">
-                <Icon name="arrowForward" size={18} color={colors.surface} />
-              </View>
-            </View>
-            <View className="mt-3 flex-row items-center gap-4">
-              <View className="h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-surface/20">
-                <Icon name="dashboardCustomize" size={28} color={colors.surface} />
-              </View>
-              <View className="min-w-0 flex-1">
-                <VemtapText
-                  variant="headingSm"
-                  className="font-sans-bold text-surface"
-                  numberOfLines={1}
-                >
-                  {copy.goToDashboard}
-                </VemtapText>
-                <VemtapText
-                  variant="caption"
-                  className="mt-0.5 text-surface"
-                  numberOfLines={2}
-                >
-                  {copy.goToDashboardBody}
-                </VemtapText>
-              </View>
-            </View>
-          </LinearGradient>
-        </Pressable>
-
         <View className="gap-2">
           <SectionLabel>{copy.activitySection}</SectionLabel>
           <View className="overflow-hidden rounded-card border border-border bg-surface shadow-md">
             <AccountRow
+              icon="dashboardCustomize"
+              title={copy.dashboard}
+              meta={copy.dashboardMeta}
+              onPress={onOpenCustomerDashboard}
+            />
+            <AccountRow
+              icon="message"
+              title={copy.messages}
+              meta={copy.messagesMeta}
+              onPress={onOpenMessages}
+            />
+            <AccountRow
               icon="localOffer"
               title={copy.myDeals}
-              badge={copy.myDealsBadge}
+              badge={myDealsBadge}
               badgeTone="success"
               onPress={onOpenDeals}
             />
             <AccountRow
               icon="receipt"
               title={copy.ordersBookings}
-              badge={copy.ordersBookingsBadge}
+              badge={pendingBadge}
               badgeTone="brand"
               onPress={onOpenOrders}
             />
             <AccountRow
               icon="savings"
               title={copy.savingsHistory}
-              badge={copy.savingsHistoryBadge}
+              badge={totalSaved}
               onPress={onOpenSavings}
             />
             <AccountRow
               icon="bookmark"
               title={copy.savedItems}
-              badge={copy.savedItemsBadge}
+              badge={savedBadge}
               onPress={onOpenSaved}
             />
           </View>
@@ -404,7 +403,7 @@ export function AccountHomeScreen({
 
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={copy.setUpBusiness}
+          accessibilityLabel={businessCtaLabel ?? copy.setUpBusiness}
           onPress={onOpenBusinessSetup}
           className="items-center gap-1 py-2"
         >
@@ -416,7 +415,7 @@ export function AccountHomeScreen({
           </View>
           <View className="flex-row items-center gap-1.5">
             <VemtapText variant="labelSm" tone="brand" className="font-sans-semibold">
-              {copy.setUpBusiness}
+              {businessCtaLabel ?? copy.setUpBusiness}
             </VemtapText>
             <Icon name="arrowForward" size={15} color={colors.primary} />
           </View>

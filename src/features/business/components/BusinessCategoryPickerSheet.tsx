@@ -1,10 +1,11 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import type { Category, Subcategory } from '@api/categoriesApi';
 import { BottomSheet } from '@components/shared/BottomSheet';
 import { LoadingState } from '@components/shared/LoadingState';
 import { EmptyState } from '@components/shared/EmptyState';
+import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { colors } from '@theme/colors';
@@ -13,7 +14,6 @@ import { useCategoryTaxonomy } from '@features/business/hooks/useCategoryTaxonom
 import { SelectableChip } from '@features/business/components/BusinessSetupPrimitives';
 
 cssInterop(View, { className: 'style' });
-cssInterop(Pressable, { className: 'style' });
 cssInterop(ScrollView, {
   className: 'style',
   contentContainerClassName: 'contentContainerStyle',
@@ -113,7 +113,7 @@ export function BusinessCategoryPickerSheet({
   }, [active, onSelect, primary, secondary]);
 
   return (
-    <BottomSheet visible onClose={onClose} title={copy.title}>
+    <BottomSheet visible onClose={onClose} title={copy.title} titleVariant="headingMd">
       {isLoading ? (
         <LoadingState label={copy.loading} />
       ) : isError ? (
@@ -184,24 +184,13 @@ export function BusinessCategoryPickerSheet({
             )}
           </View>
 
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={copy.confirm}
+          <Button
+            label={copy.confirm}
+            labelVariant="labelMd"
+            labelClassName="text-white"
             disabled={!active}
             onPress={confirm}
-            className="rounded-button min-h-[52px] items-center justify-center bg-primary px-6 active:opacity-90"
-          >
-            <VemtapText
-              variant="labelMd"
-              className={
-                active
-                  ? 'text-on-primary font-sans-semibold'
-                  : 'text-on-primary opacity-50'
-              }
-            >
-              {copy.confirm}
-            </VemtapText>
-          </Pressable>
+          />
 
           {active ? (
             <View className="flex-row items-center gap-2 rounded-field bg-surface-container-lowest p-3">

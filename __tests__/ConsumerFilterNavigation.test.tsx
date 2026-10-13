@@ -4,12 +4,32 @@ import { strings } from '@constants/strings';
 import { AppStack } from '@navigation/AppStack';
 import { NavigationContainer } from '@react-navigation/native';
 
+jest.mock('@features/home/hooks/useNearbyBusinesses', () =>
+  jest.requireActual('./helpers/mockHomeBusinesses').mockHomeBusinessesModule(),
+);
+jest.mock('@features/home/hooks/useNearbyProducts', () =>
+  jest.requireActual('./helpers/mockHomeProducts').mockHomeProductsModule(),
+);
+
 jest.mock('@features/deals/hooks/usePublicOffers', () =>
   jest.requireActual('./helpers/mockOffersFeed').mockOffersFeedModule(),
 );
 jest.mock('@features/deals/hooks/useDealEngagementActions', () =>
   jest.requireActual('./helpers/mockOffersFeed').mockDealEngagementActionsModule(),
 );
+jest.mock('@features/discover/hooks/useDiscoverBusinesses', () =>
+  jest.requireActual('./helpers/mockDiscoverBusinesses').mockDiscoverBusinessesModule(),
+);
+jest.mock('@features/deals/hooks/useFilterCategories', () => ({
+  useFilterCategories: jest.fn(() => ({
+    options: [
+      { name: 'Food & Drinks', icon: 'restaurant' },
+      { name: 'Beauty & Spa', icon: 'spa' },
+    ],
+    isLoading: false,
+    isError: false,
+  })),
+}));
 
 /**
  * The filter icon must open the one shared filter page from every feed that
@@ -64,7 +84,7 @@ describe('shared deal filters', () => {
 
   it('opens the same filter page from the Discover feed', async () => {
     await openShell();
-    await pressTab(strings.home.tabDiscover);
+    await pressTab(strings.home.tabBusiness);
     await act(async () => {
       fireEvent.press(screen.getByLabelText(discoverFilter));
     });

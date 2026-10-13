@@ -1,41 +1,76 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  Image,
-  Keyboard,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  TextInput,
-  View,
-} from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Image, Linking, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as ImagePicker from 'expo-image-picker';
 import { RegistrationHeader } from '@components/auth/RegistrationHeader';
+import { EmptyState } from '@components/shared/EmptyState';
+import { ErrorState } from '@components/shared/ErrorState';
+import { LoadingState } from '@components/shared/LoadingState';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
+import { messagingApi } from '@api/messagingApi';
+import {
+  joinMessagingThread,
+  leaveMessagingThread,
+  setActiveMessagingThread,
+  markMessagingRead,
+} from '@api/messagingSocket';
 import { strings } from '@constants/strings';
 import { orderImages } from '@features/order/orderData';
+import {
+  markCustomerThreadReadLocally,
+  useCustomerThreadMessages,
+  useCustomerThreads,
+  useMarkCustomerThreadRead,
+  useSendCustomerReply,
+} from '@features/merchantChat/hooks/useCustomerMessaging';
+import { formatCurrency } from '@utils/formatters';
 import { ConversationBubble } from '@features/merchantChat/components/ConversationBubble';
+import { ChatComposer } from '@features/merchantChat/components/ChatComposer';
+import { useKeyboardInset } from '@features/merchantChat/hooks/useKeyboardInset';
+import {
+  dayLabel,
+  formatClock,
+  messageTimeOf,
+  startsNewDay,
+} from '@features/merchantChat/utils/messageTime';
+import { useClaimPass } from '@features/myDeals/hooks/useMyClaims';
 import { colors } from '@theme/colors';
-import { navbarBottomShadow } from '@theme/shadows';
 
 export interface UrbanConversationScreenProps {
+  /**
+   * The in-house thread to open. Messages come from
+   * `GET /customer/messaging/threads/{threadId}` and replies go to its `/reply`.
+   */
+  threadId?: string;
+  /**
+   * The linked deal pass, when the chat was opened straight from one. The thread
+   * itself carries `claimId`, but a just-started thread may not be in the cached
+   * list yet, so the route's claim wins when both are present.
+   */
+  claimId?: string;
   onBack?: () => void;
   onCallMerchant?: () => void;
+  /** Opens the merchant's public profile. Receives the branch's 9-char code. */
+  onOpenBusiness?: (code: string) => void;
   onOpenDetails?: () => void;
   onMore?: () => void;
-  onViewPass?: () => void;
+  /** Opens the linked deal pass. Carries the claim so the pass route can resolve it. */
+  onViewPass?: (claimId: string) => void;
   onCloseDeal?: () => void;
   onAttachment?: () => void;
-  onEmoji?: () => void;
+  onEmoji?: (emoji: string) => void;
   onCamera?: () => void;
-  onSend?: (message: string) => void;
+  /** Puts a quick reply in the draft so it can be edited before sending. */
   onQuickReply?: (message: string) => void;
 }
 
 export function UrbanConversationScreen({
+  threadId,
+  claimId,
   onBack,
   onCallMerchant,
+  onOpenBusiness,
   onOpenDetails,
   onMore,
   onViewPass,
@@ -43,36 +78,184 @@ export function UrbanConversationScreen({
   onAttachment,
   onEmoji,
   onCamera,
-  onSend,
   onQuickReply,
 }: UrbanConversationScreenProps) {
   const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView>(null);
+  const { keyboardInset, isKeyboardVisible, dismissKeyboard } = useKeyboardInset();
   const [showDeal, setShowDeal] = useState(true);
   const [draft, setDraft] = useState('');
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [pendingMediaUrl, setPendingMediaUrl] = useState<string | null>(null);
+  const [uploadingMedia, setUploadingMedia] = useState(false);
+
+  const threadsQuery = useCustomerThreads();
+  const thread = threadId
+    ? (threadsQuery.data ?? []).find(candidate => candidate.id === threadId)
+    : undefined;
+  const messagesQuery = useCustomerThreadMessages(threadId);
+  const sendReply = useSendCustomerReply();
+  const markThreadRead = useMarkCustomerThreadRead();
+
+  /**
+   * Older threads can predate the branch relations, so the business name falls
+   * back through the branch to the business to a placeholder. Every consumer of
+   * the name (header, security line, share sheet) reads this one value.
+   */
+  const businessName = useMemo(
+    () =>
+      thread?.branch?.name ??
+      thread?.business?.name ??
+      strings.urbanConversation.merchant,
+    [thread?.branch?.name, thread?.business?.name],
+  );
+  const branchPhone = thread?.branch?.phone ?? thread?.business?.phone ?? undefined;
+  const branchCode = thread?.branch?.code ?? undefined;
+
+  /**
+   * The linked deal comes off the thread (`claimId` is set when the chat was
+   * started from a pass) and is resolved against `GET /me/claims`. A route
+   * param wins so a chat opened straight from a pass still renders the card
+   * before the thread list has caught up. Only asked for when a claim is known,
+   * so a general conversation does not download the whole pass wallet to render
+   * nothing.
+   */
+  const linkedClaimId = claimId ?? thread?.claimId ?? undefined;
+  const { claim: linkedClaim } = useClaimPass({
+    claimId: linkedClaimId,
+    enabled: linkedClaimId != null,
+  });
+  const linkedOffer = linkedClaim?.offer;
+  const savedAmount =
+    linkedOffer != null ? linkedOffer.originalPrice - linkedOffer.calculatedPrice : 0;
+
+  // Tell the socket bridge which thread is on screen: it joins that thread's
+  // room (so live messages arrive while it is open), marks inbound messages
+  // read rather than delivered, and leaves the room on exit.
+  useEffect(() => {
+    if (!threadId) return;
+    setActiveMessagingThread(threadId);
+    joinMessagingThread(threadId);
+    // Tell the server, and clear the badge the messages hub is showing straight
+    // away. The socket emit alone leaves the local unread count untouched, so the
+    // number and the Unread chip would both still list this thread as unread.
+    markCustomerThreadReadLocally(threadId);
+    markMessagingRead(threadId);
+    // Persist the clear: the socket event only advances message statuses, so
+    // without this the server keeps counting the thread unread and the badge
+    // comes back on the next fetch or from another device.
+    markThreadRead.mutate(threadId);
+    return () => {
+      setActiveMessagingThread(null);
+      leaveMessagingThread(threadId);
+    };
+    // `markThreadRead` is a stable mutation object; re-running on identity would
+    // re-clear the thread on every render of the screen.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [threadId]);
+
+  /**
+   * Keep the newest message in view whenever the transcript grows — on first
+   * load, after a send, and when the socket appends an incoming one. Without it
+   * the list stays wherever it was left, so the newest bubble sits below the
+   * fold and the reader has to scroll to see what just arrived.
+   */
+  const scrollToLatest = useCallback((animated: boolean) => {
+    requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated }));
+  }, []);
 
   useEffect(() => {
-    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-    const show = Keyboard.addListener(showEvent, event => {
-      setKeyboardHeight(event.endCoordinates?.height ?? 0);
-      requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));
-    });
-    const hide = Keyboard.addListener(hideEvent, () => setKeyboardHeight(0));
-    return () => {
-      show.remove();
-      hide.remove();
-    };
-  }, []);
+    scrollToLatest(false);
+  }, [messagesQuery.data?.length, scrollToLatest]);
+
+  useEffect(() => {
+    if (isKeyboardVisible) scrollToLatest(true);
+  }, [isKeyboardVisible, scrollToLatest]);
 
   const send = useCallback(() => {
     const message = draft.trim();
-    if (!message) return;
-    onSend?.(message);
+    // An image on its own is a complete message, so the text is optional once
+    // there is something attached.
+    if ((!message && !pendingMediaUrl) || !threadId) return;
+    sendReply.mutate({
+      threadId,
+      payload: {
+        content: message,
+        ...(pendingMediaUrl ? { mediaUrl: pendingMediaUrl } : {}),
+      },
+    });
     setDraft('');
-    requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));
-  }, [draft, onSend]);
+    setPendingMediaUrl(null);
+    scrollToLatest(true);
+  }, [draft, pendingMediaUrl, threadId, sendReply, scrollToLatest]);
+
+  /**
+   * Host the picked image, then stage it on the composer rather than sending
+   * straight away — the user still gets to add a caption or change their mind.
+   */
+  const attachPickedImage = useCallback(
+    async (file: { uri: string; fileName?: string | null; mimeType?: string }) => {
+      if (!threadId) return;
+      setUploadingMedia(true);
+      try {
+        const { url } = await messagingApi.uploadCustomerMedia({
+          fileUri: file.uri,
+          fileName: file.fileName ?? `chat-photo-${Date.now()}.jpg`,
+          mimeType: file.mimeType ?? 'image/jpeg',
+        });
+        setPendingMediaUrl(url);
+      } catch {
+        // Leave the composer as it was; the draft is never lost.
+      } finally {
+        setUploadingMedia(false);
+      }
+    },
+    [threadId],
+  );
+
+  const pickImage = useCallback(async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) return;
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      quality: 0.8,
+    });
+    const asset = result.canceled ? undefined : result.assets?.[0];
+    if (asset) await attachPickedImage(asset);
+  }, [attachPickedImage]);
+
+  const takePhoto = useCallback(async () => {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) return;
+    const result = await ImagePicker.launchCameraAsync({ quality: 0.8 });
+    const asset = result.canceled ? undefined : result.assets?.[0];
+    if (asset) await attachPickedImage(asset);
+  }, [attachPickedImage]);
+
+  const statusMessage = uploadingMedia
+    ? strings.urbanConversation.uploading
+    : pendingMediaUrl && !draft.trim()
+      ? strings.urbanConversation.photoAttached
+      : undefined;
+
+  /**
+   * A caller can still take over the call entirely; otherwise the thread's own
+   * number is handed to the dialler rather than a hardcoded one. A thread whose
+   * branch carries no phone renders the control disabled instead of dialling
+   * nothing.
+   */
+  const callBusiness = useCallback(() => {
+    if (onCallMerchant) {
+      onCallMerchant();
+      return;
+    }
+    if (!branchPhone) return;
+    Linking.openURL(`tel:${branchPhone}`).catch(() => undefined);
+  }, [branchPhone, onCallMerchant]);
+
+  const openBusiness = useCallback(() => {
+    if (!branchCode) return;
+    onOpenBusiness?.(branchCode);
+  }, [branchCode, onOpenBusiness]);
 
   const closeDeal = useCallback(() => {
     setShowDeal(false);
@@ -80,7 +263,11 @@ export function UrbanConversationScreen({
   }, [onCloseDeal]);
 
   return (
-    <KeyboardAvoidingView className="flex-1 bg-background" behavior="padding">
+    // No `KeyboardAvoidingView`: it relies on an event/layout race that drops
+    // the first keyboard frame on a focused screen, and it cannot lift the bar
+    // at all where the window never resizes (iOS, and Android under Expo Go).
+    // The composer is lifted by the measured inset instead.
+    <View className="flex-1 bg-background">
       <View style={{ paddingTop: Math.max(insets.top, 8) }} className="bg-surface">
         <RegistrationHeader
           title={strings.urbanConversation.pageTitle}
@@ -89,10 +276,22 @@ export function UrbanConversationScreen({
           onMore={onMore}
         />
         <View className="flex-row items-center justify-between gap-2 px-6 py-3 shadow-sm">
-          <View className="min-w-0 flex-1 flex-row items-center gap-3">
+          {/* The merchant row is the way into their public profile. */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`${strings.urbanConversation.openBusiness}: ${businessName}`}
+            accessibilityState={{ disabled: !branchCode }}
+            disabled={!branchCode}
+            onPress={openBusiness}
+            className="min-w-0 flex-1 flex-row items-center gap-3 disabled:opacity-70"
+          >
             <View className="relative h-11 w-11 shrink-0">
               <Image
-                source={{ uri: orderImages.merchant }}
+                source={
+                  thread?.branch?.logoUrl
+                    ? { uri: thread.branch.logoUrl }
+                    : { uri: orderImages.merchant }
+                }
                 className="h-full w-full rounded-full bg-surface-container"
               />
               <View className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-surface bg-success" />
@@ -104,7 +303,7 @@ export function UrbanConversationScreen({
                   numberOfLines={1}
                   className="min-w-0 flex-1"
                 >
-                  {strings.urbanConversation.merchant}
+                  {businessName}
                 </VemtapText>
                 <Icon name="verified" size={17} color={colors.primary} />
               </View>
@@ -112,13 +311,15 @@ export function UrbanConversationScreen({
                 {strings.urbanConversation.replyStatus}
               </VemtapText>
             </View>
-          </View>
+          </Pressable>
           <View className="shrink-0 flex-row items-center gap-1.5">
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={strings.urbanConversation.callMerchant}
-              onPress={onCallMerchant}
-              className="h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-tint active:scale-95"
+              accessibilityState={{ disabled: !branchPhone }}
+              disabled={!branchPhone}
+              onPress={callBusiness}
+              className="h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-tint active:scale-95 disabled:opacity-40"
             >
               <Icon name="phone" size={18} color={colors.primary} />
             </Pressable>
@@ -139,11 +340,13 @@ export function UrbanConversationScreen({
         className="flex-1"
         contentContainerClassName="gap-4 px-6 pb-4 pt-3"
         keyboardShouldPersistTaps="handled"
-        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
-        automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+        keyboardDismissMode="on-drag"
+        // No `automaticallyAdjustKeyboardInsets` here: together with the
+        // avoiding view above it would inset the list twice on iOS.
+        onContentSizeChange={() => scrollToLatest(false)}
         showsVerticalScrollIndicator={false}
       >
-        {showDeal ? (
+        {showDeal && linkedClaim && linkedOffer ? (
           <View className="rounded-xl bg-surface p-3 shadow-md">
             <View className="flex-row items-center justify-between">
               <View className="flex-row items-center gap-2">
@@ -167,7 +370,11 @@ export function UrbanConversationScreen({
             </View>
             <View className="mt-3 flex-row gap-3">
               <Image
-                source={{ uri: orderImages.burger }}
+                source={
+                  linkedOffer.mainImage
+                    ? { uri: linkedOffer.mainImage }
+                    : { uri: orderImages.burger }
+                }
                 className="h-16 w-16 shrink-0 rounded-lg bg-surface-container"
               />
               <View className="min-w-0 flex-1">
@@ -176,33 +383,38 @@ export function UrbanConversationScreen({
                   className="font-sans-semibold"
                   numberOfLines={2}
                 >
-                  {strings.urbanConversation.dealTitle}
+                  {linkedOffer.name}
                 </VemtapText>
                 <View className="mt-0.5 flex-row flex-wrap items-center gap-2">
                   <VemtapText variant="caption" className="font-sans-bold">
-                    {strings.urbanConversation.dealPrice}
+                    {formatCurrency(linkedOffer.calculatedPrice)}
                   </VemtapText>
                   <VemtapText variant="caption" tone="tertiary" className="line-through">
-                    {strings.urbanConversation.regularPrice}
+                    {formatCurrency(linkedOffer.originalPrice)}
                   </VemtapText>
-                  <VemtapText
-                    variant="caption"
-                    tone="success"
-                    className="rounded-full bg-success-container px-1.5 py-0.5"
-                  >
-                    {strings.urbanConversation.save}
-                  </VemtapText>
+                  {savedAmount > 0 ? (
+                    <VemtapText
+                      variant="caption"
+                      tone="success"
+                      className="rounded-full bg-success-container px-1.5 py-0.5"
+                    >
+                      {strings.urbanConversation.saveAmountFor(
+                        formatCurrency(savedAmount),
+                      )}
+                    </VemtapText>
+                  ) : null}
                 </View>
                 <View className="mt-1 flex-row items-center justify-between gap-2">
                   <VemtapText variant="caption" tone="secondary">
                     {strings.urbanConversation.codeLabel}{' '}
                     <VemtapText className="font-sans-semibold text-text">
-                      {strings.urbanConversation.code}
+                      {linkedClaim.claimCode}
                     </VemtapText>
                   </VemtapText>
                   <Pressable
                     accessibilityRole="button"
-                    onPress={onViewPass}
+                    accessibilityLabel={strings.urbanConversation.viewPass}
+                    onPress={() => onViewPass?.(linkedClaim.id)}
                     className="flex-row items-center"
                   >
                     <VemtapText
@@ -219,15 +431,6 @@ export function UrbanConversationScreen({
             </View>
           </View>
         ) : null}
-        <View className="my-1 items-center">
-          <VemtapText
-            variant="caption"
-            tone="secondary"
-            className="rounded-full bg-surface-container-low px-3 py-1 shadow-sm"
-          >
-            {strings.urbanConversation.date}
-          </VemtapText>
-        </View>
         <View className="flex-row items-start gap-2 rounded-xl bg-surface-tint p-3 shadow-sm">
           <Icon name="lock" size={18} color={colors.primary} />
           <VemtapText
@@ -235,126 +438,72 @@ export function UrbanConversationScreen({
             tone="secondary"
             className="flex-1 leading-relaxed"
           >
-            {strings.urbanConversation.security}
+            {strings.urbanConversation.securityFor(businessName)}
           </VemtapText>
         </View>
-        <ConversationBubble
-          message={strings.urbanConversation.merchantOne}
-          time={strings.urbanConversation.timeOne}
-          sender="merchant"
-        />
-        <ConversationBubble
-          message={strings.urbanConversation.customerOne}
-          time={strings.urbanConversation.timeTwo}
-          sender="customer"
-        />
-        <ConversationBubble
-          message={strings.urbanConversation.merchantTwo}
-          time={strings.urbanConversation.timeThree}
-          sender="merchant"
-        />
-        <ConversationBubble
-          message={strings.urbanConversation.merchantThree}
-          time={strings.urbanConversation.timeFour}
-          sender="merchant"
-        >
-          <Pressable
-            accessibilityRole="button"
-            onPress={onViewPass}
-            className="w-full flex-row items-center gap-2 rounded-xl bg-surface-tint-blue p-2"
-          >
-            <View className="h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface shadow-sm">
-              <Icon name="qrCode" size={20} color={colors.primary} />
-            </View>
-            <View className="min-w-0 flex-1">
-              <VemtapText
-                variant="labelSm"
-                className="font-sans-semibold"
-                numberOfLines={1}
-              >
-                {strings.urbanConversation.table}
-              </VemtapText>
-              <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-                {strings.urbanConversation.tableMeta}
-              </VemtapText>
-            </View>
-            <Icon name="forward" size={18} color={colors.textTertiary} />
-          </Pressable>
-        </ConversationBubble>
+        {messagesQuery.isLoading ? (
+          <LoadingState label={strings.common.loading} />
+        ) : messagesQuery.isError ? (
+          <ErrorState title={strings.common.error} onRetry={messagesQuery.refetch} />
+        ) : (messagesQuery.data ?? []).length === 0 ? (
+          <EmptyState variant="contained" icon="message" title={strings.common.empty} />
+        ) : (
+          (messagesQuery.data ?? []).map((message, index, all) => {
+            const previous = all[index - 1];
+            const iso = messageTimeOf(message);
+            // The backend stamps INBOUND for what the customer wrote and
+            // OUTBOUND for the merchant, so the customer is on the right.
+            const sender = message.direction === 'INBOUND' ? 'customer' : 'merchant';
+            return (
+              <View key={message.id} className="gap-3">
+                {startsNewDay(previous ? messageTimeOf(previous) : undefined, iso) ? (
+                  <View className="my-1 items-center">
+                    <VemtapText
+                      variant="caption"
+                      tone="secondary"
+                      className="rounded-full bg-surface-container-low px-3 py-1 shadow-sm"
+                    >
+                      {dayLabel(iso)}
+                    </VemtapText>
+                  </View>
+                ) : null}
+                <ConversationBubble
+                  message={message.content}
+                  time={formatClock(iso)}
+                  sender={sender}
+                  isOwn={sender === 'customer'}
+                  mediaUrl={message.mediaUrl ?? undefined}
+                />
+              </View>
+            );
+          })
+        )}
       </ScrollView>
 
-      <View
-        className="gap-2 bg-surface px-6 pb-2 pt-2"
-        style={[
-          navbarBottomShadow,
-          { paddingBottom: keyboardHeight > 0 ? 0 : Math.max(insets.bottom, 10) },
-        ]}
-      >
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          contentContainerClassName="gap-2 py-1"
-        >
-          {strings.urbanConversation.quickReplies.map(reply => (
-            <Pressable
-              key={reply}
-              accessibilityRole="button"
-              onPress={() => onQuickReply?.(reply)}
-              className="shrink-0 rounded-full bg-surface px-3 py-2 shadow-sm active:bg-surface-tint"
-            >
-              <VemtapText variant="labelSm">{reply}</VemtapText>
-            </Pressable>
-          ))}
-        </ScrollView>
-        <View className="min-h-[52px] flex-row items-center gap-2">
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={strings.urbanConversation.attachment}
-            onPress={onAttachment}
-            className="h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface-container-low"
-          >
-            <Icon name="plus" size={22} color={colors.textSecondary} />
-          </Pressable>
-          <View className="min-w-0 flex-1 flex-row items-center rounded-full bg-surface-container-low px-3">
-            <TextInput
-              accessibilityLabel={strings.urbanConversation.inputLabel}
-              value={draft}
-              onChangeText={setDraft}
-              onSubmitEditing={send}
-              placeholder={strings.urbanConversation.placeholder}
-              placeholderTextColor={colors.textTertiary}
-              returnKeyType="send"
-              className="min-w-0 flex-1 font-sans text-body-md text-text"
-            />
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={strings.urbanConversation.emoji}
-              onPress={onEmoji}
-              hitSlop={8}
-            >
-              <Icon name="emoji" size={20} color={colors.textTertiary} />
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={strings.urbanConversation.camera}
-              onPress={onCamera}
-              hitSlop={8}
-            >
-              <Icon name="localMall" size={19} color={colors.textTertiary} />
-            </Pressable>
-          </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={strings.urbanConversation.send}
-            disabled={!draft.trim()}
-            onPress={send}
-            className="h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary shadow-md active:scale-95 disabled:opacity-50"
-          >
-            <Icon name="send" size={22} color={colors.surface} />
-          </Pressable>
-        </View>
-      </View>
-    </KeyboardAvoidingView>
+      <ChatComposer
+        testID="customer-chat-composer"
+        value={draft}
+        onChangeText={setDraft}
+        onSend={send}
+        quickReplies={strings.urbanConversation.quickReplies}
+        onQuickReply={onQuickReply ?? setDraft}
+        placeholder={strings.urbanConversation.placeholder}
+        inputAccessibilityLabel={strings.urbanConversation.inputLabel}
+        sendAccessibilityLabel={strings.urbanConversation.send}
+        attachAccessibilityLabel={strings.urbanConversation.attachment}
+        cameraAccessibilityLabel={strings.urbanConversation.camera}
+        emojiAccessibilityLabel={strings.urbanConversation.emoji}
+        emojiReactions={strings.urbanConversation.emojiReactions}
+        onEmoji={onEmoji}
+        onAttach={onAttachment ?? pickImage}
+        onCamera={onCamera ?? takePhoto}
+        isSending={sendReply.isPending}
+        pendingMediaUrl={pendingMediaUrl}
+        statusLabel={statusMessage}
+        bottomInset={insets.bottom}
+        keyboardInset={keyboardInset}
+        onKeyboardDismiss={dismissKeyboard}
+      />
+    </View>
   );
 }

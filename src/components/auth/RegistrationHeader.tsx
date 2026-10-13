@@ -3,11 +3,13 @@ import { Pressable, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { cn } from '@utils/cn';
 import { VemtapText } from '@components/ui/Text';
+import { Avatar } from '@components/ui/Avatar';
 import { Icon } from '@components/ui/Icon';
 import { ProgressDots } from '@components/onboarding/ProgressDots';
 import { colors } from '@theme/colors';
 import { navbarBottomShadow } from '@theme/shadows';
 import { strings } from '@constants/strings';
+import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
 
 cssInterop(View, { className: 'style' });
 cssInterop(Pressable, { className: 'style' });
@@ -42,6 +44,7 @@ export function RegistrationHeader({
   compactTitle = false,
   progress,
 }: RegistrationHeaderProps) {
+  const display = useCurrentUserDisplay();
   const alignStart = titleAlign === 'start';
   return (
     <View
@@ -116,9 +119,7 @@ export function RegistrationHeader({
             <Icon name="more" size={22} color={colors.textSecondary} />
           </Pressable>
         ) : null}
-        <View className="h-8 w-8 items-center justify-center rounded-full bg-primary shadow-sm">
-          <Icon name="person" size={18} color={colors.surface} />
-        </View>
+        <Avatar name={display.fullName} size="sm" tone="brand" />
       </View>
     </View>
   );

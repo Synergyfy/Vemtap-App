@@ -2,9 +2,11 @@ import React from 'react';
 import { Pressable, ScrollView, TextInput, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { Button } from '@components/ui/Button';
+import { Avatar } from '@components/ui/Avatar';
 import { Icon, type IconName } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { colors } from '@theme/colors';
+import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
 import { navbarBottomShadow } from '@theme/shadows';
 
 cssInterop(View, { className: 'style' });
@@ -15,20 +17,27 @@ cssInterop(ScrollView, {
 });
 cssInterop(TextInput, { className: 'style' });
 
-export function AccountHeader({
-  title,
-  onBack,
-  onAction,
-  onOpenAccount,
-  actionIcon = 'more',
-}: {
+export interface AccountHeaderProps {
   title: string;
   onBack?: () => void;
   /** Omit to hide the trailing action button (back + avatar only). */
   onAction?: () => void;
   onOpenAccount?: () => void;
   actionIcon?: IconName;
-}) {
+  /** Name the avatar initials come from; defaults to the signed-in customer. */
+  accountName?: string;
+}
+
+export function AccountHeader({
+  title,
+  onBack,
+  onAction,
+  onOpenAccount,
+  actionIcon = 'more',
+  accountName,
+}: AccountHeaderProps) {
+  const me = useCurrentUserDisplay();
+
   return (
     <View
       className="flex-row items-center justify-between bg-surface px-4 pb-3 pt-2"
@@ -63,13 +72,14 @@ export function AccountHeader({
             <Icon name={actionIcon} size={22} color={colors.textSecondary} />
           </Pressable>
         ) : null}
+        {/* Signed-in customer's initials; shared by the Account and More bars. */}
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Open account"
           onPress={onOpenAccount}
           className="h-8 w-8 items-center justify-center rounded-full bg-primary"
         >
-          <Icon name="person" size={17} color={colors.surface} />
+          <Avatar name={accountName ?? me.fullName} size="sm" tone="brand" />
         </Pressable>
       </View>
     </View>

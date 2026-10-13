@@ -81,8 +81,7 @@ export function DiscoverDealsScreen() {
         <OnboardingHeader
           showBack
           onBack={() => navigation.goBack()}
-          showSkip
-          onSkip={() => navigation.navigate('StartVemtap')}
+          showSkip={false}
           center="vemtapPill"
         />
         <ProgressDotsInline activeIndex={1} />

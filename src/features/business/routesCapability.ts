@@ -52,6 +52,28 @@ export const BUSINESS_ROUTE_CAPABILITIES: BusinessRouteCapability[] = [
   },
   {
     routes: [
+      'BusinessAccountCredentials',
+      'BusinessAccountOtp',
+      'BusinessAccountResetPin',
+    ],
+    capability: 'available',
+    endpoints: [
+      'POST /auth/register/owner/request-otp',
+      'POST /auth/otp/verify',
+      'POST /auth/register/owner',
+      'POST /auth/upgrade-to-owner',
+      'POST /auth/customer/pin/forgot',
+      'POST /auth/customer/pin/reset',
+    ],
+    note:
+      'Account creation sits between the profile screens and the location ' +
+      'screens so the rest of the wizard runs authenticated. A brand-new owner ' +
+      'registers with a 4-character email code; an existing customer confirms ' +
+      'their password (or continues one-tap with Google) and keeps both sides. ' +
+      'The reset route is the signed-in PIN recovery reached from that confirm step.',
+  },
+  {
+    routes: [
       'BusinessProfileBasicInfo',
       'BusinessProfileBranding',
       'BusinessProfileContactChannels',

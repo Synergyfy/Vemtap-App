@@ -8,7 +8,12 @@ import axios, {
   type AxiosInstance,
   type AxiosRequestConfig,
 } from 'axios';
-import { API_BASE_URL, API_TIMEOUT_MS } from '@constants/config';
+import {
+  API_BASE_URL,
+  API_CONFIG_HINT,
+  API_TIMEOUT_MS,
+  IS_API_CONFIGURED,
+} from '@constants/config';
 import { ApiError } from '@api/ApiError';
 import { getSecureItem } from '@utils/secureStorage';
 import { logger } from '@utils/logger';
@@ -22,6 +27,13 @@ export const uploadClient: AxiosInstance = axios.create({
 });
 
 uploadClient.interceptors.request.use(async config => {
+  if (!IS_API_CONFIGURED) {
+    throw new ApiError(API_CONFIG_HINT ?? 'API base URL is not configured', {
+      code: 'API_NOT_CONFIGURED',
+      status: 0,
+    });
+  }
+
   const headers = AxiosHeaders.from(config.headers);
   const accessToken = await getSecureItem('accessToken');
   if (accessToken) {
@@ -33,6 +45,11 @@ uploadClient.interceptors.request.use(async config => {
 uploadClient.interceptors.response.use(
   response => response,
   (error: AxiosError) => {
+    // Keep our own errors (e.g. API_NOT_CONFIGURED) instead of flattening them
+    // into a generic transport failure.
+    if (error instanceof ApiError) {
+      throw error;
+    }
     if (error.code === 'ECONNABORTED') {
       throw ApiError.timeout(error);
     }
@@ -45,7 +62,11 @@ uploadClient.interceptors.response.use(
         'message' in error.response.data
         ? String((error.response.data as { message: string }).message)
         : 'Upload failed',
-      { code: `UPLOAD_${error.response.status}`, status: error.response.status, cause: error },
+      {
+        code: `UPLOAD_${error.response.status}`,
+        status: error.response.status,
+        cause: error,
+      },
     );
   },
 );
@@ -108,4 +129,30 @@ export async function uploadFile<T>(options: UploadOptions): Promise<UploadResul
 
   const response = await uploadClient.request<unknown, { data: T }>(config);
   return { data: response.data };
+}
+
+export interface UploadImageInput {
+  fileUri: string;
+  fileName: string;
+  mimeType?: string;
+}
+
+export async function uploadImage({
+  fileUri,
+  fileName,
+  mimeType,
+}: UploadImageInput): Promise<string> {
+  const result = await uploadFile<{ url?: string; data?: { url?: string } }>({
+    url: '/uploads',
+    fileUri,
+    fileName,
+    mimeType: mimeType ?? 'image/jpeg',
+  });
+
+  const url = result.data?.url ?? result.data?.data?.url;
+  if (!url || typeof url !== 'string') {
+    throw new Error('Upload response did not include a hosted URL');
+  }
+
+  return url;
 }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { BottomSheet } from '@components/shared/BottomSheet';
@@ -9,6 +9,7 @@ import { Button } from '@components/ui/Button';
 import { colors } from '@theme/colors';
 import { typeMetrics } from '@theme/typography';
 import { strings } from '@constants/strings';
+import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
 
 cssInterop(View, { className: 'style' });
 cssInterop(Pressable, { className: 'style' });
@@ -23,6 +24,8 @@ export type ClaimDealData = {
   save: string;
   badge: string;
   image: { uri: string };
+  /** Real countdown from the offer; absent when the API sends no expiry. */
+  endsIn?: string;
 };
 
 export type RecipientData = {
@@ -120,12 +123,12 @@ export function ClaimConfirmationSheet({
               <MetaCell
                 icon="eventAvailable"
                 label={strings.deals.claimFlow.validUntil}
-                value="20 Sep (3 days left)"
+                value={deal.endsIn ?? strings.deals.claimFlow.validUntilUnknown}
               />
               <MetaCell
                 icon="wallet"
                 label={strings.deals.claimFlow.commitment}
-                value="₦0 upfront today"
+                value={strings.deals.claimFlow.noCommitment}
               />
             </View>
           </View>
@@ -136,11 +139,10 @@ export function ClaimConfirmationSheet({
           </View>
           <View style={styles.flexCopy}>
             <VemtapText variant="labelMd" className="font-sans-semibold text-text">
-              Easy &amp; Flexible
+              {strings.deals.claimFlow.flexibleTitle}
             </VemtapText>
             <VemtapText variant="bodyMd" tone="secondary" className="mt-1">
-              Make sure you can use this deal before it expires. You can manage all your
-              active claims under My Deals anytime.
+              {strings.deals.claimFlow.flexibleBody}
             </VemtapText>
           </View>
         </View>
@@ -270,6 +272,7 @@ export function ClaimIdentitySheet({
   onRecipient: () => void;
   deal: ClaimDealData;
 }) {
+  const claimant = useCurrentUserDisplay();
   return (
     <BottomSheet
       visible={visible}
@@ -302,18 +305,25 @@ export function ClaimIdentitySheet({
         <View style={styles.identityCard}>
           <View style={styles.identityAvatar}>
             <VemtapText className="font-sans-semibold text-heading-sm text-secondary">
-              JD
+              {claimant.initials}
             </VemtapText>
-            <View style={styles.verifiedDot}>
-              <Icon name="verified" size={12} color={colors.surface} />
-            </View>
+            {/* The badge is a claim about this session's account, so it is
+                drawn only when the session says the email is verified. */}
+            {claimant.emailVerified ? (
+              <View
+                style={styles.verifiedDot}
+                accessibilityLabel={strings.deals.claimFlow.emailVerified}
+              >
+                <Icon name="verified" size={12} color={colors.surface} />
+              </View>
+            ) : null}
           </View>
           <View style={styles.flexCopy}>
             <VemtapText variant="bodyMd" className="font-sans-semibold text-text">
-              John Doe
+              {claimant.fullName}
             </VemtapText>
             <VemtapText variant="bodyMd" tone="secondary">
-              john@email.com
+              {claimant.email}
             </VemtapText>
             <View style={styles.activePill}>
               <View style={styles.dot} />
@@ -362,25 +372,55 @@ export function RecipientDetailsSheet({
   onClose,
   onContinue,
   onBack,
+  title,
+  initialValues,
 }: {
   visible: boolean;
   onClose: () => void;
   onContinue: (data: RecipientData) => void;
   onBack: () => void;
+  /**
+   * Overrides the "claim for someone else" heading. The self-claim flow collects
+   * exactly the same fields the API needs (name, email, phone), so the sheet is
+   * reused with its own wording rather than forked into a near-duplicate.
+   */
+  title?: string;
+  /**
+   * Seeds the form for a claim made under the caller's own identity, so nobody
+   * retypes what the session already knows. Absent for the claim-for-someone-
+   * else flow, which starts blank on purpose.
+   */
+  initialValues?: RecipientData;
 }) {
-  const [data, setData] = useState<RecipientData>({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-  });
-  const update = (key: keyof RecipientData, value: string) =>
+  const blank: RecipientData = { firstName: '', lastName: '', email: '', phone: '' };
+  const [data, setData] = useState<RecipientData>({ ...blank, ...initialValues });
+  const [touched, setTouched] = useState(false);
+  const update = (key: keyof RecipientData, value: string) => {
+    setTouched(true);
     setData(current => ({ ...current, [key]: value }));
+  };
+
+  /**
+   * The sheet stays mounted while hidden — `visible` only toggles it — so a
+   * mount-time seed would freeze whatever the session held when the screen
+   * opened. Re-seeding on each open, while the form is still untouched, keeps
+   * a fresh open in sync with the session and never clobbers values the user
+   * typed and then stepped back from.
+   */
+  useEffect(() => {
+    if (!visible || touched) return;
+    if (initialValues && initialValues !== data) {
+      setData({ ...blank, ...initialValues });
+    }
+    // `data` is read only to skip a no-op re-seed; the caller passes a stable
+    // seed (see `useMemo` in the screen) so this settles after one open.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, touched, initialValues]);
   return (
     <BottomSheet
       visible={visible}
       onClose={onClose}
-      title={strings.deals.claimFlow.claimSomeoneElse}
+      title={title ?? strings.deals.claimFlow.claimSomeoneElse}
       titleVariant="headingLg"
     >
       <ScrollView
@@ -457,14 +497,50 @@ export function RecipientVerificationSheet({
   onContinue,
   onBack,
   email,
+  title,
+  codeHint,
+  minimumDigits,
+  onSubmitCode,
+  submitLabel,
+  busy,
+  errorMessage,
+  heading,
+  bodyCopy,
 }: {
   visible: boolean;
   onClose: () => void;
   onContinue: () => void;
   onBack: () => void;
   email: string;
+  /** Overrides the "Recipient Verification" heading for other claim paths. */
+  title?: string;
+  /** Overrides the "Enter 6-digit authorization code" hint. */
+  codeHint?: string;
+  /**
+   * How many characters must be entered before continuing.
+   *
+   * Default 6 for the recipient flow. Promotion claims accept **4–6** — verified
+   * live: a 3-character code is rejected on length and a 7-character one too —
+   * so the self-claim path passes 4 and the user can continue on either length.
+   */
+  minimumDigits?: number;
+  /**
+   * Receives the entered code. When given it takes precedence over
+   * `onContinue`, so a screen can verify against the API instead of advancing.
+   */
+  onSubmitCode?: (code: string) => void;
+  submitLabel?: string;
+  busy?: boolean;
+  errorMessage?: string;
+  /** Overrides the "Verify recipient's email" heading. */
+  heading?: string;
+  /** Overrides the explanatory sentence under the heading. */
+  bodyCopy?: (email: string) => string;
 }) {
   const [code, setCode] = useState(['', '', '', '', '', '']);
+  const enteredCount = code.filter(Boolean).length;
+  /** Gaps are not allowed: a code must be a contiguous prefix. */
+  const requiredDigits = Math.max(1, minimumDigits ?? code.length);
   const otpKeys = [
     'digit-one',
     'digit-two',
@@ -483,7 +559,7 @@ export function RecipientVerificationSheet({
     <BottomSheet
       visible={visible}
       onClose={onClose}
-      title={strings.deals.claimFlow.recipientVerification}
+      title={title ?? strings.deals.claimFlow.recipientVerification}
       titleVariant="headingLg"
     >
       <ScrollView
@@ -492,14 +568,13 @@ export function RecipientVerificationSheet({
         showsVerticalScrollIndicator={false}
       >
         <VemtapText variant="headingXl" className="text-heading-xl text-text">
-          {strings.deals.claimFlow.verifyRecipient}
+          {heading ?? strings.deals.claimFlow.verifyRecipient}
         </VemtapText>
         <VemtapText variant="bodyMd" tone="secondary" className="mt-2">
-          We sent a 6-digit verification code to{' '}
+          {(bodyCopy ?? strings.deals.claimFlow.verifyRecipientBody)(email)}{' '}
           <VemtapText className="font-sans-semibold text-text">
             {email || 'recipient@example.com'}
-          </VemtapText>{' '}
-          to confirm their identity for this claim voucher.
+          </VemtapText>
         </VemtapText>
         <Pressable accessibilityRole="button" style={styles.changeEmail}>
           <Icon name="edit" size={14} color={colors.primary} />
@@ -508,7 +583,7 @@ export function RecipientVerificationSheet({
           </VemtapText>
         </Pressable>
         <VemtapText variant="labelSm" tone="secondary" className="mt-5 uppercase">
-          {strings.deals.claimFlow.enterCode}
+          {codeHint ?? strings.deals.claimFlow.enterCode}
         </VemtapText>
         <View style={styles.otpRow}>
           {code.map((digit, index) => (
@@ -539,10 +614,31 @@ export function RecipientVerificationSheet({
             registering the redemption voucher directly under their name.
           </VemtapText>
         </View>
+        {errorMessage ? (
+          <View style={styles.infoCard}>
+            <Icon name="info" size={18} color={colors.error} />
+            <VemtapText
+              accessibilityRole="alert"
+              variant="caption"
+              tone="secondary"
+              className="flex-1"
+            >
+              {errorMessage}
+            </VemtapText>
+          </View>
+        ) : null}
         <Button
-          label={strings.deals.claimFlow.verifyContinue}
+          label={submitLabel ?? strings.deals.claimFlow.verifyContinue}
+          loading={busy}
+          disabled={busy || enteredCount < requiredDigits}
           rightIcon={<Icon name="arrowForward" size={18} color={colors.surface} />}
-          onPress={onContinue}
+          onPress={() => {
+            if (onSubmitCode) {
+              onSubmitCode(code.join(''));
+              return;
+            }
+            onContinue();
+          }}
         />
         <Pressable
           accessibilityRole="button"
@@ -843,6 +939,8 @@ export function GiftConfirmSheet({
   onConfirm,
   recipient,
   deal,
+  sending = false,
+  errorMessage,
 }: {
   visible: boolean;
   onClose: () => void;
@@ -850,6 +948,10 @@ export function GiftConfirmSheet({
   onConfirm: () => void;
   recipient: RecipientData & { message: string };
   deal: ClaimDealData;
+  /** True while `POST /catalogue/offers/claim/gift` is in flight. */
+  sending?: boolean;
+  /** Set when that send failed; the sheet stays open so it can be retried. */
+  errorMessage?: string;
 }) {
   return (
     <BottomSheet
@@ -950,8 +1052,24 @@ export function GiftConfirmSheet({
             Payment is made directly by recipient at the venue upon redemption.
           </VemtapText>
         </View>
+        {errorMessage ? (
+          <View
+            accessibilityRole="alert"
+            className="mt-3 flex-row items-start gap-2 rounded-field bg-error-container px-3 py-2"
+          >
+            <Icon name="alert" size={18} color={colors.error} />
+            <VemtapText variant="caption" tone="error" className="flex-1">
+              {errorMessage}
+            </VemtapText>
+          </View>
+        ) : null}
         <Button
-          label={strings.deals.claimFlow.confirmSendGift}
+          label={
+            sending
+              ? strings.deals.claimFlow.sendingGift
+              : strings.deals.claimFlow.confirmSendGift
+          }
+          disabled={sending}
           leftIcon={<Icon name="send" size={18} color={colors.surface} />}
           onPress={onConfirm}
         />
@@ -1279,6 +1397,9 @@ function Field({
           onChangeText={onChangeText}
           placeholder={placeholder}
           placeholderTextColor={colors.textTertiary}
+          // The visible label is a separate line, so announce it on the input
+          // itself — screen readers attach to the field, not the caption.
+          accessibilityLabel={label}
           style={[styles.input, icon ? styles.inputWithIcon : null]}
         />
       </View>

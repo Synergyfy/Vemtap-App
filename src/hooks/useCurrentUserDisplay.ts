@@ -21,6 +21,13 @@ export interface CurrentUserDisplay {
   initials: string;
   email: string;
   phone: string;
+  /**
+   * Email-verification flag from the session. False when signed out — the
+   * schema normalises an absent or null flag the same way.
+   */
+  emailVerified: boolean;
+  /** Saved gender, or undefined when the profile has never chosen one. */
+  gender?: string;
 }
 
 const placeholderName = strings.accountScreens.moreHub.name;
@@ -56,5 +63,7 @@ export function useCurrentUserDisplay(): CurrentUserDisplay {
     initials: initialsOf(fullName),
     email: user?.email?.trim() || placeholderEmail,
     phone: user?.phone?.trim() || placeholderPhone,
+    emailVerified: user?.emailVerified ?? false,
+    gender: user?.gender ?? undefined,
   };
 }

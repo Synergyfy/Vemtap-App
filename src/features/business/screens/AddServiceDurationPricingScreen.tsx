@@ -27,10 +27,17 @@ import { colors } from '@theme/colors';
 cssInterop(Pressable, { className: 'style' });
 cssInterop(View, { className: 'style' });
 
+export type ServiceDurationPricingValue = {
+  basePrice: string;
+  compareAtPrice: string;
+  duration: string;
+  bookingEnabled: boolean;
+};
+
 export interface AddServiceDurationPricingScreenProps {
   onBack: () => void;
-  onNext: () => void;
-  onSaveDraft?: () => void;
+  onNext?: (value: ServiceDurationPricingValue) => void;
+  onSaveDraft?: (value: ServiceDurationPricingValue) => void;
 }
 
 export function AddServiceDurationPricingScreen({
@@ -51,6 +58,13 @@ export function AddServiceDurationPricingScreen({
     () => new Set<string>(serviceWeekdays.filter(day => day !== 'Sun')),
   );
 
+  const currentValue: ServiceDurationPricingValue = {
+    basePrice,
+    compareAtPrice,
+    duration,
+    bookingEnabled,
+  };
+
   const toggleDay = (day: string) => {
     setActiveDays(current => {
       const next = new Set(current);
@@ -64,11 +78,11 @@ export function AddServiceDurationPricingScreen({
     <ServiceFlowPage
       title="Add Service   Step 2: Duration Pricing & Staff/Tiers"
       onBack={onBack}
-      onSaveDraft={onSaveDraft}
+      onSaveDraft={() => onSaveDraft?.(currentValue)}
       footer={
         <ServiceFlowFooter
           primaryLabel="Continue to Branch Availability"
-          onPrimary={onNext}
+          onPrimary={() => onNext?.(currentValue)}
           backLabel="Back to Step 1"
           onBack={onBack}
         />

@@ -45,6 +45,20 @@ const businessHubTabs = [
 /** `directory` = catalogue tab with search + filter carousel, `businessHub` = compact business hub list. */
 export type CentralCatalogueLayout = 'directory' | 'businessHub';
 
+/** Row shape the catalogue list renders; either live-mapped or prototype copy. */
+export interface CentralCatalogueItemRow {
+  id: string;
+  title: string;
+  sku: string;
+  category: string;
+  price: string;
+  status: string;
+  location: string;
+  stock?: string;
+  image?: { uri: string; alt: string };
+  wasPrice?: string;
+}
+
 const statusTone: Record<string, 'success' | 'neutral' | 'warning'> = {
   'Deal Active • 20% OFF': 'success',
   'Standard Menu': 'neutral',
@@ -63,6 +77,8 @@ export interface CentralCatalogueScreenProps {
   onEditItem?: (itemId: string) => void;
   onToggleStock?: (itemId: string, value: boolean) => void;
   onSheetAction?: (actionId: string, itemId: string) => void;
+  /** Optional live catalogue items from API. When provided, renders live data instead of prototype copy. */
+  items?: CentralCatalogueItemRow[];
 }
 
 function CatalogueRow({
@@ -73,14 +89,14 @@ function CatalogueRow({
   onPressMenu,
   onEdit,
 }: {
-  item: (typeof copy.items)[number];
+  item: CentralCatalogueItemRow;
   layout: CentralCatalogueLayout;
   inStock: boolean;
   onToggleStock: () => void;
   onPressMenu: () => void;
   onEdit: () => void;
 }) {
-  const image = businessOpsImageById[item.id];
+  const image = item.image ?? businessOpsImageById[item.id];
   const draft = item.status === 'Draft / Paused';
   const isDeal = item.status === 'Deal Active • 20% OFF';
 
@@ -184,7 +200,7 @@ function CatalogueRow({
             </VemtapText>
             {'wasPrice' in item && item.wasPrice ? (
               <VemtapText variant="caption" tone="tertiary" className="line-through">
-                {item.wasPrice}
+                {item.wasPrice as string}
               </VemtapText>
             ) : null}
           </View>
@@ -205,15 +221,15 @@ function CatalogueRow({
           className="min-w-0 flex-1"
           numberOfLines={2}
         >
-          {item.location}
+          {item.location ?? ''}
         </VemtapText>
       </View>
 
       <View className="-mx-3 -mb-3 flex-row items-center justify-between gap-2 border-t border-border px-3 py-2.5">
         <View className="min-w-0 flex-1">
           <BusinessSwitchRow
-            title={item.stock}
-            accessibilityLabel={item.stock}
+            title={item.stock ?? 'In Stock'}
+            accessibilityLabel={item.stock ?? 'In Stock'}
             value={inStock}
             onValueChange={onToggleStock}
           />
@@ -237,7 +253,7 @@ function CatalogueRow({
 /**
  * Central products & services catalogue. `directory` renders the catalogue tab
  * with location scope, counts, search and the filter carousel; `businessHub`
- * renders the compact business-hub list with an inline Add-New split control.
+ * renders the compact business hub list with an inline Add-New split control.
  */
 export function CentralCatalogueScreen({
   layout = 'directory',
@@ -250,6 +266,7 @@ export function CentralCatalogueScreen({
   onEditItem,
   onToggleStock,
   onSheetAction,
+  items,
 }: CentralCatalogueScreenProps) {
   const [tab, setTab] = useState('products');
   const [filter, setFilter] = useState('all');
@@ -265,9 +282,35 @@ export function CentralCatalogueScreen({
 
   const isDirectory = layout === 'directory';
 
-  // Only the "Drafts" chip empties the list; every other chip keeps all rows so
-  // the empty state only appears for a genuinely empty result set.
-  const visibleItems = filter === 'drafts' ? [] : copy.items;
+  // Use live items if provided, otherwise fall back to prototype copy.
+  // Map live items to the prototype item shape expected by CatalogueRow.
+  // Helper to map any item (live or prototype) to the CatalogueRow shape.
+  const mapToCatalogueRow = (item: {
+    id: string;
+    title: string;
+    sku?: string;
+    category: string;
+    price: string;
+    status: string;
+    location?: string;
+    stock?: string;
+    wasPrice?: string;
+    image?: { uri: string; alt: string };
+  }) => ({
+    id: item.id,
+    title: item.title,
+    sku: item.sku ?? '',
+    category: item.category,
+    price: item.price,
+    status: item.status,
+    location: item.location ?? '',
+    stock: item.stock,
+    wasPrice: item.wasPrice,
+    image: item.image ?? businessOpsImageById[item.id],
+  });
+
+  const sourceItems = items ?? copy.items;
+  const visibleItems = filter === 'drafts' ? [] : sourceItems.map(mapToCatalogueRow);
 
   return (
     <BusinessScreenLayout
@@ -393,7 +436,7 @@ export function CentralCatalogueScreen({
             inStock={stock[item.id] ?? false}
             onToggleStock={() => {
               setStock(current => ({ ...current, [item.id]: !current[item.id] }));
-              setToast(item.stock);
+              setToast(item.stock ?? '');
               onToggleStock?.(item.id, !stock[item.id]);
             }}
             onPressMenu={() => setSheetItem(item.id)}
@@ -428,7 +471,7 @@ export function CentralCatalogueScreen({
               subtitle={action.subtitle}
               tone={action.tone}
               onPress={() => {
-                if (sheetItem) onSheetAction?.(action.icon, sheetItem);
+                if (sheetItem && action.icon) onSheetAction?.(action.icon, sheetItem);
                 setSheetItem(null);
               }}
             />

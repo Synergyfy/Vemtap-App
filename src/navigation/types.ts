@@ -2,13 +2,19 @@ import type { NavigatorScreenParams } from '@react-navigation/native';
 import type { BusinessProfileSummary } from '@features/discover/data/discoverData';
 import type { GeoCoords } from '@constants/locations';
 
+export type { BusinessProfileSummary } from '@features/discover/data/discoverData';
+
 /**
- * Bottom-tab shell for the customer personal hub
- * (Home · My Deals · Messages · Orders · More), taken from the
- * "Customer Dashboard (Personal Overview)" spec. Root-level sibling of `Tabs`.
+ * The customer personal flow: a plain pushed stack, not a bottom-tab shell.
+ *
+ * These screens used to live in a five-tab personal hub with its own bottom
+ * navigation (Home · My Deals · Messages · Orders · More). The hub is only ever
+ * entered from the Account screen, so the second bar only offered a way to
+ * wander into a sibling tab with no route back to the origin. Each entry now
+ * pushes one page onto this stack, and its back button pops to Account.
  */
 export type PersonalHubParamList = {
-  /** The overview also accepts a deep link so deal/booking details stay in this shell. */
+  /** The overview also accepts a deep link so deal/booking details stay in this stack. */
   PersonalHome:
     | {
         deepLink?:
@@ -20,28 +26,18 @@ export type PersonalHubParamList = {
   PersonalMessages: undefined;
   PersonalOrders: undefined;
   PersonalMore: undefined;
-  /**
-   * Stack roots are named distinctly from their tab route. React Navigation keys
-   * routes by name, so a stack screen sharing its tab's name trips the dev-only
-   * "screens with the same name nested inside one another" warning.
-   */
-  PersonalHomeOverview: undefined;
-  PersonalMyDealsList: undefined;
-  PersonalMessagesInbox: undefined;
-  PersonalOrdersBookings: undefined;
-  PersonalMoreHub: undefined;
-  /** Personal-flow detail screens, so the personal bar stays visible end to end. */
   PersonalActivity: undefined;
   PersonalRewards: undefined;
   PersonalSavings: undefined;
+  PersonalSaved: undefined;
   PersonalNotifications: undefined;
   PersonalSettings: undefined;
   PersonalEditProfile: undefined;
   PersonalHelpCentre: undefined;
-  PersonalClaimedDealPass: { dealId?: string } | undefined;
-  PersonalOrderDetail: { orderNumber?: string } | undefined;
+  PersonalClaimedDealPass: { claimId?: string; dealId?: string } | undefined;
+  PersonalOrderDetail: { orderId?: string } | undefined;
   PersonalBookingDetail: { bookingNumber?: string } | undefined;
-  PersonalConversation: { merchant?: string } | undefined;
+  PersonalConversation: { threadId?: string; claimId?: string } | undefined;
 };
 
 /**
@@ -80,6 +76,15 @@ export type BusinessStackParamList = {
   DealDetailsPerformance: undefined;
   CreateDealLocationAssignment: undefined;
   DealLocationAssignmentPricing: undefined;
+  /**
+   * The full create-deal wizard, reachable from the hub (Central Deals →
+   * Create Deal) so deals collect name/items/discount before launch. Shared
+   * with the onboarding `BusinessSetup` stack via the draft store.
+   */
+  CreateDealStep1: undefined;
+  CreateDealStep2: undefined;
+  CreateDealStep3: undefined;
+  CreateDealStep4: undefined;
   ProductLocationAssignment: undefined;
   BranchAvailabilityLocationPricing: undefined;
   CentralCatalogue: { layout?: 'directory' | 'businessHub' } | undefined;
@@ -87,6 +92,11 @@ export type BusinessStackParamList = {
   BusinessHubCatalogue: { layout?: 'businessHub' } | undefined;
   ServicesCategories: undefined;
   AddProductBasicsMedia: undefined;
+  /** Hub-side service wizard — mirrors the setup stack's service steps. */
+  AddServiceBasics: undefined;
+  AddServiceDurationPricing: undefined;
+  AddServiceAvailabilityRules: undefined;
+  ReviewServiceSummary: undefined;
   LocationsBranches: undefined;
   WuseBranchDetails: undefined;
   CustomerCrmDirectory: undefined;
@@ -258,6 +268,9 @@ export type BusinessSetupStackParamList = {
   BusinessProfileBasicInfo: undefined;
   BusinessProfileBranding: undefined;
   BusinessProfileContactChannels: undefined;
+  BusinessAccountCredentials: undefined;
+  BusinessAccountOtp: undefined;
+  BusinessAccountResetPin: undefined;
   BusinessLocation: undefined;
   BusinessLocations: undefined;
   AddBranchLocation: undefined;
@@ -310,7 +323,6 @@ export type RootStackParamList = {
   DealDetail: { dealId: string };
   BusinessSetup: NavigatorScreenParams<BusinessSetupStackParamList> | undefined;
   BusinessTabs: NavigatorScreenParams<BusinessTabParamList> | undefined;
-  PersonalHub: NavigatorScreenParams<PersonalHubParamList> | undefined;
 };
 
 export type AuthStackParamList = {
@@ -354,7 +366,15 @@ export type AppStackParamList = {
   DealDetail: { dealId: string };
   DealTermsConditions: { dealId: string };
   HowToClaim: { dealId: string };
-  DealClaimedSuccess: { dealId: string };
+  DealClaimedSuccess: {
+    dealId: string;
+    /**
+     * The claim code the API issued. Absent for the app's fictional deals, which
+     * have no server-side claim — the success screen then omits the code rather
+     * than showing a placeholder.
+     */
+    claimCode?: string;
+  };
   MyClaimedDeal: { dealId: string };
   MerchantChat: { dealId: string };
   GiftDealSentSuccess: {
@@ -401,7 +421,19 @@ export type HomeStackParamList = {
 
 export type DiscoverStackParamList = {
   DiscoverHome: undefined;
-  BusinessProfile: { business: BusinessProfileSummary };
+  BusinessProfile:
+    | {
+        /** Fictional Discover business, resolved from the bundled data. */
+        business: BusinessProfileSummary;
+      }
+    | {
+        /**
+         * A real merchant's 9-character code, as carried by a live offer. The
+         * profile is then fetched from `GET /public/businesses/code/:code`
+         * instead of read from the bundled summaries.
+         */
+        code: string;
+      };
   UrbanGrillProfile: undefined;
   UrbanGrillProductsCatalogue: undefined;
   UrbanGrillMenu: undefined;
@@ -412,6 +444,12 @@ export type DiscoverStackParamList = {
 
 export type AccountStackParamList = {
   AccountHome: undefined;
+  /**
+   * The personal flow is a nested stack inside the Account tab, not a root
+   * sibling. Mounting it here is what keeps the consumer bottom navigation
+   * (Home · Deals · Business · Account) visible on every personal page.
+   */
+  PersonalHub: NavigatorScreenParams<PersonalHubParamList> | undefined;
   AccountDashboard: undefined;
   MyDeals: undefined;
   OrdersBookings: undefined;
@@ -423,10 +461,10 @@ export type AccountStackParamList = {
   SavingsHistory: undefined;
   AccountSettings: undefined;
   EditProfile: undefined;
-  ClaimedDealPass: { dealId?: string } | undefined;
-  OrderDetail: { orderNumber?: string } | undefined;
+  ClaimedDealPass: { claimId?: string; dealId?: string } | undefined;
+  OrderDetail: { orderId?: string } | undefined;
   BookingDetail: { bookingNumber?: string } | undefined;
-  Conversation: { merchant?: string } | undefined;
+  Conversation: { threadId?: string; claimId?: string } | undefined;
 };
 
 export type MainTabParamList = {

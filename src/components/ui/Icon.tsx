@@ -36,6 +36,7 @@ export const iconNames = {
   info: 'information',
   check: 'check',
   checkCircle: 'check-circle',
+  radioButtonUnchecked: 'checkbox-blank-circle-outline',
   close: 'close',
   search: 'magnify',
   explore: 'compass',

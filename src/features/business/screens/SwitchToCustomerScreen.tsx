@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { Button } from '@components/ui/Button';
+import { Avatar } from '@components/ui/Avatar';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
+import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
 import { colors } from '@theme/colors';
 import {
   BusinessActionDock,
@@ -28,6 +30,12 @@ export interface SwitchToCustomerScreenProps {
   onConfirmSwitch?: () => void;
   onStayInBusiness?: () => void;
   onOpenDeal?: (dealId: string) => void;
+  /** Logged-in business the user is leaving; falls back to the design copy. */
+  merchantName?: string;
+  /** The customer identity being joined (same account, customer side). */
+  customerName?: string;
+  /** Email (or phone) shown under the customer identity. */
+  customerMeta?: string;
 }
 
 /**
@@ -41,8 +49,16 @@ export function SwitchToCustomerScreen({
   onConfirmSwitch,
   onStayInBusiness,
   onOpenDeal,
+  merchantName: merchantNameProp,
+  customerName: customerNameProp,
+  customerMeta: customerMetaProp,
 }: SwitchToCustomerScreenProps) {
+  const display = useCurrentUserDisplay();
   const [askEveryTime, setAskEveryTime] = useState(true);
+
+  const merchantName = merchantNameProp?.trim() || copy.fromName;
+  const customerName = customerNameProp?.trim() || copy.toName;
+  const customerMeta = customerMetaProp?.trim() || copy.toMeta;
 
   return (
     <BusinessScreenLayout
@@ -99,7 +115,7 @@ export function SwitchToCustomerScreen({
             {copy.fromLabel}
           </VemtapText>
           <VemtapText variant="labelMd" className="font-sans-semibold" numberOfLines={1}>
-            {copy.fromName}
+            {merchantName}
           </VemtapText>
         </View>
         <View className="shrink-0 items-end">
@@ -116,9 +132,7 @@ export function SwitchToCustomerScreen({
 
       <View className="mt-2 gap-2 rounded-card border border-border bg-surface p-3 shadow-sm">
         <View className="flex-row items-center gap-2.5">
-          <View className="h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-tint">
-            <Icon name="person" size={18} color={colors.primary} />
-          </View>
+          <Avatar name={display.fullName} size="sm" tone="brand" />
           <View className="min-w-0 flex-1">
             <VemtapText variant="caption" tone="tertiary" numberOfLines={1}>
               {copy.toLabel}
@@ -129,7 +143,7 @@ export function SwitchToCustomerScreen({
                 className="min-w-0 font-sans-semibold"
                 numberOfLines={1}
               >
-                {copy.toName}
+                {customerName}
               </VemtapText>
               <Icon name="verifiedUser" size={15} color={colors.primary} />
             </View>
@@ -142,7 +156,7 @@ export function SwitchToCustomerScreen({
           </View>
         </View>
         <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-          {copy.toMeta}
+          {customerMeta}
         </VemtapText>
 
         <View className="mt-1 flex-row gap-2">

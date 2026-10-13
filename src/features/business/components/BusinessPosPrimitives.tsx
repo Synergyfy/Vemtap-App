@@ -2,6 +2,7 @@ import React, { useState, type ReactNode } from 'react';
 import { Pressable, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { Icon, type IconName } from '@components/ui/Icon';
+import { Avatar } from '@components/ui/Avatar';
 import { VemtapText } from '@components/ui/Text';
 import { colors } from '@theme/colors';
 import { cn } from '@utils/cn';
@@ -334,20 +335,6 @@ export interface BusinessInitialsAvatarProps {
   className?: string;
 }
 
-const initialsTone: Record<NonNullable<BusinessInitialsAvatarProps['tone']>, string> = {
-  brand: 'bg-primary text-primary-foreground',
-  success: 'bg-badge-discount-bg text-badge-discount-text',
-  tertiary: 'bg-tertiary-fixed text-tertiary',
-  neutral: 'bg-surface-container-high text-text-primary',
-  inverse: 'bg-inverse-surface text-inverse-on-surface',
-};
-
-const initialsSize: Record<NonNullable<BusinessInitialsAvatarProps['size']>, string> = {
-  sm: 'h-9 w-9',
-  md: 'h-10 w-10',
-  lg: 'h-16 w-16',
-};
-
 /** Initials disc for diners, reviewers and staff without a portrait. */
 export function BusinessInitialsAvatar({
   initials,
@@ -356,29 +343,16 @@ export function BusinessInitialsAvatar({
   badgeIcon,
   className,
 }: BusinessInitialsAvatarProps) {
+  // Thin wrapper over the shared Avatar so there is exactly one initials disc
+  // in the app; `sm` is 36px here (POS rows are dense) versus the shared 32px.
   return (
-    <View className={cn('relative shrink-0', initialsSize[size], className)}>
-      <View
-        accessibilityRole="image"
-        accessibilityLabel={initials}
-        className={cn(
-          'flex-1 items-center justify-center rounded-full',
-          initialsTone[tone],
-        )}
-      >
-        <VemtapText
-          variant={size === 'lg' ? 'headingSm' : 'labelMd'}
-          className="font-sans-semibold"
-        >
-          {initials}
-        </VemtapText>
-      </View>
-      {badgeIcon ? (
-        <View className="absolute -bottom-0.5 -right-0.5 h-6 w-6 items-center justify-center rounded-full bg-primary">
-          <Icon name={badgeIcon} size={13} color={colors.surface} />
-        </View>
-      ) : null}
-    </View>
+    <Avatar
+      initials={initials}
+      tone={tone}
+      size={size === 'sm' ? 'xs' : size}
+      badgeIcon={badgeIcon}
+      className={cn(size === 'sm' ? 'h-9 w-9' : undefined, className)}
+    />
   );
 }
 

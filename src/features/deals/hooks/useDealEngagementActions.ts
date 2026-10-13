@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { dealsApi, type DealEngagement } from '@api/dealsApi';
 import { useAuthStore } from '@store/authStore';
 import { logger } from '@utils/logger';
+import { savedHubKeys } from '@features/accountHub/hooks/useSavedHub';
 
 /**
  * Optimistic like/save for a deal.
@@ -77,6 +78,8 @@ export function useDealReaction(offerId: string) {
       queryClient.setQueryData<ReactionState>(engagementKeys.reaction(offerId), {
         liked: nextLiked,
       });
+      // Optimistic count lives in the same cache every card reads, so the
+      // displayed number moves once here and never again at the render site.
       queryClient.setQueryData<DealEngagement>(engagementKeys.counts(offerId), old =>
         old
           ? { ...old, likesCount: Math.max(0, old.likesCount + (nextLiked ? 1 : -1)) }
@@ -149,6 +152,10 @@ export function useDealSave(offerId: string) {
 
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: engagementKeys.saved(offerId) });
+      // This hook keeps its own client flag and never reads server save state,
+      // so without this a save made here would leave the Saved Hub showing the
+      // old list until its own cache went stale.
+      queryClient.invalidateQueries({ queryKey: savedHubKeys.all });
     },
   });
 

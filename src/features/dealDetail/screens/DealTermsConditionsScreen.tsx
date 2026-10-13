@@ -3,9 +3,12 @@ import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { Avatar } from '@components/ui/Avatar';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { Button } from '@components/ui/Button';
+import { LoadingState } from '@components/shared/LoadingState';
+import { EmptyState } from '@components/shared/EmptyState';
 import {
   DealShareSheet,
   DealTermsRow,
@@ -14,7 +17,11 @@ import {
 import { colors } from '@theme/colors';
 import { navbarBottomShadow, tabBarTopShadow } from '@theme/shadows';
 import { strings } from '@constants/strings';
-import { dealsGrid } from '@features/deals/data/dealsFeed';
+import { useDealDetail } from '@features/dealDetail/hooks/useDealDetail';
+import { resolveDeal } from '@features/dealDetail/data/dealResolver';
+import { usePublicBusinessProfile } from '@features/discover/hooks/usePublicBusinessProfile';
+import { hoursWindow } from '@features/dealDetail/utils/openingHours';
+import { formatOfferEndDate } from '@features/deals/utils/offerMapper';
 import type { AppStackParamList } from '@navigation/types';
 
 cssInterop(View, { className: 'style' });
@@ -31,11 +38,86 @@ export function DealTermsConditionsScreen({ route, navigation }: Props) {
   const insets = useSafeAreaInsets();
   const [faqOpen, setFaqOpen] = useState(false);
   const [shareVisible, setShareVisible] = useState(false);
-  const deal = dealsGrid.find(item => item.id === route.params.dealId) ?? dealsGrid[0];
+
+  const detail = useDealDetail(route.params.dealId);
+  const deal = detail.status === 'resolved' ? detail.deal : undefined;
+  /**
+   * The merchant's weekly hours — the source for the redeemable window — live
+   * on the public profile, one query shared with the detail screen. Bundled
+   * deals carry no code, so their query stays disabled and they keep their
+   * scripted window below.
+   */
+  const profile = usePublicBusinessProfile(deal?.businessCode);
+  const window =
+    profile.status === 'resolved' ? hoursWindow(profile.business.openingHours) : null;
 
   const handleClaim = useCallback(() => {
+    if (!deal) return;
     navigation.navigate('HowToClaim', { dealId: deal.id });
-  }, [deal.id, navigation]);
+  }, [deal, navigation]);
+
+  // Loading, gone, or broken: say so instead of filling the page with some
+  // other deal's terms. Every hook runs before this branch.
+  if (!deal) {
+    return (
+      <View className="flex-1 bg-background">
+        <SafeAreaView edges={['top']} className="bg-surface">
+          <View
+            className="h-14 flex-row items-center justify-between px-6"
+            style={navbarBottomShadow}
+          >
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={strings.dealTerms.back}
+              onPress={() => navigation.goBack()}
+              className="-ml-2 h-11 w-11 items-center justify-center rounded-full active:bg-surface-container-high"
+            >
+              <Icon name="back" size={24} color={colors.text} />
+            </Pressable>
+            <VemtapText
+              accessibilityRole="header"
+              variant="headingSm"
+              className="min-w-0 flex-1 px-2 text-center text-text"
+              numberOfLines={1}
+            >
+              {strings.dealTerms.title}
+            </VemtapText>
+            <View className="h-11 w-11" />
+          </View>
+        </SafeAreaView>
+        {detail.status === 'loading' ? (
+          <LoadingState label={strings.common.loading} />
+        ) : (
+          <EmptyState
+            icon="search"
+            title={
+              detail.status === 'notFound'
+                ? strings.errors.notFound
+                : strings.errors.server
+            }
+            description={strings.dealDetail.unavailableBody}
+            actionLabel={detail.status === 'notFound' ? undefined : strings.common.retry}
+            onAction={detail.status === 'notFound' ? undefined : detail.retry}
+            className="mt-16"
+          />
+        )}
+      </View>
+    );
+  }
+
+  /**
+   * Bundled deals have no end date of their own, so they keep the scripted
+   * validity line; a real offer words it from its actual `endDate`, and one
+   * with no date simply drops the row rather than borrowing the demo's.
+   */
+  const isSeed = resolveDeal(route.params.dealId) !== undefined;
+  const validityDate = isSeed
+    ? strings.dealTerms.validityDate
+    : formatOfferEndDate(deal.endDate);
+  // Hoisted: a template literal as a direct child of a custom row component
+  // trips the raw-text rule, and these two suffixes are text by any reading.
+  const hoursDaysSuffix = window ? `, ${window.days}.` : '';
+  const addressSuffix = `, ${deal.address}.`;
 
   return (
     <View className="flex-1 bg-background">
@@ -69,9 +151,7 @@ export function DealTermsConditionsScreen({ route, navigation }: Props) {
             >
               <Icon name="share" size={22} color={colors.textSecondary} />
             </Pressable>
-            <View className="h-8 w-8 items-center justify-center rounded-full bg-primary shadow-sm">
-              <Icon name="person" size={18} color={colors.surface} />
-            </View>
+            <Avatar name={deal.merchant} size="sm" tone="brand" />
           </View>
         </View>
       </SafeAreaView>
@@ -88,7 +168,7 @@ export function DealTermsConditionsScreen({ route, navigation }: Props) {
               <View className="absolute left-1 top-1 flex-row items-center gap-0.5 rounded-full bg-badge-discount-bg px-1.5 py-0.5 shadow-sm">
                 <Icon name="bolt" size={11} color={colors.badgeDiscountText} />
                 <VemtapText className="font-sans-semibold text-caption text-badge-discount-text">
-                  {strings.dealTerms.discount}
+                  {deal.badge}
                 </VemtapText>
               </View>
             </View>
@@ -96,7 +176,7 @@ export function DealTermsConditionsScreen({ route, navigation }: Props) {
               <View className="flex-row items-center gap-1 text-text-tertiary">
                 <Icon name="storefront" size={14} color={colors.textTertiary} />
                 <VemtapText className="text-caption text-text-tertiary" numberOfLines={1}>
-                  {strings.dealTerms.merchant}
+                  {`${deal.merchant} • ${deal.location}`}
                 </VemtapText>
               </View>
               <VemtapText
@@ -104,21 +184,24 @@ export function DealTermsConditionsScreen({ route, navigation }: Props) {
                 className="mt-0.5 text-text"
                 numberOfLines={1}
               >
-                {strings.dealTerms.dealTitle}
+                {deal.title}
               </VemtapText>
               <View className="mt-1 flex-row flex-wrap items-baseline gap-x-1.5">
                 <VemtapText className="font-sans-bold text-heading-sm text-primary">
-                  {strings.dealTerms.price}
+                  {deal.price}
                 </VemtapText>
                 <VemtapText className="text-caption text-text-tertiary line-through">
-                  {strings.dealTerms.priceWas}
+                  {deal.priceWas}
                 </VemtapText>
-                <View className="ml-auto flex-row items-center gap-1 rounded-full bg-surface-tint-blue px-2 py-0.5">
-                  <Icon name="verified" size={12} color={colors.primary} />
-                  <VemtapText className="text-caption text-primary">
-                    {strings.dealTerms.vetted}
-                  </VemtapText>
-                </View>
+                {/* Hidden only when the API says the merchant is unverified. */}
+                {deal.isVerifiedBusiness === false ? null : (
+                  <View className="ml-auto flex-row items-center gap-1 rounded-full bg-surface-tint-blue px-2 py-0.5">
+                    <Icon name="verified" size={12} color={colors.primary} />
+                    <VemtapText className="text-caption text-primary">
+                      {strings.dealTerms.vetted}
+                    </VemtapText>
+                  </View>
+                )}
               </View>
             </View>
           </View>
@@ -146,24 +229,50 @@ export function DealTermsConditionsScreen({ route, navigation }: Props) {
         </View>
 
         <DealTermsSection icon="schedule" title={strings.dealTerms.validityTitle} compact>
-          <DealTermsRow
-            icon="eventAvailable"
-            supportingText={strings.dealTerms.validitySecondary}
-          >
-            {strings.dealTerms.validityPrefix}
-            <VemtapText className="font-sans-medium text-label-md text-primary">
-              {strings.dealTerms.validityDate}
-            </VemtapText>
-            {strings.dealTerms.validitySuffix}
-          </DealTermsRow>
+          {validityDate ? (
+            <DealTermsRow
+              icon="eventAvailable"
+              supportingText={strings.dealTerms.validitySecondary}
+            >
+              {strings.dealTerms.validityPrefix}
+              <VemtapText className="font-sans-medium text-label-md text-primary">
+                {validityDate}
+              </VemtapText>
+              {strings.dealTerms.validitySuffix}
+            </DealTermsRow>
+          ) : null}
           <DealTermsRow icon="schedule" supportingText={strings.dealTerms.kitchenCutoff}>
-            {strings.dealTerms.redeemablePrefix}
-            <VemtapText className="font-sans-medium text-label-md text-text">
-              {strings.dealTerms.redeemableWindow}
-            </VemtapText>
-            {strings.dealTerms.redeemableDays}
+            {window ? (
+              <>
+                {strings.dealTerms.redeemableLivePrefix}
+                <VemtapText className="font-sans-medium text-label-md text-text">
+                  {window.window}
+                </VemtapText>
+                {hoursDaysSuffix}
+              </>
+            ) : isSeed ? (
+              <>
+                {strings.dealTerms.redeemablePrefix}
+                <VemtapText className="font-sans-medium text-label-md text-text">
+                  {strings.dealTerms.redeemableWindow}
+                </VemtapText>
+                {strings.dealTerms.redeemableDays}
+              </>
+            ) : (
+              strings.dealTerms.hoursFallback
+            )}
           </DealTermsRow>
         </DealTermsSection>
+
+        {deal.terms?.length ? (
+          <DealTermsSection icon="policy" title={strings.dealTerms.merchantTermsTitle}>
+            {deal.terms.map(term => (
+              <DealTermsRow key={term} icon="checkCircle">
+                {term}
+              </DealTermsRow>
+            ))}
+          </DealTermsSection>
+        ) : null}
 
         <DealTermsSection icon="rule" title={strings.dealTerms.redemptionTitle}>
           <DealTermsRow icon="person">{strings.dealTerms.redemptionOne}</DealTermsRow>
@@ -173,9 +282,9 @@ export function DealTermsConditionsScreen({ route, navigation }: Props) {
           >
             {strings.dealTerms.locationPrefix}
             <VemtapText className="font-sans-medium text-label-md text-text">
-              {strings.dealTerms.merchantName}
+              {deal.merchant}
             </VemtapText>
-            {strings.dealTerms.locationSuffix}
+            {addressSuffix}
           </DealTermsRow>
           <DealTermsRow icon="qrScan">
             {strings.dealTerms.confirmationPrefix}
@@ -237,7 +346,7 @@ export function DealTermsConditionsScreen({ route, navigation }: Props) {
           <VemtapText className="min-w-0 flex-1 text-caption text-text-secondary">
             {strings.dealTerms.assurancePrefix}
             <VemtapText className="font-sans-semibold text-label-sm text-text">
-              {strings.dealTerms.merchantName}
+              {deal.merchant}
             </VemtapText>
             {strings.dealTerms.assuranceSuffix}
           </VemtapText>
@@ -261,7 +370,7 @@ export function DealTermsConditionsScreen({ route, navigation }: Props) {
           <VemtapText className="text-caption text-text-secondary">
             {strings.dealTerms.total}
             <VemtapText className="font-sans-medium text-label-md text-text">
-              {strings.dealTerms.price}
+              {deal.price}
             </VemtapText>
           </VemtapText>
         </View>
