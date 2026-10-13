@@ -25,9 +25,13 @@ import {
   useSendCustomerReply,
 } from '@features/merchantChat/hooks/useCustomerMessaging';
 import { formatCurrency } from '@utils/formatters';
-import { ConversationBubble } from '@features/merchantChat/components/ConversationBubble';
+import {
+  ConversationBubble,
+  bubbleStatusOf,
+} from '@features/merchantChat/components/ConversationBubble';
 import { ChatComposer } from '@features/merchantChat/components/ChatComposer';
 import { useKeyboardInset } from '@features/merchantChat/hooks/useKeyboardInset';
+import { presenceCaption, usePresence } from '@features/merchantChat/hooks/usePresence';
 import {
   dayLabel,
   formatClock,
@@ -36,7 +40,6 @@ import {
 } from '@features/merchantChat/utils/messageTime';
 import { useClaimPass } from '@features/myDeals/hooks/useMyClaims';
 import { colors } from '@theme/colors';
-
 
 export interface UrbanConversationScreenProps {
   /**
@@ -104,11 +107,22 @@ export function UrbanConversationScreen({
    */
   const businessName = useMemo(
     () =>
-      thread?.branch?.name ?? thread?.business?.name ?? strings.urbanConversation.merchant,
+      thread?.branch?.name ??
+      thread?.business?.name ??
+      strings.urbanConversation.merchant,
     [thread?.branch?.name, thread?.business?.name],
   );
   const branchPhone = thread?.branch?.phone ?? thread?.business?.phone ?? undefined;
   const branchCode = thread?.branch?.code ?? undefined;
+
+  // Is anyone from this merchant holding a messaging socket right now? Until
+  // the thread resolves there is no channel to watch, so the header keeps its
+  // static reply line instead of claiming the merchant is offline.
+  const businessId = thread?.businessId ?? undefined;
+  const { businessPresence } = usePresence(
+    businessId ? { businessIds: [businessId] } : {},
+  );
+  const presence = businessId ? businessPresence(businessId) : undefined;
 
   /**
    * The linked deal comes off the thread (`claimId` is set when the chat was
@@ -293,7 +307,9 @@ export function UrbanConversationScreen({
                 }
                 className="h-full w-full rounded-full bg-surface-container"
               />
-              <View className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-surface bg-success" />
+              {presence?.isOnline ? (
+                <View className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-surface bg-success" />
+              ) : null}
             </View>
             <View className="min-w-0 flex-1">
               <View className="flex-row items-center gap-1">
@@ -307,7 +323,15 @@ export function UrbanConversationScreen({
                 <Icon name="verified" size={17} color={colors.primary} />
               </View>
               <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-                {strings.urbanConversation.replyStatus}
+                {presence
+                  ? presence.isOnline
+                    ? strings.presence.activeNow
+                    : `${presenceCaption(presence, {
+                        activeNow: strings.presence.activeNow,
+                        offline: strings.presence.offline,
+                        lastSeenPrefix: strings.presence.lastSeenPrefix,
+                      })} • ${strings.urbanConversation.replyStatus}`
+                  : strings.urbanConversation.replyStatus}
               </VemtapText>
             </View>
           </Pressable>
@@ -472,6 +496,7 @@ export function UrbanConversationScreen({
                   sender={sender}
                   isOwn={sender === 'customer'}
                   mediaUrl={message.mediaUrl ?? undefined}
+                  status={bubbleStatusOf(message.status)}
                 />
               </View>
             );

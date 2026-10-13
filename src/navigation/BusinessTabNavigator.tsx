@@ -454,6 +454,7 @@ function BusinessConversationRoute() {
   return (
     <BusinessConversationScreen
       onBack={navigation.goBack}
+      customerId={headerThread?.customerId}
       thread={
         headerThread
           ? {

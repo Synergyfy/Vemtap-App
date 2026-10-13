@@ -775,6 +775,12 @@ export const strings = {
       close: 'Close',
     },
   },
+  presence: {
+    online: 'Online',
+    activeNow: 'Active now',
+    offline: 'Offline',
+    lastSeenPrefix: 'Last seen',
+  },
   merchantChat: {
     goBack: 'Go back',
     merchantName: 'Urban Grill & Bistro',

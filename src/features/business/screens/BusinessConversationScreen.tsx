@@ -12,9 +12,14 @@ import { formatClock, messageTimeOf } from '@features/merchantChat/utils/message
 import { uploadBusinessImage } from '@features/business/utils/uploadBusinessMedia';
 import type { ChatMessage } from '@api/messagingApi';
 import { BusinessHeader } from '@features/business/components/BusinessPrimitives';
-import { ConversationBubble } from '@features/merchantChat/components/ConversationBubble';
+import {
+  ConversationBubble,
+  bubbleStatusOf,
+  type BubbleStatus,
+} from '@features/merchantChat/components/ConversationBubble';
 import { ChatComposer } from '@features/merchantChat/components/ChatComposer';
 import { useKeyboardInset } from '@features/merchantChat/hooks/useKeyboardInset';
+import { presenceCaption, usePresence } from '@features/merchantChat/hooks/usePresence';
 
 const copy = strings.businessMessages;
 const TYPING_IDLE_MS = 2_000;
@@ -25,6 +30,8 @@ export interface BusinessConversationMessage {
   time: string;
   text: string;
   mediaUrl?: string;
+  /** Receipt state for the merchant's own bubbles (sent/delivered/read). */
+  status?: BubbleStatus;
 }
 
 /** API message → bubble view-model. */
@@ -39,6 +46,7 @@ export function toBusinessConversationMessage(
     time: formatClock(messageTimeOf(message)),
     text: message.content,
     mediaUrl: message.mediaUrl ?? undefined,
+    status: bubbleStatusOf(message.status),
   };
 }
 
@@ -51,6 +59,8 @@ export interface BusinessConversationScreenProps {
     context: string;
     contextIcon: IconName;
   };
+  /** Customer on the other end; drives the header's online/last-seen line. */
+  customerId?: string;
   /** Real messages, oldest first. `undefined` means "still loading". */
   messages?: BusinessConversationMessage[];
   isLoading?: boolean;
@@ -76,6 +86,7 @@ export interface BusinessConversationScreenProps {
 export function BusinessConversationScreen({
   onBack,
   thread,
+  customerId,
   messages,
   isLoading = false,
   isSending = false,
@@ -185,6 +196,19 @@ export function BusinessConversationScreen({
 
   const { quickReplies } = copy.conversation;
 
+  // Is the customer holding a socket right now? Without a customerId there is
+  // no channel to watch, so the header keeps the static copy it had before.
+  const { userPresence } = usePresence(customerId ? { userIds: [customerId] } : {});
+  const presence = customerId ? userPresence(customerId) : undefined;
+  const subtitle =
+    presence && !presence.isOnline
+      ? presenceCaption(presence, {
+          activeNow: strings.presence.activeNow,
+          offline: strings.presence.offline,
+          lastSeenPrefix: strings.presence.lastSeenPrefix,
+        })
+      : copy.online;
+
   return (
     // Lifted by the measured keyboard inset rather than a
     // `KeyboardAvoidingView`, for the same reasons as the customer chat.
@@ -194,7 +218,7 @@ export function BusinessConversationScreen({
           title={thread?.name ?? copy.customerFallback}
           onBack={onBack}
           titleVariant="headingSm"
-          subtitle={copy.online}
+          subtitle={subtitle}
           showAvatar={true}
         />
         <View className="px-6 pb-3">
@@ -258,6 +282,7 @@ export function BusinessConversationScreen({
               // (OUTBOUND → 'merchant') is the message on the right.
               isOwn={message.sender === 'merchant'}
               mediaUrl={message.mediaUrl}
+              status={message.status}
             />
           ))
         )}
