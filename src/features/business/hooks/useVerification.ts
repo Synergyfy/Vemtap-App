@@ -25,19 +25,17 @@ export function useVerificationStatus(enabled = true) {
 }
 
 /**
- * Run the hosted bytID selfie check and resolve with its session id. The
- * session is judged when the ID is submitted, so a person who closes the page
- * early gets a clear "take the selfie again" error from that call.
+ * Run the hosted bytID selfie check and resolve with its session id.
+ * bytID only redirects to https, so the page may not hand control back on its
+ * own: however the browser closes, the session status decides.
  */
 export function useLivenessCheck() {
   return useMutation({
     mutationFn: async (): Promise<{ sessionId: string; completed: boolean }> => {
       const session = await verificationApi.startLiveness(LIVENESS_RETURN_URL);
-      const result = await WebBrowser.openAuthSessionAsync(
-        session.url,
-        LIVENESS_RETURN_URL,
-      );
-      return { sessionId: session.sessionId, completed: result.type === 'success' };
+      await WebBrowser.openAuthSessionAsync(session.url, LIVENESS_RETURN_URL);
+      const status = await verificationApi.livenessStatus(session.sessionId);
+      return { sessionId: session.sessionId, completed: status.usableForFaceMatch };
     },
   });
 }

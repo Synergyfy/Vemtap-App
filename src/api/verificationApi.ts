@@ -1,7 +1,12 @@
 import { z } from 'zod';
 import type { ApiRequestOptions } from '@app-types/api';
 import { requestValidated } from './client';
-import { nullableArray, nullableText, nullableTimestamp } from './schemaHelpers';
+import {
+  nullableArray,
+  nullableFlag,
+  nullableText,
+  nullableTimestamp,
+} from './schemaHelpers';
 
 /**
  * Business verification on bytID (see apps/backend/docs/
@@ -67,6 +72,14 @@ export const livenessSessionSchema = z.looseObject({
 });
 export type LivenessSession = z.infer<typeof livenessSessionSchema>;
 
+export const livenessStatusSchema = z.looseObject({
+  sessionId: z.string(),
+  status: z.enum(['pending', 'passed', 'failed', 'expired']).catch('pending'),
+  usableForFaceMatch: nullableFlag(false),
+  reasons: nullableArray(z.string()),
+});
+export type LivenessStatus = z.infer<typeof livenessStatusSchema>;
+
 export interface VerifyIdentityInput {
   idType: IdentityIdType;
   idNumber?: string;
@@ -117,6 +130,17 @@ export const verificationApi = {
         ...options,
       },
       livenessSessionSchema,
+    );
+  },
+
+  livenessStatus(sessionId: string, options: ApiRequestOptions = {}) {
+    return requestValidated<LivenessStatus>(
+      {
+        method: 'GET',
+        url: `/verification/liveness-sessions/${encodeURIComponent(sessionId)}`,
+        ...options,
+      },
+      livenessStatusSchema,
     );
   },
 
