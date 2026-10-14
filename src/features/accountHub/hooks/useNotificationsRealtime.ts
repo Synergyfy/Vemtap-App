@@ -37,6 +37,17 @@ interface CreatedPayload {
   };
 }
 
+/**
+ * An existing row changed because a batch absorbed another event — the count
+ * went up. Not a new notification, so there is nothing to announce: showing
+ * a second banner for the event whose first arrival already showed one would
+ * repeat the same thing until the window closed.
+ */
+interface UpdatedPayload {
+  id?: string;
+  groupCount?: number;
+}
+
 interface ReadAllPayload {
   unreadCount?: number;
 }
@@ -93,6 +104,19 @@ export function useNotificationsRealtime(enabled = true): void {
       invalidatePersonal();
     };
 
+    const handleUpdated = (payload: UpdatedPayload) => {
+      // No banner: this is an existing row gaining events, and the first one
+      // already announced itself. Refetch so the merged sentence and count are
+      // shown as they now stand.
+      if (payload?.id && __DEV__) {
+        logger.debug(
+          'notifications',
+          `batch row ${payload.id} now covers ${payload.groupCount ?? '?'} events`,
+        );
+      }
+      invalidatePersonal();
+    };
+
     const handleReadAll = (payload: ReadAllPayload) => {
       // The count is authoritative from the server, so set it rather than
       // refetching a number we were just told.
@@ -112,6 +136,7 @@ export function useNotificationsRealtime(enabled = true): void {
       if (disposed) return;
       bound = socket;
       socket.on('notification_created', handleCreated);
+      socket.on('notification_updated', handleUpdated);
       socket.on('notifications_read_all', handleReadAll);
       socket.on('connect', handleConnect);
     };
@@ -136,6 +161,7 @@ export function useNotificationsRealtime(enabled = true): void {
       disposed = true;
       if (bound) {
         bound.off('notification_created', handleCreated);
+        bound.off('notification_updated', handleUpdated);
         bound.off('notifications_read_all', handleReadAll);
         bound.off('connect', handleConnect);
       }
