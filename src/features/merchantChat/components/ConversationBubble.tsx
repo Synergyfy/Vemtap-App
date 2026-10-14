@@ -1,12 +1,8 @@
 import React from 'react';
-import { Image, StyleSheet, View } from 'react-native';
+import { Image, View } from 'react-native';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { colors } from '@theme/colors';
-
-const styles = StyleSheet.create({
-  tickGap: { marginLeft: 4 },
-});
 
 const merchantThumbnail = {
   uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCqx_chQxFA1JDezBmai9JKaK2_VSbVcWG08duHTy9WqIStdgSnRn6pcaz-5rHrhL1pgP9lY438PWJMvFXMaclxaL6e0Sy3PsldCXnXOqaU6fTRhjAM2JLQSuSfCZKOfBp9_RpV3csZb5vvbOyeLETSLCGFJ61C0C18Y37Yr4Z_IM012MMWw6T0K1JWaP53ulQqOLC6WWW4qGhB3beje45UjVg29rMTim6FMJ3yRGbjKEQ68j11aGrORg',
@@ -16,9 +12,9 @@ export type BubbleStatus = 'pending' | 'sent' | 'delivered' | 'read';
 
 /**
  * A message's backend receipt state (PENDING | QUEUED | SENT | DELIVERED |
- * FAILED | READ | REJECTED) reduced to what the bubble can draw. Anything
- * unrecognised — including PENDING and FAILED — stays at the single tick of
- * "sent" so the row never renders a blank gap where the indicator goes.
+ * FAILED | READ | REJECTED) reduced to what the bubble can draw. A
+ * not-yet-sent state (PENDING, QUEUED, FAILED, REJECTED) shows the clock, and
+ * anything unrecognised falls back to the single tick of "sent".
  */
 export function bubbleStatusOf(status: string | null | undefined): BubbleStatus {
   if (
@@ -51,7 +47,7 @@ export interface ConversationBubbleProps {
   /** Hosted image sent with the message; rendered above the caption. */
   mediaUrl?: string;
   children?: React.ReactNode;
-  /** Message delivery status: 'sent' | 'delivered' | 'read' */
+  /** Receipt state of the viewer's own message: 'pending' | 'sent' | 'delivered' | 'read' */
   status?: BubbleStatus;
 }
 
@@ -70,36 +66,38 @@ export function ConversationBubble({
   // puts a shop's avatar next to a customer's message.
   const showAvatar = !own && sender === 'merchant';
 
+  // WhatsApp's receipts: a clock while it has not left the device, one grey
+  // tick once the server has it, two grey ticks once it reached the other
+  // side, two blue ticks once they opened it.
   const renderStatusIndicator = () => {
-    if (status === 'sent') {
-      return (
-        <View className="flex items-center gap-1">
-          <Icon name="check" size={14} color={colors.textTertiary} />
-        </View>
-      );
-    }
-    if (status === 'delivered') {
-      return (
-        <View className="flex items-center gap-1">
-          <Icon name="check" size={14} color={colors.textTertiary} />
-          <Icon
-            name="check"
-            size={14}
-            color={colors.textTertiary}
-            style={styles.tickGap}
-          />
-        </View>
-      );
-    }
-    if (status === 'read') {
-      return (
-        <View className="flex items-center gap-1">
-          <Icon name="doneAll" size={14} color={colors.primary} />
-          <Icon name="check" size={14} color={colors.primary} style={styles.tickGap} />
-        </View>
-      );
-    }
-    return null;
+    const receipt =
+      status === 'pending'
+        ? {
+            icon: 'schedule' as const,
+            size: 13,
+            color: colors.textTertiary,
+            label: 'Sending',
+          }
+        : status === 'read'
+          ? { icon: 'doneAll' as const, size: 16, color: colors.primary, label: 'Read' }
+          : status === 'delivered'
+            ? {
+                icon: 'doneAll' as const,
+                size: 16,
+                color: colors.textTertiary,
+                label: 'Delivered',
+              }
+            : {
+                icon: 'check' as const,
+                size: 16,
+                color: colors.textTertiary,
+                label: 'Sent',
+              };
+    return (
+      <View accessible accessibilityLabel={receipt.label}>
+        <Icon name={receipt.icon} size={receipt.size} color={receipt.color} />
+      </View>
+    );
   };
 
   return (

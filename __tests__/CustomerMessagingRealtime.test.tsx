@@ -66,11 +66,13 @@ const thread: ConversationThread = {
   branchId: 'branch-1',
 };
 
-const inboundMessage = {
+// The backend stamps OUTBOUND for what the business wrote — the messages
+// addressed to the customer — and INBOUND for what the customer wrote.
+const businessReply = {
   id: 'msg-1',
   threadId: 'thread-1',
   content: 'Confirmed, see you Friday',
-  direction: 'INBOUND',
+  direction: 'OUTBOUND',
 };
 
 function setup() {
@@ -126,12 +128,12 @@ test('binds the socket events once connected', async () => {
   });
 });
 
-test('an inbound message in the open thread is appended and marked read', async () => {
+test('a business reply in the open thread is appended and marked read', async () => {
   mockActiveThreadState.current = 'thread-1';
   setup();
 
   await waitFor(() => expect(socketHandlers.newMessage).toBeDefined());
-  await emit('newMessage', inboundMessage);
+  await emit('newMessage', businessReply);
 
   // Appended straight into the open conversation rather than left for a refetch
   // the customer would experience as a delayed message.
@@ -150,7 +152,7 @@ test('the row gains the unread category when a message arrives elsewhere', async
   setup();
 
   await waitFor(() => expect(socketHandlers.newMessage).toBeDefined());
-  await emit('newMessage', inboundMessage);
+  await emit('newMessage', businessReply);
 
   const row = threadRow();
   expect(row?.customerUnreadCount).toBe(1);
@@ -165,16 +167,78 @@ test('a customer-sent message does not raise the unread count', async () => {
   setup();
 
   await waitFor(() => expect(socketHandlers.newMessage).toBeDefined());
-  await emit('newMessage', { ...inboundMessage, direction: 'OUTBOUND' });
+  await emit('newMessage', { ...businessReply, direction: 'INBOUND' });
 
   expect(threadRow()?.customerUnreadCount).toBe(0);
   expect(threadRow()?.categories).toEqual(['bookings']);
+  // The customer never acks their own message; the business does.
+  expect(markMessagingDelivered).not.toHaveBeenCalled();
+  expect(markMessagingRead).not.toHaveBeenCalled();
+});
+
+test('the same reply on newMessage and notification is counted and acked once', async () => {
+  mockActiveThreadState.current = null;
+  setup();
+
+  await waitFor(() => expect(socketHandlers.notification).toBeDefined());
+  await emit('newMessage', businessReply);
+  await emit('notification', { type: 'new_message', message: businessReply });
+
+  expect(threadRow()?.customerUnreadCount).toBe(1);
+  expect(markMessagingDelivered).toHaveBeenCalledTimes(1);
+});
+
+test('a notification for an unopened thread sends the delivery receipt', async () => {
+  mockActiveThreadState.current = null;
+  setup();
+
+  await waitFor(() => expect(socketHandlers.notification).toBeDefined());
+  await emit('notification', { type: 'new_message', message: businessReply });
+
+  expect(markMessagingDelivered).toHaveBeenCalledWith('msg-1', 'thread-1');
+});
+
+test('receipts advance the ticks and never move them backwards', async () => {
+  setup();
+  queryClient.setQueryData(customerMessagingKeys.messages(null, 'thread-1'), [
+    { id: 'own-1', threadId: 'thread-1', direction: 'INBOUND', status: 'SENT' },
+    { id: 'own-2', threadId: 'thread-1', direction: 'INBOUND', status: 'SENT' },
+  ]);
+  const statusOf = (id: string) =>
+    (openThreadMessages() as { id: string; status: string }[] | undefined)?.find(
+      item => item.id === id,
+    )?.status;
+
+  await waitFor(() => expect(socketHandlers.messageStatus).toBeDefined());
+  // Batched delivery receipt, as sent when the business comes online.
+  await emit('messageStatus', {
+    threadId: 'thread-1',
+    messageIds: ['own-1', 'own-2'],
+    status: 'DELIVERED',
+  });
+  expect(statusOf('own-1')).toBe('DELIVERED');
+  expect(statusOf('own-2')).toBe('DELIVERED');
+
+  await emit('messageRead', {
+    threadId: 'thread-1',
+    messageIds: ['own-1'],
+    status: 'READ',
+  });
+  expect(statusOf('own-1')).toBe('READ');
+
+  // A late delivery receipt for an already-read message is ignored.
+  await emit('messageStatus', {
+    threadId: 'thread-1',
+    messageId: 'own-1',
+    status: 'DELIVERED',
+  });
+  expect(statusOf('own-1')).toBe('READ');
 });
 
 test('a deleted thread evicts its message cache', async () => {
   setup();
   queryClient.setQueryData(customerMessagingKeys.messages(null, 'thread-1'), [
-    inboundMessage,
+    businessReply,
   ]);
 
   await waitFor(() => expect(socketHandlers.threadDeleted).toBeDefined());
@@ -188,7 +252,7 @@ test('a notification payload carrying a message patches the row', async () => {
   setup();
 
   await waitFor(() => expect(socketHandlers.notification).toBeDefined());
-  await emit('notification', { type: 'new_message', message: inboundMessage });
+  await emit('notification', { type: 'new_message', message: businessReply });
 
   expect(threadRow()?.customerUnreadCount).toBe(1);
 });
@@ -196,7 +260,7 @@ test('a notification payload carrying a message patches the row', async () => {
 test('an incoming message update rewrites the stored message', async () => {
   setup();
   queryClient.setQueryData(customerMessagingKeys.messages(null, 'thread-1'), [
-    inboundMessage,
+    businessReply,
   ]);
 
   await waitFor(() => expect(socketHandlers.messageUpdate).toBeDefined());
@@ -241,10 +305,7 @@ describe('markCustomerThreadReadLocally', () => {
 
   test('leaves other threads untouched', () => {
     const other = { ...unreadThread, id: 'thread-2' };
-    queryClient.setQueryData(customerMessagingKeys.threads(), [
-      unreadThread,
-      other,
-    ]);
+    queryClient.setQueryData(customerMessagingKeys.threads(), [unreadThread, other]);
 
     markCustomerThreadReadLocally('thread-1');
 
@@ -355,8 +416,6 @@ describe('useMarkCustomerThreadRead', () => {
 
     // A failed clear must not look like a read one — the screen already patched
     // optimistically, but the refetch must be free to restore the truth.
-    expect(queryClient.getQueryData(customerMessagingKeys.threads())).toEqual([
-      unread,
-    ]);
+    expect(queryClient.getQueryData(customerMessagingKeys.threads())).toEqual([unread]);
   });
 });
