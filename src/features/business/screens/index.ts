@@ -228,11 +228,6 @@ export {
   type CampaignReviewPayload,
 } from './CampaignStep6ReviewScreen';
 
-export {
-  EditCatalogueItemScreen,
-  type EditCatalogueItemScreenProps,
-} from './EditCatalogueItemScreen';
-
 /* Customer segments. */
 export {
   SegmentActionsSheet,

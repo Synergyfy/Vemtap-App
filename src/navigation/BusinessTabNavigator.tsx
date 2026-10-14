@@ -38,7 +38,6 @@ import { DealLocationAssignmentPricingScreen } from '@features/business/screens/
 import { LocationAssignmentBranchPricingScreen } from '@features/business/screens/LocationAssignmentBranchPricingScreen';
 import { BranchAvailabilityLocationPricingScreen } from '@features/business/screens/BranchAvailabilityLocationPricingScreen';
 import { CentralCatalogueScreen } from '@features/business/screens/CentralCatalogueScreen';
-import { EditCatalogueItemScreen } from '@features/business/screens/EditCatalogueItemScreen';
 import { ServicesCategoriesManagementScreen } from '@features/business/screens/ServicesCategoriesManagementScreen';
 import { AddProductBasicsMediaScreen } from '@features/business/screens/AddProductBasicsMediaScreen';
 import { LocationsBranchesScreen } from '@features/business/screens/LocationsBranchesScreen';
@@ -892,65 +891,97 @@ function CentralCatalogueRoute() {
   const route = useRoute<RouteProp<BusinessTabParamList, 'CentralCatalogue'>>();
   const layout = route.params?.layout ?? 'directory';
   const updateItemStatus = useUpdateCatalogueItemStatus();
+  const updateDetails = useUpdateCatalogueItemDetails();
   const deleteItem = useDeleteCatalogueItem();
   const catalogue = useBusinessCatalogue();
+  const [editing, setEditing] = useState<{
+    id: string;
+    name: string;
+    price: string;
+  } | null>(null);
   const items = catalogue.data?.data ?? [];
   return (
-    <CentralCatalogueScreen
-      layout={layout}
-      onNotifications={() => navigation.navigate('BusinessNotifications')}
-      onQuickSwitch={() => undefined}
-      onSearch={() => undefined}
-      onChangeScope={() => undefined}
-      onAddProduct={() => navigation.navigate('AddProductBasicsMedia')}
-      onAddService={() => navigation.navigate('ServicesCategories')}
-      onEditItem={itemId => {
-        const item = items.find(candidate => candidate.id === itemId);
-        if (!item) return;
-        navigation.navigate('EditCatalogueItem', { item });
-      }}
-      onToggleStock={(itemId, value) => {
-        updateItemStatus.mutate(
-          { itemId, status: value ? 'active' : 'inactive' },
-          {
-            onSuccess: () => showSuccess(value ? 'Item is live.' : 'Item paused.'),
-            onError: () => showError('Could not update the item.'),
-          },
-        );
-      }}
-      onSheetAction={(actionId, itemId) => {
-        if (actionId === 'delete') {
-          deleteItem.mutate(itemId, {
-            onSuccess: () => showSuccess('Item deleted permanently.'),
-            onError: () => showError('Could not delete the item.'),
+    <>
+      <CentralCatalogueScreen
+        layout={layout}
+        onNotifications={() => navigation.navigate('BusinessNotifications')}
+        onQuickSwitch={() => undefined}
+        onSearch={() => undefined}
+        onChangeScope={() => undefined}
+        onAddProduct={() => navigation.navigate('AddProductBasicsMedia')}
+        onAddService={() => navigation.navigate('ServicesCategories')}
+        onEditItem={itemId => {
+          const item = items.find(candidate => candidate.id === itemId);
+          if (!item) return;
+          setEditing({
+            id: itemId,
+            name: item.name,
+            price: item.price != null ? String(item.price) : '',
           });
-        } else if (actionId === 'archive' || actionId === 'pause') {
+        }}
+        onToggleStock={(itemId, value) => {
           updateItemStatus.mutate(
-            { itemId, status: 'inactive' },
+            { itemId, status: value ? 'active' : 'inactive' },
             {
-              onSuccess: () => showSuccess('Item paused.'),
-              onError: () => showError('Could not pause the item.'),
+              onSuccess: () => showSuccess(value ? 'Item is live.' : 'Item paused.'),
+              onError: () => showError('Could not update the item.'),
             },
           );
-        } else {
-          showError('This item action is not yet available.');
-        }
-      }}
-      items={items.map(catalogueItemToCentralRow)}
-    />
-  );
-}
-
-function EditCatalogueItemRoute() {
-  const navigation = useBusinessNavigation();
-  const route = useRoute<RouteProp<BusinessTabParamList, 'EditCatalogueItem'>>();
-  const { item } = route.params;
-  return (
-    <EditCatalogueItemScreen
-      item={item}
-      onClose={() => navigation.goBack()}
-      onSaved={() => navigation.goBack()}
-    />
+        }}
+        onSheetAction={(actionId, itemId) => {
+          if (actionId === 'delete') {
+            deleteItem.mutate(itemId, {
+              onSuccess: () => showSuccess('Item deleted permanently.'),
+              onError: () => showError('Could not delete the item.'),
+            });
+          } else if (actionId === 'archive' || actionId === 'pause') {
+            updateItemStatus.mutate(
+              { itemId, status: 'inactive' },
+              {
+                onSuccess: () => showSuccess('Item paused.'),
+                onError: () => showError('Could not pause the item.'),
+              },
+            );
+          } else {
+            showError('This item action is not yet available.');
+          }
+        }}
+        items={items.map(catalogueItemToCentralRow)}
+      />
+      <PromptDialog
+        visible={Boolean(editing)}
+        title="Edit item"
+        fields={[
+          { key: 'name', label: 'Name', value: editing?.name ?? '' },
+          {
+            key: 'price',
+            label: 'Price (₦)',
+            value: editing?.price ?? '',
+            keyboardType: 'decimal-pad',
+          },
+        ]}
+        confirmLabel="Save"
+        onCancel={() => setEditing(null)}
+        onConfirm={values => {
+          if (!editing) return;
+          const parsedPrice = Number(values.price.replace(/[^\d.]/g, ''));
+          updateDetails.mutate(
+            {
+              itemId: editing.id,
+              name: values.name.trim() || undefined,
+              price: Number.isFinite(parsedPrice) ? parsedPrice : undefined,
+            },
+            {
+              onSuccess: () => {
+                showSuccess('Item updated.');
+                setEditing(null);
+              },
+              onError: () => showError('Could not update the item.'),
+            },
+          );
+        }}
+      />
+    </>
   );
 }
 
@@ -3504,7 +3535,6 @@ function BusinessHubTabNavigator() {
         component={BranchAvailabilityLocationPricingRoute}
       />
       <HubStack.Screen name="CentralCatalogue" component={CentralCatalogueRoute} />
-      <HubStack.Screen name="EditCatalogueItem" component={EditCatalogueItemRoute} />
       <HubStack.Screen name="ServicesCategories" component={ServicesCategoriesRoute} />
       <HubStack.Screen
         name="AddProductBasicsMedia"

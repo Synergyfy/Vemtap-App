@@ -88,8 +88,6 @@ export type BusinessStackParamList = {
   ProductLocationAssignment: undefined;
   BranchAvailabilityLocationPricing: undefined;
   CentralCatalogue: { layout?: 'directory' | 'businessHub' } | undefined;
-  /** Full-featured edit screen for products and services. */
-  EditCatalogueItem: { item: BusinessCatalogueItem } | undefined;
   /** `central_products_services_catalogue_2` — the business-hub treatment. */
   BusinessHubCatalogue: { layout?: 'businessHub' } | undefined;
   ServicesCategories: undefined;
