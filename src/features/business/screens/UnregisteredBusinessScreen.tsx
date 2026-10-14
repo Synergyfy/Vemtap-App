@@ -21,6 +21,10 @@ const canDoIcons = ['localOffer', 'qrCodeScanner', 'forum'] as const;
 const reservedIcons = ['verified', 'pushPin'] as const;
 
 export interface UnregisteredBusinessScreenProps {
+  /** Name from the identity check, when there is one. */
+  identityName?: string | null;
+  identityStatus?: 'verified' | 'pending' | 'missing';
+  submitting?: boolean;
   onBack?: () => void;
   onContinue?: () => void;
   onLearnMore?: () => void;
@@ -32,6 +36,9 @@ export interface UnregisteredBusinessScreenProps {
  * stitch_vemtap_design_system_1/unregistered_business_that_s_okay/code.html
  */
 export function UnregisteredBusinessScreen({
+  identityName,
+  identityStatus = 'missing',
+  submitting = false,
   onBack,
   onContinue,
   onLearnMore,
@@ -58,7 +65,12 @@ export function UnregisteredBusinessScreen({
       contentContainerClassName="gap-6"
       footer={
         <>
-          <PrimaryActionButton label={copy.continue} onPress={onContinue} />
+          <PrimaryActionButton
+            label={copy.continue}
+            onPress={onContinue}
+            loading={submitting}
+            disabled={submitting}
+          />
           <TextActionButton
             label={copy.learnMore}
             icon="arrowForward"
@@ -119,11 +131,15 @@ export function UnregisteredBusinessScreen({
                 className="font-sans-semibold"
                 numberOfLines={1}
               >
-                {copy.identityValue}
+                {identityName ?? copy.identityMissing}
               </VemtapText>
             </View>
           </View>
-          <StatusPill label={copy.identityStatus} tone="success" icon="checkBold" />
+          {identityStatus === 'verified' ? (
+            <StatusPill label={copy.identityStatus} tone="success" icon="checkBold" />
+          ) : (
+            <StatusPill label={copy.identityPending} tone="neutral" />
+          )}
         </View>
         <View className="flex-row flex-wrap items-center justify-between gap-2 rounded-lg bg-surface p-3 shadow-sm">
           <View className="min-w-0 flex-row items-center gap-3">

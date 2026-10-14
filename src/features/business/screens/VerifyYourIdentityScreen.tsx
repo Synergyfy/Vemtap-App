@@ -4,6 +4,7 @@ import { ProgressDots } from '@components/onboarding/ProgressDots';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { colors } from '@theme/colors';
+import type { IdentityIdType } from '@api/verificationApi';
 import { verifyIdentityCopy as copy } from '@features/business/verificationCopy';
 import {
   PrimaryActionButton,
@@ -15,7 +16,7 @@ import {
   VerificationPage,
 } from '@features/business/components/VerificationPrimitives';
 
-export type IdentityDocumentId = 'nin' | 'drivers_license' | 'passport';
+export type IdentityDocumentId = IdentityIdType;
 
 export interface VerifyYourIdentityScreenProps {
   onBack?: () => void;
@@ -116,6 +117,14 @@ export function VerifyYourIdentityScreen({
           body={copy.licenceBody}
           selected={selectedId === 'drivers_license'}
           onPress={() => setSelectedId('drivers_license')}
+        />
+        <SelectableRadioCard
+          layout="inline"
+          icon="vote"
+          title={copy.votersCard}
+          body={copy.votersCardBody}
+          selected={selectedId === 'voters_card'}
+          onPress={() => setSelectedId('voters_card')}
         />
         <SelectableRadioCard
           layout="inline"

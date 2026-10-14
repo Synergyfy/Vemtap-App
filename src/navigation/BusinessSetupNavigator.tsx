@@ -1,6 +1,6 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   AddBranchLocationScreen,
@@ -70,6 +70,48 @@ import { showError, showSuccess } from '@components/shared';
 import { mapLocationDraft } from '@features/business/utils/locationDraftMapper';
 import { businessProfileCopy } from '@features/business/businessCopy';
 import { logger } from '@utils/logger';
+import {
+  useRequestManualReview,
+  useSubmitUnregisteredBusiness,
+  useVerificationStatus,
+  verificationKeys,
+} from '@features/business/hooks/useVerification';
+import { useMyBusiness } from '@features/business/hooks/useBusinessDashboardData';
+import {
+  reasonCopy,
+  verificationApi,
+  type IdentityIdType,
+  type VerificationStatus,
+} from '@api/verificationApi';
+import type { MyBusiness } from '@api/businessDashboardApi';
+import {
+  displayName,
+  formatDay,
+  formatVerifiedAt,
+  idTypeLabel,
+} from '@features/business/verificationDisplay';
+import { youReVerifiedCopy } from '@features/business/verificationCopy';
+import type { YouReVerifiedPillar } from '@features/business/screens/YouReVerifiedScreen';
+import { useQueryClient } from '@tanstack/react-query';
+import {
+  planPrice,
+  subscriptionsApi,
+  type BillingPeriod,
+  type Plan,
+} from '@api/subscriptionsApi';
+import {
+  subscriptionKeys,
+  trialStageOf,
+  useActiveSubscription,
+  useAddons,
+  useCheckout,
+  usePaymentMethod,
+  usePlans,
+  usePricePreview,
+  useStartTrial,
+} from '@features/business/hooks/useSubscriptions';
+import { subscriptionRef, trialProgress } from '@features/business/subscriptionDisplay';
+import { formatCurrency } from '@utils/formatters';
 import type { BusinessSetupStackParamList, RootStackParamList } from '@navigation/types';
 
 const Stack = createNativeStackNavigator<BusinessSetupStackParamList>();
@@ -1016,6 +1058,7 @@ function CreateDealStep4Route() {
 
 function BusinessQrReadyRoute() {
   const navigation = useFlowNavigation();
+  const queryClient = useQueryClient();
   const openBusinessDashboard = useBusinessDashboardEntry();
   // The referral perk belongs to the business app, so it crosses to that shell
   // the same way the dashboard hand-off does.
@@ -1025,8 +1068,22 @@ function BusinessQrReadyRoute() {
     // make sure later launches restore the business side.
     useAuthStore.getState().setActiveMode('business');
     useAuthStore.getState().completeOnboarding();
-    openBusinessDashboard();
-  }, [openBusinessDashboard]);
+    // A business that hasn't started verification is offered it next (it can
+    // skip to the trial offer from there); everyone else lands in the app.
+    queryClient
+      .fetchQuery({
+        queryKey: verificationKeys.status(),
+        queryFn: () => verificationApi.status(),
+        staleTime: 30_000,
+      })
+      .then(
+        status =>
+          status.status === 'unverified'
+            ? navigation.navigate('VerifyYourBusiness')
+            : openBusinessDashboard(),
+        () => openBusinessDashboard(),
+      );
+  }, [navigation, openBusinessDashboard, queryClient]);
   return (
     <YourVemtapBusinessQrIsReadyScreen
       onBack={navigation.goBack}
@@ -1044,14 +1101,14 @@ function BusinessQrReadyRoute() {
 
 function VerifyYourBusinessRoute() {
   const navigation = useFlowNavigation();
-  const openBusinessDashboard = useBusinessDashboardEntry();
+  const openActivation = useActivationEntry();
   return (
     <VerifyYourBusinessScreen
       onBack={navigation.goBack}
       onStart={() => navigation.navigate('VerifyYourIdentity')}
-      // Skipping verification means "start operating": drop the user into the
-      // business app instead of parking them on a status page.
-      onLater={openBusinessDashboard}
+      // Skipping verification means "start operating": offer the trial, then
+      // the business app, instead of parking them on a status page.
+      onLater={openActivation}
     />
   );
 }
@@ -1061,40 +1118,96 @@ function VerifyYourIdentityRoute() {
   return (
     <VerifyYourIdentityScreen
       onBack={navigation.goBack}
-      onContinue={() => navigation.navigate('IdVerification')}
+      onContinue={idType => navigation.navigate('IdVerification', { idType })}
     />
   );
 }
 
+/** Verification needs a signed-in owner; skip the query otherwise. */
+function useSetupVerificationStatus() {
+  const isAuthenticated = useAuthStore(selectIsAuthenticated);
+  return useVerificationStatus(isAuthenticated);
+}
+
+function useSetupBusiness() {
+  const isAuthenticated = useAuthStore(selectIsAuthenticated);
+  const query = useMyBusiness();
+  return isAuthenticated ? query.data : undefined;
+}
+
+/** Where to go once a step is done, from `GET /verification/status`. */
+function useNextVerificationStep() {
+  const navigation = useFlowNavigation();
+  return (status: VerificationStatus | undefined) => {
+    if (status?.status === 'verified') navigation.navigate('YouReVerified');
+    else if (status?.nextStep === 'business') navigation.navigate('BusinessRegistration');
+    else if (status?.nextStep === 'identity') navigation.navigate('VerifyYourIdentity');
+    else navigation.navigate('VerificationInProgress');
+  };
+}
+
 function IdVerificationRoute() {
   const navigation = useFlowNavigation();
+  const route = useRoute<RouteProp<BusinessSetupStackParamList, 'IdVerification'>>();
   return (
     <IdVerificationScreen
+      idType={route.params?.idType ?? 'nin'}
       onBack={navigation.goBack}
-      onSubmit={() => navigation.navigate('IdVerificationSuccess')}
-      onCaptureSlip={() => undefined}
+      onResult={check =>
+        check.status === 'verified'
+          ? navigation.navigate('IdVerificationSuccess')
+          : navigation.navigate('IdVerificationNeedsReview')
+      }
     />
   );
 }
 
 function IdVerificationSuccessRoute() {
   const navigation = useFlowNavigation();
+  const { data: status } = useSetupVerificationStatus();
+  const goNext = useNextVerificationStep();
+  const identity = status?.identity ?? null;
   return (
     <IdVerificationSuccessScreen
+      personName={displayName(identity?.recordName)}
+      documentType={identity ? idTypeLabel(identity.idType) : null}
+      documentReference={identity?.maskedId}
+      verifiedOn={formatVerifiedAt(identity?.reviewedAt ?? identity?.createdAt)}
       onBack={navigation.goBack}
-      onContinue={() => navigation.navigate('BusinessRegistration')}
+      onContinue={() => goNext(status)}
     />
   );
 }
 
 function IdVerificationNeedsReviewRoute() {
   const navigation = useFlowNavigation();
+  const { data: status } = useSetupVerificationStatus();
+  const requestReview = useRequestManualReview();
+  const identity = status?.identity ?? null;
   return (
     <IdVerificationNeedsReviewScreen
+      reasons={identity ? reasonCopy(identity.reasons) : undefined}
+      inReview={identity?.status === 'needs_review'}
+      requestingReview={requestReview.isPending}
       onBack={navigation.goBack}
-      onTryAgain={() => navigation.navigate('IdVerification')}
+      onTryAgain={() =>
+        navigation.navigate('IdVerification', {
+          idType: (identity?.idType as IdentityIdType | undefined) ?? 'nin',
+        })
+      }
       onUseAnotherId={() => navigation.navigate('VerifyYourIdentity')}
-      onRequestManualReview={() => navigation.navigate('VerificationInProgress')}
+      onRequestManualReview={() =>
+        requestReview.mutate(
+          { checkId: identity?.id },
+          {
+            onSuccess: () => navigation.navigate('VerificationInProgress'),
+            onError: error =>
+              showError(
+                error instanceof Error ? error.message : 'Could not request a review.',
+              ),
+          },
+        )
+      }
     />
   );
 }
@@ -1115,44 +1228,103 @@ function BusinessRegistrationRoute() {
 
 function CacVerificationRoute() {
   const navigation = useFlowNavigation();
+  const business = useSetupBusiness();
   return (
     <CacVerificationScreen
+      businessName={business?.name}
       onBack={navigation.goBack}
-      onSubmit={() => navigation.navigate('CacVerificationSuccess')}
-      onAttachCertificate={() => undefined}
-      onRegisterFirst={() => navigation.navigate('BusinessRegistration')}
+      onResult={check => {
+        if (check.status === 'verified') {
+          navigation.navigate('CacVerificationSuccess');
+        } else if (check.status === 'needs_review') {
+          navigation.navigate('VerificationInProgress');
+        } else {
+          // Not found / inactive: stay so the number can be corrected.
+          showError(
+            reasonCopy(check.reasons)[0] ?? "We couldn't verify that CAC number.",
+          );
+        }
+      }}
+      onRegisterFirst={() => navigation.navigate('UnregisteredBusiness')}
     />
   );
 }
 
 function UnregisteredBusinessRoute() {
   const navigation = useFlowNavigation();
+  const { data: status } = useSetupVerificationStatus();
+  const submit = useSubmitUnregisteredBusiness();
+  const identity = status?.identity ?? null;
   return (
     <UnregisteredBusinessScreen
+      identityName={displayName(identity?.recordName)}
+      identityStatus={
+        !identity ? 'missing' : identity.status === 'verified' ? 'verified' : 'pending'
+      }
+      submitting={submit.isPending}
       onBack={navigation.goBack}
-      onContinue={() => navigation.navigate('VerificationInProgress')}
+      onContinue={() =>
+        submit.mutate(
+          {},
+          {
+            onSuccess: () => navigation.navigate('VerificationInProgress'),
+            onError: error =>
+              showError(
+                error instanceof Error
+                  ? error.message
+                  : 'Could not submit your business.',
+              ),
+          },
+        )
+      }
       onLearnMore={() => navigation.navigate('VerifyYourBusiness')}
       onHelp={() => undefined}
     />
   );
 }
 
+/** "Lagos • Restaurant" for the business preview cards. */
+function businessMetaLine(business: MyBusiness | undefined): string | null {
+  if (!business) return null;
+  return [business.city, business.category?.name].filter(Boolean).join(' • ') || null;
+}
+
 function CacVerificationSuccessRoute() {
   const navigation = useFlowNavigation();
+  const { data: status } = useSetupVerificationStatus();
+  const business = useSetupBusiness();
+  const goNext = useNextVerificationStep();
   return (
     <CacVerificationSuccessScreen
+      businessName={business?.name}
+      businessMeta={businessMetaLine(business)}
+      logoUrl={business?.logoUrl}
+      recordName={displayName(status?.business?.recordName)}
+      registrationNumber={status?.business?.maskedId}
+      operatorName={
+        status?.identity?.status === 'verified'
+          ? displayName(status.identity.recordName)
+          : null
+      }
       onBack={navigation.goBack}
-      onContinue={() => navigation.navigate('YouReVerified')}
+      onContinue={() => goNext(status)}
     />
   );
 }
 
 function VerificationInProgressRoute() {
   const navigation = useFlowNavigation();
+  const openActivation = useActivationEntry();
+  const { data: status } = useSetupVerificationStatus();
   return (
     <VerificationInProgressScreen
+      status={status}
       onBack={navigation.goBack}
-      onContinueSetup={() => navigation.navigate('YouReVerified')}
+      onContinueSetup={() =>
+        status?.status === 'verified'
+          ? navigation.navigate('YouReVerified')
+          : openActivation()
+      }
       onCheckLater={() => navigation.navigate('BusinessVerificationStatusCenter')}
       onContactSupport={() => undefined}
       onHelp={() => undefined}
@@ -1162,38 +1334,159 @@ function VerificationInProgressRoute() {
 
 function YouReVerifiedRoute() {
   const navigation = useFlowNavigation();
+  const openActivation = useActivationEntry();
+  const { data: status } = useSetupVerificationStatus();
+  const business = useSetupBusiness();
+  const pillars = useMemo(() => verifiedPillars(status, business), [business, status]);
   return (
     <YouReVerifiedScreen
+      businessName={business?.name}
+      logoUrl={business?.logoUrl}
+      previewMeta={businessMetaLine(business)}
+      pillars={pillars}
       onBack={navigation.goBack}
-      onContinue={() => navigation.navigate('BusinessVerificationStatusCenter')}
+      onContinue={openActivation}
       onPreviewStorefront={() => undefined}
       onHelp={() => undefined}
     />
   );
 }
 
+function verifiedPillars(
+  status: VerificationStatus | undefined,
+  business: MyBusiness | undefined,
+): YouReVerifiedPillar[] {
+  const copy = youReVerifiedCopy;
+  const identity = status?.identity ?? null;
+  const check = status?.business ?? null;
+  const branches = business?.branches ?? [];
+  const operator = displayName(identity?.recordName);
+  return [
+    {
+      icon: 'badge',
+      title: copy.identityTitle,
+      tag: copy.identityTag,
+      body: operator ? `${copy.operatorLead}${operator}` : idTypeLabel(identity?.idType),
+      done: identity?.status === 'verified',
+    },
+    {
+      icon: 'domain',
+      title: copy.businessTitle,
+      tag: check?.idType === 'cac' ? copy.cacTag : copy.reviewedTag,
+      body:
+        check?.idType === 'cac' && check.maskedId
+          ? `${copy.registryLead}${check.maskedId}`
+          : copy.reviewedBody,
+      done: status?.status === 'verified',
+    },
+    {
+      icon: 'storefront',
+      title: copy.locationTitle,
+      tag: branches.length ? copy.locationTag : copy.locationMissingTag,
+      body: branches.length
+        ? `${branches.length}${branches.length === 1 ? copy.branchesOne : copy.branchesMany}`
+        : '',
+      done: branches.length > 0,
+    },
+    {
+      icon: 'palette',
+      title: copy.profileTitle,
+      tag: copy.profileTag,
+      body: copy.profileBody,
+      done: Boolean(business?.logoUrl),
+    },
+  ];
+}
+
 function BusinessVerificationStatusCenterRoute() {
   const navigation = useFlowNavigation();
-  const openBusinessDashboard = useBusinessDashboardEntry();
+  const openActivation = useActivationEntry();
+  const { data: status } = useSetupVerificationStatus();
+  const business = useSetupBusiness();
+  const branches = business?.branches ?? [];
   return (
     <BusinessVerificationStatusCenterScreen
+      status={status}
+      businessName={business?.name}
+      logoUrl={business?.logoUrl}
+      branchCount={branches.length}
+      branchSummary={
+        branches.length ? branches.map(branch => branch.name).join(' & ') : null
+      }
       onBack={navigation.goBack}
-      onOpenDashboard={openBusinessDashboard}
+      onOpenDashboard={openActivation}
       onUpdateVerification={() => navigation.navigate('VerifyYourBusiness')}
       onManageLocations={() => navigation.navigate('BusinessLocations')}
-      onViewCredential={() => navigation.navigate('IdVerificationNeedsReview')}
       onHelp={() => undefined}
     />
   );
 }
 
+/** "₦15,000" for a plan's monthly price. */
+function monthlyPriceOf(plan: Plan | undefined): string | undefined {
+  return plan ? formatCurrency(plan.monthlyPrice, plan.currency) : undefined;
+}
+
+/** The plan to recommend when none was chosen: the popular one, else the first. */
+function defaultPlan(plans: Plan[] | undefined): Plan | undefined {
+  return plans?.find(plan => plan.isPopular) ?? plans?.[0];
+}
+
+/**
+ * End of setup: offer the free trial while the business can still take it,
+ * otherwise go straight to the business app.
+ */
+function useActivationEntry() {
+  const navigation = useFlowNavigation();
+  const openBusinessDashboard = useBusinessDashboardEntry();
+  const queryClient = useQueryClient();
+  return async () => {
+    const subscription = await queryClient
+      .fetchQuery({
+        queryKey: subscriptionKeys.active(),
+        queryFn: () => subscriptionsApi.active(),
+        staleTime: 30_000,
+      })
+      .catch(() => undefined);
+    if (trialStageOf(subscription ?? undefined) === 'eligible') {
+      navigation.navigate('BusinessPlanTrialOverview');
+    } else {
+      openBusinessDashboard();
+    }
+  };
+}
+
 function FreeTrialConfirmationRoute() {
   const navigation = useFlowNavigation();
+  const route =
+    useRoute<RouteProp<BusinessSetupStackParamList, 'FreeTrialConfirmation'>>();
+  const { data: plans } = usePlans();
+  const startTrial = useStartTrial();
+  const plan =
+    plans?.find(item => item.id === route.params?.planId) ?? defaultPlan(plans);
   return (
     <FreeTrialConfirmationScreen
+      planName={plan?.name}
+      monthlyPrice={monthlyPriceOf(plan)}
+      trialDays={plan?.trialDurationDays || undefined}
+      starting={startTrial.isPending}
       onBack={navigation.goBack}
-      onStartTrial={() => navigation.navigate('BusinessPlanTrialOverview')}
-      onSubscribeInstead={() => navigation.navigate('SubscribeNowPayment')}
+      onStartTrial={() => {
+        if (!plan) return;
+        startTrial.mutate(
+          { planId: plan.id },
+          {
+            onSuccess: () => navigation.replace('TrialActiveStatus'),
+            onError: error =>
+              showError(
+                error instanceof Error ? error.message : 'Could not start your trial.',
+              ),
+          },
+        );
+      }}
+      onSubscribeInstead={() =>
+        navigation.navigate('SubscribeNowPayment', { planId: plan?.id })
+      }
       onHelp={() => undefined}
     />
   );
@@ -1201,11 +1494,25 @@ function FreeTrialConfirmationRoute() {
 
 function BusinessPlanTrialOverviewRoute() {
   const navigation = useFlowNavigation();
+  const plans = usePlans();
+  const { data: subscription } = useActiveSubscription();
+  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   return (
     <BusinessPlanTrialOverviewScreen
+      plans={plans.data}
+      selectedPlanId={selectedPlanId ?? defaultPlan(plans.data)?.id}
+      trialEligible={subscription?.trialEligible ?? false}
+      loading={plans.isLoading}
+      error={plans.isError}
+      onRetry={plans.refetch}
+      onSelectPlan={setSelectedPlanId}
       onBack={navigation.goBack}
-      onStartTrial={() => navigation.navigate('TrialActiveStatus')}
-      onSubscribeNow={() => navigation.navigate('SubscribeNowPayment')}
+      onStartTrial={plan =>
+        navigation.navigate('FreeTrialConfirmation', { planId: plan.id })
+      }
+      onSubscribeNow={plan =>
+        navigation.navigate('SubscribeNowPayment', { planId: plan.id })
+      }
       onViewAddOns={() => navigation.navigate('VemtapAddOns')}
       onHelp={() => undefined}
     />
@@ -1214,11 +1521,22 @@ function BusinessPlanTrialOverviewRoute() {
 
 function TrialActiveStatusRoute() {
   const navigation = useFlowNavigation();
+  const openBusinessDashboard = useBusinessDashboardEntry();
+  const { data: subscription } = useActiveSubscription();
+  const { data: plans } = usePlans();
+  const plan = plans?.find(item => item.id === subscription?.planId);
   return (
     <TrialActiveStatusScreen
+      planName={subscription?.plan?.name ?? plan?.name}
+      monthlyPrice={monthlyPriceOf(plan)}
+      reference={subscriptionRef(subscription?.id)}
+      progress={trialProgress(subscription ?? undefined)}
+      features={plan?.features}
       onBack={navigation.goBack}
-      onExploreDashboard={() => navigation.navigate('BusinessQrReady')}
-      onSubscribeNow={() => navigation.navigate('SubscribeNowPayment')}
+      onExploreDashboard={openBusinessDashboard}
+      onSubscribeNow={() =>
+        navigation.navigate('SubscribeNowPayment', { planId: subscription?.planId })
+      }
       onHelp={() => undefined}
     />
   );
@@ -1226,10 +1544,45 @@ function TrialActiveStatusRoute() {
 
 function SubscribeNowPaymentRoute() {
   const navigation = useFlowNavigation();
+  const route = useRoute<RouteProp<BusinessSetupStackParamList, 'SubscribeNowPayment'>>();
+  const { data: plans } = usePlans();
+  const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>('monthly');
+  const checkout = useCheckout();
+  const plan =
+    plans?.find(item => item.id === route.params?.planId) ?? defaultPlan(plans);
+  const { data: preview } = usePricePreview(plan?.id, billingPeriod);
   return (
     <SubscribeNowPaymentScreen
+      plan={plan}
+      billingPeriod={billingPeriod}
+      onChangePeriod={setBillingPeriod}
+      preview={preview}
+      processing={checkout.isPending}
       onBack={navigation.goBack}
-      onPay={() => navigation.navigate('PaymentSuccessVemtapGrowth')}
+      onPay={() => {
+        if (!plan) return;
+        checkout.mutate(
+          { planId: plan.id, billingPeriod },
+          {
+            onSuccess: ({ outcome, reference }) => {
+              if (outcome === 'cancelled') {
+                showError('Payment was not completed.');
+                return;
+              }
+              navigation.replace('PaymentSuccessVemtapGrowth', {
+                planId: plan.id,
+                billingPeriod,
+                reference,
+                pending: outcome === 'pending',
+              });
+            },
+            onError: error =>
+              showError(
+                error instanceof Error ? error.message : 'Could not start the payment.',
+              ),
+          },
+        );
+      }}
       onViewTerms={() => undefined}
       onHelp={() => undefined}
     />
@@ -1238,11 +1591,38 @@ function SubscribeNowPaymentRoute() {
 
 function PaymentSuccessVemtapGrowthRoute() {
   const navigation = useFlowNavigation();
+  const route =
+    useRoute<RouteProp<BusinessSetupStackParamList, 'PaymentSuccessVemtapGrowth'>>();
+  const openBusinessDashboard = useBusinessDashboardEntry();
+  const { data: subscription } = useActiveSubscription();
+  const { data: plans } = usePlans();
+  const { data: paymentMethod } = usePaymentMethod();
+  const business = useSetupBusiness();
+  const { params } = route;
+  const plan = plans?.find(item => item.id === (params?.planId ?? subscription?.planId));
+  const billingPeriod = params?.billingPeriod ?? 'monthly';
+  const active = subscription?.planId === plan?.id && subscription?.status === 'active';
+  const card = paymentMethod?.card;
   return (
     <PaymentSuccessVemtapGrowthScreen
-      onGoToDashboard={() => navigation.navigate('BusinessQrReady')}
+      pending={!active && (params?.pending ?? false)}
+      planName={plan?.name ?? subscription?.plan?.name ?? ''}
+      price={plan ? formatCurrency(planPrice(plan, billingPeriod), plan.currency) : null}
+      billingPeriod={billingPeriod}
+      reference={params?.reference}
+      paidOn={active ? formatDay(subscription?.startDate) : null}
+      nextBilling={active ? formatDay(subscription?.endDate) : null}
+      cardLabel={
+        card?.last4
+          ? `${card.brand ? `${card.brand.toUpperCase()} ` : ''}•••• ${card.last4}`
+          : null
+      }
+      features={plan?.features}
+      businessName={business?.name}
+      logoUrl={business?.logoUrl}
+      branchNames={business?.branches?.map(branch => branch.name)}
+      onGoToDashboard={openBusinessDashboard}
       onExploreFeatures={() => navigation.navigate('VemtapAddOns')}
-      onDownloadInvoice={() => undefined}
       onContactSupport={() => undefined}
     />
   );
@@ -1250,11 +1630,25 @@ function PaymentSuccessVemtapGrowthRoute() {
 
 function TrialEndingRenewGrowthRoute() {
   const navigation = useFlowNavigation();
+  const openBusinessDashboard = useBusinessDashboardEntry();
+  const { data: subscription } = useActiveSubscription();
+  const { data: plans } = usePlans();
+  const business = useSetupBusiness();
+  const plan = plans?.find(item => item.id === subscription?.planId);
   return (
     <TrialEndingRenewGrowthScreen
+      planName={subscription?.plan?.name ?? plan?.name}
+      monthlyPrice={monthlyPriceOf(plan)}
+      progress={trialProgress(subscription ?? undefined)}
+      features={plan?.features}
+      businessName={business?.name}
+      logoUrl={business?.logoUrl}
+      branchNames={business?.branches?.map(branch => branch.name)}
       onBack={navigation.goBack}
-      onContinueGrowth={() => navigation.navigate('SubscribeNowPayment')}
-      onReviewBusiness={() => navigation.navigate('BusinessQrReady')}
+      onContinueGrowth={() =>
+        navigation.navigate('SubscribeNowPayment', { planId: subscription?.planId })
+      }
+      onReviewBusiness={openBusinessDashboard}
       onHelp={() => undefined}
     />
   );
@@ -1262,11 +1656,19 @@ function TrialEndingRenewGrowthRoute() {
 
 function TrialExpiredReactivateRoute() {
   const navigation = useFlowNavigation();
+  const openBusinessDashboard = useBusinessDashboardEntry();
+  const { data: plans } = usePlans();
+  const business = useSetupBusiness();
+  const plan = defaultPlan(plans);
   return (
     <TrialExpiredReactivateScreen
+      planName={plan?.name}
+      monthlyPrice={monthlyPriceOf(plan)}
+      features={plan?.features}
+      branchCount={business?.branches?.length ?? 0}
       onBack={navigation.goBack}
-      onActivate={() => navigation.navigate('SubscribeNowPayment')}
-      onViewBusiness={() => navigation.navigate('BusinessQrReady')}
+      onActivate={() => navigation.navigate('SubscribeNowPayment', { planId: plan?.id })}
+      onViewBusiness={openBusinessDashboard}
       onContactSupport={() => undefined}
       onHelp={() => undefined}
     />
@@ -1275,8 +1677,12 @@ function TrialExpiredReactivateRoute() {
 
 function VemtapAddOnsRoute() {
   const navigation = useFlowNavigation();
+  const { data: addOns } = useAddons();
+  const { data: subscription } = useActiveSubscription();
   return (
     <VemtapAddOnsScreen
+      planAddOns={addOns}
+      currentPlanName={subscription?.plan?.name}
       onBack={navigation.goBack}
       onHelp={() => undefined}
       onSelectAddOn={() => undefined}

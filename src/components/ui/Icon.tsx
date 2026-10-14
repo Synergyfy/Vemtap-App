@@ -48,6 +48,8 @@ export const iconNames = {
   restaurant: 'silverware-fork-knife',
   loyalty: 'sale',
   badge: 'card-account-details',
+  vote: 'vote-outline',
+  faceRecognition: 'face-recognition',
   diamond: 'diamond',
   earth: 'earth',
   lounge: 'sofa',

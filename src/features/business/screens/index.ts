@@ -91,7 +91,6 @@ export {
 export {
   CacVerificationScreen,
   type CacVerificationScreenProps,
-  type CacVerificationValue,
 } from './CacVerificationScreen';
 export {
   CacVerificationSuccessScreen,
@@ -138,7 +137,6 @@ export {
 export {
   SubscribeNowPaymentScreen,
   type SubscribeNowPaymentScreenProps,
-  type PaymentMethodId,
 } from './SubscribeNowPaymentScreen';
 export {
   PaymentSuccessVemtapGrowthScreen,

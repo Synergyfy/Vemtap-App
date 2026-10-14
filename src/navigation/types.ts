@@ -1,6 +1,8 @@
 import type { NavigatorScreenParams } from '@react-navigation/native';
 import type { BusinessProfileSummary } from '@features/discover/data/discoverData';
 import type { GeoCoords } from '@constants/locations';
+import type { IdentityIdType } from '@api/verificationApi';
+import type { BillingPeriod } from '@api/subscriptionsApi';
 
 export type { BusinessProfileSummary } from '@features/discover/data/discoverData';
 
@@ -295,7 +297,7 @@ export type BusinessSetupStackParamList = {
   BusinessQrReady: undefined;
   VerifyYourBusiness: undefined;
   VerifyYourIdentity: undefined;
-  IdVerification: undefined;
+  IdVerification: { idType: IdentityIdType } | undefined;
   IdVerificationSuccess: undefined;
   IdVerificationNeedsReview: undefined;
   BusinessRegistration: undefined;
@@ -305,11 +307,18 @@ export type BusinessSetupStackParamList = {
   VerificationInProgress: undefined;
   YouReVerified: undefined;
   BusinessVerificationStatusCenter: undefined;
-  FreeTrialConfirmation: undefined;
+  FreeTrialConfirmation: { planId?: string } | undefined;
   BusinessPlanTrialOverview: undefined;
   TrialActiveStatus: undefined;
-  SubscribeNowPayment: undefined;
-  PaymentSuccessVemtapGrowth: undefined;
+  SubscribeNowPayment: { planId?: string } | undefined;
+  PaymentSuccessVemtapGrowth:
+    | {
+        planId: string;
+        billingPeriod: BillingPeriod;
+        reference?: string;
+        pending?: boolean;
+      }
+    | undefined;
   TrialEndingRenewGrowth: undefined;
   TrialExpiredReactivate: undefined;
   VemtapAddOns: undefined;

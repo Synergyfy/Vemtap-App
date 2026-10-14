@@ -14,6 +14,8 @@ import {
   type PillTone,
 } from '@features/business/components/BusinessSetupPrimitives';
 import { VerificationPage } from '@features/business/components/VerificationPrimitives';
+import { formatCurrency } from '@utils/formatters';
+import type { Addon } from '@api/subscriptionsApi';
 
 const ADD_ON_IMAGES = {
   boostDeal:
@@ -206,6 +208,9 @@ function AddOnCard({ addOn, onPress, onJoinWaitlist }: AddOnCardProps) {
 }
 
 export interface VemtapAddOnsScreenProps {
+  /** Add-ons configured by VEMTAP (`GET /addons`). */
+  planAddOns?: Addon[];
+  currentPlanName?: string | null;
   onBack?: () => void;
   onHelp?: () => void;
   onSelectAddOn?: (addOnTitle: string) => void;
@@ -217,6 +222,8 @@ export interface VemtapAddOnsScreenProps {
  * stitch_vemtap_design_system_1/vemtap_add_ons/code.html
  */
 export function VemtapAddOnsScreen({
+  planAddOns = [],
+  currentPlanName,
   onBack,
   onHelp,
   onSelectAddOn,
@@ -250,6 +257,53 @@ export function VemtapAddOnsScreen({
         </VemtapText>
       </View>
 
+      {planAddOns.length ? (
+        <SetupSectionCard className="w-full">
+          <VemtapText variant="labelMd" className="font-sans-semibold">
+            {copy.planAddOnsTitle}
+          </VemtapText>
+          <VemtapText variant="caption" tone="secondary">
+            {copy.planAddOnsBody}
+          </VemtapText>
+          <View className="gap-3 pt-1">
+            {planAddOns.map(addOn => (
+              <View key={addOn.id} className="flex-row items-start gap-3">
+                <View className="h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-tint-blue">
+                  <Icon name="bolt" size={16} color={colors.primary} />
+                </View>
+                <View className="min-w-0 flex-1">
+                  <VemtapText variant="labelMd" className="font-sans-medium">
+                    {addOn.name}
+                  </VemtapText>
+                  {addOn.description ? (
+                    <VemtapText
+                      variant="caption"
+                      tone="secondary"
+                      className="leading-snug"
+                    >
+                      {addOn.description}
+                    </VemtapText>
+                  ) : null}
+                </View>
+                <View className="shrink-0 items-end">
+                  <VemtapText
+                    variant="labelMd"
+                    className="font-sans-semibold text-primary"
+                  >
+                    {formatCurrency(addOn.price, addOn.currency ?? 'NGN')}
+                  </VemtapText>
+                  <VemtapText variant="caption" tone="tertiary">
+                    {addOn.isOneTime
+                      ? copy.oneTime
+                      : `${copy.durationLead}${addOn.durationDays}${copy.durationTail}`}
+                  </VemtapText>
+                </View>
+              </View>
+            ))}
+          </View>
+        </SetupSectionCard>
+      ) : null}
+
       {copy.addOns.map(addOn => (
         <AddOnCard
           key={addOn.title}
@@ -268,10 +322,15 @@ export function VemtapAddOnsScreen({
           tone="secondary"
           className="min-w-0 flex-1 leading-relaxed"
         >
-          {copy.note}{' '}
-          <VemtapText variant="bodyMd" className="font-sans-semibold">
-            {copy.noteEmphasis}
-          </VemtapText>
+          {copy.note}
+          {currentPlanName ? (
+            <>
+              {copy.notePlanLead}
+              <VemtapText variant="bodyMd" className="font-sans-semibold">
+                {currentPlanName}
+              </VemtapText>
+            </>
+          ) : null}
           .
         </VemtapText>
       </View>

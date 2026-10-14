@@ -17,6 +17,10 @@ import {
 } from '@features/business/components/VerificationPrimitives';
 
 export interface IdVerificationSuccessScreenProps {
+  personName?: string | null;
+  documentType?: string | null;
+  documentReference?: string | null;
+  verifiedOn?: string | null;
   onBack?: () => void;
   onContinue?: () => void;
 }
@@ -26,6 +30,10 @@ export interface IdVerificationSuccessScreenProps {
  * stitch_vemtap_design_system_1/id_verification_success/code.html
  */
 export function IdVerificationSuccessScreen({
+  personName,
+  documentType,
+  documentReference,
+  verifiedOn,
   onBack,
   onContinue,
 }: IdVerificationSuccessScreenProps) {
@@ -83,19 +91,25 @@ export function IdVerificationSuccessScreen({
             <StatusPill label={copy.verifiedBadge} tone="success" icon="verified" />
           }
         />
-        <VerificationSummaryRow label={copy.personLabel} value={copy.personValue} />
-        <VerificationSummaryRow label={copy.documentLabel} value={copy.documentValue} />
-        <VerificationSummaryRow label={copy.referenceLabel} value={copy.referenceValue} />
-        <View className="mt-2 flex-row items-center justify-center gap-1.5 rounded-lg bg-surface-container-low px-2 py-2">
-          <Icon name="schedule" size={16} color={colors.textSecondary} />
-          <VemtapText
-            variant="caption"
-            tone="secondary"
-            className="min-w-0 flex-1 text-center"
-          >
-            {copy.verifiedOn}
-          </VemtapText>
-        </View>
+        <VerificationSummaryRow label={copy.personLabel} value={personName ?? '—'} />
+        <VerificationSummaryRow label={copy.documentLabel} value={documentType ?? '—'} />
+        <VerificationSummaryRow
+          label={copy.referenceLabel}
+          value={documentReference ?? '—'}
+        />
+        {verifiedOn ? (
+          <View className="mt-2 flex-row items-center justify-center gap-1.5 rounded-lg bg-surface-container-low px-2 py-2">
+            <Icon name="schedule" size={16} color={colors.textSecondary} />
+            <VemtapText
+              variant="caption"
+              tone="secondary"
+              className="min-w-0 flex-1 text-center"
+            >
+              {copy.verifiedOnLead}
+              {verifiedOn}
+            </VemtapText>
+          </View>
+        ) : null}
       </SetupSectionCard>
 
       <SetupSectionCard tone="lowest" className="w-full bg-surface-tint-blue">
@@ -126,7 +140,7 @@ export function IdVerificationSuccessScreen({
         </View>
       </SetupSectionCard>
 
-      <ProgressDots total={3} activeIndex={1} />
+      <ProgressDots total={2} activeIndex={0} />
     </VerificationPage>
   );
 }

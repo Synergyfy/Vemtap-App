@@ -20,6 +20,14 @@ import {
 } from '@features/business/components/VerificationPrimitives';
 
 export interface CacVerificationSuccessScreenProps {
+  businessName?: string | null;
+  businessMeta?: string | null;
+  logoUrl?: string | null;
+  /** Legal name on the CAC record. */
+  recordName?: string | null;
+  registrationNumber?: string | null;
+  /** Operator name from the identity check, when it passed. */
+  operatorName?: string | null;
   onBack?: () => void;
   onContinue?: () => void;
 }
@@ -29,6 +37,12 @@ export interface CacVerificationSuccessScreenProps {
  * stitch_vemtap_design_system_1/cac_verification_success/code.html
  */
 export function CacVerificationSuccessScreen({
+  businessName,
+  businessMeta,
+  logoUrl,
+  recordName,
+  registrationNumber,
+  operatorName,
   onBack,
   onContinue,
 }: CacVerificationSuccessScreenProps) {
@@ -85,8 +99,8 @@ export function CacVerificationSuccessScreen({
       <View className="mt-2 flex-row items-center gap-3 rounded-card bg-surface p-3 shadow-sm">
         <View className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-surface-container">
           <BusinessProductImage
-            source={{ uri: verificationImages.cacStorefront }}
-            alt={copy.businessName}
+            source={{ uri: logoUrl ?? verificationImages.cacStorefront }}
+            alt={businessName ?? ''}
             className="h-full w-full"
           />
           <View className="absolute bottom-0 right-0 flex-row items-center gap-0.5 rounded-tl-md bg-primary px-1 py-0.5">
@@ -100,7 +114,7 @@ export function CacVerificationSuccessScreen({
               className="min-w-0 flex-1 font-sans-semibold"
               numberOfLines={1}
             >
-              {copy.businessName}
+              {businessName ?? '—'}
             </VemtapText>
             <Icon name="verified" size={18} color={colors.primary} />
           </View>
@@ -110,7 +124,7 @@ export function CacVerificationSuccessScreen({
             className="mt-0.5"
             numberOfLines={1}
           >
-            {copy.businessMeta}
+            {businessMeta ?? ''}
           </VemtapText>
         </View>
       </View>
@@ -139,20 +153,36 @@ export function CacVerificationSuccessScreen({
             {copy.nameLabel}
           </VemtapText>
           <VemtapText variant="button" className="font-sans-semibold" numberOfLines={2}>
-            {copy.nameValue}
+            {recordName ?? businessName ?? '—'}
           </VemtapText>
         </View>
         <View className="gap-1.5">
           <VemtapText variant="caption" tone="secondary">
             {copy.cacLabel}
           </VemtapText>
-          <StatusPill label={copy.cacValue} tone="success" icon="checkCircle" />
+          <StatusPill
+            label={
+              registrationNumber
+                ? `${copy.cacVerified} (${registrationNumber})`
+                : copy.cacVerified
+            }
+            tone="success"
+            icon="checkCircle"
+          />
         </View>
         <View className="gap-1.5">
           <VemtapText variant="caption" tone="secondary">
             {copy.operatorLabel}
           </VemtapText>
-          <StatusPill label={copy.operatorValue} tone="success" icon="badge" />
+          {operatorName ? (
+            <StatusPill
+              label={`${copy.operatorVerified} (${operatorName})`}
+              tone="success"
+              icon="badge"
+            />
+          ) : (
+            <StatusPill label={copy.operatorPending} tone="neutral" icon="badge" />
+          )}
         </View>
         <View className="gap-1.5 pt-1">
           <VemtapText variant="caption" tone="secondary">

@@ -19,6 +19,11 @@ import {
 const reasonIcons = ['badge', 'blur', 'cropFree', 'wifiAlert'] as const;
 
 export interface IdVerificationNeedsReviewScreenProps {
+  /** Friendly reasons from the latest check; falls back to common causes. */
+  reasons?: string[];
+  /** The latest check is already waiting for our team. */
+  inReview?: boolean;
+  requestingReview?: boolean;
   onBack?: () => void;
   onTryAgain?: () => void;
   onUseAnotherId?: () => void;
@@ -30,6 +35,9 @@ export interface IdVerificationNeedsReviewScreenProps {
  * stitch_vemtap_design_system_1/id_verification_needs_review/code.html
  */
 export function IdVerificationNeedsReviewScreen({
+  reasons,
+  inReview = false,
+  requestingReview = false,
   onBack,
   onTryAgain,
   onUseAnotherId,
@@ -58,15 +66,23 @@ export function IdVerificationNeedsReviewScreen({
             onPress={onUseAnotherId}
           />
           <View className="items-center gap-1 px-2 pt-1">
-            <TextActionButton
-              label={copy.manualReview}
-              icon="support"
-              tone="brand"
-              onPress={onRequestManualReview}
-            />
-            <VemtapText variant="caption" tone="tertiary" className="text-center">
-              {copy.manualReviewHint}
-            </VemtapText>
+            {inReview ? (
+              <VemtapText variant="caption" tone="secondary" className="text-center">
+                {copy.inReviewHint}
+              </VemtapText>
+            ) : (
+              <>
+                <TextActionButton
+                  label={requestingReview ? copy.requestingReview : copy.manualReview}
+                  icon="support"
+                  tone="brand"
+                  onPress={requestingReview ? undefined : onRequestManualReview}
+                />
+                <VemtapText variant="caption" tone="tertiary" className="text-center">
+                  {copy.manualReviewHint}
+                </VemtapText>
+              </>
+            )}
           </View>
         </>
       }
@@ -101,15 +117,15 @@ export function IdVerificationNeedsReviewScreen({
         <View className="flex-row items-center gap-2">
           <Icon name="lightbulb" size={20} color={colors.primary} />
           <VemtapText variant="labelMd" className="min-w-0 font-sans-semibold">
-            {copy.reasonsTitle}
+            {reasons?.length ? copy.yourReasonsTitle : copy.reasonsTitle}
           </VemtapText>
         </View>
         <View className="gap-3">
-          {copy.reasons.map((reason, index) => (
+          {(reasons?.length ? reasons : copy.reasons).map((reason, index) => (
             <VerificationTimelineRow
               key={reason}
               title={reason}
-              markerIcon={reasonIcons[index]}
+              markerIcon={reasons?.length ? 'info' : reasonIcons[index]}
               markerTone="brand"
             />
           ))}

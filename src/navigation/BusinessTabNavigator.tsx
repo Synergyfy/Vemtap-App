@@ -204,6 +204,23 @@ import {
   useMarkAllNotificationsRead,
 } from '@features/accountHub/hooks/useNotifications';
 import { resolveNotificationUrl } from '@navigation/notificationRoutes';
+import {
+  useOpenAddOns,
+  useOpenPlanScreen,
+  useOpenVerificationCenter,
+} from '@features/business/hooks/useOpenPlanScreen';
+import {
+  useActiveSubscription,
+  useBillingHistory,
+  useCancelSubscription,
+  useMyAddons,
+  usePaymentMethod,
+} from '@features/business/hooks/useSubscriptions';
+import type { ActiveSubscription, BillingPeriod } from '@api/subscriptionsApi';
+import type { BillingPlanSummary } from '@features/business/screens/BusinessSubscriptionBillingScreen';
+import { formatDay } from '@features/business/verificationDisplay';
+import { formatCurrency } from '@utils/formatters';
+import { useVerificationStatus } from '@features/business/hooks/useVerification';
 import { useBusinessNavigation } from './useBusinessNavigation';
 import type { BusinessTabParamList } from './types';
 
@@ -225,6 +242,7 @@ const stackOptions = { headerShown: false } as const;
 
 function BusinessOverviewRoute() {
   const navigation = useBusinessNavigation();
+  const openPlanScreen = useOpenPlanScreen();
   return (
     <BusinessDashboardOverviewScreen
       onOpenAnalytics={() => navigation.navigate('BusinessAnalytics')}
@@ -242,6 +260,7 @@ function BusinessOverviewRoute() {
       onAddBranch={() => navigation.navigate('LocationsBranches')}
       onManageLocations={() => navigation.navigate('LocationsBranches')}
       onOpenReport={() => navigation.navigate('AnalyticsExportReport')}
+      onOpenPlan={openPlanScreen}
     />
   );
 }
@@ -1702,6 +1721,8 @@ function DigitalEReceiptRoute() {
 
 function BusinessNotificationsRoute() {
   const navigation = useBusinessNavigation();
+  const openPlanScreen = useOpenPlanScreen();
+  const openVerificationCenter = useOpenVerificationCenter();
   const { data: feed } = useBusinessNotifications();
   const markAllRead = useMarkAllNotificationsRead();
 
@@ -1711,6 +1732,14 @@ function BusinessNotificationsRoute() {
   const openNotification = (id: string) => {
     const actionUrl = feed?.data.find(row => row.id === id)?.actionUrl;
     const target = resolveNotificationUrl(actionUrl);
+    if (target?.kind === 'plan') {
+      openPlanScreen();
+      return;
+    }
+    if (target?.kind === 'verification') {
+      openVerificationCenter();
+      return;
+    }
     if (target?.kind === 'order') {
       navigation.navigate('BusinessOrders', {
         screen: 'BusinessOrderDetail',
@@ -1738,32 +1767,147 @@ function BusinessNotificationsRoute() {
   );
 }
 
+const billingCopy = strings.businessSubscriptionBilling;
+
+function billingPlanSummary(
+  subscription: ActiveSubscription | undefined,
+  autoRenews: boolean,
+): BillingPlanSummary | null {
+  if (!subscription?.plan) return null;
+  const period = (['monthly', 'quarterly', 'yearly'] as const).includes(
+    subscription.billingPeriod as BillingPeriod,
+  )
+    ? (subscription.billingPeriod as BillingPeriod)
+    : 'monthly';
+  const { isFree } = subscription.plan;
+  const endDay = formatDay(
+    subscription.isTrial ? subscription.trialEndsAt : subscription.endDate,
+  );
+  const status: BillingPlanSummary['status'] = subscription.isTrial
+    ? 'trial'
+    : isFree
+      ? 'free'
+      : subscription.status === 'active'
+        ? 'active'
+        : subscription.status === 'canceled'
+          ? 'canceled'
+          : 'expired';
+  return {
+    name: subscription.plan.name,
+    price: formatCurrency(isFree ? 0 : subscription.plan.monthlyPrice),
+    period: isFree ? 'monthly' : period,
+    status,
+    dateLabel:
+      isFree || !endDay
+        ? null
+        : subscription.isTrial
+          ? billingCopy.trialEndsOn(endDay)
+          : autoRenews
+            ? billingCopy.renewsOn(endDay)
+            : billingCopy.endsOn(endDay),
+    daysLeftLabel:
+      subscription.isTrial && subscription.daysRemaining !== null
+        ? billingCopy.daysLeft(subscription.daysRemaining)
+        : null,
+    autoRenews,
+    isFree,
+  };
+}
+
 function BusinessSubscriptionBillingRoute() {
   const navigation = useBusinessNavigation();
+  const openPlanScreen = useOpenPlanScreen();
+  const subscription = useActiveSubscription();
+  const paymentMethod = usePaymentMethod();
+  const billing = useBillingHistory();
+  const myAddons = useMyAddons();
+  const myBusiness = useMyBusiness();
+  const cancel = useCancelSubscription();
+  const openAddOns = useOpenAddOns();
+
+  const card = paymentMethod.data?.card;
+  const confirmCancel = () =>
+    Alert.alert(billingCopy.cancelTitle, billingCopy.cancelBody, [
+      { text: billingCopy.cancelKeep, style: 'cancel' },
+      {
+        text: billingCopy.cancelConfirm,
+        style: 'destructive',
+        onPress: () =>
+          cancel.mutate(undefined, {
+            onSuccess: () => showSuccess(billingCopy.cancelled),
+            onError: error =>
+              showError(error instanceof Error ? error.message : billingCopy.error.title),
+          }),
+      },
+    ]);
+
   return (
     <BusinessSubscriptionBillingScreen
+      plan={billingPlanSummary(
+        subscription.data ?? undefined,
+        paymentMethod.data?.autoRenews ?? false,
+      )}
+      isVerified={myBusiness.data?.isVerified ?? false}
+      card={
+        card?.last4
+          ? {
+              brand: card.brand ? card.brand.toUpperCase() : 'Card',
+              last4: card.last4,
+              expMonth: card.expMonth,
+              expYear: card.expYear,
+            }
+          : null
+      }
+      addOns={(myAddons.data ?? [])
+        .filter(item => item.status === 'active')
+        .map(item => ({
+          id: item.id,
+          name: item.addon?.name ?? '',
+          detail: item.addon?.description ?? null,
+          price: formatCurrency(item.totalPaid),
+          expiresLabel: formatDay(item.expiresAt)
+            ? billingCopy.addOnExpires(formatDay(item.expiresAt) as string)
+            : null,
+        }))}
+      history={(billing.data?.data ?? []).map(row => ({
+        id: row.id,
+        title:
+          billingCopy.purposes[row.purpose ?? ''] ?? billingCopy.purposes.subscription,
+        date: formatDay(row.createdAt) ?? '',
+        amount: formatCurrency(row.amount, row.currency),
+        status: row.status,
+        statusLabel: billingCopy.paymentStatuses[row.status] ?? row.status,
+      }))}
+      loading={subscription.isLoading}
+      error={subscription.isError}
+      cancelling={cancel.isPending}
       onBack={navigation.goBack}
       onOpenProfile={() => undefined}
-      onManagePlan={() => undefined}
-      onCancelTier={() => undefined}
-      onChangeCard={() => undefined}
-      onAddFallback={() => undefined}
-      onOpenAddOn={() => undefined}
-      onBrowseAddOns={() => undefined}
-      onDownloadInvoice={() => undefined}
+      onManagePlan={openPlanScreen}
+      onCancelTier={confirmCancel}
+      onBrowseAddOns={openAddOns}
     />
   );
 }
 
 function BusinessVerificationTrustRoute() {
   const navigation = useBusinessNavigation();
+  const openVerificationCenter = useOpenVerificationCenter();
+  const status = useVerificationStatus();
+  const myBusiness = useMyBusiness();
+  const branches = myBusiness.data?.branches ?? [];
   return (
     <BusinessVerificationTrustScreen
+      status={status.data}
+      businessName={myBusiness.data?.name}
+      location={myBusiness.data?.city}
+      branchNames={branches.map(branch => branch.name)}
+      loading={status.isLoading}
+      error={status.isError}
       onBack={navigation.goBack}
       onOpenProfile={() => undefined}
-      onOpenPillar={() => undefined}
-      onOpenCertificate={() => undefined}
-      onContactCompliance={() => undefined}
+      onOpenVerification={openVerificationCenter}
+      onManageLocations={() => navigation.navigate('LocationsBranches')}
     />
   );
 }

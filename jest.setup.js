@@ -348,6 +348,21 @@ jest.mock('expo-document-picker', () => ({
   },
 }));
 
+// The selfie check and Paystack checkout open in an auth session. Like the
+// pickers, the real module loads expo-modules-core and dies in jest; tests that
+// care about the outcome override `openAuthSessionAsync`.
+jest.mock('expo-web-browser', () => ({
+  openAuthSessionAsync: jest.fn(async () => ({ type: 'dismiss' })),
+  openBrowserAsync: jest.fn(async () => ({ type: 'dismiss' })),
+  maybeCompleteAuthSession: jest.fn(() => ({ type: 'failed' })),
+  WebBrowserResultType: {
+    CANCEL: 'cancel',
+    DISMISS: 'dismiss',
+    OPENED: 'opened',
+    LOCKED: 'locked',
+  },
+}));
+
 jest.mock('expo-location', () => ({
   requestForegroundPermissionsAsync: jest.fn(async () => ({
     status: 'granted',

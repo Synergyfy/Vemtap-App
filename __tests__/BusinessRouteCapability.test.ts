@@ -59,19 +59,33 @@ describe('business route capability map', () => {
   });
 
   /**
-   * Guards the finding that shaped this whole map: the API has no document
-   * upload endpoint, so every verification submission screen is local-only. If a
-   * document endpoint is ever added, this test is the reminder to revisit them.
+   * Verification now submits to bytID through the backend; this guards that the
+   * map keeps pointing the screens at the verification endpoints rather than the
+   * old "collect locally" note.
    */
-  test('verification submission screens are recorded as having no endpoint', () => {
-    const local = capabilityForRoute('CacVerification');
-    const identity = capabilityForRoute('VerifyYourIdentity');
-    const status = capabilityForRoute('BusinessVerificationStatusCenter');
+  test('verification screens use the verification endpoints', () => {
+    for (const route of [
+      'VerifyYourIdentity',
+      'IdVerification',
+      'CacVerification',
+      'UnregisteredBusiness',
+      'BusinessVerificationStatusCenter',
+    ]) {
+      const entry = capabilityForRoute(route);
+      expect(entry?.capability).toBe('available');
+      expect(entry?.endpoints).toContain('GET /verification/status');
+    }
+    expect(capabilityForRoute('IdVerification')?.endpoints).toContain(
+      'POST /verification/identity',
+    );
+    expect(capabilityForRoute('CacVerification')?.endpoints).toContain(
+      'POST /verification/business',
+    );
+  });
 
-    expect(local?.capability).toBe('no-endpoint');
-    expect(identity?.capability).toBe('no-endpoint');
-    expect(local?.endpoints).toEqual([]);
-    expect(status?.capability).toBe('status-only');
-    expect(status?.endpoints).toContain('POST /auth/check-status');
+  test('trial screens use the cardless trial endpoint', () => {
+    expect(capabilityForRoute('FreeTrialConfirmation')?.endpoints).toContain(
+      'POST /subscriptions/trial',
+    );
   });
 });

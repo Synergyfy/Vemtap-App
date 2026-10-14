@@ -63,6 +63,8 @@ export interface BusinessDashboardOverviewScreenProps {
   onAddBranch?: () => void;
   onManageLocations?: () => void;
   onOpenReport?: () => void;
+  /** The plan / trial pill: opens the matching subscription screen. */
+  onOpenPlan?: () => void;
 }
 
 export function BusinessDashboardOverviewScreen({
@@ -80,6 +82,7 @@ export function BusinessDashboardOverviewScreen({
   onAddBranch,
   onManageLocations,
   onOpenReport,
+  onOpenPlan,
 }: BusinessDashboardOverviewScreenProps) {
   const myBusiness = useMyBusiness();
   // One persisted active branch shared by Overview, Orders and More; the hook
@@ -265,7 +268,7 @@ export function BusinessDashboardOverviewScreen({
       const end = Date.parse(sub.trialEndsAt);
       if (Number.isFinite(end)) {
         const days = Math.max(0, Math.ceil((end - Date.now()) / 86_400_000));
-        return copy.growthTrialFor(days);
+        return copy.trialFor(sub.plan?.name?.trim() || 'Free', days);
       }
     }
     return sub.plan?.name?.trim() || null;
@@ -415,7 +418,13 @@ export function BusinessDashboardOverviewScreen({
                 </View>
               ) : null}
               {trialLabel ? (
-                <View className="flex-row items-center gap-1.5 rounded-full bg-surface-tint-blue px-2.5 py-1">
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`${trialLabel}. ${copy.openPlanLabel}`}
+                  disabled={!onOpenPlan}
+                  onPress={onOpenPlan}
+                  className="flex-row items-center gap-1.5 rounded-full bg-surface-tint-blue px-2.5 py-1 active:opacity-75"
+                >
                   <Icon name="schedule" size={14} color={colors.primary} />
                   <VemtapText
                     variant="caption"
@@ -424,7 +433,7 @@ export function BusinessDashboardOverviewScreen({
                   >
                     {trialLabel}
                   </VemtapText>
-                </View>
+                </Pressable>
               ) : null}
             </View>
 

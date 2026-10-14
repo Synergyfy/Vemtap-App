@@ -19,8 +19,17 @@ import {
   PlanFeatureRow,
   VerificationPage,
 } from '@features/business/components/VerificationPrimitives';
+import type { TrialProgress } from '@features/business/subscriptionDisplay';
 
 export interface TrialEndingRenewGrowthScreenProps {
+  planName?: string;
+  /** Formatted monthly price, e.g. "₦15,000". */
+  monthlyPrice?: string;
+  progress?: TrialProgress;
+  features?: string[];
+  businessName?: string | null;
+  logoUrl?: string | null;
+  branchNames?: string[];
   onBack?: () => void;
   onContinueGrowth?: () => void;
   onReviewBusiness?: () => void;
@@ -32,6 +41,13 @@ export interface TrialEndingRenewGrowthScreenProps {
  * stitch_vemtap_design_system_1/trial_ending_renew_growth/code.html
  */
 export function TrialEndingRenewGrowthScreen({
+  planName = '',
+  monthlyPrice,
+  progress,
+  features = [],
+  businessName,
+  logoUrl,
+  branchNames = [],
   onBack,
   onContinueGrowth,
   onReviewBusiness,
@@ -39,12 +55,15 @@ export function TrialEndingRenewGrowthScreen({
 }: TrialEndingRenewGrowthScreenProps) {
   const handleBack = useCallback(() => onBack?.(), [onBack]);
 
+  const daysLeft = progress?.daysRemaining ?? 0;
+  const daysLabel = daysLeft === 1 ? copy.dayOne : `${daysLeft}${copy.daysTail}`;
+  const continueLabel = `${copy.continueLead}${planName}${monthlyPrice ? ` — ${monthlyPrice}/month` : ''}`;
+
   const noticeBody = (
     <>
       {copy.bodyLead}
-      <VemtapText className="font-sans-bold text-tertiary">
-        {copy.bodyHighlight}
-      </VemtapText>
+      <VemtapText className="font-sans-bold text-tertiary">{daysLabel}</VemtapText>
+      {progress?.endsOn ? `${copy.endsOnLead}${progress.endsOn}${copy.endsOnTail}` : ''}
       {copy.bodyTail}
     </>
   );
@@ -59,7 +78,7 @@ export function TrialEndingRenewGrowthScreen({
       contentContainerClassName="gap-4"
       footer={
         <>
-          <PrimaryActionButton label={copy.continue} onPress={onContinueGrowth} />
+          <PrimaryActionButton label={continueLabel} onPress={onContinueGrowth} />
           <TextActionButton label={copy.review} tone="brand" onPress={onReviewBusiness} />
           <View className="mt-1 flex-row flex-wrap items-center justify-center gap-1 pt-1">
             <Icon name="lock" size={16} color={colors.textTertiary} />
@@ -89,7 +108,7 @@ export function TrialEndingRenewGrowthScreen({
           <View className="min-w-0 flex-row items-center gap-2">
             <Icon name="eventAvailable" size={16} color={colors.tertiary} />
             <VemtapText variant="labelSm" className="min-w-0 flex-1 text-tertiary">
-              {copy.dayLabel}
+              {`${copy.dayLead}${progress?.daysUsed ?? 0}${copy.dayMid}${progress?.totalDays ?? 0}${copy.dayTail}`}
             </VemtapText>
           </View>
           <View className="rounded-full bg-tertiary px-2 py-0.5">
@@ -97,7 +116,7 @@ export function TrialEndingRenewGrowthScreen({
               variant="caption"
               className="font-sans-bold text-primary-foreground"
             >
-              {copy.daysLeftBadge}
+              {`${daysLabel}${copy.daysLeftTail}`}
             </VemtapText>
           </View>
         </View>
@@ -115,13 +134,15 @@ export function TrialEndingRenewGrowthScreen({
             </VemtapText>
           </View>
           <VemtapText variant="caption" tone="secondary">
-            {copy.storefrontCount}
+            {branchNames.length === 1
+              ? copy.branchOne
+              : `${branchNames.length}${copy.branchesTail}`}
           </VemtapText>
         </View>
         <View className="mt-1 flex-row items-center gap-3">
           <BusinessProductImage
-            source={{ uri: verificationImages.endingStorefront }}
-            alt={copy.storefrontName}
+            source={{ uri: logoUrl ?? verificationImages.endingStorefront }}
+            alt={businessName ?? ''}
             className="h-12 w-12 shrink-0 rounded-lg bg-surface-container shadow-sm"
           />
           <View className="min-w-0 flex-1">
@@ -130,10 +151,10 @@ export function TrialEndingRenewGrowthScreen({
               className="font-sans-semibold"
               numberOfLines={1}
             >
-              {copy.storefrontName}
+              {businessName ?? ''}
             </VemtapText>
             <VemtapText variant="bodyMd" tone="secondary" numberOfLines={1}>
-              {copy.storefrontMeta}
+              {branchNames.join(' • ')}
             </VemtapText>
           </View>
           <View className="h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-tint-blue">
@@ -147,7 +168,7 @@ export function TrialEndingRenewGrowthScreen({
           <StatusPill label={copy.planBadge} tone="brand" />
           <View className="flex-row items-baseline gap-1">
             <VemtapText variant="headingLg" className="text-heading-lg">
-              {copy.planPrice}
+              {monthlyPrice ?? ''}
             </VemtapText>
             <VemtapText variant="bodyMd" tone="secondary">
               {copy.planCycle}
@@ -157,7 +178,7 @@ export function TrialEndingRenewGrowthScreen({
 
         <View className="gap-1">
           <VemtapText variant="headingLg" className="text-heading-lg">
-            {copy.planTitle}
+            {`${copy.planTitleLead}${planName}`}
           </VemtapText>
           <VemtapText variant="bodyMd" tone="secondary">
             {copy.planBody}
@@ -168,7 +189,7 @@ export function TrialEndingRenewGrowthScreen({
           <VemtapText variant="labelMd" className="font-sans-semibold">
             {copy.benefitsTitle}
           </VemtapText>
-          {copy.benefits.map(benefit => (
+          {features.map(benefit => (
             <PlanFeatureRow
               key={benefit}
               label={benefit}

@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { BottomSheet } from '@components/shared/BottomSheet';
 import { Button } from '@components/ui/Button';
@@ -20,13 +20,113 @@ import {
   VerificationPillarRow,
   VerificationSummaryRow,
 } from '@features/business/components/VerificationPrimitives';
+import type { IconName } from '@components/ui/Icon';
+import type {
+  BusinessVerificationStatus,
+  VerificationCheck,
+  VerificationStatus,
+} from '@api/verificationApi';
+import { reasonCopy } from '@api/verificationApi';
+import {
+  displayName,
+  formatDay,
+  formatVerifiedAt,
+  idTypeLabel,
+} from '@features/business/verificationDisplay';
 
 export interface VerificationStatusCenterCredential {
   id: string;
   title: string;
 }
 
+interface CredentialRow {
+  id: 'identity' | 'business' | 'locations';
+  icon: IconName;
+  title: string;
+  body: string;
+  meta: string | null;
+  action: string | null;
+  status: string;
+  done: boolean;
+  check: VerificationCheck | null;
+}
+
+function checkStatusLabel(check: VerificationCheck | null): string {
+  return check ? copy.checkStatus[check.status] : copy.notSubmitted;
+}
+
+function buildCredentials(
+  status: VerificationStatus | null | undefined,
+  branchCount: number,
+  branchSummary: string | null | undefined,
+): CredentialRow[] {
+  const identity = status?.identity ?? null;
+  const business = status?.business ?? null;
+  const operator = displayName(identity?.recordName);
+  const identityBody = identity
+    ? [
+        operator,
+        `${idTypeLabel(identity.idType)}${identity.maskedId ? ` (${identity.maskedId})` : ''}`,
+      ]
+        .filter(Boolean)
+        .join(' • ')
+    : copy.identityMissing;
+  const businessBody = !business
+    ? copy.businessMissing
+    : business.idType === 'unregistered'
+      ? copy.unregisteredBody
+      : [business.maskedId, displayName(business.recordName)].filter(Boolean).join(' • ');
+  return [
+    {
+      id: 'identity',
+      icon: 'badge',
+      title: copy.identityTitle,
+      body: identityBody,
+      meta: identity ? copy.identityMeta : null,
+      action: identity ? copy.viewDetails : null,
+      status: checkStatusLabel(identity),
+      done: identity?.status === 'verified',
+      check: identity,
+    },
+    {
+      id: 'business',
+      icon: 'accountBalance',
+      title: copy.businessTitle,
+      body: businessBody,
+      meta: business && business.idType !== 'unregistered' ? copy.businessMeta : null,
+      action: business ? copy.viewDetails : null,
+      status: checkStatusLabel(business),
+      done: business?.status === 'verified',
+      check: business,
+    },
+    {
+      id: 'locations',
+      icon: 'pinDrop',
+      title: copy.locationsTitle,
+      body:
+        branchCount > 0
+          ? (branchSummary ?? branchesLabel(branchCount))
+          : copy.locationsMissing,
+      meta: null,
+      action: copy.manageLocations,
+      status: branchCount > 0 ? copy.locationsAdded : copy.notSubmitted,
+      done: branchCount > 0,
+      check: null,
+    },
+  ];
+}
+
+function branchesLabel(count: number): string {
+  return count === 1 ? copy.branchesOne : `${count}${copy.branchesMany}`;
+}
+
 export interface BusinessVerificationStatusCenterScreenProps {
+  status?: VerificationStatus | null;
+  businessName?: string | null;
+  logoUrl?: string | null;
+  branchCount?: number;
+  /** e.g. "Apo & Wuse II". */
+  branchSummary?: string | null;
   onBack?: () => void;
   onUpdateVerification?: () => void;
   /** Exit to the business app (skip verification for now). */
@@ -41,6 +141,11 @@ export interface BusinessVerificationStatusCenterScreenProps {
  * stitch_vemtap_design_system_1/business_verification_status_center/code.html
  */
 export function BusinessVerificationStatusCenterScreen({
+  status,
+  businessName,
+  logoUrl,
+  branchCount = 0,
+  branchSummary,
   onBack,
   onUpdateVerification,
   onOpenDashboard,
@@ -48,11 +153,26 @@ export function BusinessVerificationStatusCenterScreen({
   onViewCredential,
   onHelp,
 }: BusinessVerificationStatusCenterScreenProps) {
-  const [certificateVisible, setCertificateVisible] = useState(false);
+  const [selectedCheck, setSelectedCheck] = useState<VerificationCheck | null>(null);
 
   const handleBack = useCallback(() => onBack?.(), [onBack]);
-  const openCertificate = useCallback(() => setCertificateVisible(true), []);
-  const closeCertificate = useCallback(() => setCertificateVisible(false), []);
+  const closeCertificate = useCallback(() => setSelectedCheck(null), []);
+
+  const overall: BusinessVerificationStatus = status?.status ?? 'unverified';
+  const isVerified = overall === 'verified';
+  const credentials = useMemo(
+    () => buildCredentials(status, branchCount, branchSummary),
+    [branchCount, branchSummary, status],
+  );
+  const verifiedCount = credentials.filter(credential => credential.done).length;
+  const lastVerified = formatDay(status?.verifiedAt);
+  const pillarMeta = [
+    status?.business?.status === 'verified' || isVerified
+      ? copy.pillarDone
+      : copy.pillarPending,
+    branchCount > 0 ? branchesLabel(branchCount) : copy.pillarPending,
+    copy.pillars[2].meta,
+  ];
 
   const updateBody = (
     <>
@@ -85,7 +205,7 @@ export function BusinessVerificationStatusCenterScreen({
             {copy.dashboardHint}
           </VemtapText>
           <Button
-            label={copy.updateAction}
+            label={overall === 'unverified' ? copy.startAction : copy.updateAction}
             labelVariant="labelMd"
             variant="secondary"
             className="border-0 bg-surface-container-high"
@@ -120,8 +240,8 @@ export function BusinessVerificationStatusCenterScreen({
         <View className="flex-row items-start gap-3">
           <View className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-surface-container shadow-sm">
             <BusinessProductImage
-              source={{ uri: verificationImages.statusCenterLogo }}
-              alt={copy.businessName}
+              source={{ uri: logoUrl ?? verificationImages.statusCenterLogo }}
+              alt={businessName ?? ''}
               className="h-full w-full"
             />
             <View className="absolute inset-0 bg-primary/5" />
@@ -132,12 +252,14 @@ export function BusinessVerificationStatusCenterScreen({
               className="font-sans-semibold"
               numberOfLines={1}
             >
-              {copy.businessName}
+              {businessName ?? ''}
             </VemtapText>
             <View className="mt-0.5 flex-row items-center gap-1">
               <Icon name="history" size={14} color={colors.textTertiary} />
               <VemtapText variant="caption" tone="secondary" className="min-w-0 flex-1">
-                {copy.lastVerifiedLead}
+                {lastVerified
+                  ? `${copy.lastVerifiedLead}${lastVerified}`
+                  : copy.notVerifiedYet}
               </VemtapText>
             </View>
           </View>
@@ -145,24 +267,31 @@ export function BusinessVerificationStatusCenterScreen({
 
         <View className="flex-row flex-wrap items-center justify-between gap-2 rounded-lg bg-surface-tint-blue p-3">
           <View className="min-w-0 flex-row items-center gap-2">
-            <Icon name="verified" size={20} color={colors.primary} />
+            <Icon
+              name={isVerified ? 'verified' : 'shieldPerson'}
+              size={20}
+              color={colors.primary}
+            />
             <View className="min-w-0">
               <VemtapText
                 variant="labelSm"
                 className="font-sans-semibold tracking-tight text-primary"
               >
-                {copy.trustTitle}
+                {copy.statusTitles[overall]}
               </VemtapText>
               <VemtapText variant="caption" tone="secondary">
-                {copy.trustTier}
+                {copy.statusBodies[overall]}
               </VemtapText>
             </View>
           </View>
-          <StatusPill label={copy.trustScore} tone="success" />
+          <StatusPill
+            label={copy.statusPills[overall]}
+            tone={isVerified ? 'success' : 'neutral'}
+          />
         </View>
 
         <View className="flex-row gap-1">
-          {copy.pillars.map(pillar => (
+          {copy.pillars.map((pillar, index) => (
             <View key={pillar.title} className="min-w-0 flex-1 items-center px-1 py-1">
               <Icon
                 name={pillar.icon}
@@ -184,7 +313,7 @@ export function BusinessVerificationStatusCenterScreen({
                 className="text-center"
                 numberOfLines={1}
               >
-                {pillar.meta}
+                {pillarMeta[index]}
               </VemtapText>
             </View>
           ))}
@@ -197,13 +326,13 @@ export function BusinessVerificationStatusCenterScreen({
             {copy.listTitle}
           </VemtapText>
           <VemtapText variant="labelSm" tone="secondary">
-            {copy.listCount}
+            {`${verifiedCount}${copy.listCountOf}`}
           </VemtapText>
         </View>
 
         <View className="gap-2">
-          {copy.credentials.map((credential, index) => (
-            <SetupSectionCard key={credential.title} className="w-full">
+          {credentials.map(credential => (
+            <SetupSectionCard key={credential.id} className="w-full">
               <VerificationPillarRow
                 layout={credential.action ? 'footer' : 'stacked'}
                 icon={credential.icon}
@@ -212,19 +341,15 @@ export function BusinessVerificationStatusCenterScreen({
                 meta={credential.meta}
                 actionLabel={credential.action ?? undefined}
                 onAction={() => {
-                  if (index === 2) {
+                  if (credential.id === 'locations') {
                     onManageLocations?.();
                     return;
                   }
-                  if (index === 0 || index === 1) {
-                    openCertificate();
-                  }
-                  onViewCredential?.({ id: String(index), title: credential.title });
+                  setSelectedCheck(credential.check);
+                  onViewCredential?.({ id: credential.id, title: credential.title });
                 }}
                 statusLabel={credential.status}
-                statusIcon={
-                  credential.statusIcon === 'dot' ? undefined : credential.statusIcon
-                }
+                statusIcon={credential.done ? 'check' : undefined}
               />
             </SetupSectionCard>
           ))}
@@ -254,7 +379,7 @@ export function BusinessVerificationStatusCenterScreen({
       />
 
       <BottomSheet
-        visible={certificateVisible}
+        visible={selectedCheck !== null}
         onClose={closeCertificate}
         title={copy.sheetTitle}
       >
@@ -265,25 +390,41 @@ export function BusinessVerificationStatusCenterScreen({
           <View className="gap-4 rounded-card bg-surface-container-low p-4">
             <VerificationSummaryRow
               label={copy.sheetRegistrationLabel}
-              value={copy.sheetRegistrationValue}
-            />
-            <VerificationSummaryRow
-              label={copy.sheetEntityLabel}
-              value={copy.sheetEntityValue}
-            />
-            <VerificationSummaryRow
-              label={copy.sheetStatusLabel}
-              value={copy.sheetStatusValue}
-              valueTone="success"
-              trailing={
-                <Icon name="checkCircle" size={14} color={colors.badgeDiscountText} />
+              value={
+                selectedCheck?.kind === 'identity'
+                  ? `${idTypeLabel(selectedCheck.idType)} ${selectedCheck.maskedId ?? ''}`.trim()
+                  : (selectedCheck?.maskedId ?? '—')
               }
             />
             <VerificationSummaryRow
-              label={copy.sheetHashLabel}
-              value={copy.sheetHashValue}
+              label={copy.sheetEntityLabel}
+              value={displayName(selectedCheck?.recordName) ?? '—'}
+            />
+            <VerificationSummaryRow
+              label={copy.sheetStatusLabel}
+              value={checkStatusLabel(selectedCheck)}
+              valueTone={selectedCheck?.status === 'verified' ? 'success' : undefined}
+              trailing={
+                selectedCheck?.status === 'verified' ? (
+                  <Icon name="checkCircle" size={14} color={colors.badgeDiscountText} />
+                ) : undefined
+              }
+            />
+            <VerificationSummaryRow
+              label={copy.sheetCheckedLabel}
+              value={
+                formatVerifiedAt(selectedCheck?.reviewedAt ?? selectedCheck?.createdAt) ??
+                '—'
+              }
               valueVariant="caption"
             />
+            {selectedCheck?.reasons.length ? (
+              <VerificationSummaryRow
+                label={copy.sheetReasonsLabel}
+                value={reasonCopy(selectedCheck.reasons).join('\n')}
+                valueVariant="caption"
+              />
+            ) : null}
           </View>
           <Button
             label={copy.sheetDone}

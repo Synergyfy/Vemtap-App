@@ -153,19 +153,23 @@ export const BUSINESS_ROUTE_CAPABILITIES: BusinessRouteCapability[] = [
       'CacVerificationSuccess',
       'VerificationInProgress',
       'YouReVerified',
+      'BusinessVerificationStatusCenter',
     ],
-    capability: 'no-endpoint',
-    endpoints: [],
+    capability: 'available',
+    endpoints: [
+      'GET /verification/status',
+      'POST /verification/liveness-sessions',
+      'POST /verification/identity',
+      'POST /verification/business',
+      'POST /verification/business/unregistered',
+      'POST /verification/manual-review',
+      'POST /uploads',
+    ],
     note:
-      'There is no document, CAC, NIN or upload endpoint anywhere in the API. ' +
-      'These screens collect locally and never submit. Approval is admin-side ' +
-      '(`/businesses/admin/pending-verification` → `/approve` | `/reject`).',
-  },
-  {
-    routes: ['BusinessVerificationStatusCenter'],
-    capability: 'status-only',
-    endpoints: ['POST /auth/check-status', 'GET /businesses/my-business'],
-    note: 'The only backend truth for verification is the business status.',
+      'bytID identity (NIN, licence, voter card, passport + hosted selfie) and CAC checks. ' +
+      'Both passing with matching names verifies the business; anything uncertain goes ' +
+      'to admin review. The selfie opens in expo-web-browser and returns to ' +
+      '`vemtap://verification/liveness`.',
   },
   {
     routes: [
@@ -179,15 +183,17 @@ export const BUSINESS_ROUTE_CAPABILITIES: BusinessRouteCapability[] = [
     ],
     capability: 'available',
     endpoints: [
+      'GET /plans?onlyActive=true',
       'GET /subscriptions/active',
+      'POST /subscriptions/trial',
       'GET /subscriptions/price-preview',
-      'GET /subscriptions/capabilities',
-      'POST /subscriptions/subscribe',
       'POST /subscriptions/initialize-payment',
-      'POST /subscriptions/cancel',
-      'GET /payments/verify/{reference}',
+      'GET /subscriptions/payment-method',
     ],
-    note: 'Paystack-backed. Owner cancelling a subscription is business-scoped.',
+    note:
+      'One cardless trial per business, never charged; it ends on the free plan. Paying ' +
+      'opens Paystack in expo-web-browser (callback `vemtap://payments/return`) and the ' +
+      'webhook activates the plan. Only plans with `permissionsConfiguredAt` are offered.',
   },
   {
     routes: ['VemtapAddOns'],
@@ -199,6 +205,9 @@ export const BUSINESS_ROUTE_CAPABILITIES: BusinessRouteCapability[] = [
       'POST /addons/purchase',
       'DELETE /addons/{businessAddonId}/cancel',
     ],
+    note:
+      'The catalogue lists `GET /addons`. Buying an add-on on its own needs a Paystack ' +
+      'reference from a checkout the API does not start yet, so purchase is not wired.',
   },
 ];
 

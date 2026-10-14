@@ -1,5 +1,5 @@
 import React from 'react';
-import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render } from '@testing-library/react-native';
 import { VerifyYourBusinessScreen } from '@features/business/screens/VerifyYourBusinessScreen';
 import { VerifyYourIdentityScreen } from '@features/business/screens/VerifyYourIdentityScreen';
 import { IdVerificationScreen } from '@features/business/screens/IdVerificationScreen';
@@ -24,39 +24,114 @@ import {
   businessRegistrationCopy as registrationCopy,
   cacVerificationCopy as cacCopy,
   idVerificationCopy as idCopy,
-  idVerificationSuccessCopy as idSuccessCopy,
-  cacVerificationSuccessCopy as cacSuccessCopy,
   paymentSuccessCopy as successCopy,
   planTrialOverviewCopy as planCopy,
   verificationStatusCenterCopy as statusCopy,
   verifyBusinessCopy as verifyCopy,
-  youReVerifiedCopy,
   verifyIdentityCopy as identityCopy,
 } from '@features/business/verificationCopy';
+import type { VerificationCheck, VerificationStatus } from '@api/verificationApi';
+import type { Plan, PricePreview } from '@api/subscriptionsApi';
 
-// The NIN slip flow calls the document picker natively; under test it returns
-// the scanned slip so the chip, the submit payload and the remove path can be
-// exercised end to end.
-jest.mock('expo-document-picker', () => ({
-  getDocumentAsync: jest.fn(async () => ({
-    canceled: false,
-    assets: [{ uri: 'file://nin-slip-scan', name: 'nin_slip_scan.jpg' }],
-  })),
+// The screens submit through the verification hooks; mocked so the tests assert
+// each screen's contract (what it sends, what it reports back), not the network.
+const mockStartLiveness = jest.fn();
+const mockVerifyIdentity = jest.fn();
+const mockVerifyBusiness = jest.fn();
+jest.mock('@features/business/hooks/useVerification', () => ({
+  useLivenessCheck: () => ({ mutateAsync: mockStartLiveness, isPending: false }),
+  useVerifyIdentity: () => ({ mutateAsync: mockVerifyIdentity, isPending: false }),
+  useVerifyBusiness: () => ({ mutateAsync: mockVerifyBusiness, isPending: false }),
 }));
-
-// Submit uploads the slip and verifies the NIN remotely before handing the
-// verified payload back; mocked here so the test asserts the screen's contract,
-// not the network.
-const mockDocumentUrl = 'https://uploads.example.com/nin_slip_scan.jpg';
 jest.mock('@features/business/utils/uploadBusinessMedia', () => ({
-  uploadDocument: jest.fn(async () => 'https://uploads.example.com/nin_slip_scan.jpg'),
+  uploadDocument: jest.fn(async () => 'https://res.cloudinary.com/vemtap/passport.jpg'),
 }));
-jest.mock('@features/business/hooks/useCatalogueMutations', () => ({
-  ...jest.requireActual('@features/business/hooks/useCatalogueMutations'),
-  useVerifyNin: () => ({
-    mutateAsync: jest.fn(async () => ({ success: true, verificationId: 'ver-nin-1' })),
-  }),
-}));
+
+const identityCheck: VerificationCheck = {
+  id: 'chk-identity',
+  kind: 'identity',
+  idType: 'nin',
+  status: 'verified',
+  maskedId: '•••••••8901',
+  recordName: 'ADAEZE TEST OKAFOR',
+  reasons: [],
+  faceMatch: { status: 'matched', score: 95 },
+  createdAt: '2026-10-14T10:45:00.000Z',
+  reviewedAt: null,
+  reviewNote: null,
+};
+
+const businessCheck: VerificationCheck = {
+  ...identityCheck,
+  id: 'chk-business',
+  kind: 'business',
+  idType: 'cac',
+  maskedId: 'RC1234567',
+  recordName: 'PATRICK VENTURES LIMITED',
+  faceMatch: null,
+};
+
+const inProgress: VerificationStatus = {
+  status: 'in_progress',
+  isVerified: false,
+  verifiedAt: null,
+  nextStep: 'business',
+  identity: identityCheck,
+  business: null,
+};
+
+const verified: VerificationStatus = {
+  ...inProgress,
+  status: 'verified',
+  isVerified: true,
+  verifiedAt: '2026-10-14T11:00:00.000Z',
+  nextStep: 'done',
+  business: businessCheck,
+};
+
+const professional: Plan = {
+  id: 'plan-pro',
+  name: 'Professional',
+  description: 'For growing businesses moving to the next level.',
+  monthlyPrice: 15000,
+  quarterlyPrice: 40500,
+  yearlyPrice: 144000,
+  currency: 'NGN',
+  isFree: false,
+  isActive: true,
+  trialDurationDays: 30,
+  permissionsConfiguredAt: '2026-10-01T00:00:00.000Z',
+  isPopular: true,
+  features: ['Unlimited Customers', '3 Branches'],
+};
+
+const ultimate: Plan = {
+  ...professional,
+  id: 'plan-ultimate',
+  name: 'Ultimate',
+  monthlyPrice: 45000,
+  quarterlyPrice: 121500,
+  yearlyPrice: 432000,
+  isPopular: false,
+  features: ['10 Branches'],
+};
+
+/** `fireEvent` is async in this RNTL version; unawaited it leaks into the next test. */
+async function typeInto(
+  view: ReturnType<typeof render> extends Promise<infer V> ? V : never,
+  label: string,
+  text: string,
+) {
+  await act(async () => {
+    await fireEvent.changeText(view.getByLabelText(label), text);
+  });
+}
+
+beforeEach(() => {
+  mockStartLiveness.mockReset();
+  mockVerifyIdentity.mockReset();
+  mockVerifyBusiness.mockReset();
+});
 
 describe('business verification entry and identity screens', () => {
   it('renders the verification entry screen and starts the flow', async () => {
@@ -65,7 +140,6 @@ describe('business verification entry and identity screens', () => {
 
     expect(view.getByText(verifyCopy.title)).toBeTruthy();
     expect(view.getByText(verifyCopy.whyTitle)).toBeTruthy();
-    expect(view.getByText(verifyCopy.valueUnlockTitle)).toBeTruthy();
 
     await act(async () => {
       fireEvent.press(view.getByText(verifyCopy.start));
@@ -73,69 +147,85 @@ describe('business verification entry and identity screens', () => {
     expect(onStart).toHaveBeenCalledTimes(1);
   });
 
-  it('selects a government ID and continues', async () => {
+  it("offers every bytID document, including the voter's card", async () => {
     const onContinue = jest.fn();
     const view = await render(<VerifyYourIdentityScreen onContinue={onContinue} />);
 
     expect(view.getByText(identityCopy.nin)).toBeTruthy();
+    expect(view.getByText(identityCopy.licence)).toBeTruthy();
     expect(view.getByText(identityCopy.passport)).toBeTruthy();
 
     await act(async () => {
-      fireEvent.press(view.getByText(identityCopy.passport));
+      fireEvent.press(view.getByText(identityCopy.votersCard));
     });
     await act(async () => {
       fireEvent.press(view.getByText(identityCopy.continue));
     });
-    expect(onContinue).toHaveBeenCalledWith('passport');
+    expect(onContinue).toHaveBeenCalledWith('voters_card');
   });
 
-  it('captures and removes the optional NIN slip', async () => {
-    const onSubmit = jest.fn();
-    const view = await render(<IdVerificationScreen onSubmit={onSubmit} />);
+  it('takes the selfie, then submits the NIN check and reports the result', async () => {
+    mockStartLiveness.mockResolvedValue({ sessionId: 'liv_123', completed: true });
+    mockVerifyIdentity.mockResolvedValue(identityCheck);
+    const onResult = jest.fn();
+    const view = await render(<IdVerificationScreen idType="nin" onResult={onResult} />);
 
-    expect(view.getByText(idCopy.title)).toBeTruthy();
-    expect(view.getByText(idCopy.ninCounter)).toBeTruthy();
+    await typeInto(view, idCopy.numberLabels.nin, '12345678901');
+    await typeInto(view, idCopy.firstNameLabel, 'Adaeze');
+    await typeInto(view, idCopy.lastNameLabel, 'Okafor');
 
     await act(async () => {
-      fireEvent.press(view.getByText(idCopy.uploadAction));
+      fireEvent.press(view.getByText(idCopy.selfieAction));
     });
-    expect(view.getByText(idCopy.uploadFileName)).toBeTruthy();
+    expect(view.getByText(idCopy.selfieDone)).toBeTruthy();
 
     await act(async () => {
       fireEvent.press(view.getByText(idCopy.submit));
     });
-    // The payload carries the uploaded slip URL and the verification id, not
-    // the local file name — the chip above is where the name is surfaced.
-    await waitFor(() =>
-      expect(onSubmit).toHaveBeenCalledWith(
-        expect.objectContaining({
-          nin: idCopy.ninValue,
-          fullName: idCopy.nameValue,
-          slipFile: mockDocumentUrl,
-          verificationId: 'ver-nin-1',
-        }),
-      ),
-    );
-
-    await act(async () => {
-      fireEvent.press(view.getByLabelText(idCopy.removeFileLabel));
+    expect(onResult).toHaveBeenCalledWith(identityCheck);
+    expect(mockVerifyIdentity).toHaveBeenCalledWith({
+      idType: 'nin',
+      idNumber: '12345678901',
+      firstName: 'Adaeze',
+      lastName: 'Okafor',
+      livenessSessionId: 'liv_123',
+      documentUrl: undefined,
     });
-    expect(view.queryByText(idCopy.uploadFileName)).toBeNull();
   });
 
-  it('renders the needs-review reasons and recovery actions', async () => {
+  it('does not submit before the selfie check', async () => {
+    const onResult = jest.fn();
+    const view = await render(<IdVerificationScreen idType="nin" onResult={onResult} />);
+
+    await typeInto(view, idCopy.numberLabels.nin, '12345678901');
+    await typeInto(view, idCopy.firstNameLabel, 'Adaeze');
+    await typeInto(view, idCopy.lastNameLabel, 'Okafor');
+    await act(async () => {
+      fireEvent.press(view.getByText(idCopy.submit));
+    });
+    expect(mockVerifyIdentity).not.toHaveBeenCalled();
+    expect(onResult).not.toHaveBeenCalled();
+  });
+
+  it('asks passports for the data page instead of a number', async () => {
+    const view = await render(<IdVerificationScreen idType="passport" />);
+    expect(view.queryByLabelText(idCopy.numberLabels.nin)).toBeNull();
+    expect(view.getByText(idCopy.passportTitle)).toBeTruthy();
+    expect(view.getByText(idCopy.pills.passport)).toBeTruthy();
+  });
+
+  it('shows the reasons from the check and requests a manual review', async () => {
     const onTryAgain = jest.fn();
     const onManualReview = jest.fn();
     const view = await render(
       <IdVerificationNeedsReviewScreen
+        reasons={["Your selfie didn't match the photo on the ID."]}
         onTryAgain={onTryAgain}
         onRequestManualReview={onManualReview}
       />,
     );
 
-    expect(
-      view.getByText('Official verification network is temporarily slow or unavailable'),
-    ).toBeTruthy();
+    expect(view.getByText("Your selfie didn't match the photo on the ID.")).toBeTruthy();
 
     await act(async () => {
       fireEvent.press(view.getByLabelText(/Request Manual Review/));
@@ -148,10 +238,22 @@ describe('business verification entry and identity screens', () => {
     expect(onTryAgain).toHaveBeenCalledTimes(1);
   });
 
+  it('hides the manual review action while the check is already in review', async () => {
+    const view = await render(<IdVerificationNeedsReviewScreen inReview />);
+    expect(view.queryByLabelText(/Request Manual Review/)).toBeNull();
+  });
+
   it('renders the verified identity record', async () => {
-    const view = await render(<IdVerificationSuccessScreen />);
-    expect(view.getByText(idSuccessCopy.personValue)).toBeTruthy();
-    expect(view.getByText(idSuccessCopy.referenceValue)).toBeTruthy();
+    const view = await render(
+      <IdVerificationSuccessScreen
+        personName="Adaeze Test Okafor"
+        documentType="National ID (NIN)"
+        documentReference="•••••••8901"
+        verifiedOn="Oct 14, 2026 at 10:45 AM"
+      />,
+    );
+    expect(view.getByText('Adaeze Test Okafor')).toBeTruthy();
+    expect(view.getByText('•••••••8901')).toBeTruthy();
   });
 });
 
@@ -159,9 +261,6 @@ describe('business registration and CAC screens', () => {
   it('switches the CAC registration answer', async () => {
     const onContinue = jest.fn();
     const view = await render(<BusinessRegistrationScreen onContinue={onContinue} />);
-
-    expect(view.getByText(registrationCopy.registeredTitle)).toBeTruthy();
-    expect(view.getByText(registrationCopy.unregisteredTitle)).toBeTruthy();
 
     await act(async () => {
       fireEvent.press(view.getByLabelText(registrationCopy.unregisteredTitle));
@@ -172,57 +271,83 @@ describe('business registration and CAC screens', () => {
     expect(onContinue).toHaveBeenCalledWith('unregistered');
   });
 
-  it('picks a CAC entity type and attaches a certificate', async () => {
-    const onSubmit = jest.fn();
-    const view = await render(<CacVerificationScreen onSubmit={onSubmit} />);
+  it('submits the entity prefix with the registration digits', async () => {
+    mockVerifyBusiness.mockResolvedValue(businessCheck);
+    const onResult = jest.fn();
+    const view = await render(
+      <CacVerificationScreen businessName="Patrick Ventures" onResult={onResult} />,
+    );
 
-    expect(view.getByText(cacCopy.registryTitle)).toBeTruthy();
-    expect(view.getByText(cacCopy.numberValid)).toBeTruthy();
+    expect(view.getByText('Patrick Ventures')).toBeTruthy();
+    expect(view.queryByText(cacCopy.numberValid)).toBeNull();
 
     await act(async () => {
       fireEvent.press(view.getByLabelText(cacCopy.entities[1].title));
     });
-    await act(async () => {
-      fireEvent.press(view.getByLabelText(cacCopy.uploadAction));
-    });
+    await typeInto(view, cacCopy.numberLabel, 'RC-1234567');
+    expect(view.getByText(cacCopy.numberValid)).toBeTruthy();
+
     await act(async () => {
       fireEvent.press(view.getByLabelText(cacCopy.submit));
     });
-    expect(onSubmit).toHaveBeenCalledWith(
-      expect.objectContaining({
-        entityType: cacCopy.entities[1].id,
-        certificateFile: cacCopy.uploadFileName,
-      }),
-    );
+    expect(mockVerifyBusiness).toHaveBeenCalledWith('RC1234567');
+    expect(onResult).toHaveBeenCalledWith(businessCheck);
   });
 
-  it('renders the CAC success record and trust badge', async () => {
-    const view = await render(<CacVerificationSuccessScreen />);
-    expect(view.getByText(cacSuccessCopy.nameValue)).toBeTruthy();
-    expect(view.getByText(cacSuccessCopy.operatorValue)).toBeTruthy();
+  it('renders the CAC success record', async () => {
+    const view = await render(
+      <CacVerificationSuccessScreen
+        businessName="Patrick Ventures"
+        recordName="Patrick Ventures Limited"
+        registrationNumber="RC1234567"
+        operatorName="Adaeze Test Okafor"
+      />,
+    );
+    expect(view.getByText('Patrick Ventures Limited')).toBeTruthy();
+    expect(view.getByText('Identity Verified (Adaeze Test Okafor)')).toBeTruthy();
   });
 });
 
 describe('verification status surfaces', () => {
-  it('renders the completed verification breakdown', async () => {
-    const view = await render(<YouReVerifiedScreen />);
-    expect(view.getAllByText(youReVerifiedCopy.businessName).length).toBeGreaterThan(0);
+  it('renders the verification breakdown it is given', async () => {
+    const view = await render(
+      <YouReVerifiedScreen
+        businessName="Patrick Ventures"
+        pillars={[
+          {
+            icon: 'badge',
+            title: 'Identity',
+            tag: 'Verified',
+            body: 'Operator',
+            done: true,
+          },
+          {
+            icon: 'storefront',
+            title: 'Business Location',
+            tag: 'Added',
+            body: '',
+            done: false,
+          },
+        ]}
+      />,
+    );
+    expect(view.getAllByText('Patrick Ventures').length).toBeGreaterThan(0);
     expect(view.getByText('Business Location')).toBeTruthy();
-    expect(view.getByText(youReVerifiedCopy.confirmed)).toBeTruthy();
+    expect(view.getByText('1 / 2 Confirmed')).toBeTruthy();
   });
 
-  it('renders the in-progress review checklist', async () => {
-    const view = await render(<VerificationInProgressScreen />);
-    expect(
-      view.getByText('Registry cross-reference under review by compliance team'),
-    ).toBeTruthy();
-    expect(view.getByText('Step 3 of 4')).toBeTruthy();
+  it('builds the review checklist from the status', async () => {
+    const view = await render(<VerificationInProgressScreen status={inProgress} />);
+    expect(view.getByText('Identity submitted')).toBeTruthy();
+    expect(view.getByText('Business details not submitted yet')).toBeTruthy();
+    expect(view.getByText('Step 2 of 4')).toBeTruthy();
   });
 
   it('keeps the audit letter request disabled on the status center', async () => {
     const onUpdateVerification = jest.fn();
     const view = await render(
       <BusinessVerificationStatusCenterScreen
+        status={inProgress}
         onUpdateVerification={onUpdateVerification}
       />,
     );
@@ -236,14 +361,17 @@ describe('verification status surfaces', () => {
     expect(onUpdateVerification).toHaveBeenCalledTimes(1);
   });
 
+  it('offers to start verification when nothing was submitted', async () => {
+    const view = await render(<BusinessVerificationStatusCenterScreen status={null} />);
+    expect(view.getByLabelText(statusCopy.startAction)).toBeTruthy();
+    expect(view.getByText(statusCopy.statusTitles.unverified)).toBeTruthy();
+  });
+
   it('exits the verification flow to the business dashboard', async () => {
     const onOpenDashboard = jest.fn();
     const view = await render(
       <BusinessVerificationStatusCenterScreen onOpenDashboard={onOpenDashboard} />,
     );
-
-    expect(view.getByText(statusCopy.dashboardAction)).toBeTruthy();
-    expect(view.getByText(statusCopy.dashboardHint)).toBeTruthy();
 
     await act(async () => {
       fireEvent.press(view.getByLabelText(statusCopy.dashboardAction));
@@ -251,101 +379,211 @@ describe('verification status surfaces', () => {
     expect(onOpenDashboard).toHaveBeenCalledTimes(1);
   });
 
-  it('opens the certificate bottom sheet from a credential', async () => {
-    const view = await render(<BusinessVerificationStatusCenterScreen />);
+  it('opens the details sheet for a verified check', async () => {
+    const view = await render(
+      <BusinessVerificationStatusCenterScreen status={verified} businessName="Patrick" />,
+    );
+    expect(view.getAllByText(statusCopy.statusTitles.verified).length).toBeGreaterThan(0);
 
     await act(async () => {
-      fireEvent.press(view.getByLabelText(statusCopy.credentials[1].action ?? ''));
+      fireEvent.press(view.getAllByLabelText(statusCopy.viewDetails)[1]);
     });
-    expect(view.getByText(statusCopy.sheetRegistrationValue)).toBeTruthy();
+    expect(view.getAllByText('RC1234567').length).toBeGreaterThan(0);
+    expect(view.getAllByText('Patrick Ventures Limited').length).toBeGreaterThan(0);
   });
 
   it('renders the unregistered business path', async () => {
     const onContinue = jest.fn();
-    const view = await render(<UnregisteredBusinessScreen onContinue={onContinue} />);
+    const view = await render(
+      <UnregisteredBusinessScreen
+        identityName="Adaeze Test Okafor"
+        identityStatus="verified"
+        onContinue={onContinue}
+      />,
+    );
 
+    expect(view.getByText('Adaeze Test Okafor')).toBeTruthy();
     expect(view.getByText('Informal / Sole Trader')).toBeTruthy();
-    expect(view.getByText('Set up your storefront & share instant QR code')).toBeTruthy();
 
     await act(async () => {
-      fireEvent.press(view.getByLabelText('Continue'));
+      fireEvent.press(view.getByLabelText('Submit for Review'));
     });
     expect(onContinue).toHaveBeenCalledTimes(1);
   });
 });
 
 describe('trial and payment screens', () => {
-  it('expands the full plan breakdown', async () => {
-    const view = await render(<BusinessPlanTrialOverviewScreen />);
+  it('lists the real plans and starts the trial on the chosen one', async () => {
+    const onStartTrial = jest.fn();
+    const onSelectPlan = jest.fn();
+    const view = await render(
+      <BusinessPlanTrialOverviewScreen
+        plans={[professional, ultimate]}
+        selectedPlanId="plan-ultimate"
+        trialEligible
+        onSelectPlan={onSelectPlan}
+        onStartTrial={onStartTrial}
+      />,
+    );
 
-    expect(view.getByText(planCopy.breakdownToggle)).toBeTruthy();
-    expect(view.queryByText(planCopy.breakdown[0].title)).toBeNull();
+    expect(view.getAllByText('Ultimate').length).toBeGreaterThan(0);
+    expect(view.getByText('10 Branches')).toBeTruthy();
 
     await act(async () => {
-      fireEvent.press(view.getByText(planCopy.breakdownToggle));
+      fireEvent.press(view.getByText('Professional'));
     });
-    expect(view.getByText(planCopy.breakdown[0].title)).toBeTruthy();
+    expect(onSelectPlan).toHaveBeenCalledWith('plan-pro');
+
+    await act(async () => {
+      fireEvent.press(view.getByText('Start 30-Day Free Trial'));
+    });
+    expect(onStartTrial).toHaveBeenCalledWith(ultimate);
   });
 
-  it('renders the trial timeline and included features', async () => {
-    const view = await render(<FreeTrialConfirmationScreen />);
-    expect(view.getByText('Next 30 Days')).toBeTruthy();
-    expect(view.getByText('Customer loyalty & rewards')).toBeTruthy();
+  it('only offers subscribing once the trial is used', async () => {
+    const view = await render(
+      <BusinessPlanTrialOverviewScreen plans={[professional]} trialEligible={false} />,
+    );
+    expect(view.queryByText('Start 30-Day Free Trial')).toBeNull();
+    expect(view.getByText(planCopy.trialUsedTitle)).toBeTruthy();
   });
 
-  it('renders the countdown tile on the active trial screen', async () => {
-    const view = await render(<TrialActiveStatusScreen />);
+  it('explains when no plan can be bought yet', async () => {
+    const view = await render(<BusinessPlanTrialOverviewScreen plans={[]} />);
+    expect(view.getByText(planCopy.emptyTitle)).toBeTruthy();
+  });
+
+  it('renders the trial timeline for the plan', async () => {
+    const view = await render(
+      <FreeTrialConfirmationScreen
+        planName="Professional"
+        monthlyPrice="₦15,000"
+        trialDays={14}
+      />,
+    );
+    expect(view.getByText('Your 14-day trial starts now')).toBeTruthy();
+    expect(view.getByText('Next 14 Days')).toBeTruthy();
+  });
+
+  it('renders the countdown from the trial progress', async () => {
+    const view = await render(
+      <TrialActiveStatusScreen
+        planName="Professional"
+        progress={{
+          daysRemaining: 23,
+          totalDays: 30,
+          daysUsed: 7,
+          percentElapsed: 23,
+          startedOn: 'Oct 7, 2026',
+          endsOn: 'Nov 6, 2026',
+        }}
+      />,
+    );
     expect(view.getByText('23')).toBeTruthy();
     expect(view.getByText('Day 7 of 30 used')).toBeTruthy();
+    expect(view.getByText('Professional Trial Active')).toBeTruthy();
   });
 
-  it('renders the trial ending notice and benefits', async () => {
-    const view = await render(<TrialEndingRenewGrowthScreen />);
-    expect(view.getByText('3 Days Left')).toBeTruthy();
-    expect(view.getByText('Keep your deals visible to local shoppers')).toBeTruthy();
+  it('renders the trial ending notice with the plan benefits', async () => {
+    const view = await render(
+      <TrialEndingRenewGrowthScreen
+        planName="Professional"
+        features={['3 Branches']}
+        progress={{
+          daysRemaining: 3,
+          totalDays: 30,
+          daysUsed: 27,
+          percentElapsed: 90,
+          startedOn: null,
+          endsOn: 'Oct 17, 2026',
+        }}
+      />,
+    );
+    expect(view.getByText('3 days Left')).toBeTruthy();
+    expect(view.getByText('3 Branches')).toBeTruthy();
   });
 
-  it('renders the expired trial reactivation assets', async () => {
-    const view = await render(<TrialExpiredReactivateScreen />);
-    expect(view.getByText('14 Items')).toBeTruthy();
+  it('renders the expired trial with saved business data', async () => {
+    const view = await render(
+      <TrialExpiredReactivateScreen planName="Professional" branchCount={2} />,
+    );
     expect(view.getByText('2 Outlets')).toBeTruthy();
-    expect(view.getByText('4.9 (128)')).toBeTruthy();
   });
 
-  it('selects a payment method and pays', async () => {
+  it('switches the billing period and pays the previewed total', async () => {
     const onPay = jest.fn();
-    const view = await render(<SubscribeNowPaymentScreen onPay={onPay} />);
+    const onChangePeriod = jest.fn();
+    const preview: PricePreview = {
+      subtotal: 15000,
+      taxAmount: 0,
+      total: 15000,
+      taxRule: { name: 'VAT', rate: 7.5, isEnabled: false },
+    };
+    const view = await render(
+      <SubscribeNowPaymentScreen
+        plan={professional}
+        billingPeriod="monthly"
+        preview={preview}
+        onChangePeriod={onChangePeriod}
+        onPay={onPay}
+      />,
+    );
 
     expect(view.getByText('Bank-grade Security')).toBeTruthy();
 
     await act(async () => {
-      fireEvent.press(view.getByLabelText('Direct Bank Transfer'));
+      fireEvent.press(view.getByLabelText('Yearly'));
     });
+    expect(onChangePeriod).toHaveBeenCalledWith('yearly');
+
     await act(async () => {
-      fireEvent.press(view.getByLabelText('Pay ₦5,000 & Activate Growth'));
+      fireEvent.press(view.getByLabelText('Pay ₦15,000 & Activate Professional'));
     });
-    expect(onPay).toHaveBeenCalledWith('virtual_account');
+    expect(onPay).toHaveBeenCalledTimes(1);
   });
 
-  it('renders the header-less payment success receipt', async () => {
-    const view = await render(<PaymentSuccessVemtapGrowthScreen />);
+  it('renders the payment receipt', async () => {
+    const view = await render(
+      <PaymentSuccessVemtapGrowthScreen
+        planName="Professional"
+        reference="SUB-123"
+        nextBilling="Nov 14, 2026"
+      />,
+    );
 
     expect(view.getByText(successCopy.statusBadge)).toBeTruthy();
-    expect(view.getByText(successCopy.transactionId)).toBeTruthy();
-    expect(view.getByText(successCopy.nextBilling)).toBeTruthy();
+    expect(view.getByText('SUB-123')).toBeTruthy();
+    expect(view.getByText('Nov 14, 2026')).toBeTruthy();
   });
 
-  it('lists every paid add-on with its price', async () => {
-    const onSelectAddOn = jest.fn();
-    const view = await render(<VemtapAddOnsScreen onSelectAddOn={onSelectAddOn} />);
+  it('says the payment is still confirming when the webhook has not landed', async () => {
+    const view = await render(<PaymentSuccessVemtapGrowthScreen pending />);
+    expect(view.getByText(successCopy.pendingTitle)).toBeTruthy();
+  });
 
-    expect(view.getByText('Flexible Power-Ups')).toBeTruthy();
+  it('lists the paid add-ons catalogue and the plan add-ons', async () => {
+    const onSelectAddOn = jest.fn();
+    const view = await render(
+      <VemtapAddOnsScreen
+        currentPlanName="Professional"
+        planAddOns={[
+          {
+            id: 'addon-1',
+            name: 'Extra Branch',
+            description: '',
+            price: 5000,
+            currency: 'NGN',
+            durationDays: 30,
+            isOneTime: false,
+          },
+        ]}
+        onSelectAddOn={onSelectAddOn}
+      />,
+    );
+
     expect(view.getByText('Boost a Deal')).toBeTruthy();
-    expect(view.getByText('POS Terminal & Hardware')).toBeTruthy();
-    expect(view.getByText('₦2,000')).toBeTruthy();
-    expect(view.getByText('₦3,500')).toBeTruthy();
-    expect(view.getByText('₦1,500')).toBeTruthy();
-    expect(view.getByText('₦1,000')).toBeTruthy();
+    expect(view.getByText('Extra Branch')).toBeTruthy();
+    expect(view.getByText('Professional')).toBeTruthy();
 
     await act(async () => {
       fireEvent.press(view.getByLabelText('Boost Deal'));

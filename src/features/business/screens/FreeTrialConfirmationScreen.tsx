@@ -32,6 +32,11 @@ const categoryImages = [
 const timelineMarkers = ['bolt', 'gift', 'flag'] as const;
 
 export interface FreeTrialConfirmationScreenProps {
+  planName?: string;
+  /** Formatted monthly price, e.g. "₦15,000". */
+  monthlyPrice?: string;
+  trialDays?: number;
+  starting?: boolean;
   onBack?: () => void;
   onStartTrial?: () => void;
   onSubscribeInstead?: () => void;
@@ -43,6 +48,10 @@ export interface FreeTrialConfirmationScreenProps {
  * stitch_vemtap_design_system_1/free_trial_confirmation/code.html
  */
 export function FreeTrialConfirmationScreen({
+  planName = '',
+  monthlyPrice = '',
+  trialDays = 30,
+  starting = false,
   onBack,
   onStartTrial,
   onSubscribeInstead,
@@ -50,6 +59,19 @@ export function FreeTrialConfirmationScreen({
 }: FreeTrialConfirmationScreenProps) {
   const handleBack = useCallback(() => onBack?.(), [onBack]);
 
+  const timeline = [
+    { label: copy.todayLabel, meta: copy.todayMeta, body: copy.todayBody },
+    {
+      label: `${copy.nextLead}${trialDays}${copy.nextTail}`,
+      meta: copy.nextMeta,
+      body: copy.nextBody,
+    },
+    {
+      label: `${copy.endLead}${trialDays}`,
+      meta: monthlyPrice ? `${monthlyPrice}${copy.endMetaTail}` : '',
+      body: `${copy.endBodyLead}${planName}${copy.endBodyTail}`,
+    },
+  ];
   const compactFeatures = copy.included.filter(feature => !feature.wide);
   const wideFeature = copy.included.find(feature => feature.wide);
 
@@ -63,9 +85,18 @@ export function FreeTrialConfirmationScreen({
       contentContainerClassName="gap-4"
       footer={
         <>
-          <PrimaryActionButton label={copy.startTrial} onPress={onStartTrial} />
+          <PrimaryActionButton
+            label={starting ? copy.starting : copy.startTrial}
+            onPress={onStartTrial}
+            loading={starting}
+            disabled={starting}
+          />
           <Button
-            label={`${copy.subscribeInstead} ${copy.subscribeInsteadPrice}`}
+            label={
+              monthlyPrice
+                ? `${copy.subscribeInstead} (${monthlyPrice}/mo)`
+                : copy.subscribeInstead
+            }
             labelVariant="labelSm"
             variant="secondary"
             size="sm"
@@ -91,7 +122,7 @@ export function FreeTrialConfirmationScreen({
           variant="headingLg"
           className="text-center text-heading-lg"
         >
-          {copy.title}
+          {`${copy.titleLead}${trialDays}${copy.titleTail}`}
         </VemtapText>
         <VemtapText
           variant="bodyMd"
@@ -111,15 +142,15 @@ export function FreeTrialConfirmationScreen({
           <StatusPill label={copy.timelineBadge} tone="brand" />
         </View>
         <View className="gap-4">
-          {copy.timeline.map((step, index) => (
+          {timeline.map((step, index) => (
             <VerificationTimelineRow
               key={step.label}
               title={step.label}
-              meta={step.meta}
+              meta={step.meta || undefined}
               body={step.body}
               markerIcon={timelineMarkers[index]}
               markerTone={index === 0 ? 'brand' : index === 1 ? 'success' : 'muted'}
-              showConnector={index < copy.timeline.length - 1}
+              showConnector={index < timeline.length - 1}
             />
           ))}
         </View>
@@ -186,12 +217,9 @@ export function FreeTrialConfirmationScreen({
         body={copy.noCardBody}
       />
 
-      <View className="flex-row flex-wrap items-center justify-between gap-2 px-1 pt-1">
+      <View className="px-1 pt-1">
         <VemtapText variant="labelSm" tone="secondary">
           {copy.categoriesLabel}
-        </VemtapText>
-        <VemtapText variant="caption" className="text-primary">
-          {copy.categoriesCount}
         </VemtapText>
       </View>
 

@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { Pressable, View } from 'react-native';
 import { VemtapText } from '@components/ui/Text';
 import { verificationInProgressCopy as copy } from '@features/business/verificationCopy';
@@ -13,9 +13,61 @@ import {
   VerificationPage,
   VerificationSeal,
   VerificationTimelineRow,
+  type StageState,
 } from '@features/business/components/VerificationPrimitives';
+import type { IconName } from '@components/ui/Icon';
+import type { VerificationCheck, VerificationStatus } from '@api/verificationApi';
+import { checkSummary, displayName } from '@features/business/verificationDisplay';
+
+type ProgressStep = {
+  title: string;
+  body: string;
+  state: StageState;
+  trailingIcon: IconName | null;
+};
+
+function checkLine(check: VerificationCheck | null): string | null {
+  if (!check) return null;
+  const name = displayName(check.recordName);
+  const summary = checkSummary(check);
+  return [name, summary, copy.checkStates[check.status]].filter(Boolean).join(' • ');
+}
+
+/** The four review steps, filled from `GET /verification/status`. */
+function buildSteps(status: VerificationStatus | null | undefined): ProgressStep[] {
+  const identity = status?.identity ?? null;
+  const business = status?.business ?? null;
+  const verified = status?.status === 'verified';
+  return [
+    {
+      title: identity ? copy.identityTitle : copy.identityMissing,
+      body: checkLine(identity) ?? '',
+      state: identity ? 'done' : 'active',
+      trailingIcon: identity?.status === 'verified' ? 'verified' : null,
+    },
+    {
+      title: business ? copy.businessTitle : copy.businessMissing,
+      body: checkLine(business) ?? '',
+      state: business ? 'done' : identity ? 'active' : 'pending',
+      trailingIcon: business?.status === 'verified' ? 'folderStar' : null,
+    },
+    {
+      title: copy.reviewTitle,
+      body: copy.reviewBody,
+      state: verified ? 'done' : identity && business ? 'active' : 'pending',
+      trailingIcon: null,
+    },
+    {
+      title: copy.completeTitle,
+      body: copy.completeBody,
+      state: verified ? 'done' : 'pending',
+      trailingIcon: 'crown',
+    },
+  ];
+}
 
 export interface VerificationInProgressScreenProps {
+  status?: VerificationStatus | null;
   onBack?: () => void;
   onContinueSetup?: () => void;
   onCheckLater?: () => void;
@@ -28,6 +80,7 @@ export interface VerificationInProgressScreenProps {
  * stitch_vemtap_design_system_1/verification_in_progress/code.html
  */
 export function VerificationInProgressScreen({
+  status,
   onBack,
   onContinueSetup,
   onCheckLater,
@@ -35,6 +88,11 @@ export function VerificationInProgressScreen({
   onHelp,
 }: VerificationInProgressScreenProps) {
   const handleBack = useCallback(() => onBack?.(), [onBack]);
+  const steps = useMemo(() => buildSteps(status), [status]);
+  const currentStep = Math.max(
+    1,
+    steps.findIndex(step => step.state !== 'done') + 1 || 4,
+  );
 
   return (
     <VerificationPage
@@ -103,14 +161,17 @@ export function VerificationInProgressScreen({
           <VemtapText variant="labelMd" className="font-sans-semibold">
             {copy.progressTitle}
           </VemtapText>
-          <StatusPill label={copy.stepBadge} tone="success" />
+          <StatusPill
+            label={`${copy.stepBadgeLead}${currentStep}${copy.stepBadgeOf}`}
+            tone="success"
+          />
         </View>
         <View className="gap-4">
-          {copy.steps.map(step => (
+          {steps.map(step => (
             <VerificationTimelineRow
               key={step.title}
               title={step.title}
-              body={step.body}
+              body={step.body || undefined}
               state={step.state}
               markerIcon={step.state === 'done' ? 'check' : undefined}
               trailingIcon={step.trailingIcon}

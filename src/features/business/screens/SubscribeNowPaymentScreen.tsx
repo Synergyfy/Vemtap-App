@@ -1,8 +1,9 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback } from 'react';
 import { Pressable, View } from 'react-native';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { colors } from '@theme/colors';
+import { formatCurrency } from '@utils/formatters';
 import {
   subscribeNowCopy as copy,
   verificationImages,
@@ -21,17 +22,34 @@ import {
   VerificationPage,
   VerificationSummaryRow,
 } from '@features/business/components/VerificationPrimitives';
+import {
+  planPrice,
+  type BillingPeriod,
+  type Plan,
+  type PricePreview,
+} from '@api/subscriptionsApi';
 
-const methodIcons = ['creditCard', 'accountBalance', 'contactless'] as const;
-
-export type PaymentMethodId = 'paystack' | 'virtual_account' | 'digital_wallet';
+const PERIODS: BillingPeriod[] = ['monthly', 'quarterly', 'yearly'];
 
 export interface SubscribeNowPaymentScreenProps {
+  plan?: Plan | null;
+  billingPeriod?: BillingPeriod;
+  onChangePeriod?: (period: BillingPeriod) => void;
+  /** Server-calculated subtotal, tax and total for the chosen period. */
+  preview?: PricePreview | null;
   onBack?: () => void;
-  onPay?: (method: PaymentMethodId) => void;
+  onPay?: () => void;
   onViewTerms?: () => void;
   onHelp?: () => void;
   processing?: boolean;
+}
+
+/** Percentage saved against paying monthly for the same months. */
+function savingsPercent(plan: Plan, period: BillingPeriod): number {
+  const { months } = copy.periods[period];
+  const monthlyTotal = plan.monthlyPrice * months;
+  if (months === 1 || monthlyTotal <= 0) return 0;
+  return Math.round((1 - planPrice(plan, period) / monthlyTotal) * 100);
 }
 
 /**
@@ -39,15 +57,23 @@ export interface SubscribeNowPaymentScreenProps {
  * stitch_vemtap_design_system_1/subscribe_now_payment/code.html
  */
 export function SubscribeNowPaymentScreen({
+  plan,
+  billingPeriod = 'monthly',
+  onChangePeriod,
+  preview,
   onBack,
   onPay,
   onViewTerms,
   onHelp,
   processing = false,
 }: SubscribeNowPaymentScreenProps) {
-  const [method, setMethod] = useState<PaymentMethodId>('paystack');
-
   const handleBack = useCallback(() => onBack?.(), [onBack]);
+  const currency = plan?.currency ?? 'NGN';
+  const money = (amount: number) => formatCurrency(amount, currency);
+  const basePrice = plan ? planPrice(plan, billingPeriod) : 0;
+  const total = preview ? preview.total : basePrice;
+  const period = copy.periods[billingPeriod];
+  const taxEnabled = Boolean(preview?.taxRule?.isEnabled && preview.taxAmount > 0);
 
   return (
     <>
@@ -59,30 +85,37 @@ export function SubscribeNowPaymentScreen({
         background="surface"
         contentContainerClassName="gap-5"
         footer={
-          <>
-            <PrimaryActionButton label={copy.pay} onPress={() => onPay?.(method)} />
-            <VemtapText
-              variant="caption"
-              tone="secondary"
-              className="text-center leading-snug"
-            >
-              {copy.renewNote}
-            </VemtapText>
-            <View className="items-center">
-              <Pressable
-                accessibilityRole="link"
-                accessibilityLabel={copy.termsAction}
-                hitSlop={8}
-                onPress={onViewTerms}
-                className="min-h-9 flex-row items-center gap-0.5"
+          plan ? (
+            <>
+              <PrimaryActionButton
+                label={`${copy.payLead}${money(total)}${copy.payMid}${plan.name}`}
+                onPress={onPay}
+                loading={processing}
+                disabled={processing}
+              />
+              <VemtapText
+                variant="caption"
+                tone="secondary"
+                className="text-center leading-snug"
               >
-                <VemtapText variant="caption" className="font-sans-medium text-primary">
-                  {copy.termsAction}
-                </VemtapText>
-                <Icon name="openInNew" size={13} color={colors.primary} />
-              </Pressable>
-            </View>
-          </>
+                {`${copy.renewLead}${money(total)} ${period.cycle}${copy.renewTail}`}
+              </VemtapText>
+              <View className="items-center">
+                <Pressable
+                  accessibilityRole="link"
+                  accessibilityLabel={copy.termsAction}
+                  hitSlop={8}
+                  onPress={onViewTerms}
+                  className="min-h-9 flex-row items-center gap-0.5"
+                >
+                  <VemtapText variant="caption" className="font-sans-medium text-primary">
+                    {copy.termsAction}
+                  </VemtapText>
+                  <Icon name="openInNew" size={13} color={colors.primary} />
+                </Pressable>
+              </View>
+            </>
+          ) : undefined
         }
       >
         <View className="flex-row flex-wrap items-center justify-between gap-2">
@@ -114,48 +147,86 @@ export function SubscribeNowPaymentScreen({
             variant="headingLg"
             className="text-heading-lg"
           >
-            {copy.title}
+            {`${copy.titleLead}${plan?.name ?? ''}`}
           </VemtapText>
           <VemtapText variant="bodyMd" tone="secondary">
             {copy.subtitle}
           </VemtapText>
         </View>
 
-        <SetupSectionCard tone="subtle" className="mt-1 w-full p-6">
-          <View className="flex-row flex-wrap items-start justify-between gap-2">
-            <View className="min-w-0 flex-1">
-              <StatusPill label={copy.planBadge} tone="primary" icon="verified" />
-              <VemtapText variant="labelMd" className="mb-2 mt-2 font-sans-semibold">
-                {copy.planName}
+        {plan ? (
+          <SetupSectionCard tone="subtle" className="mt-1 w-full p-6">
+            <View className="flex-row flex-wrap items-start justify-between gap-2">
+              <View className="min-w-0 flex-1">
+                {plan.isPopular ? (
+                  <StatusPill label={copy.popularBadge} tone="primary" icon="verified" />
+                ) : null}
+                <VemtapText variant="labelMd" className="mb-2 mt-2 font-sans-semibold">
+                  {plan.name}
+                </VemtapText>
+              </View>
+              <View className="shrink-0 items-end">
+                <VemtapText variant="headingLg" className="text-heading-lg text-primary">
+                  {money(basePrice)}
+                </VemtapText>
+                <VemtapText variant="caption" tone="secondary">
+                  {period.cycle}
+                </VemtapText>
+              </View>
+            </View>
+            <View className="flex-row flex-wrap items-center gap-1.5">
+              <Icon name="autorenew" size={16} color={colors.textTertiary} />
+              <VemtapText variant="labelSm" tone="secondary">
+                {`${period.title} • ${copy.periodNote}`}
               </VemtapText>
             </View>
-            <View className="shrink-0 items-end">
-              <VemtapText variant="headingLg" className="text-heading-lg text-primary">
-                {copy.planPrice}
-              </VemtapText>
-              <VemtapText variant="caption" tone="secondary">
-                {copy.planCycle}
-              </VemtapText>
-            </View>
-          </View>
-          <View className="flex-row flex-wrap items-center gap-1.5">
-            <Icon name="autorenew" size={16} color={colors.textTertiary} />
-            <VemtapText variant="labelSm" tone="secondary">
-              {copy.planCycleNote}
+            {plan.features.length ? (
+              <View className="gap-2.5 rounded-card bg-surface p-3.5 shadow-sm">
+                {plan.features.map(perk => (
+                  <PlanFeatureRow
+                    key={perk}
+                    label={perk}
+                    state="highlighted"
+                    size="sm"
+                    className="min-w-0"
+                  />
+                ))}
+              </View>
+            ) : null}
+          </SetupSectionCard>
+        ) : null}
+
+        {plan ? (
+          <View className="gap-3">
+            <VemtapText variant="labelMd" className="font-sans-semibold">
+              {copy.periodTitle}
             </VemtapText>
+            <View
+              accessibilityLabel={copy.periodTitle}
+              accessibilityRole="radiogroup"
+              className="gap-2"
+            >
+              {PERIODS.filter(option => planPrice(plan, option) > 0).map(option => {
+                const saving = savingsPercent(plan, option);
+                const selected = option === billingPeriod;
+                return (
+                  <SelectableRadioCard
+                    key={option}
+                    layout="inline"
+                    icon="calendar"
+                    title={copy.periods[option].title}
+                    body={`${money(planPrice(plan, option))} ${copy.periods[option].cycle}`}
+                    badge={saving > 0 ? `${copy.saveLead}${saving}%` : undefined}
+                    badgeTone="success"
+                    selected={selected}
+                    onPress={() => onChangePeriod?.(option)}
+                    className={selected ? undefined : 'bg-surface-subtle'}
+                  />
+                );
+              })}
+            </View>
           </View>
-          <View className="gap-2.5 rounded-card bg-surface p-3.5 shadow-sm">
-            {copy.perks.map(perk => (
-              <PlanFeatureRow
-                key={perk}
-                label={perk}
-                state="highlighted"
-                size="sm"
-                className="min-w-0"
-              />
-            ))}
-          </View>
-        </SetupSectionCard>
+        ) : null}
 
         <View className="mt-1 flex-row items-center gap-4 rounded-card-lg bg-surface-container-low p-4">
           <BusinessProductImage
@@ -195,29 +266,14 @@ export function SubscribeNowPaymentScreen({
               {copy.methodBadge}
             </VemtapText>
           </View>
-          <View
-            accessibilityLabel={copy.methodTitle}
-            accessibilityRole="radiogroup"
-            className="gap-2"
-          >
-            {copy.methods.map((option, index) => {
-              const selected = method === option.id;
-              return (
-                <SelectableRadioCard
-                  key={option.id}
-                  layout="inline"
-                  icon={methodIcons[index]}
-                  title={option.title}
-                  badge={'badge' in option ? option.badge : undefined}
-                  badgeTone="brand"
-                  body={option.body}
-                  selected={selected}
-                  onPress={() => setMethod(option.id as PaymentMethodId)}
-                  className={selected ? undefined : 'bg-surface-subtle'}
-                />
-              );
-            })}
-          </View>
+          <SelectableRadioCard
+            layout="inline"
+            icon="creditCard"
+            title={copy.methodName}
+            body={copy.methodBody}
+            selected
+            onPress={() => undefined}
+          />
         </View>
 
         <SetupCallout
@@ -231,36 +287,44 @@ export function SubscribeNowPaymentScreen({
           body={copy.securityBody}
         />
 
-        <SetupSectionCard tone="subtle" className="w-full p-6">
-          <VemtapText variant="labelMd" className="font-sans-semibold">
-            {copy.billingTitle}
-          </VemtapText>
-          <View className="gap-2">
-            <VerificationSummaryRow
-              label={copy.billingLine}
-              value={copy.billingLineValue}
-            />
-            <VerificationSummaryRow
-              label={copy.vatLabel}
-              value={copy.vatValue}
-              valueTone="success"
-              labelTrailing={<StatusPill label={copy.vatBadge} tone="success" />}
-            />
-          </View>
-          <View className="flex-row flex-wrap items-center justify-between gap-2 rounded-card bg-surface p-3.5 shadow-sm">
-            <View className="min-w-0 flex-1">
-              <VemtapText variant="labelMd" className="font-sans-semibold">
-                {copy.totalLabel}
-              </VemtapText>
-              <VemtapText variant="caption" tone="secondary">
-                {copy.totalNote}
+        {plan ? (
+          <SetupSectionCard tone="subtle" className="w-full p-6">
+            <VemtapText variant="labelMd" className="font-sans-semibold">
+              {copy.billingTitle}
+            </VemtapText>
+            <View className="gap-2">
+              <VerificationSummaryRow
+                label={`${plan.name}${copy.subscriptionLine} (${period.title})`}
+                value={money(preview?.subtotal ?? basePrice)}
+              />
+              <VerificationSummaryRow
+                label={`${preview?.taxRule?.name ?? 'VAT'}${
+                  preview?.taxRule?.rate ? ` (${preview.taxRule.rate}%)` : ''
+                }`}
+                value={taxEnabled ? money(preview?.taxAmount ?? 0) : money(0)}
+                valueTone={taxEnabled ? undefined : 'success'}
+                labelTrailing={
+                  taxEnabled ? undefined : (
+                    <StatusPill label={copy.vatWaived} tone="success" />
+                  )
+                }
+              />
+            </View>
+            <View className="flex-row flex-wrap items-center justify-between gap-2 rounded-card bg-surface p-3.5 shadow-sm">
+              <View className="min-w-0 flex-1">
+                <VemtapText variant="labelMd" className="font-sans-semibold">
+                  {copy.totalLabel}
+                </VemtapText>
+                <VemtapText variant="caption" tone="secondary">
+                  {copy.totalNote}
+                </VemtapText>
+              </View>
+              <VemtapText variant="headingLg" className="text-heading-lg text-primary">
+                {preview ? money(preview.total) : copy.calculating}
               </VemtapText>
             </View>
-            <VemtapText variant="headingLg" className="text-heading-lg text-primary">
-              {copy.totalValue}
-            </VemtapText>
-          </View>
-        </SetupSectionCard>
+          </SetupSectionCard>
+        ) : null}
       </VerificationPage>
 
       <ProcessingOverlay

@@ -27,6 +27,11 @@ const assetImages = [
 ];
 
 export interface TrialExpiredReactivateScreenProps {
+  planName?: string;
+  /** Formatted monthly price, e.g. "₦15,000". */
+  monthlyPrice?: string;
+  features?: string[];
+  branchCount?: number;
   onBack?: () => void;
   onActivate?: () => void;
   onViewBusiness?: () => void;
@@ -39,12 +44,24 @@ export interface TrialExpiredReactivateScreenProps {
  * stitch_vemtap_design_system_1/trial_expired_reactivate/code.html
  */
 export function TrialExpiredReactivateScreen({
+  planName = '',
+  monthlyPrice,
+  features = [],
+  branchCount = 0,
   onBack,
   onActivate,
   onViewBusiness,
   onContactSupport,
   onHelp,
 }: TrialExpiredReactivateScreenProps) {
+  const assets = [
+    { icon: 'inventory', label: copy.catalogueSaved },
+    {
+      icon: 'storefront',
+      label: branchCount === 1 ? copy.outletOne : `${branchCount}${copy.outletsTail}`,
+    },
+    { icon: 'starFilled', label: copy.reviewsSaved },
+  ] as const;
   const handleBack = useCallback(() => onBack?.(), [onBack]);
 
   return (
@@ -57,7 +74,10 @@ export function TrialExpiredReactivateScreen({
       contentContainerClassName="gap-5"
       footer={
         <>
-          <PrimaryActionButton label={copy.activate} onPress={onActivate} />
+          <PrimaryActionButton
+            label={`${copy.activateLead}${planName}${monthlyPrice ? ` — ${monthlyPrice}/mo` : ''}`}
+            onPress={onActivate}
+          />
           <Button
             label={copy.viewBusiness}
             labelVariant="labelMd"
@@ -107,7 +127,7 @@ export function TrialExpiredReactivateScreen({
           tone="secondary"
           className="max-w-[320px] text-center"
         >
-          {copy.subtitle}
+          {`${copy.subtitleLead}${planName}${copy.subtitleTail}`}
         </VemtapText>
       </View>
 
@@ -122,7 +142,7 @@ export function TrialExpiredReactivateScreen({
         body={copy.dataBody}
       >
         <VerificationTileGrid columns={3} className="w-full self-center">
-          {copy.assets.map((asset, index) => (
+          {assets.map((asset, index) => (
             <View
               key={asset.label}
               className="relative h-16 overflow-hidden rounded-lg bg-surface-container shadow-sm"
@@ -160,12 +180,12 @@ export function TrialExpiredReactivateScreen({
                 {copy.planBadge}
               </VemtapText>
               <VemtapText variant="headingLg" className="text-heading-lg">
-                {copy.planName}
+                {planName}
               </VemtapText>
             </View>
             <View className="shrink-0 items-end">
               <VemtapText variant="headingLg" className="text-heading-lg">
-                {copy.planPrice}
+                {monthlyPrice ?? ''}
               </VemtapText>
               <VemtapText variant="caption" tone="secondary" className="-mt-1">
                 {copy.planCycle}
@@ -184,7 +204,7 @@ export function TrialExpiredReactivateScreen({
           </View>
 
           <View className="gap-3 pt-1">
-            {copy.planFeatures.map(feature => (
+            {features.map(feature => (
               <PlanFeatureRow key={feature} label={feature} state="highlighted" />
             ))}
           </View>

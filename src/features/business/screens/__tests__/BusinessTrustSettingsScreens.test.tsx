@@ -9,8 +9,6 @@ import { BusinessSupportHelpScreen } from '@features/business/screens/BusinessSu
 import { BusinessSettingsScreen } from '@features/business/screens/BusinessSettingsScreen';
 import { SwitchToCustomerScreen } from '@features/business/screens/SwitchToCustomerScreen';
 import {
-  billingAddOns,
-  billingHistory,
   businessReviews,
   knowledgeBase,
   settingsDispatchGroups,
@@ -19,8 +17,6 @@ import {
   settingsSessionGroups,
   settingsStoreGroups,
   switchCustomerCards,
-  verificationPerks,
-  verificationPillars,
 } from '@features/business/data/businessTrustSettingsData';
 
 // The feed is API-driven now, so the centre renders whatever the backend sent
@@ -117,7 +113,13 @@ describe('business notifications center', () => {
 
   it('counts unread from the server so the badge cannot drift from the list', async () => {
     mockBusinessFeed.mockReturnValue({
-      data: { data: feedRows, total: feedRows.length, unreadCount: 7, page: 1, limit: 20 },
+      data: {
+        data: feedRows,
+        total: feedRows.length,
+        unreadCount: 7,
+        page: 1,
+        limit: 20,
+      },
     });
     const view = await render(<BusinessNotificationsCenterScreen />);
 
@@ -217,94 +219,146 @@ describe('business reviews and reputation', () => {
 
 describe('business subscription and billing', () => {
   const copy = strings.businessSubscriptionBilling;
+  const plan = {
+    name: 'Professional',
+    price: '₦15,000',
+    period: 'monthly' as const,
+    status: 'active' as const,
+    dateLabel: 'Renews Nov 14, 2026',
+    daysLeftLabel: null,
+    autoRenews: true,
+    isFree: false,
+  };
 
-  it('renders the plan, cycle value, payment method, add-ons and history', async () => {
-    const view = await render(<BusinessSubscriptionBillingScreen />);
-
-    expect(view.getByText(copy.headerTitle)).toBeTruthy();
-    // The plan name also heads each billing-history row.
-    expect(view.getAllByText(copy.planName).length).toBeGreaterThan(0);
-    expect(view.getAllByText(copy.planPrice).length).toBeGreaterThan(0);
-    expect(view.getByText(copy.paymentTitle)).toBeTruthy();
-    billingAddOns.forEach(addOn => {
-      expect(view.getByText(addOn.name)).toBeTruthy();
-    });
-    billingHistory.forEach(invoice => {
-      expect(view.getAllByText(invoice.title).length).toBeGreaterThan(0);
-    });
-  });
-
-  it('routes plan, card, add-on and invoice actions', async () => {
-    const onManagePlan = jest.fn();
-    const onChangeCard = jest.fn();
-    const onAddFallback = jest.fn();
-    const onDownloadInvoice = jest.fn();
+  it('renders the plan, payment method, add-ons and history it is given', async () => {
     const view = await render(
       <BusinessSubscriptionBillingScreen
+        plan={plan}
+        card={{ brand: 'VISA', last4: '4081', expMonth: '12', expYear: '2030' }}
+        addOns={[
+          {
+            id: 'a1',
+            name: 'Extra Branch',
+            detail: null,
+            price: '₦5,000',
+            expiresLabel: null,
+          },
+        ]}
+        history={[
+          {
+            id: 'p1',
+            title: 'Subscription',
+            date: 'Oct 14, 2026',
+            amount: '₦15,000',
+            status: 'success',
+            statusLabel: 'Paid',
+          },
+        ]}
+      />,
+    );
+
+    expect(view.getByText(copy.headerTitle)).toBeTruthy();
+    expect(view.getByText('Professional')).toBeTruthy();
+    expect(view.getByText('Renews Nov 14, 2026')).toBeTruthy();
+    expect(view.getByText(copy.paymentCard('VISA', '4081'))).toBeTruthy();
+    expect(view.getByText('Extra Branch')).toBeTruthy();
+    expect(view.getByText('Paid')).toBeTruthy();
+  });
+
+  it('explains a missing card and an empty history', async () => {
+    const view = await render(
+      <BusinessSubscriptionBillingScreen
+        plan={{ ...plan, isFree: true, status: 'free' }}
+      />,
+    );
+    expect(view.getByText(copy.paymentNone)).toBeTruthy();
+    expect(view.getByText(copy.empty.title)).toBeTruthy();
+    // The free plan can't be cancelled; the CTA becomes "view plans".
+    expect(view.queryByText(copy.cancelCta)).toBeNull();
+    expect(view.getByText(copy.upgradeCta)).toBeTruthy();
+  });
+
+  it('routes the plan and cancel actions', async () => {
+    const onManagePlan = jest.fn();
+    const onCancelTier = jest.fn();
+    const view = await render(
+      <BusinessSubscriptionBillingScreen
+        plan={plan}
         onManagePlan={onManagePlan}
-        onChangeCard={onChangeCard}
-        onAddFallback={onAddFallback}
-        onDownloadInvoice={onDownloadInvoice}
+        onCancelTier={onCancelTier}
       />,
     );
 
     await pressAndSettle(view, copy.managePlanCta);
     expect(onManagePlan).toHaveBeenCalledTimes(1);
 
-    await pressAndSettle(view, copy.changeCardCta);
-    expect(onChangeCard).toHaveBeenCalledTimes(1);
-
-    await pressAndSettle(view, copy.addFallbackCta);
-    expect(onAddFallback).toHaveBeenCalledTimes(1);
-
-    const paid = billingHistory.find(invoice => invoice.status === 'paid');
-    if (paid) {
-      await pressAndSettle(view, `${copy.historyTitle}: ${paid.title}`);
-      expect(onDownloadInvoice).toHaveBeenCalledWith(paid.id);
-    }
+    await pressAndSettle(view, copy.cancelCta);
+    expect(onCancelTier).toHaveBeenCalledTimes(1);
   });
 });
 
 describe('business verification and trust', () => {
   const copy = strings.businessVerificationTrust;
+  const check = {
+    id: 'chk',
+    kind: 'identity' as const,
+    idType: 'nin',
+    status: 'verified' as const,
+    maskedId: '•••••••8901',
+    recordName: 'ADAEZE TEST OKAFOR',
+    reasons: [],
+    faceMatch: null,
+    createdAt: '2026-10-14T10:45:00.000Z',
+    reviewedAt: null,
+    reviewNote: null,
+  };
 
-  it('renders the trust badge, score, preview, pillars and perks', async () => {
-    const view = await render(<BusinessVerificationTrustScreen />);
+  it('renders the verified business, its checks and perks', async () => {
+    const view = await render(
+      <BusinessVerificationTrustScreen
+        businessName="Patrick Ventures"
+        branchNames={['Lekki']}
+        status={{
+          status: 'verified',
+          isVerified: true,
+          verifiedAt: '2026-10-14T11:00:00.000Z',
+          nextStep: 'done',
+          identity: check,
+          business: {
+            ...check,
+            id: 'b',
+            kind: 'business',
+            idType: 'cac',
+            maskedId: 'RC1234567',
+          },
+        }}
+      />,
+    );
 
-    expect(view.getByText(copy.headline)).toBeTruthy();
-    // The legal entity also appears in the CAC pillar detail.
-    expect(view.getAllByText(copy.legalEntity).length).toBeGreaterThan(0);
-    expect(view.getByText(copy.levelBadge)).toBeTruthy();
-    expect(view.getByText(copy.trustScoreValue)).toBeTruthy();
-    expect(view.getByText(copy.previewName)).toBeTruthy();
-    verificationPillars.forEach(pillar => {
-      expect(view.getByText(pillar.title)).toBeTruthy();
-      expect(view.getByText(pillar.status)).toBeTruthy();
-    });
-    verificationPerks.forEach(perk => {
+    expect(view.getByText(copy.headlines.verified)).toBeTruthy();
+    expect(view.getAllByText('Patrick Ventures').length).toBeGreaterThan(0);
+    expect(view.getByText(copy.pillarsBadge(3, 3))).toBeTruthy();
+    expect(view.getByText('RC1234567')).toBeTruthy();
+    copy.perks.forEach(perk => {
       expect(view.getByText(perk)).toBeTruthy();
     });
   });
 
-  it('opens a pillar and the compliance contact', async () => {
-    const onOpenPillar = jest.fn();
-    const onContactCompliance = jest.fn();
+  it('offers to start verification and opens it', async () => {
+    const onOpenVerification = jest.fn();
     const view = await render(
       <BusinessVerificationTrustScreen
-        onOpenPillar={onOpenPillar}
-        onContactCompliance={onContactCompliance}
+        status={null}
+        onOpenVerification={onOpenVerification}
       />,
     );
 
-    const cta = verificationPillars.find(pillar => pillar.cta);
-    expect(cta?.cta).toBeTruthy();
-    if (cta?.cta) {
-      await pressAndSettle(view, cta.cta);
-      expect(onOpenPillar).toHaveBeenCalledWith(cta.id);
-    }
+    expect(view.getByText(copy.headlines.unverified)).toBeTruthy();
+    await pressAndSettle(view, copy.startCta);
+    expect(onOpenVerification).toHaveBeenCalledTimes(1);
 
     await pressAndSettle(view, copy.updateCta);
-    expect(onContactCompliance).toHaveBeenCalledTimes(1);
+    expect(onOpenVerification).toHaveBeenCalledTimes(2);
   });
 });
 

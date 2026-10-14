@@ -1,6 +1,5 @@
 import React, { useCallback, useState } from 'react';
 import { Alert, Pressable, View } from 'react-native';
-import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { ProgressDots } from '@components/onboarding/ProgressDots';
 import { BottomSheet } from '@components/shared/BottomSheet';
@@ -23,136 +22,141 @@ import {
   VerificationPage,
 } from '@features/business/components/VerificationPrimitives';
 import { uploadDocument } from '@features/business/utils/uploadBusinessMedia';
-import { useVerifyNin } from '@features/business/hooks/useCatalogueMutations';
+import {
+  useLivenessCheck,
+  useVerifyIdentity,
+} from '@features/business/hooks/useVerification';
+import type { IdentityIdType, VerificationCheck } from '@api/verificationApi';
+import { useAuthStore } from '@store/authStore';
 import { showToast } from '@components/shared/toast';
-import { strings } from '@constants/strings';
 
 export interface IdVerificationScreenProps {
+  idType?: IdentityIdType;
   onBack?: () => void;
-  onSubmit?: (value: {
-    nin: string;
-    fullName: string;
-    slipFile?: string;
-    verificationId?: string;
-  }) => void;
-  onCaptureSlip?: () => void;
+  /** Called with the stored check; route on `check.status`. */
+  onResult?: (check: VerificationCheck) => void;
 }
 
 /**
- * Conversion of stitch_vemtap_design_system_1/id_verification/code.html
+ * Conversion of stitch_vemtap_design_system_1/id_verification/code.html.
+ * Identity check on bytID: ID details + a hosted selfie (liveness) check.
  */
 export function IdVerificationScreen({
+  idType = 'nin',
   onBack,
-  onSubmit,
-  onCaptureSlip,
+  onResult,
 }: IdVerificationScreenProps) {
-  const [nin, setNin] = useState<string>(copy.ninValue);
-  const [fullName, setFullName] = useState<string>(copy.nameValue);
-  const [slipFile, setSlipFile] = useState<string | null>(null);
-  const [slipFileUri, setSlipFileUri] = useState<string | null>(null);
+  const user = useAuthStore(state => state.user);
+  const [idNumber, setIdNumber] = useState('');
+  const [firstName, setFirstName] = useState(user?.firstName ?? '');
+  const [lastName, setLastName] = useState(user?.lastName ?? '');
+  const [livenessSessionId, setLivenessSessionId] = useState<string | null>(null);
+  const [passportUri, setPassportUri] = useState<string | null>(null);
   const [infoVisible, setInfoVisible] = useState(false);
-  const [verifying, setVerifying] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
-  const verifyNin = useVerifyNin();
+  const liveness = useLivenessCheck();
+  const verifyIdentity = useVerifyIdentity();
+  const isPassport = idType === 'passport';
+  const isNin = idType === 'nin';
 
   const handleBack = useCallback(() => onBack?.(), [onBack]);
   const openInfo = useCallback(() => setInfoVisible(true), []);
   const closeInfo = useCallback(() => setInfoVisible(false), []);
 
-  const pickAndUploadSlip = useCallback(async () => {
-    const docResult = await DocumentPicker.getDocumentAsync({
-      type: ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'],
-      copyToCacheDirectory: true,
-    });
+  const startSelfie = useCallback(async () => {
+    try {
+      const result = await liveness.mutateAsync();
+      if (!result.completed) {
+        showToast(copy.selfieIncomplete, 'error');
+        return;
+      }
+      setLivenessSessionId(result.sessionId);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : copy.selfieIncomplete, 'error');
+    }
+  }, [liveness]);
 
-    if (docResult.canceled || !docResult.assets[0]?.uri) return;
-
-    const { uri } = docResult.assets[0];
-    setSlipFile(docResult.assets[0].name ?? 'nin_slip.pdf');
-    setSlipFileUri(uri);
-
-    onCaptureSlip?.();
-  }, [onCaptureSlip]);
-
-  const pickAndUploadSlipImage = useCallback(async () => {
+  const pickPassportPhoto = useCallback(async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
       Alert.alert(copy.photoPermissionTitle, copy.photoPermissionBody);
       return;
     }
-
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [4, 3],
-      quality: 0.8,
+      quality: 0.85,
     });
-
     if (result.canceled || !result.assets[0]?.uri) return;
-
-    const { uri } = result.assets[0];
-    setSlipFile(`nin_slip_${Date.now()}.jpg`);
-    setSlipFileUri(uri);
-
-    onCaptureSlip?.();
-  }, [onCaptureSlip]);
+    setPassportUri(result.assets[0].uri);
+  }, []);
 
   const handleSubmit = useCallback(async () => {
-    if (!nin.trim() || !fullName.trim()) {
-      showToast(strings.common.error, 'error');
+    if (!isPassport && !idNumber.trim()) {
+      showToast(copy.missingNumber, 'error');
       return;
     }
-
-    if (!slipFileUri) {
-      showToast('Please upload your NIN slip first', 'error');
+    if (!firstName.trim() || !lastName.trim()) {
+      showToast(copy.missingName, 'error');
       return;
     }
-
-    setVerifying(true);
+    if (isPassport && !passportUri) {
+      showToast(copy.missingPassport, 'error');
+      return;
+    }
+    if (!livenessSessionId) {
+      showToast(copy.missingSelfie, 'error');
+      return;
+    }
 
     try {
-      // Upload the slip document
-      const documentUrl = await uploadDocument({
-        fileUri: slipFileUri,
-        fileName: slipFile ?? `nin_slip_${Date.now()}.pdf`,
-        mimeType: slipFile?.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg',
-      });
-
-      if (!documentUrl) {
-        throw new Error('Document upload failed');
+      let documentUrl: string | undefined;
+      if (isPassport && passportUri) {
+        setUploading(true);
+        const url = await uploadDocument({
+          fileUri: passportUri,
+          fileName: copy.passportFileName,
+          mimeType: 'image/jpeg',
+        });
+        setUploading(false);
+        if (!url) {
+          showToast(copy.uploadFailed, 'error');
+          return;
+        }
+        documentUrl = url;
       }
 
-      // Verify NIN via Dojah
-      const result = await verifyNin.mutateAsync({
+      const check = await verifyIdentity.mutateAsync({
+        idType,
+        idNumber: isPassport ? undefined : idNumber.replace(/\s+/g, ''),
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        livenessSessionId,
         documentUrl,
-        nin,
-        firstName: fullName.split(' ')[0],
-        lastName: fullName.split(' ').slice(1).join(' ') || fullName,
       });
-
-      if (!result.success) {
-        throw new Error(result.message);
-      }
-
-      showToast('NIN verified successfully', 'success');
-      onSubmit?.({
-        nin,
-        fullName,
-        slipFile: documentUrl,
-        verificationId: result.verificationId,
-      });
+      onResult?.(check);
     } catch (error) {
+      setUploading(false);
       const message = error instanceof Error ? error.message : 'Verification failed';
+      // A used or expired selfie must be taken again.
+      if (/selfie/i.test(message)) setLivenessSessionId(null);
       showToast(message, 'error');
-    } finally {
-      setVerifying(false);
     }
-  }, [nin, fullName, slipFile, slipFileUri, verifyNin, onSubmit]);
+  }, [
+    firstName,
+    idNumber,
+    idType,
+    isPassport,
+    lastName,
+    livenessSessionId,
+    onResult,
+    passportUri,
+    verifyIdentity,
+  ]);
 
-  const removeSlip = useCallback(() => {
-    setSlipFile(null);
-    setSlipFileUri(null);
-  }, []);
+  const submitting = uploading || verifyIdentity.isPending;
 
   return (
     <VerificationPage
@@ -164,8 +168,8 @@ export function IdVerificationScreen({
           <PrimaryActionButton
             label={copy.submit}
             onPress={handleSubmit}
-            loading={verifying}
-            disabled={verifying}
+            loading={submitting}
+            disabled={submitting}
           />
           <VemtapText variant="caption" tone="secondary" className="text-center">
             {copy.submitHint}
@@ -175,12 +179,16 @@ export function IdVerificationScreen({
     >
       <View className="gap-2">
         <View className="flex-row flex-wrap items-center justify-between gap-2">
-          <StatusPill label={copy.pill} tone="brandContainer" icon="verifiedUser" />
+          <StatusPill
+            label={copy.pills[idType]}
+            tone="brandContainer"
+            icon="verifiedUser"
+          />
           <VemtapText variant="caption" tone="tertiary">
             {copy.step}
           </VemtapText>
         </View>
-        <ProgressDots total={3} activeIndex={1} className="self-start" />
+        <ProgressDots total={2} activeIndex={0} className="self-start" />
       </View>
 
       <View className="mt-1 gap-1">
@@ -197,120 +205,153 @@ export function IdVerificationScreen({
       </View>
 
       <View className="mt-1 gap-4">
-        <View className="gap-1.5">
-          <BusinessFieldLabel
-            label={copy.ninLabel}
-            trailing={
-              <View className="flex-row items-center gap-2">
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={copy.ninInfoLabel}
-                  hitSlop={8}
-                  onPress={openInfo}
-                  className="-mr-1 h-8 w-8 items-center justify-center rounded-full active:bg-surface-container-low"
-                >
-                  <Icon name="info" size={16} color={colors.textTertiary} />
-                </Pressable>
-                <VemtapText variant="caption" tone="tertiary">
-                  {copy.ninCounter}
+        {isPassport ? null : (
+          <View className="gap-1.5">
+            <BusinessFieldLabel
+              label={copy.numberLabels[idType]}
+              trailing={
+                isNin ? (
+                  <View className="flex-row items-center gap-2">
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={copy.ninInfoLabel}
+                      hitSlop={8}
+                      onPress={openInfo}
+                      className="-mr-1 h-8 w-8 items-center justify-center rounded-full active:bg-surface-container-low"
+                    >
+                      <Icon name="info" size={16} color={colors.textTertiary} />
+                    </Pressable>
+                    <VemtapText variant="caption" tone="tertiary">
+                      {copy.ninCounter}
+                    </VemtapText>
+                  </View>
+                ) : undefined
+              }
+            />
+            <FieldInput
+              accessibilityLabel={copy.numberLabels[idType]}
+              value={idNumber}
+              onChangeText={setIdNumber}
+              placeholder={copy.numberPlaceholders[idType]}
+              keyboardType={isNin ? 'number-pad' : 'default'}
+              autoCapitalize={isNin ? 'none' : 'characters'}
+              maxLength={isNin ? 11 : 30}
+              tone="lowest"
+            />
+            {isNin ? (
+              <View className="flex-row items-center gap-1.5 px-1 pt-0.5">
+                <Icon name="phoneDevice" size={14} color={colors.primary} />
+                <VemtapText variant="caption" tone="secondary" className="min-w-0 flex-1">
+                  {copy.ussdLead}
+                  <VemtapText className="font-sans-semibold text-primary">
+                    {copy.ussdCode}
+                  </VemtapText>
+                  {copy.ussdTail}
                 </VemtapText>
               </View>
-            }
-          />
-          <FieldInput
-            accessibilityLabel={copy.ninLabel}
-            value={nin}
-            onChangeText={setNin}
-            placeholder={copy.ninPlaceholder}
-            keyboardType="default"
-            autoCapitalize="none"
-            maxLength={14}
-            tone="lowest"
-            trailingIcon={nin ? 'check' : undefined}
-            trailingIconColor={colors.badgeDiscountText}
-          />
-          <View className="flex-row items-center gap-1.5 px-1 pt-0.5">
-            <Icon name="phoneDevice" size={14} color={colors.primary} />
-            <VemtapText variant="caption" tone="secondary" className="min-w-0 flex-1">
-              {copy.ussdLead}
-              <VemtapText className="font-sans-semibold text-primary">
-                {copy.ussdCode}
-              </VemtapText>
-              {copy.ussdTail}
-            </VemtapText>
+            ) : null}
           </View>
-        </View>
+        )}
 
         <View className="gap-1.5">
-          <BusinessFieldLabel label={copy.nameLabel} />
+          <BusinessFieldLabel label={copy.firstNameLabel} />
           <FieldInput
-            accessibilityLabel={copy.nameLabel}
-            value={fullName}
-            onChangeText={setFullName}
+            accessibilityLabel={copy.firstNameLabel}
+            value={firstName}
+            onChangeText={setFirstName}
             autoCapitalize="words"
             tone="lowest"
-            trailingIcon="lock"
-            trailingIconColor={colors.textTertiary}
           />
+        </View>
+        <View className="gap-1.5">
+          <BusinessFieldLabel label={copy.lastNameLabel} />
+          <FieldInput
+            accessibilityLabel={copy.lastNameLabel}
+            value={lastName}
+            onChangeText={setLastName}
+            autoCapitalize="words"
+            tone="lowest"
+          />
+          <VemtapText variant="caption" tone="secondary" className="px-1">
+            {copy.nameHint}
+          </VemtapText>
         </View>
       </View>
 
-      <SetupSectionCard className="w-full">
-        <View className="flex-row items-start gap-3">
-          <View className="h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-surface-tint-blue">
-            <Icon name="badge" size={22} color={colors.primary} />
-          </View>
-          <View className="min-w-0 flex-1">
-            <View className="flex-row flex-wrap items-center gap-1.5">
+      {isPassport ? (
+        <SetupSectionCard className="w-full">
+          <View className="flex-row items-start gap-3">
+            <View className="h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-surface-tint-blue">
+              <Icon name="passport" size={22} color={colors.primary} />
+            </View>
+            <View className="min-w-0 flex-1">
               <VemtapText variant="labelMd" className="min-w-0 font-sans-semibold">
-                {copy.uploadTitle}
+                {copy.passportTitle}
               </VemtapText>
               <VemtapText
                 variant="caption"
                 tone="secondary"
-                className="rounded bg-surface-container px-1.5 py-0.5 uppercase"
+                className="mt-0.5 leading-relaxed"
               >
-                {copy.uploadBadge}
+                {copy.passportBody}
               </VemtapText>
             </View>
+          </View>
+          {passportUri ? (
+            <UploadChip
+              fileName={copy.passportFileName}
+              onRemove={() => setPassportUri(null)}
+              removeLabel={copy.removeFileLabel}
+              icon="checkBold"
+              tone="subtle"
+            />
+          ) : (
+            <Button
+              label={copy.passportAction}
+              labelVariant="labelSm"
+              variant="outline"
+              size="sm"
+              className="border-0 bg-surface-subtle"
+              leftIcon={<Icon name="camera" size={18} color={colors.primary} />}
+              onPress={pickPassportPhoto}
+            />
+          )}
+        </SetupSectionCard>
+      ) : null}
+
+      <SetupSectionCard className="w-full">
+        <View className="flex-row items-start gap-3">
+          <View className="h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-surface-tint-blue">
+            <Icon
+              name={livenessSessionId ? 'checkBold' : 'faceRecognition'}
+              size={22}
+              color={livenessSessionId ? colors.badgeDiscountText : colors.primary}
+            />
+          </View>
+          <View className="min-w-0 flex-1">
+            <VemtapText variant="labelMd" className="min-w-0 font-sans-semibold">
+              {livenessSessionId ? copy.selfieDone : copy.selfieTitle}
+            </VemtapText>
             <VemtapText
               variant="caption"
               tone="secondary"
               className="mt-0.5 leading-relaxed"
             >
-              {copy.uploadBody}
+              {copy.selfieBody}
             </VemtapText>
           </View>
         </View>
-        <View className="flex-row gap-2">
-          <Button
-            label={copy.uploadAction}
-            labelVariant="labelSm"
-            variant="outline"
-            size="sm"
-            className="flex-1 border-0 bg-surface-subtle"
-            leftIcon={<Icon name="fileDocument" size={18} color={colors.primary} />}
-            onPress={pickAndUploadSlip}
-          />
-          <Button
-            label={copy.uploadPhotoAction}
-            labelVariant="labelSm"
-            variant="outline"
-            size="sm"
-            className="flex-1 border-0 bg-surface-subtle"
-            leftIcon={<Icon name="camera" size={18} color={colors.primary} />}
-            onPress={pickAndUploadSlipImage}
-          />
-        </View>
-        {slipFile ? (
-          <UploadChip
-            fileName={slipFile}
-            onRemove={removeSlip}
-            removeLabel={copy.removeFileLabel}
-            icon="checkBold"
-            tone="subtle"
-          />
-        ) : null}
+        <Button
+          label={livenessSessionId ? copy.selfieRetake : copy.selfieAction}
+          labelVariant="labelSm"
+          variant="outline"
+          size="sm"
+          className="border-0 bg-surface-subtle"
+          leftIcon={<Icon name="camera" size={18} color={colors.primary} />}
+          loading={liveness.isPending}
+          disabled={liveness.isPending || submitting}
+          onPress={startSelfie}
+        />
       </SetupSectionCard>
 
       <SetupCallout

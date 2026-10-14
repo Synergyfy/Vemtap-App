@@ -1,6 +1,7 @@
 {
   "name": "Vemtap",
   "slug": "vemtap",
+  "scheme": "vemtap",
   "version": "0.0.1",
   "icon": "./src/assets/images/vemtap-logo-icon.png",
   "orientation": "portrait",
@@ -41,7 +42,8 @@
         "photosPermission": "VEMTAP needs access to your photos so you can send an image to a business you are chatting with.",
         "cameraPermission": "VEMTAP needs the camera so you can send a photo of a voucher or receipt to a business you are chatting with."
       }
-    ]
+    ],
+    "expo-web-browser"
   ],
   "extra": {
     "eas": {

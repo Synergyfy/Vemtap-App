@@ -20,8 +20,24 @@ import {
   VerificationSeal,
   VerificationSummaryRow,
 } from '@features/business/components/VerificationPrimitives';
+import type { BillingPeriod } from '@api/subscriptionsApi';
 
 export interface PaymentSuccessVemtapGrowthScreenProps {
+  /** Paid, but the webhook has not activated the plan yet. */
+  pending?: boolean;
+  planName?: string;
+  /** Formatted price for the billing period, e.g. "₦15,000". */
+  price?: string | null;
+  billingPeriod?: BillingPeriod;
+  reference?: string | null;
+  paidOn?: string | null;
+  nextBilling?: string | null;
+  /** e.g. "Visa •••• 4081". */
+  cardLabel?: string | null;
+  features?: string[];
+  businessName?: string | null;
+  logoUrl?: string | null;
+  branchNames?: string[];
   onGoToDashboard?: () => void;
   onExploreFeatures?: () => void;
   onDownloadInvoice?: () => void;
@@ -35,6 +51,18 @@ export interface PaymentSuccessVemtapGrowthScreenProps {
  * header-less by design.
  */
 export function PaymentSuccessVemtapGrowthScreen({
+  pending = false,
+  planName = '',
+  price,
+  billingPeriod = 'monthly',
+  reference,
+  paidOn,
+  nextBilling,
+  cardLabel,
+  features = [],
+  businessName,
+  logoUrl,
+  branchNames = [],
   onGoToDashboard,
   onExploreFeatures,
   onDownloadInvoice,
@@ -88,25 +116,28 @@ export function PaymentSuccessVemtapGrowthScreen({
           className="mb-3"
         />
         <View className="mb-1">
-          <StatusPill label={copy.statusBadge} tone="brandContainer" />
+          <StatusPill
+            label={pending ? copy.pendingBadge : copy.statusBadge}
+            tone="brandContainer"
+          />
         </View>
         <VemtapText
           accessibilityRole="header"
           variant="headingLg"
           className="text-center text-heading-lg"
         >
-          {copy.title}
+          {pending ? copy.pendingTitle : `${copy.titleLead}${planName}`}
         </VemtapText>
         <VemtapText variant="bodyMd" tone="secondary" className="max-w-xs text-center">
-          {copy.subtitle}
+          {pending ? copy.pendingSubtitle : copy.subtitle}
         </VemtapText>
       </View>
 
       <View className="flex-row items-center gap-3.5 rounded-card bg-surface-subtle p-3 shadow-sm">
         <View className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-surface-container">
           <BusinessProductImage
-            source={{ uri: verificationImages.successStorefront }}
-            alt={copy.storeName}
+            source={{ uri: logoUrl ?? verificationImages.successStorefront }}
+            alt={businessName ?? ''}
             className="h-full w-full"
           />
           <LinearGradient
@@ -123,7 +154,7 @@ export function PaymentSuccessVemtapGrowthScreen({
               className="min-w-0 flex-1 font-sans-semibold"
               numberOfLines={1}
             >
-              {copy.storeName}
+              {businessName ?? ''}
             </VemtapText>
             <Icon name="checkCircle" size={16} color={colors.primary} />
           </View>
@@ -142,7 +173,7 @@ export function PaymentSuccessVemtapGrowthScreen({
             {copy.locationsLabel}
           </VemtapText>
           <VemtapText variant="labelMd" className="font-sans-semibold">
-            {copy.locationsValue}
+            {`${branchNames.length}${copy.activeTail}`}
           </VemtapText>
         </View>
       </View>
@@ -153,7 +184,7 @@ export function PaymentSuccessVemtapGrowthScreen({
             <View className="flex-row items-center gap-1.5">
               <Icon name="crown" size={18} color={colors.primary} />
               <VemtapText variant="labelMd" className="font-sans-semibold">
-                {copy.planName}
+                {planName}
               </VemtapText>
             </View>
             <VemtapText variant="caption" tone="secondary">
@@ -162,10 +193,10 @@ export function PaymentSuccessVemtapGrowthScreen({
           </View>
           <View className="shrink-0 items-end">
             <VemtapText variant="headingLg" className="text-heading-lg">
-              {copy.planPrice}
+              {price ?? ''}
             </VemtapText>
             <VemtapText variant="caption" tone="secondary">
-              {copy.planCycle}
+              {copy.cycles[billingPeriod]}
             </VemtapText>
           </View>
         </View>
@@ -184,84 +215,72 @@ export function PaymentSuccessVemtapGrowthScreen({
             variant="caption"
             className="font-sans-semibold uppercase tracking-wider text-badge-discount-text"
           >
-            {copy.ribbonBadge}
+            {copy.ribbonBadges[billingPeriod]}
           </VemtapText>
         </View>
 
         <View className="gap-3 pt-1">
-          <VerificationSummaryRow
-            label={copy.transactionIdLabel}
-            value={copy.transactionId}
-          />
-          <VerificationSummaryRow
-            label={copy.locationsRowLabel}
-            value={copy.locationsRowValue}
-          />
-          <VerificationSummaryRow label={copy.paidOnLabel} value={copy.paidOn} />
-          <VerificationSummaryRow
-            label={copy.nextBillingLabel}
-            value={copy.nextBilling}
-          />
-          <VerificationSummaryRow
-            label={copy.methodLabel}
-            value={copy.methodValue}
-            trailing={
-              <View className="h-4 w-6 items-center justify-center rounded bg-surface-container px-1">
-                <VemtapText
-                  variant="micro"
-                  className="font-sans-bold tracking-tight text-primary"
-                >
-                  {copy.methodBrand}
-                </VemtapText>
-              </View>
-            }
-          />
+          {reference ? (
+            <VerificationSummaryRow label={copy.transactionIdLabel} value={reference} />
+          ) : null}
+          {branchNames.length ? (
+            <VerificationSummaryRow
+              label={copy.locationsRowLabel}
+              value={branchNames.join(' & ')}
+            />
+          ) : null}
+          {paidOn ? (
+            <VerificationSummaryRow label={copy.paidOnLabel} value={paidOn} />
+          ) : null}
+          {nextBilling ? (
+            <VerificationSummaryRow label={copy.nextBillingLabel} value={nextBilling} />
+          ) : null}
+          {cardLabel ? (
+            <VerificationSummaryRow label={copy.methodLabel} value={cardLabel} />
+          ) : null}
         </View>
 
-        <View className="items-center pt-1">
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={copy.invoiceAction}
-            onPress={onDownloadInvoice}
-            className="min-h-9 flex-row items-center gap-1 active:opacity-75"
-          >
-            <Icon name="receipt" size={16} color={colors.primary} />
-            <VemtapText variant="labelSm" className="font-sans-semibold text-primary">
-              {copy.invoiceAction}
+        {onDownloadInvoice ? (
+          <View className="items-center pt-1">
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={copy.invoiceAction}
+              onPress={onDownloadInvoice}
+              className="min-h-9 flex-row items-center gap-1 active:opacity-75"
+            >
+              <Icon name="receipt" size={16} color={colors.primary} />
+              <VemtapText variant="labelSm" className="font-sans-semibold text-primary">
+                {copy.invoiceAction}
+              </VemtapText>
+            </Pressable>
+          </View>
+        ) : null}
+      </SetupSectionCard>
+
+      {features.length && !pending ? (
+        <SetupSectionCard className="w-full">
+          <View className="flex-row flex-wrap items-center justify-between gap-2">
+            <VemtapText variant="labelMd" className="font-sans-semibold tracking-tight">
+              {copy.benefitsTitle}
             </VemtapText>
-          </Pressable>
-        </View>
-      </SetupSectionCard>
-
-      <SetupSectionCard className="w-full">
-        <View className="flex-row flex-wrap items-center justify-between gap-2">
-          <VemtapText variant="labelMd" className="font-sans-semibold tracking-tight">
-            {copy.benefitsTitle}
-          </VemtapText>
-          <StatusPill label={copy.benefitsBadge} tone="brand" />
-        </View>
-        <View className="gap-3">
-          {copy.benefits.map(benefit => (
-            <View key={benefit.label} className="flex-row items-start gap-3">
-              <View className="h-7 w-7 shrink-0 items-center justify-center rounded-full bg-badge-discount-bg">
-                <Icon name="check" size={16} color={colors.badgeDiscountText} />
+            <StatusPill label={copy.benefitsBadge} tone="brand" />
+          </View>
+          <View className="gap-3">
+            {features.map(benefit => (
+              <View key={benefit} className="flex-row items-start gap-3">
+                <View className="h-7 w-7 shrink-0 items-center justify-center rounded-full bg-badge-discount-bg">
+                  <Icon name="check" size={16} color={colors.badgeDiscountText} />
+                </View>
+                <View className="min-w-0 flex-1">
+                  <VemtapText variant="labelMd" className="font-sans-medium">
+                    {benefit}
+                  </VemtapText>
+                </View>
               </View>
-              <View className="min-w-0 flex-1">
-                <VemtapText variant="labelMd" className="font-sans-medium">
-                  {benefit.label}
-                </VemtapText>
-                <VemtapText
-                  variant="caption"
-                  tone="secondary"
-                  className="mt-0.5 leading-snug"
-                >
-                  {benefit.meta}
-                </VemtapText>
-              </View>
-            </View>
-          ))}
-        </View>
-      </SetupSectionCard>
+            ))}
+          </View>
+        </SetupSectionCard>
+      ) : null}
     </VerificationPage>
   );
 }

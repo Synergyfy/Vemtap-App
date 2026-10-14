@@ -1,10 +1,12 @@
 import React from 'react';
-import { Pressable, View } from 'react-native';
+import { ActivityIndicator, Pressable, View } from 'react-native';
+import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
 import { colors } from '@theme/colors';
 import {
+  BusinessActionDock,
   BusinessScreenLayout,
   BusinessStatusPill,
 } from '@features/business/components/BusinessPrimitives';
@@ -16,33 +18,77 @@ import {
   BusinessInitialsAvatar,
   BusinessPillar,
 } from '@features/business/components/BusinessPosPrimitives';
+import type { VerificationCheck, VerificationStatus } from '@api/verificationApi';
 import {
-  verificationPerks,
-  verificationPillars,
-} from '@features/business/data/businessTrustSettingsData';
+  displayName,
+  formatDay,
+  idTypeLabel,
+} from '@features/business/verificationDisplay';
 
 const copy = strings.businessVerificationTrust;
 
 export interface BusinessVerificationTrustScreenProps {
+  status?: VerificationStatus | null;
+  businessName?: string | null;
+  /** City or area shown on the feed preview. */
+  location?: string | null;
+  branchNames?: string[];
+  loading?: boolean;
+  error?: boolean;
   onBack?: () => void;
   onOpenProfile?: () => void;
-  onOpenPillar?: (pillarId: string) => void;
-  onOpenCertificate?: (pillarId: string) => void;
-  onContactCompliance?: () => void;
+  /** Start, continue or review verification. */
+  onOpenVerification?: () => void;
+  onManageLocations?: () => void;
+}
+
+function initialsOf(name: string | null | undefined): string {
+  return (name ?? '')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(part => part[0].toUpperCase())
+    .join('');
+}
+
+function checkStatus(check: VerificationCheck | null): string {
+  return check ? (copy.checkStatus[check.status] ?? check.status) : copy.notStarted;
 }
 
 /**
- * Verification & trust: enterprise trust badge, trust score, the consumer-feed
- * preview customers actually see, the four verification pillars and the perks
- * unlocking them unlocks.
+ * Verification & trust: the verification state from `GET /verification/status`,
+ * how the business appears in customer feeds, and the checks behind the badge.
  */
 export function BusinessVerificationTrustScreen({
+  status,
+  businessName,
+  location,
+  branchNames = [],
+  loading = false,
+  error = false,
   onBack,
   onOpenProfile,
-  onOpenPillar,
-  onOpenCertificate,
-  onContactCompliance,
+  onOpenVerification,
+  onManageLocations,
 }: BusinessVerificationTrustScreenProps) {
+  const overall = status?.status ?? 'unverified';
+  const isVerified = overall === 'verified';
+  const identity = status?.identity ?? null;
+  const business = status?.business ?? null;
+  const pillarsDone = [
+    identity?.status === 'verified',
+    business?.status === 'verified' || isVerified,
+    branchNames.length > 0,
+  ].filter(Boolean).length;
+  const checksDone = [identity?.status === 'verified', isVerified].filter(Boolean).length;
+  const verifiedOn = formatDay(status?.verifiedAt);
+  const ctaLabel =
+    overall === 'unverified'
+      ? copy.startCta
+      : overall === 'in_progress' || overall === 'rejected'
+        ? copy.continueCta
+        : copy.viewStatusCta;
+
   return (
     <BusinessScreenLayout
       header={{
@@ -53,169 +99,257 @@ export function BusinessVerificationTrustScreen({
         ],
       }}
       contentContainerClassName="pb-8"
-    >
-      <View className="items-center gap-2 rounded-card bg-surface p-4 shadow-sm">
-        <View className="h-12 w-12 items-center justify-center rounded-full bg-badge-discount-bg">
-          <Icon name="shieldLock" size={26} color={colors.badgeDiscountText} />
-        </View>
-        <VemtapText
-          variant="headingLg"
-          className="text-center text-heading-lg"
-          numberOfLines={2}
-        >
-          {copy.headline}
-        </VemtapText>
-        <VemtapText
-          variant="bodyMd"
-          className="text-center font-sans-semibold"
-          numberOfLines={2}
-        >
-          {copy.legalEntity}
-        </VemtapText>
-        <BusinessStatusPill label={copy.levelBadge} tone="success" />
-      </View>
-
-      <View className="mt-3 flex-row items-center gap-3 rounded-card bg-surface p-4 shadow-sm">
-        <View className="min-w-0 flex-1">
-          <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-            {copy.trustScoreLabel}
-          </VemtapText>
-          <VemtapText
-            variant="headingLg"
-            className="font-sans-bold text-primary"
-            numberOfLines={1}
-          >
-            {copy.trustScoreValue}
-          </VemtapText>
-        </View>
-        <View className="min-w-0 flex-[1.2] items-end gap-1">
-          <Icon name="checkCircle" size={18} color={colors.badgeDiscountText} />
-          <VemtapText
-            variant="caption"
-            tone="secondary"
-            className="text-right"
-            numberOfLines={2}
-          >
-            {copy.trustScoreNote}
-          </VemtapText>
-        </View>
-      </View>
-
-      <BusinessPanel
-        className="mt-3"
-        title={copy.previewTitle}
-        icon="radar"
-        badge={copy.previewStatus}
-        badgeTone="success"
-      >
-        <View className="flex-row items-center gap-3 rounded-field bg-surface-subtle p-3">
-          <BusinessInitialsAvatar
-            initials={copy.previewInitials}
-            size="lg"
-            tone="brand"
+      footer={
+        <BusinessActionDock>
+          <Button
+            label={ctaLabel}
+            labelVariant="labelMd"
+            onPress={onOpenVerification}
+            leftIcon={<Icon name="verifiedUser" size={18} color={colors.surface} />}
           />
-          <View className="min-w-0 flex-1 gap-0.5">
-            <View className="flex-row items-center gap-1.5">
-              <VemtapText
-                variant="labelMd"
-                className="min-w-0 font-sans-semibold"
-                numberOfLines={1}
-              >
-                {copy.previewName}
-              </VemtapText>
-              <Icon name="verified" size={15} color={colors.primary} />
+        </BusinessActionDock>
+      }
+    >
+      {loading ? (
+        <View className="items-center py-10">
+          <ActivityIndicator color={colors.primary} />
+        </View>
+      ) : error ? (
+        <View className="items-center gap-1 rounded-card bg-surface p-6 shadow-sm">
+          <VemtapText variant="labelMd" className="font-sans-semibold">
+            {copy.error.title}
+          </VemtapText>
+          <VemtapText variant="caption" tone="secondary" className="text-center">
+            {copy.error.body}
+          </VemtapText>
+        </View>
+      ) : (
+        <>
+          <View className="items-center gap-2 rounded-card bg-surface p-4 shadow-sm">
+            <View
+              className={`h-12 w-12 items-center justify-center rounded-full ${
+                isVerified ? 'bg-badge-discount-bg' : 'bg-surface-tint'
+              }`}
+            >
+              <Icon
+                name={isVerified ? 'shieldLock' : 'shieldPerson'}
+                size={26}
+                color={isVerified ? colors.badgeDiscountText : colors.primary}
+              />
             </View>
-            <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-              {copy.previewPartner}
+            <VemtapText
+              variant="headingLg"
+              className="text-center text-heading-lg"
+              numberOfLines={2}
+            >
+              {copy.headlines[overall]}
             </VemtapText>
-            <View className="flex-row items-center gap-1">
-              <View className="h-1.5 w-1.5 rounded-full bg-outline" />
+            {businessName ? (
               <VemtapText
-                variant="caption"
-                tone="tertiary"
-                className="min-w-0 flex-1"
+                variant="bodyMd"
+                className="text-center font-sans-semibold"
+                numberOfLines={2}
+              >
+                {businessName}
+              </VemtapText>
+            ) : null}
+            <BusinessStatusPill
+              label={copy.badges[overall]}
+              tone={isVerified ? 'success' : 'neutral'}
+            />
+            {verifiedOn ? (
+              <VemtapText variant="caption" tone="secondary">
+                {copy.verifiedOn(verifiedOn)}
+              </VemtapText>
+            ) : null}
+          </View>
+
+          <View className="mt-3 flex-row items-center gap-3 rounded-card bg-surface p-4 shadow-sm">
+            <View className="min-w-0 flex-1">
+              <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
+                {copy.progressLabel}
+              </VemtapText>
+              <VemtapText
+                variant="headingLg"
+                className="font-sans-bold text-primary"
                 numberOfLines={1}
               >
-                {copy.previewLocations}
+                {copy.progressValue(checksDone, 2)}
               </VemtapText>
             </View>
-          </View>
-        </View>
-      </BusinessPanel>
-
-      <BusinessPanel
-        className="mt-3"
-        title={copy.pillarsTitle}
-        icon="verified"
-        badge={copy.pillarsBadge}
-        badgeTone="success"
-      >
-        <View className="gap-2">
-          {verificationPillars.map(pillar => (
-            <BusinessPillar
-              key={pillar.id}
-              title={pillar.title}
-              status={pillar.status}
-              icon={pillar.icon}
-              lines={pillar.lines}
-              detail={pillar.detail}
-              cta={pillar.cta}
-              onCtaPress={() => {
-                if (pillar.cta) onOpenCertificate?.(pillar.id);
-                onOpenPillar?.(pillar.id);
-              }}
-            />
-          ))}
-        </View>
-      </BusinessPanel>
-
-      <BusinessPanel
-        className="mt-3"
-        title={copy.perksTitle}
-        icon="workspacePremium"
-        badge={String(verificationPerks.length)}
-        badgeTone="brand"
-      >
-        <View className="gap-2">
-          {verificationPerks.map(perk => (
-            <View key={perk} className="flex-row items-start gap-2">
-              <Icon name="checkBold" size={15} color={colors.badgeDiscountText} />
+            <View className="min-w-0 flex-[1.2] items-end gap-1">
+              <Icon
+                name={isVerified ? 'checkCircle' : 'pendingActions'}
+                size={18}
+                color={isVerified ? colors.badgeDiscountText : colors.primary}
+              />
               <VemtapText
                 variant="caption"
                 tone="secondary"
-                className="min-w-0 flex-1 leading-relaxed"
-                numberOfLines={3}
+                className="text-right"
+                numberOfLines={2}
               >
-                {perk}
+                {copy.progressNotes[overall]}
               </VemtapText>
             </View>
-          ))}
-        </View>
-      </BusinessPanel>
+          </View>
 
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={copy.updateCta}
-        onPress={onContactCompliance}
-        className="mt-3 flex-row items-center gap-2.5 rounded-card bg-surface p-3 shadow-sm active:bg-surface-subtle"
-      >
-        <BusinessIconWell icon="info" tone="brand" size="md" />
-        <View className="min-w-0 flex-1">
-          <VemtapText variant="labelMd" className="font-sans-semibold" numberOfLines={2}>
-            {copy.updateTitle}
-          </VemtapText>
-          <VemtapText
-            variant="caption"
-            className="font-sans-semibold text-primary"
-            numberOfLines={2}
+          <BusinessPanel
+            className="mt-3"
+            title={copy.previewTitle}
+            icon="radar"
+            badge={copy.previewLive}
+            badgeTone="success"
           >
-            {copy.updateCta}
-          </VemtapText>
-        </View>
-        <View className="shrink-0">
-          <Icon name="forward" size={18} color={colors.primary} />
-        </View>
-      </Pressable>
+            <View className="flex-row items-center gap-3 rounded-field bg-surface-subtle p-3">
+              <BusinessInitialsAvatar
+                initials={initialsOf(businessName)}
+                size="lg"
+                tone="brand"
+              />
+              <View className="min-w-0 flex-1 gap-0.5">
+                <View className="flex-row items-center gap-1.5">
+                  <VemtapText
+                    variant="labelMd"
+                    className="min-w-0 font-sans-semibold"
+                    numberOfLines={1}
+                  >
+                    {businessName ?? ''}
+                  </VemtapText>
+                  {isVerified ? (
+                    <Icon name="verified" size={15} color={colors.primary} />
+                  ) : null}
+                </View>
+                <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
+                  {isVerified ? copy.previewVerified : copy.previewUnverified}
+                </VemtapText>
+                {location ? (
+                  <View className="flex-row items-center gap-1">
+                    <View className="h-1.5 w-1.5 rounded-full bg-outline" />
+                    <VemtapText
+                      variant="caption"
+                      tone="tertiary"
+                      className="min-w-0 flex-1"
+                      numberOfLines={1}
+                    >
+                      {location}
+                    </VemtapText>
+                  </View>
+                ) : null}
+              </View>
+            </View>
+          </BusinessPanel>
+
+          <BusinessPanel
+            className="mt-3"
+            title={copy.pillarsTitle}
+            icon="verified"
+            badge={copy.pillarsBadge(pillarsDone, 3)}
+            badgeTone={pillarsDone === 3 ? 'success' : 'neutral'}
+          >
+            <View className="gap-2">
+              <BusinessPillar
+                title={copy.identityTitle}
+                icon="badge"
+                status={checkStatus(identity)}
+                state={identity?.status === 'verified' ? 'done' : 'pending'}
+                lines={
+                  identity
+                    ? [
+                        displayName(identity.recordName),
+                        `${idTypeLabel(identity.idType)}${identity.maskedId ? ` ${identity.maskedId}` : ''}`,
+                      ].filter((line): line is string => Boolean(line))
+                    : []
+                }
+              />
+              <BusinessPillar
+                title={copy.businessTitle}
+                icon="accountBalance"
+                status={checkStatus(business)}
+                state={business?.status === 'verified' || isVerified ? 'done' : 'pending'}
+                lines={
+                  !business
+                    ? []
+                    : business.idType === 'unregistered'
+                      ? [copy.unregistered]
+                      : [business.maskedId, displayName(business.recordName)].filter(
+                          (line): line is string => Boolean(line),
+                        )
+                }
+              />
+              <BusinessPillar
+                title={copy.storefrontTitle}
+                icon="storefront"
+                status={
+                  branchNames.length
+                    ? copy.branchesActive(branchNames.length)
+                    : copy.noBranches
+                }
+                state={branchNames.length ? 'done' : 'pending'}
+                lines={branchNames.length ? [branchNames.join(' • ')] : []}
+                cta={onManageLocations ? copy.manageLocationsCta : undefined}
+                onCtaPress={onManageLocations}
+              />
+            </View>
+          </BusinessPanel>
+
+          <BusinessPanel
+            className="mt-3"
+            title={copy.perksTitle}
+            icon="workspacePremium"
+            badge={String(copy.perks.length)}
+            badgeTone="brand"
+          >
+            <View className="gap-2">
+              {copy.perks.map(perk => (
+                <View key={perk} className="flex-row items-start gap-2">
+                  <Icon
+                    name={isVerified ? 'checkBold' : 'lock'}
+                    size={15}
+                    color={isVerified ? colors.badgeDiscountText : colors.textTertiary}
+                  />
+                  <VemtapText
+                    variant="caption"
+                    tone="secondary"
+                    className="min-w-0 flex-1 leading-relaxed"
+                    numberOfLines={3}
+                  >
+                    {perk}
+                  </VemtapText>
+                </View>
+              ))}
+            </View>
+          </BusinessPanel>
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={copy.updateCta}
+            onPress={onOpenVerification}
+            className="mt-3 flex-row items-center gap-2.5 rounded-card bg-surface p-3 shadow-sm active:bg-surface-subtle"
+          >
+            <BusinessIconWell icon="info" tone="brand" size="md" />
+            <View className="min-w-0 flex-1">
+              <VemtapText
+                variant="labelMd"
+                className="font-sans-semibold"
+                numberOfLines={2}
+              >
+                {copy.updateTitle}
+              </VemtapText>
+              <VemtapText
+                variant="caption"
+                className="font-sans-semibold text-primary"
+                numberOfLines={2}
+              >
+                {copy.updateCta}
+              </VemtapText>
+            </View>
+            <View className="shrink-0">
+              <Icon name="forward" size={18} color={colors.primary} />
+            </View>
+          </Pressable>
+        </>
+      )}
     </BusinessScreenLayout>
   );
 }

@@ -33,7 +33,18 @@ export function matchSegment(
  * link) means "mark it read and stay put", not "navigate somewhere wrong".
  */
 export type NotificationTarget =
-  { kind: 'order'; id: string } | { kind: 'message'; id: string };
+  | { kind: 'order'; id: string }
+  | { kind: 'message'; id: string }
+  /** Trial ending / ended (`/business/subscribe`): business plan screens. */
+  | { kind: 'plan' }
+  /** Verification outcome (`/business/verification`): the status centre. */
+  | { kind: 'verification' };
+
+/** Exact app paths the backend writes for business-only destinations. */
+const BUSINESS_PATHS: Record<string, NotificationTarget> = {
+  '/business/subscribe': { kind: 'plan' },
+  '/business/verification': { kind: 'verification' },
+};
 
 /**
  * Resolve an `actionUrl` to a navigation intent.
@@ -53,5 +64,6 @@ export function resolveNotificationUrl(
   if (threadId) {
     return { kind: 'message', id: threadId };
   }
-  return undefined;
+  const path = (actionUrl ?? '').split(/[?#]/)[0].replace(/\/$/, '');
+  return BUSINESS_PATHS[path];
 }

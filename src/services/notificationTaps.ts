@@ -32,7 +32,13 @@ let unsubscribe: (() => void) | null = null;
  * no-op.
  */
 function hasRootRoute(name: string): boolean {
-  const routes = navigationRef?.getRootState?.()?.routes;
+  const state = navigationRef?.getRootState?.();
+  // The business setup flow is registered for every session but is only in
+  // the history once opened, so its presence is checked by name.
+  if (name === 'BusinessSetup') {
+    return Array.isArray(state?.routeNames) && state.routeNames.includes(name);
+  }
+  const routes = state?.routes;
   return Array.isArray(routes) && routes.some(route => route.name === name);
 }
 
@@ -43,6 +49,7 @@ function tryNavigate(url: string): Outcome {
   if (!target) return 'dropped';
 
   const route = routeFromTarget(target);
+  if (!route) return 'dropped';
 
   if (navigationRef?.isReady?.() && hasRootRoute(route.name)) {
     // `navigate` is generic over the param list, so a union of two differently
@@ -125,6 +132,20 @@ function park(url: string) {
  */
 function routeFromTarget(target: NonNullable<ReturnType<typeof resolveNotificationUrl>>) {
   const mode = useAuthStore.getState().activeMode;
+
+  // Plan and verification links only exist on the business side.
+  if (target.kind === 'plan' || target.kind === 'verification') {
+    if (mode !== 'business') return null;
+    return {
+      name: 'BusinessSetup' as const,
+      params: {
+        screen:
+          target.kind === 'plan'
+            ? ('BusinessPlanTrialOverview' as const)
+            : ('BusinessVerificationStatusCenter' as const),
+      },
+    };
+  }
 
   if (mode === 'business') {
     if (target.kind === 'order') {

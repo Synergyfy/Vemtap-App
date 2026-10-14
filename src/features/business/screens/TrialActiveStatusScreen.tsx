@@ -15,8 +15,15 @@ import {
   PlanFeatureRow,
   VerificationPage,
 } from '@features/business/components/VerificationPrimitives';
+import type { TrialProgress } from '@features/business/subscriptionDisplay';
 
 export interface TrialActiveStatusScreenProps {
+  planName?: string;
+  /** Formatted monthly price, e.g. "₦15,000". */
+  monthlyPrice?: string | null;
+  reference?: string | null;
+  progress?: TrialProgress;
+  features?: string[];
   onBack?: () => void;
   onExploreDashboard?: () => void;
   onSubscribeNow?: () => void;
@@ -28,6 +35,11 @@ export interface TrialActiveStatusScreenProps {
  * stitch_vemtap_design_system_1/trial_active_status/code.html
  */
 export function TrialActiveStatusScreen({
+  planName = '',
+  monthlyPrice,
+  reference,
+  progress,
+  features = [],
   onBack,
   onExploreDashboard,
   onSubscribeNow,
@@ -54,9 +66,11 @@ export function TrialActiveStatusScreen({
             {copy.liveBadge}
           </VemtapText>
         </View>
-        <VemtapText variant="caption" tone="tertiary">
-          {copy.subscriptionId}
-        </VemtapText>
+        {reference ? (
+          <VemtapText variant="caption" tone="tertiary">
+            {`${copy.idLead}${reference}`}
+          </VemtapText>
+        ) : null}
       </View>
 
       <View className="gap-1">
@@ -65,29 +79,29 @@ export function TrialActiveStatusScreen({
           variant="headingLg"
           className="text-heading-lg"
         >
-          {copy.title}
+          {`${planName}${copy.titleTail}`}
         </VemtapText>
         <VemtapText variant="bodyMd" tone="secondary">
-          {copy.subtitle}
+          {`${copy.subtitleLead}${planName}${copy.subtitleTail}`}
         </VemtapText>
       </View>
 
       <DaysRemainingTile
         label={copy.timelineLabel}
-        days={23}
+        days={progress?.daysRemaining ?? 0}
         unit={copy.daysRemaining}
         icon="hourglass"
-        progress={23.33}
-        progressLeft={copy.usedLabel}
-        progressRight={copy.elapsedLabel}
-        footerLeft={copy.startedLabel}
-        footerRight={copy.endsLabel}
+        progress={progress?.percentElapsed ?? 0}
+        progressLeft={`${copy.usedLead}${progress?.daysUsed ?? 0}${copy.usedMid}${progress?.totalDays ?? 0}${copy.usedTail}`}
+        progressRight={`${progress?.percentElapsed ?? 0}${copy.elapsedTail}`}
+        footerLeft={progress?.startedOn ?? ''}
+        footerRight={progress?.endsOn ?? ''}
       />
 
       <View className="gap-3">
         <PrimaryActionButton label={copy.exploreDashboard} onPress={onExploreDashboard} />
         <Button
-          label={copy.subscribeNow}
+          label={`${copy.subscribeNowLead}${planName}${monthlyPrice ? ` (${monthlyPrice}/mo)` : ''}`}
           labelVariant="labelMd"
           variant="secondary"
           className="border-0"
@@ -96,26 +110,23 @@ export function TrialActiveStatusScreen({
         />
       </View>
 
-      <View className="gap-3">
-        <View className="flex-row flex-wrap items-center justify-between gap-2">
-          <VemtapText variant="labelMd" className="font-sans-semibold">
-            {copy.includesTitle}
-          </VemtapText>
-          <VemtapText variant="caption" tone="tertiary">
-            {copy.includesBadge}
-          </VemtapText>
+      {features.length ? (
+        <View className="gap-3">
+          <View className="flex-row flex-wrap items-center justify-between gap-2">
+            <VemtapText variant="labelMd" className="font-sans-semibold">
+              {copy.includesTitle}
+            </VemtapText>
+            <VemtapText variant="caption" tone="tertiary">
+              {copy.includesBadge}
+            </VemtapText>
+          </View>
+          <SetupSectionCard tone="subtle" className="w-full">
+            {features.map(feature => (
+              <PlanFeatureRow key={feature} label={feature} state="highlighted" />
+            ))}
+          </SetupSectionCard>
         </View>
-        <SetupSectionCard tone="subtle" className="w-full">
-          {copy.includes.map(feature => (
-            <PlanFeatureRow
-              key={feature.label}
-              label={feature.label}
-              meta={feature.meta ?? undefined}
-              state="highlighted"
-            />
-          ))}
-        </SetupSectionCard>
-      </View>
+      ) : null}
 
       <SetupCallout
         icon="bellRing"

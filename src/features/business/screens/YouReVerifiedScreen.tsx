@@ -1,3 +1,4 @@
+import type { IconName } from '@components/ui/Icon';
 import React, { useCallback } from 'react';
 import { View } from 'react-native';
 import { Icon } from '@components/ui/Icon';
@@ -20,7 +21,20 @@ import {
   VerificationSeal,
 } from '@features/business/components/VerificationPrimitives';
 
+export interface YouReVerifiedPillar {
+  icon: IconName;
+  title: string;
+  tag: string;
+  body: string;
+  done: boolean;
+}
+
 export interface YouReVerifiedScreenProps {
+  businessName?: string | null;
+  logoUrl?: string | null;
+  /** e.g. "Lagos • Restaurant". */
+  previewMeta?: string | null;
+  pillars?: YouReVerifiedPillar[];
   onBack?: () => void;
   onContinue?: () => void;
   onPreviewStorefront?: () => void;
@@ -32,6 +46,10 @@ export interface YouReVerifiedScreenProps {
  * stitch_vemtap_design_system_1/you_re_verified/code.html
  */
 export function YouReVerifiedScreen({
+  businessName,
+  logoUrl,
+  previewMeta,
+  pillars = [],
   onBack,
   onContinue,
   onPreviewStorefront,
@@ -43,7 +61,7 @@ export function YouReVerifiedScreen({
     <>
       {copy.subtitleLead}
       <VemtapText variant="labelMd" className="text-text">
-        {copy.businessName}
+        {businessName ?? ''}
       </VemtapText>
       {copy.subtitleTail}
     </>
@@ -122,12 +140,12 @@ export function YouReVerifiedScreen({
               variant="labelSm"
               className="font-sans-semibold text-badge-discount-text"
             >
-              {copy.confirmed}
+              {`${pillars.filter(pillar => pillar.done).length} / ${pillars.length}${copy.confirmedOf}`}
             </VemtapText>
           </View>
         </View>
         <View className="gap-3">
-          {copy.pillars.map(pillar => (
+          {pillars.map(pillar => (
             <VerificationPillarRow
               key={pillar.title}
               icon={pillar.icon}
@@ -142,8 +160,8 @@ export function YouReVerifiedScreen({
         <View className="pt-3">
           <View className="flex-row items-center gap-3 rounded-card bg-surface-container-low p-2">
             <BusinessProductImage
-              source={{ uri: verificationImages.verifiedStorefront }}
-              alt={copy.previewName}
+              source={{ uri: logoUrl ?? verificationImages.verifiedStorefront }}
+              alt={businessName ?? ''}
               className="h-14 w-14 shrink-0 rounded-lg shadow-sm"
             />
             <View className="min-w-0 flex-1">
@@ -153,12 +171,12 @@ export function YouReVerifiedScreen({
                   className="min-w-0 flex-1 font-sans-semibold"
                   numberOfLines={1}
                 >
-                  {copy.previewName}
+                  {businessName ?? ''}
                 </VemtapText>
                 <Icon name="verified" size={16} color={colors.primary} />
               </View>
               <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-                {copy.previewMeta}
+                {previewMeta ?? ''}
               </VemtapText>
               <VemtapText
                 variant="caption"
