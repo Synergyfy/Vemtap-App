@@ -82,12 +82,13 @@ export function AddProductBranchAvailabilityScreen({
   const [preparationWindow, setPreparationWindow] = useState('20-30');
 
   const branchesQuery = useBusinessBranches();
+  const availableBranches = branchesQuery.data ?? productBranches;
   const defaultBranchIds = useMemo(
-    () => (branchesQuery.data ?? []).slice(0, 2).map(branch => branch.id),
-    [branchesQuery.data],
+    () => availableBranches.slice(0, 2).map(branch => branch.id),
+    [availableBranches],
   );
   const selectedBranchIds = selectedOverride ?? defaultBranchIds;
-  const shownBranches = (branchesQuery.data ?? productBranches).map(branch => ({
+  const shownBranches = availableBranches.map(branch => ({
     id: branch.id,
     name: branch.name,
     address: branch.address ?? '',
