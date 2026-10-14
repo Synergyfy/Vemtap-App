@@ -53,6 +53,9 @@ export interface ServiceDraft {
   serviceMode: string;
   isBookable: boolean;
   bookingMethod?: string;
+  /** Optional category for service organization (mirrors product categoryId). */
+  categoryId?: string;
+  categoryName?: string;
   publishedServiceId?: string;
 }
 
@@ -142,12 +145,9 @@ export const useCatalogueDraftStore = create<CatalogueDraftState>()(set => ({
   service: emptyService,
   deal: emptyDeal,
 
-  setProduct: step =>
-    set(state => ({ product: { ...state.product, ...step } })),
-  setService: step =>
-    set(state => ({ service: { ...state.service, ...step } })),
-  setDeal: step =>
-    set(state => ({ deal: { ...state.deal, ...step } })),
+  setProduct: step => set(state => ({ product: { ...state.product, ...step } })),
+  setService: step => set(state => ({ service: { ...state.service, ...step } })),
+  setDeal: step => set(state => ({ deal: { ...state.deal, ...step } })),
 
   setPublishedProduct: id =>
     set(state => ({ product: { ...state.product, publishedItemId: id } })),

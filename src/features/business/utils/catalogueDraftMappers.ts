@@ -96,6 +96,7 @@ export function serviceDraftToCreateInput(
     galleryImages: draft.galleryImages.length ? draft.galleryImages : undefined,
     itemType: 'service',
     branchId,
+    categoryId: draft.categoryId,
   };
 }
 
@@ -127,9 +128,7 @@ export function dealDraftToCreateInput(
   return {
     name:
       draft.name.trim() ||
-      (draft.sourceProductName
-        ? `${draft.sourceProductName} deal`
-        : 'Catalogue deal'),
+      (draft.sourceProductName ? `${draft.sourceProductName} deal` : 'Catalogue deal'),
     description: draft.description,
     sourceProductId,
     mainImage: draft.mainImage,
@@ -139,8 +138,7 @@ export function dealDraftToCreateInput(
     branchId,
     itemIds: itemIds.length ? itemIds : undefined,
     terms: terms.length ? terms : undefined,
-    maxClaimsPerCustomer:
-      draft.claimFrequency === 'once' ? 1 : draft.maxClaimsPerMonth,
+    maxClaimsPerCustomer: draft.claimFrequency === 'once' ? 1 : draft.maxClaimsPerMonth,
     startDate: draft.startDate,
     endDate: draft.endDate,
   };
