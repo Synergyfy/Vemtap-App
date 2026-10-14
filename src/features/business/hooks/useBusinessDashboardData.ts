@@ -250,12 +250,13 @@ export function countUnreadMessages(
 }
 
 /**
- * How many claims still need verification. Claims without a `status` field
- * count as pending (the endpoint's response is undocumented — §10).
+ * How many claims still need verification. The endpoint publishes exactly
+ * three statuses — `claimed` (awaiting the business), `redeemed` and
+ * `expired` — so only `claimed` counts; rows without a `status` field fall
+ * back to "everything is pending" until the payload documents otherwise.
  */
 export function countPendingClaims(claims: readonly Record<string, unknown>[]): number {
   const withStatus = claims.filter(claim => typeof claim.status === 'string');
   if (withStatus.length === 0) return claims.length;
-  return withStatus.filter(claim => /pending|awaiting|new/i.test(claim.status as string))
-    .length;
+  return withStatus.filter(claim => /^claimed$/i.test(claim.status as string)).length;
 }

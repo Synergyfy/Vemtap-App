@@ -7,6 +7,7 @@ import { Avatar } from '@components/ui/Avatar';
 import { Icon, type IconName } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { TwoColumnGrid } from '@components/shared/TwoColumnGrid';
+import { ErrorState } from '@components/shared/ErrorState';
 import { strings } from '@constants/strings';
 import { TypeDensityProvider } from '@theme/TypeDensityProvider';
 import { colors } from '@theme/colors';
@@ -20,7 +21,6 @@ import {
   activityPercents,
   activityPointLabels,
   countPendingClaims,
-  countUnreadMessages,
   formatCompactNaira,
   formatNaira,
   formatUpdatedAgo,
@@ -96,42 +96,49 @@ export function BusinessDashboardOverviewScreen({
   const stats = dashboard.data?.stats;
   const statsLive = dashboard.isSuccess;
   /** A tile reads the live stat when the query answered, else the design copy. */
+  /**
+   * A tile's live value, or "—" when there is no value to report. Design
+   * numbers are never substituted here: a placeholder that looks like data
+   * is worse than an honest gap.
+   */
   const metricValue = (
     keys: readonly string[],
-    fallback: string,
     format: (value: number) => string = value => value.toLocaleString('en-US'),
   ): string => {
-    if (!statsLive) return fallback;
+    if (!statsLive) return copy.emptyValue;
     const value = pickStat(stats, keys);
     return value === undefined ? copy.emptyValue : format(value);
   };
-  /** Deltas are live when the payload publishes one; otherwise design copy. */
+  /** Deltas are live when the payload publishes one; otherwise nothing. */
+  const metricDelta = (liveValue?: unknown): string | undefined => {
+    const delta = toStatNumber(liveValue);
+    if (delta === undefined) return undefined;
+    return `${delta > 0 ? '+' : ''}${delta}%`;
+  };
+  /** Percentage label for a payload delta (`null` stays hidden). */
   const deltaLabel = (value: unknown): string | undefined => {
     const delta = toStatNumber(value);
     if (delta === undefined) return undefined;
     return `${delta > 0 ? '+' : ''}${delta}%`;
   };
-  const metricDelta = (fallback: string, liveValue?: unknown): string | undefined =>
-    statsLive ? deltaLabel(liveValue) : fallback;
 
   const posRevenue = pos.isSuccess ? toStatNumber(pos.data?.revenue) : undefined;
   const posTxns = pos.isSuccess ? toStatNumber(pos.data?.transactionCount) : undefined;
   /** Once POS answers, its values are authoritative — "—" beats fake takings. */
   const posAmountLabel = !pos.isSuccess
-    ? copy.posAmount
+    ? copy.emptyValue
     : posRevenue !== undefined
       ? formatNaira(posRevenue)
       : copy.emptyValue;
+  /** Unknown transaction count hides the pill rather than inventing one. */
   const posTxnsLabel = !pos.isSuccess
-    ? copy.posTxns
+    ? null
     : posTxns !== undefined
       ? copy.posTxnsFor(posTxns)
       : copy.emptyValue;
 
   const ordersCount = newOrders.data;
-  const messagesCount = dashboard.data
-    ? countUnreadMessages(dashboard.data.messages)
-    : undefined;
+  const messagesCount = dashboard.data?.unreadMessages ?? undefined;
   const claimsCount = claims.data ? countPendingClaims(claims.data) : undefined;
   /** Branch devices reporting anything other than `active` need a sync. */
   const offlineDeviceCount = dashboard.isSuccess
@@ -151,44 +158,55 @@ export function BusinessDashboardOverviewScreen({
             : row.id === 'pos'
               ? offlineDeviceCount
               : undefined;
-    if (count !== undefined && count <= 0) return [];
+    // Unknown counts drop the row too: a designed title ("3 New Orders")
+    // is a claim about the business, and the API has not made it.
+    if (count === undefined || count <= 0) return [];
     const title =
-      count === undefined
-        ? row.title
-        : row.id === 'orders'
-          ? copy.activityOrdersTitle(count)
-          : row.id === 'messages'
-            ? copy.activityMessagesTitle(count)
-            : row.id === 'claims'
-              ? copy.activityClaimsTitle(count)
-              : copy.activityDevicesTitle(count);
-    const body =
-      row.id === 'pos' && count !== undefined ? copy.activityDevicesBody : row.body;
+      row.id === 'orders'
+        ? copy.activityOrdersTitle(count)
+        : row.id === 'messages'
+          ? copy.activityMessagesTitle(count)
+          : row.id === 'claims'
+            ? copy.activityClaimsTitle(count)
+            : copy.activityDevicesTitle(count);
+    const body = row.id === 'pos' ? copy.activityDevicesBody : row.body;
     return [{ ...row, title, body }];
   });
-  const knownCounts = [ordersCount, messagesCount, claimsCount, offlineDeviceCount];
-  const knownTotal = knownCounts.reduce<number>((sum, count) => sum + (count ?? 0), 0);
-  const activityBadge =
-    knownCounts.every(count => count !== undefined) && knownTotal === 0
-      ? null
-      : knownCounts.every(count => count !== undefined)
-        ? copy.activityBadgeFor(knownTotal)
-        : copy.activityBadge;
+  const knownCounts = [
+    ordersCount,
+    messagesCount,
+    claimsCount,
+    offlineDeviceCount,
+  ].filter((count): count is number => count !== undefined);
+  const knownTotal = knownCounts.reduce((sum, count) => sum + count, 0);
+  /** The badge only ever reports counts we actually have — and hides at zero. */
+  const activityBadge = knownTotal > 0 ? copy.activityBadgeFor(knownTotal) : null;
 
   const liveActivity = activityPercents(dashboard.data?.activityData);
-  const dayValues = liveActivity ?? [...copy.weekDayValues];
+  /** No live series → no bars: a designed chart would read as measured data. */
+  const dayValues = liveActivity ?? [];
   const dayLabels = activityPointLabels(dashboard.data?.activityData) ?? [
     ...copy.weekDays,
   ];
-  const peakIndex = dayValues.indexOf(Math.max(...dayValues));
+  const peakIndex = dayValues.length ? dayValues.indexOf(Math.max(...dayValues)) : -1;
   const chartPeak = liveActivity
     ? copy.weekChartPeakFor(dayLabels[peakIndex] ?? '')
-    : copy.weekChartPeak;
+    : null;
+  /** Which bar is "today" once the series is keyed by weekday. */
+  const todayIndex = dayLabels.findIndex(
+    label =>
+      label === ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][new Date().getDay()],
+  );
 
   /** `weekly` carries the last 7 days of visits, claims and POS revenue. */
   const weekly = dashboard.data?.weekly;
   const weeklyStats = (() => {
-    if (!statsLive || !weekly) return copy.weekStats.map(stat => ({ ...stat }));
+    if (!statsLive || !weekly)
+      return copy.weekStats.map(stat => ({
+        ...stat,
+        value: copy.emptyValue,
+        delta: undefined,
+      }));
     const visits = toStatNumber(weekly.visits);
     const weeklyClaims = toStatNumber(weekly.claims);
     const revenue = toStatNumber(weekly.revenue);
@@ -237,7 +255,9 @@ export function BusinessDashboardOverviewScreen({
   const subscription = useBusinessSubscription();
   const trialLabel = (() => {
     const sub = subscription.data;
-    if (!subscription.isSuccess || !sub) return copy.growthTrial;
+    // No subscription payload yet → no pill. The designed
+    // "Growth Trial · 23 days left" was never produced by a query.
+    if (!subscription.isSuccess || !sub) return null;
     if (sub.isTrial && sub.trialEndsAt) {
       const end = Date.parse(sub.trialEndsAt);
       if (Number.isFinite(end)) {
@@ -245,18 +265,45 @@ export function BusinessDashboardOverviewScreen({
         return copy.growthTrialFor(days);
       }
     }
-    return sub.plan?.name?.trim() ? sub.plan.name : copy.growthTrial;
+    return sub.plan?.name?.trim() || null;
   })();
 
-  const businessName = myBusiness.data?.name ?? copy.pageTitle;
+  const businessName = myBusiness.data?.name;
   const businessLogo = myBusiness.data?.logoUrl || undefined;
   const profileBranch = myBusiness.data?.branches?.find(
     branch => branch.id === activeBranchId,
   );
-  const locationLabel =
-    profileBranch?.city || profileBranch?.address || copy.locationLabel;
+  const locationLabel = profileBranch?.city
+    ? profileBranch.city
+    : profileBranch?.address
+      ? profileBranch.address
+      : myBusiness.isSuccess
+        ? copy.emptyValue
+        : null;
   const isVerified = myBusiness.data?.isVerified === true;
   const unreadCount = unread.data ?? 0;
+
+  /** Bookings count under the Orders & Bookings tile, once the stats land. */
+  const bookingsCount = statsLive ? toStatNumber(stats?.bookingsCount) : undefined;
+  const bookingsNote =
+    bookingsCount !== undefined
+      ? copy.metrics.ordersBookingsNote(bookingsCount)
+      : undefined;
+  /** Live branch count for the switcher's trailing label. */
+  const branchCount = myBusiness.isSuccess ? branches.length : 0;
+
+  /**
+   * First load renders a skeleton; a hard failure with nothing cached renders
+   * the retry panel. Either way the designed numbers never stand in for data.
+   */
+  const hasBody = Boolean(dashboard.data);
+  const bodyFailed =
+    (dashboard.isError && !hasBody) || (myBusiness.isError && !myBusiness.data);
+  const bodyLoading = !bodyFailed && !hasBody;
+  const retryBody = () => {
+    myBusiness.refetch();
+    dashboard.refetch();
+  };
 
   // Dense hub: many rows read at a glance, so the subtree (navbar included)
   // uses the compact type density rather than per-row size overrides.
@@ -268,31 +315,47 @@ export function BusinessDashboardOverviewScreen({
           style={navbarBottomShadow}
         >
           <View className="min-w-0 flex-1">
-            <View className="flex-row items-center gap-1.5">
-              <VemtapText
-                accessibilityRole="header"
-                variant="headingSm"
-                className="min-w-0 flex-1 font-sans-semibold"
-                numberOfLines={1}
+            {businessName === undefined ? (
+              /** No business payload yet: skeleton bars, never a designed name. */
+              <View
+                accessibilityRole="progressbar"
+                accessibilityLabel={copy.bodyLoadingLabel}
+                className="gap-1.5"
               >
-                {businessName}
-              </VemtapText>
-              {isVerified ? (
-                <Icon name="verified" size={17} color={colors.primary} />
-              ) : null}
-            </View>
-            <View className="flex-row items-center gap-1">
-              <VemtapText
-                variant="caption"
-                tone="secondary"
-                className="min-w-0 flex-1"
-                numberOfLines={1}
-                ellipsizeMode="tail"
-              >
-                {locationLabel}
-              </VemtapText>
-              <Icon name="expandMore" size={14} color={colors.textSecondary} />
-            </View>
+                <View className="h-5 w-36 rounded-md bg-surface-container-high" />
+                <View className="h-3 w-24 rounded-md bg-surface-container-high" />
+              </View>
+            ) : (
+              <>
+                <View className="flex-row items-center gap-1.5">
+                  <VemtapText
+                    accessibilityRole="header"
+                    variant="headingSm"
+                    className="min-w-0 flex-1 font-sans-semibold"
+                    numberOfLines={1}
+                  >
+                    {businessName}
+                  </VemtapText>
+                  {isVerified ? (
+                    <Icon name="verified" size={17} color={colors.primary} />
+                  ) : null}
+                </View>
+                {locationLabel !== null ? (
+                  <View className="flex-row items-center gap-1">
+                    <VemtapText
+                      variant="caption"
+                      tone="secondary"
+                      className="min-w-0 flex-1"
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                    >
+                      {locationLabel}
+                    </VemtapText>
+                    <Icon name="expandMore" size={14} color={colors.textSecondary} />
+                  </View>
+                ) : null}
+              </>
+            )}
           </View>
           <View className="shrink-0 flex-row items-center gap-2">
             <Pressable
@@ -315,150 +378,165 @@ export function BusinessDashboardOverviewScreen({
             </Pressable>
             <Avatar
               uri={businessLogo}
-              name={businessName}
+              name={businessName ?? ''}
               size="sm"
               tone="brand"
-              accessibilityLabel={`${businessName} logo`}
+              accessibilityLabel={`${businessName ?? ''} logo`}
             />
           </View>
         </View>
 
-        <ScrollView
-          className="w-full max-w-screen flex-1 self-center"
-          contentContainerClassName="w-full gap-4 px-6 pb-8 pt-4"
-          showsVerticalScrollIndicator={false}
-        >
-          <View className="flex-row flex-wrap items-center gap-2">
-            {isVerified ? (
-              <View className="flex-row items-center gap-1.5 rounded-full bg-badge-discount-bg px-2.5 py-1">
-                <Icon name="checkCircle" size={14} color={colors.badgeDiscountText} />
-                <VemtapText
-                  variant="caption"
-                  className="font-sans-semibold text-badge-discount-text"
-                >
-                  {copy.verifiedBusiness}
-                </VemtapText>
-              </View>
-            ) : null}
-            <View className="flex-row items-center gap-1.5 rounded-full bg-surface-tint-blue px-2.5 py-1">
-              <Icon name="schedule" size={14} color={colors.primary} />
-              <VemtapText variant="caption" tone="brand" className="font-sans-semibold">
-                {trialLabel}
-              </VemtapText>
-            </View>
-          </View>
-
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={copy.growthTipTitle}
-            onPress={onBoostDeal}
-            className="overflow-hidden rounded-card shadow-md active:scale-[0.99]"
+        {bodyLoading ? (
+          <DashboardSkeleton />
+        ) : bodyFailed ? (
+          <ErrorState onRetry={retryBody} className="flex-1" />
+        ) : (
+          <ScrollView
+            className="w-full max-w-screen flex-1 self-center"
+            contentContainerClassName="w-full gap-4 px-6 pb-8 pt-4"
+            showsVerticalScrollIndicator={false}
           >
-            <LinearGradient
-              colors={[colors.primaryContainer, colors.primary]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              className="gap-3 p-4"
+            <View className="flex-row flex-wrap items-center gap-2">
+              {isVerified ? (
+                <View className="flex-row items-center gap-1.5 rounded-full bg-badge-discount-bg px-2.5 py-1">
+                  <Icon name="checkCircle" size={14} color={colors.badgeDiscountText} />
+                  <VemtapText
+                    variant="caption"
+                    className="font-sans-semibold text-badge-discount-text"
+                  >
+                    {copy.verifiedBusiness}
+                  </VemtapText>
+                </View>
+              ) : null}
+              {trialLabel ? (
+                <View className="flex-row items-center gap-1.5 rounded-full bg-surface-tint-blue px-2.5 py-1">
+                  <Icon name="schedule" size={14} color={colors.primary} />
+                  <VemtapText
+                    variant="caption"
+                    tone="brand"
+                    className="font-sans-semibold"
+                  >
+                    {trialLabel}
+                  </VemtapText>
+                </View>
+              ) : null}
+            </View>
+
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={copy.growthTipTitle}
+              onPress={onBoostDeal}
+              className="overflow-hidden rounded-card shadow-md active:scale-[0.99]"
             >
-              <View className="flex-row items-center justify-between gap-2">
-                <View className="flex-row items-center gap-1.5 rounded-full bg-surface/20 px-2.5 py-1">
-                  <Icon name="bolt" size={14} color={colors.surface} />
+              <LinearGradient
+                colors={[colors.primaryContainer, colors.primary]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                className="gap-3 p-4"
+              >
+                <View className="flex-row items-center justify-between gap-2">
+                  <View className="flex-row items-center gap-1.5 rounded-full bg-surface/20 px-2.5 py-1">
+                    <Icon name="bolt" size={14} color={colors.surface} />
+                    <VemtapText
+                      variant="caption"
+                      className="font-sans-semibold uppercase text-surface"
+                    >
+                      {copy.growthTipLabel}
+                    </VemtapText>
+                  </View>
+                  <View className="flex-row items-center gap-1.5">
+                    <View className="h-1.5 w-1.5 rounded-full bg-surface" />
+                    <View className="h-1.5 w-1.5 rounded-full bg-surface/60" />
+                    <View className="h-1.5 w-1.5 rounded-full bg-surface/60" />
+                  </View>
+                </View>
+                <View>
+                  <VemtapText
+                    variant="labelMd"
+                    className="font-sans-bold text-surface"
+                    numberOfLines={2}
+                  >
+                    {copy.growthTipTitle}
+                  </VemtapText>
                   <VemtapText
                     variant="caption"
-                    className="font-sans-semibold uppercase text-surface"
+                    className="mt-1 text-surface"
+                    numberOfLines={2}
                   >
-                    {copy.growthTipLabel}
+                    {copy.growthTipBody}
                   </VemtapText>
                 </View>
-                <View className="flex-row items-center gap-1.5">
-                  <View className="h-1.5 w-1.5 rounded-full bg-surface" />
-                  <View className="h-1.5 w-1.5 rounded-full bg-surface/60" />
-                  <View className="h-1.5 w-1.5 rounded-full bg-surface/60" />
+                <View className="flex-row items-center justify-between gap-2">
+                  <View className="flex-row items-center gap-1.5 rounded-lg bg-surface px-3 py-2">
+                    <VemtapText
+                      variant="caption"
+                      className="font-sans-semibold text-primary"
+                    >
+                      {copy.growthTipCta}
+                    </VemtapText>
+                    <Icon name="rocket" size={14} color={colors.primary} />
+                  </View>
+                  <View className="flex-row items-center gap-1.5">
+                    <Icon name="trendingUp" size={16} color={colors.surface} />
+                    <VemtapText
+                      variant="caption"
+                      className="font-sans-semibold text-surface"
+                    >
+                      {copy.growthTipRoi}
+                    </VemtapText>
+                  </View>
                 </View>
-              </View>
-              <View>
-                <VemtapText
-                  variant="labelMd"
-                  className="font-sans-bold text-surface"
-                  numberOfLines={2}
-                >
-                  {copy.growthTipTitle}
-                </VemtapText>
-                <VemtapText
-                  variant="caption"
-                  className="mt-1 text-surface"
-                  numberOfLines={2}
-                >
-                  {copy.growthTipBody}
-                </VemtapText>
-              </View>
-              <View className="flex-row items-center justify-between gap-2">
-                <View className="flex-row items-center gap-1.5 rounded-lg bg-surface px-3 py-2">
-                  <VemtapText
-                    variant="caption"
-                    className="font-sans-semibold text-primary"
-                  >
-                    {copy.growthTipCta}
-                  </VemtapText>
-                  <Icon name="rocket" size={14} color={colors.primary} />
-                </View>
-                <View className="flex-row items-center gap-1.5">
-                  <Icon name="trendingUp" size={16} color={colors.surface} />
-                  <VemtapText
-                    variant="caption"
-                    className="font-sans-semibold text-surface"
-                  >
-                    {copy.growthTipRoi}
-                  </VemtapText>
-                </View>
-              </View>
-            </LinearGradient>
-          </Pressable>
+              </LinearGradient>
+            </Pressable>
 
-          <View className="flex-row items-center justify-between gap-2">
-            <BusinessBranchSwitcher
-              branches={branches}
-              activeBranchId={activeBranchId ?? undefined}
-              onChangeBranch={changeBranch}
-              suffix={copy.branchLiveSuffix}
-              trailingLabel={copy.allBranches}
-              onAddBranch={onAddBranch}
-            />
-          </View>
-
-          <View className="mt-1">
             <View className="flex-row items-center justify-between gap-2">
-              <View className="min-w-0">
-                <VemtapText variant="labelMd" className="font-sans-semibold">
-                  {copy.overviewTitle}
-                </VemtapText>
-                <VemtapText variant="caption" tone="secondary">
-                  {overviewMeta}
-                </VemtapText>
-              </View>
-              <BusinessInlineAction
-                label={copy.analyticsCta}
-                icon="insights"
-                onPress={onOpenAnalytics}
+              <BusinessBranchSwitcher
+                branches={branches}
+                activeBranchId={activeBranchId ?? undefined}
+                onChangeBranch={changeBranch}
+                suffix={copy.branchLiveSuffix}
+                trailingLabel={
+                  branchCount > 0 ? copy.allBranchesFor(branchCount) : undefined
+                }
+                onAddBranch={onAddBranch}
               />
             </View>
-          </View>
 
-          <View className="flex-row gap-3">
-            <MetricTile
-              icon="visibility"
-              label={copy.metrics.views}
-              value={metricValue(
-                ['totalViews', 'views', 'profileViews', 'impressions', 'dealViews'],
-                copy.metrics.viewsValue,
-              )}
-              delta={metricDelta(copy.metrics.viewsDelta, stats?.visitorsDelta)}
-            />
-            <MetricTile
-              icon="groupAdd"
-              label={copy.metrics.customers}
-              value={metricValue(
-                [
+            <View className="mt-1">
+              <View className="flex-row items-center justify-between gap-2">
+                <View className="min-w-0">
+                  <VemtapText variant="labelMd" className="font-sans-semibold">
+                    {copy.overviewTitle}
+                  </VemtapText>
+                  <VemtapText variant="caption" tone="secondary">
+                    {overviewMeta}
+                  </VemtapText>
+                </View>
+                <BusinessInlineAction
+                  label={copy.analyticsCta}
+                  icon="insights"
+                  onPress={onOpenAnalytics}
+                />
+              </View>
+            </View>
+
+            <View className="flex-row gap-3">
+              <MetricTile
+                icon="visibility"
+                label={copy.metrics.views}
+                value={metricValue([
+                  'totalViews',
+                  'views',
+                  'profileViews',
+                  'impressions',
+                  'dealViews',
+                ])}
+                delta={metricDelta(stats?.visitorsDelta)}
+              />
+              <MetricTile
+                icon="groupAdd"
+                label={copy.metrics.customers}
+                value={metricValue([
                   'newVisitors',
                   'totalVisitors',
                   'customers',
@@ -467,312 +545,318 @@ export function BusinessDashboardOverviewScreen({
                   'customersCount',
                   'uniqueCustomers',
                   'visitors',
-                ],
-                copy.metrics.customersValue,
-              )}
-              delta={metricDelta(copy.metrics.customersDelta, stats?.visitorsDelta)}
-            />
-          </View>
-          <View className="flex-row gap-3">
-            <MetricTile
-              icon="localOffer"
-              label={copy.metrics.dealsClaimed}
-              value={metricValue(
-                [
+                ])}
+                delta={metricDelta(stats?.visitorsDelta)}
+              />
+            </View>
+            <View className="flex-row gap-3">
+              <MetricTile
+                icon="localOffer"
+                label={copy.metrics.dealsClaimed}
+                value={metricValue([
                   'dealsClaimed',
                   'claims',
                   'totalClaims',
                   'claimsCount',
                   'redemptions',
                   'redeemed',
-                ],
-                copy.metrics.dealsClaimedValue,
-              )}
-              delta={metricDelta(copy.metrics.dealsClaimedDelta, stats?.claimsDelta)}
-            />
-            <MetricTile
-              icon="shoppingBag"
-              label={copy.metrics.ordersBookings}
-              value={metricValue(
-                [
-                  'ordersVolume',
-                  'ordersRevenue',
-                  'ordersBookingsVolume',
-                  'revenue',
-                  'totalRevenue',
-                  'ordersValue',
-                ],
-                copy.metrics.ordersBookingsVolume,
-                value => `${formatCompactNaira(value)}${copy.ordersVolumeSuffix}`,
-              )}
-              tone="muted"
-            />
-          </View>
-
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={copy.posTitle}
-            onPress={onOpenPos}
-            className="flex-row items-center gap-3 rounded-card bg-surface p-4 shadow-sm"
-          >
-            <View className="h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-fixed">
-              <Icon name="pointOfSale" size={20} color={colors.primary} />
+                ])}
+                delta={metricDelta(stats?.claimsDelta)}
+              />
+              <MetricTile
+                icon="shoppingBag"
+                label={copy.metrics.ordersBookings}
+                value={metricValue(
+                  [
+                    'ordersVolume',
+                    'ordersRevenue',
+                    'ordersBookingsVolume',
+                    'revenue',
+                    'totalRevenue',
+                    'ordersValue',
+                  ],
+                  value => `${formatCompactNaira(value)}${copy.ordersVolumeSuffix}`,
+                )}
+                note={bookingsNote}
+                tone="muted"
+              />
             </View>
-            <View className="min-w-0 flex-1">
-              <VemtapText variant="labelSm" tone="secondary" numberOfLines={1}>
-                {copy.posTitle}
-              </VemtapText>
-              <View className="mt-0.5 flex-row flex-wrap items-baseline gap-2">
-                <VemtapText variant="labelMd" className="font-sans-semibold">
-                  {posAmountLabel}
+
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={copy.posTitle}
+              onPress={onOpenPos}
+              className="flex-row items-center gap-3 rounded-card bg-surface p-4 shadow-sm"
+            >
+              <View className="h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-fixed">
+                <Icon name="pointOfSale" size={20} color={colors.primary} />
+              </View>
+              <View className="min-w-0 flex-1">
+                <VemtapText variant="labelSm" tone="secondary" numberOfLines={1}>
+                  {copy.posTitle}
                 </VemtapText>
-                <View className="rounded-full bg-badge-discount-bg px-1.5 py-0.5">
-                  <VemtapText variant="micro" className="text-badge-discount-text">
-                    {posTxnsLabel}
+                <View className="mt-0.5 flex-row flex-wrap items-baseline gap-2">
+                  <VemtapText variant="labelMd" className="font-sans-semibold">
+                    {posAmountLabel}
                   </VemtapText>
-                </View>
-              </View>
-            </View>
-            <Icon name="arrowForward" size={18} color={colors.textTertiary} />
-          </Pressable>
-
-          <View className="mt-3 gap-3">
-            <View className="flex-row items-center justify-between gap-2">
-              <VemtapText variant="labelMd" className="font-sans-semibold">
-                {copy.activityTitle}
-              </VemtapText>
-              {activityBadge !== null ? (
-                <View className="rounded-full bg-tertiary-fixed px-2 py-0.5">
-                  <VemtapText
-                    variant="micro"
-                    className="font-sans-semibold text-tertiary"
-                  >
-                    {activityBadge}
-                  </VemtapText>
-                </View>
-              ) : null}
-            </View>
-            {activityRows.map(item => (
-              <View
-                key={item.id}
-                className="flex-row items-center gap-3 rounded-card bg-surface p-3 shadow-sm"
-              >
-                <View className="h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-container">
-                  <Icon
-                    name={
-                      item.id === 'orders'
-                        ? 'receipt'
-                        : item.id === 'messages'
-                          ? 'message'
-                          : item.id === 'claims'
-                            ? 'confirmation'
-                            : 'sync'
-                    }
-                    size={18}
-                    color={colors.primary}
-                  />
-                </View>
-                <View className="min-w-0 flex-1">
-                  <VemtapText
-                    variant="labelMd"
-                    className="font-sans-semibold"
-                    numberOfLines={1}
-                  >
-                    {item.title}
-                  </VemtapText>
-                  <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-                    {item.body}
-                  </VemtapText>
-                </View>
-                <BusinessInlineAction
-                  label={item.cta}
-                  onPress={
-                    item.id === 'orders'
-                      ? onOpenOrders
-                      : item.id === 'messages'
-                        ? onOpenMessages
-                        : item.id === 'claims'
-                          ? onOpenClaims
-                          : onOpenPosSync
-                  }
-                />
-              </View>
-            ))}
-          </View>
-
-          <View className="mt-3 gap-3">
-            <View className="flex-row items-center gap-2">
-              <Icon name="bolt" size={18} color={colors.primary} />
-              <VemtapText variant="labelMd" className="font-sans-semibold">
-                {copy.shortcutsTitle}
-              </VemtapText>
-            </View>
-            <TwoColumnGrid
-              items={copy.shortcuts}
-              keyExtractor={item => item.id}
-              renderItem={item => (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={item.title}
-                  onPress={
-                    item.id === 'scan'
-                      ? onOpenScanner
-                      : item.id === 'pos'
-                        ? onOpenPos
-                        : item.id === 'deal'
-                          ? onCreateDeal
-                          : item.id === 'product'
-                            ? onAddProduct
-                            : item.id === 'messages'
-                              ? onOpenMessages
-                              : onBoostDeal
-                  }
-                  className="gap-1.5 rounded-card bg-surface p-3 shadow-sm active:bg-surface-subtle"
-                >
-                  <View className="h-9 w-9 items-center justify-center rounded-xl bg-surface-tint">
-                    <Icon name={item.icon as IconName} size={20} color={colors.primary} />
-                  </View>
-                  <VemtapText
-                    variant="labelSm"
-                    className="font-sans-semibold"
-                    numberOfLines={2}
-                  >
-                    {item.title}
-                  </VemtapText>
-                  <VemtapText variant="micro" tone="secondary" numberOfLines={1}>
-                    {item.body}
-                  </VemtapText>
-                </Pressable>
-              )}
-            />
-          </View>
-
-          <SetupCard className="mt-3 gap-3">
-            <View className="flex-row items-center justify-between gap-2">
-              <BusinessSectionHeading title={copy.weekTitle} icon="trendingUp" />
-              <BusinessInlineAction label={copy.weekCta} onPress={onOpenReport} />
-            </View>
-            <View className="flex-row gap-2">
-              {weeklyStats.map(stat => (
-                <View key={stat.id} className="min-w-0 flex-1 gap-0.5">
-                  <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-                    {stat.label}
-                  </VemtapText>
-                  <VemtapText
-                    variant="labelMd"
-                    className="font-sans-semibold"
-                    numberOfLines={1}
-                  >
-                    {stat.value}
-                  </VemtapText>
-                  {stat.delta ? (
-                    <View className="flex-row items-center gap-0.5">
-                      <Icon name="trendingUp" size={12} color={colors.success} />
-                      <VemtapText variant="micro" className="text-success">
-                        {stat.delta}
+                  {posTxnsLabel !== null ? (
+                    <View className="rounded-full bg-badge-discount-bg px-1.5 py-0.5">
+                      <VemtapText variant="micro" className="text-badge-discount-text">
+                        {posTxnsLabel}
                       </VemtapText>
                     </View>
                   ) : null}
                 </View>
-              ))}
-            </View>
-            <View className="gap-2">
-              <View className="flex-row items-center justify-between gap-2">
-                <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-                  {copy.weekChartTitle}
-                </VemtapText>
-                <VemtapText variant="micro" tone="brand" numberOfLines={1}>
-                  {chartPeak}
-                </VemtapText>
               </View>
-              <View className="h-24 flex-row items-end gap-1.5">
-                {dayValues.map((value, index) => {
-                  const isPeak = index === peakIndex;
-                  const isToday = index === dayValues.length - 1;
-                  return (
-                    <View
-                      key={dayLabels[index] ?? index}
-                      className="min-w-0 flex-1 items-center gap-1"
-                    >
-                      <View
-                        className={cn(
-                          'w-full rounded-t-md',
-                          isToday
-                            ? 'bg-primary'
-                            : isPeak
-                              ? 'bg-primary-fixed'
-                              : 'bg-surface-container-high',
-                        )}
-                        style={{ height: `${value}%` }}
-                      />
-                      <VemtapText
-                        variant="micro"
-                        tone={isToday ? 'brand' : 'tertiary'}
-                        numberOfLines={1}
-                      >
-                        {dayLabels[index]}
-                      </VemtapText>
-                    </View>
-                  );
-                })}
-              </View>
-            </View>
-          </SetupCard>
+              <Icon name="arrowForward" size={18} color={colors.textTertiary} />
+            </Pressable>
 
-          <View className="mt-3 gap-3">
-            <View className="flex-row items-center justify-between gap-2">
-              <VemtapText variant="labelMd" className="font-sans-semibold">
-                {copy.recommendationsTitle}
-              </VemtapText>
-              <View className="rounded-full bg-surface-tint px-2 py-0.5">
-                <VemtapText variant="micro" className="text-primary">
-                  {copy.recommendationsBadge}
+            <View className="mt-3 gap-3">
+              <View className="flex-row items-center justify-between gap-2">
+                <VemtapText variant="labelMd" className="font-sans-semibold">
+                  {copy.activityTitle}
                 </VemtapText>
+                {activityBadge !== null ? (
+                  <View className="rounded-full bg-tertiary-fixed px-2 py-0.5">
+                    <VemtapText
+                      variant="micro"
+                      className="font-sans-semibold text-tertiary"
+                    >
+                      {activityBadge}
+                    </VemtapText>
+                  </View>
+                ) : null}
               </View>
-            </View>
-            {recommendations.map(item => (
-              <SetupCard key={item.id} className="gap-2">
-                <View className="flex-row items-start gap-2.5">
-                  <View className="h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-surface-tint">
+              {activityRows.map(item => (
+                <View
+                  key={item.id}
+                  className="flex-row items-center gap-3 rounded-card bg-surface p-3 shadow-sm"
+                >
+                  <View className="h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-container">
                     <Icon
-                      name={item.id === 'branch' ? 'addBusiness' : 'localOffer'}
-                      size={20}
+                      name={
+                        item.id === 'orders'
+                          ? 'receipt'
+                          : item.id === 'messages'
+                            ? 'message'
+                            : item.id === 'claims'
+                              ? 'confirmation'
+                              : 'sync'
+                      }
+                      size={18}
                       color={colors.primary}
                     />
                   </View>
-                  <View className="min-w-0 flex-1 gap-0.5">
+                  <View className="min-w-0 flex-1">
                     <VemtapText
-                      variant={item.id === 'branch' ? 'labelMd' : 'headingSm'}
+                      variant="labelMd"
+                      className="font-sans-semibold"
+                      numberOfLines={1}
+                    >
+                      {item.title}
+                    </VemtapText>
+                    <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
+                      {item.body}
+                    </VemtapText>
+                  </View>
+                  <BusinessInlineAction
+                    label={item.cta}
+                    onPress={
+                      item.id === 'orders'
+                        ? onOpenOrders
+                        : item.id === 'messages'
+                          ? onOpenMessages
+                          : item.id === 'claims'
+                            ? onOpenClaims
+                            : onOpenPosSync
+                    }
+                  />
+                </View>
+              ))}
+            </View>
+
+            <View className="mt-3 gap-3">
+              <View className="flex-row items-center gap-2">
+                <Icon name="bolt" size={18} color={colors.primary} />
+                <VemtapText variant="labelMd" className="font-sans-semibold">
+                  {copy.shortcutsTitle}
+                </VemtapText>
+              </View>
+              <TwoColumnGrid
+                items={copy.shortcuts}
+                keyExtractor={item => item.id}
+                renderItem={item => (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={item.title}
+                    onPress={
+                      item.id === 'scan'
+                        ? onOpenScanner
+                        : item.id === 'pos'
+                          ? onOpenPos
+                          : item.id === 'deal'
+                            ? onCreateDeal
+                            : item.id === 'product'
+                              ? onAddProduct
+                              : item.id === 'messages'
+                                ? onOpenMessages
+                                : onBoostDeal
+                    }
+                    className="gap-1.5 rounded-card bg-surface p-3 shadow-sm active:bg-surface-subtle"
+                  >
+                    <View className="h-9 w-9 items-center justify-center rounded-xl bg-surface-tint">
+                      <Icon
+                        name={item.icon as IconName}
+                        size={20}
+                        color={colors.primary}
+                      />
+                    </View>
+                    <VemtapText
+                      variant="labelSm"
                       className="font-sans-semibold"
                       numberOfLines={2}
                     >
                       {item.title}
                     </VemtapText>
-                    {item.badge ? (
-                      <View className="self-start rounded-full bg-badge-discount-bg px-1.5 py-0.5">
-                        <VemtapText
-                          variant="micro"
-                          className="font-sans-semibold text-badge-discount-text"
-                        >
-                          {item.badge}
+                    <VemtapText variant="micro" tone="secondary" numberOfLines={1}>
+                      {item.body}
+                    </VemtapText>
+                  </Pressable>
+                )}
+              />
+            </View>
+
+            <SetupCard className="mt-3 gap-3">
+              <View className="flex-row items-center justify-between gap-2">
+                <BusinessSectionHeading title={copy.weekTitle} icon="trendingUp" />
+                <BusinessInlineAction label={copy.weekCta} onPress={onOpenReport} />
+              </View>
+              <View className="flex-row gap-2">
+                {weeklyStats.map(stat => (
+                  <View key={stat.id} className="min-w-0 flex-1 gap-0.5">
+                    <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
+                      {stat.label}
+                    </VemtapText>
+                    <VemtapText
+                      variant="labelMd"
+                      className="font-sans-semibold"
+                      numberOfLines={1}
+                    >
+                      {stat.value}
+                    </VemtapText>
+                    {stat.delta ? (
+                      <View className="flex-row items-center gap-0.5">
+                        <Icon name="trendingUp" size={12} color={colors.success} />
+                        <VemtapText variant="micro" className="text-success">
+                          {stat.delta}
                         </VemtapText>
                       </View>
                     ) : null}
-                    <VemtapText variant="caption" tone="secondary">
-                      {item.body}
-                    </VemtapText>
                   </View>
+                ))}
+              </View>
+              <View className="gap-2">
+                <View className="flex-row items-center justify-between gap-2">
+                  <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
+                    {copy.weekChartTitle}
+                  </VemtapText>
+                  {chartPeak !== null ? (
+                    <VemtapText variant="micro" tone="brand" numberOfLines={1}>
+                      {chartPeak}
+                    </VemtapText>
+                  ) : null}
                 </View>
-                <BusinessInlineAction
-                  label={item.cta}
-                  icon={item.id === 'branch' ? 'addLocation' : 'bolt'}
-                  onPress={item.id === 'branch' ? onAddBranch : onBoostDeal}
-                />
-              </SetupCard>
-            ))}
-            <BusinessInlineAction label={copy.viewAll} onPress={onManageLocations} />
-          </View>
-        </ScrollView>
+                {dayValues.length > 0 ? (
+                  <View className="h-24 flex-row items-end gap-1.5">
+                    {dayValues.map((value, index) => {
+                      const isPeak = index === peakIndex;
+                      const isToday = index === todayIndex;
+                      return (
+                        <View
+                          key={dayLabels[index] ?? index}
+                          className="min-w-0 flex-1 items-center gap-1"
+                        >
+                          <View
+                            className={cn(
+                              'w-full rounded-t-md',
+                              isToday
+                                ? 'bg-primary'
+                                : isPeak
+                                  ? 'bg-primary-fixed'
+                                  : 'bg-surface-container-high',
+                            )}
+                            style={{ height: `${value}%` }}
+                          />
+                          <VemtapText
+                            variant="micro"
+                            tone={isToday ? 'brand' : 'tertiary'}
+                            numberOfLines={1}
+                          >
+                            {dayLabels[index]}
+                          </VemtapText>
+                        </View>
+                      );
+                    })}
+                  </View>
+                ) : null}
+              </View>
+            </SetupCard>
+
+            <View className="mt-3 gap-3">
+              <View className="flex-row items-center justify-between gap-2">
+                <VemtapText variant="labelMd" className="font-sans-semibold">
+                  {copy.recommendationsTitle}
+                </VemtapText>
+                <View className="rounded-full bg-surface-tint px-2 py-0.5">
+                  <VemtapText variant="micro" className="text-primary">
+                    {copy.recommendationsBadge}
+                  </VemtapText>
+                </View>
+              </View>
+              {recommendations.map(item => (
+                <SetupCard key={item.id} className="gap-2">
+                  <View className="flex-row items-start gap-2.5">
+                    <View className="h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-surface-tint">
+                      <Icon
+                        name={item.id === 'branch' ? 'addBusiness' : 'localOffer'}
+                        size={20}
+                        color={colors.primary}
+                      />
+                    </View>
+                    <View className="min-w-0 flex-1 gap-0.5">
+                      <VemtapText
+                        variant={item.id === 'branch' ? 'labelMd' : 'headingSm'}
+                        className="font-sans-semibold"
+                        numberOfLines={2}
+                      >
+                        {item.title}
+                      </VemtapText>
+                      {item.badge ? (
+                        <View className="self-start rounded-full bg-badge-discount-bg px-1.5 py-0.5">
+                          <VemtapText
+                            variant="micro"
+                            className="font-sans-semibold text-badge-discount-text"
+                          >
+                            {item.badge}
+                          </VemtapText>
+                        </View>
+                      ) : null}
+                      <VemtapText variant="caption" tone="secondary">
+                        {item.body}
+                      </VemtapText>
+                    </View>
+                  </View>
+                  <BusinessInlineAction
+                    label={item.cta}
+                    icon={item.id === 'branch' ? 'addLocation' : 'bolt'}
+                    onPress={item.id === 'branch' ? onAddBranch : onBoostDeal}
+                  />
+                </SetupCard>
+              ))}
+              <BusinessInlineAction label={copy.viewAll} onPress={onManageLocations} />
+            </View>
+          </ScrollView>
+        )}
       </SafeAreaView>
     </TypeDensityProvider>
   );
@@ -783,12 +867,15 @@ function MetricTile({
   label,
   value,
   delta,
+  note,
   tone = 'default',
 }: {
   icon: IconName;
   label: string;
   value: string;
   delta?: string;
+  /** Secondary caption under the value (e.g. the live bookings count). */
+  note?: string;
   tone?: 'default' | 'muted';
 }) {
   return (
@@ -816,6 +903,42 @@ function MetricTile({
       >
         {value}
       </VemtapText>
+      {note ? (
+        <VemtapText variant="micro" tone="secondary" numberOfLines={1}>
+          {note}
+        </VemtapText>
+      ) : null}
+    </View>
+  );
+}
+
+/**
+ * Grey blocks mirroring the Overview layout, shown while the first dashboard
+ * payload is in flight so designed numbers never fill the gap.
+ */
+function DashboardSkeleton() {
+  return (
+    <View
+      accessibilityRole="progressbar"
+      accessibilityLabel={copy.bodyLoadingLabel}
+      className="gap-4 px-6 pb-8 pt-4"
+    >
+      <View className="h-9 w-full rounded-card bg-surface-container-high" />
+      <View className="h-6 w-40 rounded-md bg-surface-container-high" />
+      <View className="flex-row gap-3">
+        <View className="h-24 flex-1 rounded-card bg-surface-container-high" />
+        <View className="h-24 flex-1 rounded-card bg-surface-container-high" />
+      </View>
+      <View className="flex-row gap-3">
+        <View className="h-24 flex-1 rounded-card bg-surface-container-high" />
+        <View className="h-24 flex-1 rounded-card bg-surface-container-high" />
+      </View>
+      <View className="h-20 w-full rounded-card bg-surface-container-high" />
+      <View className="gap-3">
+        <View className="h-16 w-full rounded-card bg-surface-container-high" />
+        <View className="h-16 w-full rounded-card bg-surface-container-high" />
+        <View className="h-16 w-full rounded-card bg-surface-container-high" />
+      </View>
     </View>
   );
 }

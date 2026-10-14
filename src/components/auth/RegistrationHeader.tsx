@@ -119,7 +119,7 @@ export function RegistrationHeader({
             <Icon name="more" size={22} color={colors.textSecondary} />
           </Pressable>
         ) : null}
-        <Avatar name={display.fullName} size="sm" tone="brand" />
+        <Avatar uri={display.avatar} name={display.fullName} size="sm" tone="brand" />
       </View>
     </View>
   );

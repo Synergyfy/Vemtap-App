@@ -92,7 +92,12 @@ export function GiftDealSentSuccessScreen({ route, navigation }: Props) {
               accessibilityLabel={copy.avatar}
               className="h-8 w-8 items-center justify-center rounded-full bg-primary"
             >
-              <Avatar name={display.fullName} size="sm" tone="brand" />
+              <Avatar
+                uri={display.avatar}
+                name={display.fullName}
+                size="sm"
+                tone="brand"
+              />
             </Pressable>
           </View>
         </View>

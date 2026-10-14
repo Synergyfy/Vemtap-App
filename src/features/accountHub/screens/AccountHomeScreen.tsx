@@ -233,7 +233,7 @@ export function AccountHomeScreen({
             onPress={onOpenAccountMenu}
             className="h-9 w-9 items-center justify-center rounded-full bg-primary"
           >
-            <Avatar name={me.fullName} size="sm" tone="brand" />
+            <Avatar uri={me.avatar} name={me.fullName} size="sm" tone="brand" />
           </Pressable>
         </View>
       </View>

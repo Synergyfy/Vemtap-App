@@ -64,7 +64,6 @@ import { BusinessSupportHelpScreen } from '@features/business/screens/BusinessSu
 import { BusinessSettingsScreen } from '@features/business/screens/BusinessSettingsScreen';
 import { SwitchToCustomerScreen } from '@features/business/screens/SwitchToCustomerScreen';
 import {
-  countUnreadMessages,
   useBusinessDashboard,
   useMyBusiness,
   usePosDashboard,
@@ -232,6 +231,7 @@ function BusinessOverviewRoute() {
       onOpenPos={() => navigation.navigate('PosHomeSalesOperations')}
       onCreateDeal={() => navigation.navigate('CreateDealLocationAssignment')}
       onAddProduct={() => navigation.navigate('AddProductBasicsMedia')}
+      onOpenClaims={() => navigation.navigate('CentralDealsManagement')}
       onBoostDeal={() => navigation.navigate('BoostEngine')}
       onOpenPosSync={() => navigation.navigate('PosSyncReconciliation')}
       onAddBranch={() => navigation.navigate('LocationsBranches')}
@@ -3703,9 +3703,8 @@ function BusinessTabBarWithLiveBadges(
     badges.BusinessOrders = { count: counts.counts.new, tone: 'brand' };
   }
 
-  const unreadMessages = dashboard.data
-    ? countUnreadMessages(dashboard.data.messages)
-    : 0;
+  /** `unreadMessages` is the branch-side counter — broadcasts never badge. */
+  const unreadMessages = dashboard.data?.unreadMessages ?? 0;
   if (unreadMessages > 0) {
     badges.BusinessMessages = { count: unreadMessages, tone: 'error' };
   }

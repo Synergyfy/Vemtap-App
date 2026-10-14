@@ -94,7 +94,12 @@ export function HubHeader({
           onPress={accountAction}
           className="h-8 w-8 items-center justify-center rounded-full bg-primary"
         >
-          <Avatar name={accountName ?? me.fullName} size="sm" tone="brand" />
+          <Avatar
+            uri={me.avatar}
+            name={accountName ?? me.fullName}
+            size="sm"
+            tone="brand"
+          />
         </Pressable>
       </View>
     </View>

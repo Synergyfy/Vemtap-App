@@ -239,12 +239,14 @@ describe('business dashboard mappers', () => {
     expect(countUnreadMessages([{ unread: true }, { unread: false }])).toBe(1);
   });
 
-  it('counts pending claims by status when the field exists', () => {
+  it('counts only claims still awaiting verification', () => {
     expect(
       countPendingClaims([
-        { status: 'pending' },
-        { status: 'PENDING_VERIFICATION' },
+        { status: 'claimed' },
+        { status: 'CLAIMED' },
         { status: 'redeemed' },
+        { status: 'expired' },
+        { status: 'pending' },
       ]),
     ).toBe(2);
     expect(countPendingClaims([{ id: 'a' }, { id: 'b' }])).toBe(2);

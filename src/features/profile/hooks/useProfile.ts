@@ -44,6 +44,7 @@ export function useUpdateProfile() {
     onSuccess: user => {
       setUser(user);
       queryClient.setQueryData(PROFILE_QUERY_KEY, user);
+      queryClient.invalidateQueries({ queryKey: PROFILE_QUERY_KEY });
     },
   });
 }
@@ -74,8 +75,13 @@ export function useUploadAvatar() {
     mutationFn: async ({ uri, fileName, mimeType }: AvatarUploadInput) => {
       if (!user?.id) throw new Error('User not authenticated');
 
+      // Normalise mimeType — backend only accepts jpeg/png/webp/pdf.
+      // iOS ImagePicker can return image/heic, which the backend rejects.
+      const normalizedMimeType =
+        mimeType === 'image/heic' ? 'image/jpeg' : (mimeType ?? 'image/jpeg');
+
       const resolvedName =
-        fileName ?? `avatar-${user.id}.${extensionForMimeType(mimeType)}`;
+        fileName ?? `avatar-${user.id}.${extensionForMimeType(normalizedMimeType)}`;
       const result = await uploadFile<{ url?: string; data?: { url?: string } }>({
         url: '/uploads',
         fileUri: uri,
@@ -92,18 +98,19 @@ export function useUploadAvatar() {
       try {
         return await authApi.updateProfile({ avatar: url });
       } catch (error) {
-        // The photo is uploaded and on screen either way; a failed persist
-        // only means it may not survive the next sign-in. Report it in the log
-        // rather than failing an upload the user just watched succeed.
+        // The upload succeeded on the server but the PATCH to persist the avatar
+        // failed.  Surface the error so EditProfileScreen shows the "photo upload
+        // failed" toast rather than silently returning a fake user.
         logger.warn('upload', 'Avatar uploaded but not persisted', {
           message: error instanceof Error ? error.message : String(error),
         });
-        return { ...user, avatar: url };
+        throw error;
       }
     },
     onSuccess: updatedUser => {
       setUser(updatedUser);
       queryClient.setQueryData(PROFILE_QUERY_KEY, updatedUser);
+      queryClient.invalidateQueries({ queryKey: PROFILE_QUERY_KEY });
     },
   });
 }

@@ -132,7 +132,7 @@ export function SwitchToCustomerScreen({
 
       <View className="mt-2 gap-2 rounded-card border border-border bg-surface p-3 shadow-sm">
         <View className="flex-row items-center gap-2.5">
-          <Avatar name={display.fullName} size="sm" tone="brand" />
+          <Avatar uri={display.avatar} name={display.fullName} size="sm" tone="brand" />
           <View className="min-w-0 flex-1">
             <VemtapText variant="caption" tone="tertiary" numberOfLines={1}>
               {copy.toLabel}

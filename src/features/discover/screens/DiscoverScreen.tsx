@@ -165,7 +165,7 @@ export function DiscoverScreen(props: Partial<DiscoverScreenProps> = {}) {
             onPress={props.onOpenAccount}
             className="h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary active:opacity-80"
           >
-            <Avatar name={display.fullName} size="sm" tone="brand" />
+            <Avatar uri={display.avatar} name={display.fullName} size="sm" tone="brand" />
           </Pressable>
         </View>
       </View>

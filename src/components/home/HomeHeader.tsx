@@ -100,7 +100,7 @@ export function HomeHeader({
             {/* Initials of the signed-in customer; a portrait only exists once
                 the account actually has one. */}
             <Avatar
-              uri={avatarUri}
+              uri={avatarUri ?? display.avatar}
               name={avatarName ?? display.fullName}
               size="md"
               className="h-full w-full"

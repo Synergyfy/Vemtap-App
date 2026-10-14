@@ -294,7 +294,7 @@ export function DealFiltersScreen() {
               {strings.filters.reset}
             </VemtapText>
           </Pressable>
-          <Avatar name={display.fullName} size="sm" tone="brand" />
+          <Avatar uri={display.avatar} name={display.fullName} size="sm" tone="brand" />
         </View>
       </View>
 

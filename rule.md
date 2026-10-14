@@ -40,3 +40,21 @@
   unit suite — that is the only thing the flag is for.
 - A change is not done until the command above is green: typecheck clean, no new
   lint errors, and the full jest suite passing.
+
+## Scope
+
+This repository contains a React Native mobile app and a NestJS backend in a mono-repo
+structure. Changes in this PR are limited to:
+
+- **Mobile (`vtemtap-app`, branch `main`)** — all display, hook, test, and config changes
+  described in the avatar task.
+
+- **Backend (`Vemtap/apps/backend`, branch `dev`)** — the `folderOverride` validation, the
+  three stale/inconsistent bits in `uploads.controller.ts`, the `avatarUrl` removal from
+  `messagingApi.ts`, and the `UpdateUserProfileDto` length cap alignment.
+
+- **Web (`Vemtap/apps/VemTap`, Next.js)** — strictly out of scope. Do not edit any files
+  under `Vemtap/apps/VemTap`. If a change there is required, file a separate ticket.
+
+All API contracts are consumed as-is; do not patch the client to work around missing
+backend behaviour — either add the endpoint or flag it in the task.
