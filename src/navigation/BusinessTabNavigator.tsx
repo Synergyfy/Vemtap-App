@@ -198,7 +198,10 @@ import { BusinessNetworkActiveDashboardScreen } from '@features/business/screens
 import { InviteABusinessSheet } from '@features/business/screens/InviteABusinessSheet';
 import { TypeDensityProvider } from '@theme/TypeDensityProvider';
 import { useSwitchRole } from '@features/auth/hooks/useSwitchRole';
-import { useBusinessNotifications } from '@features/accountHub/hooks/useNotifications';
+import {
+  useBusinessNotifications,
+  useMarkAllNotificationsRead,
+} from '@features/accountHub/hooks/useNotifications';
 import { resolveNotificationUrl } from '@navigation/notificationRoutes';
 import { useBusinessNavigation } from './useBusinessNavigation';
 import type { BusinessTabParamList } from './types';
@@ -226,6 +229,7 @@ function BusinessOverviewRoute() {
       onOpenAnalytics={() => navigation.navigate('BusinessAnalytics')}
       onOpenOrders={() => navigation.navigate('BusinessOrders')}
       onOpenMessages={() => navigation.navigate('BusinessMessages')}
+      onOpenNotifications={() => navigation.navigate('BusinessNotifications')}
       // Quick shortcuts + the rows/cards that share their handlers.
       onOpenScanner={() => navigation.navigate('PosCustomerLookupActive')}
       onOpenPos={() => navigation.navigate('PosHomeSalesOperations')}
@@ -537,7 +541,7 @@ function BusinessManagementHubRoute() {
   const navigation = useBusinessNavigation();
   return (
     <BusinessManagementHubScreen
-      onNotifications={() => undefined}
+      onNotifications={() => navigation.navigate('BusinessNotifications')}
       onChangeBranch={() => undefined}
       onOpenModule={id => {
         const moduleRoutes: Record<
@@ -604,7 +608,7 @@ function CentralDealsManagementRoute() {
   return (
     <CentralDealsManagementScreen
       layout={layout}
-      onNotifications={() => undefined}
+      onNotifications={() => navigation.navigate('BusinessNotifications')}
       onCreateDeal={() => navigation.navigate('CreateDealStep1')}
       onSearch={() => undefined}
       onFilter={() => undefined}
@@ -898,7 +902,7 @@ function CentralCatalogueRoute() {
     <>
       <CentralCatalogueScreen
         layout={layout}
-        onNotifications={() => undefined}
+        onNotifications={() => navigation.navigate('BusinessNotifications')}
         onQuickSwitch={() => undefined}
         onSearch={() => undefined}
         onChangeScope={() => undefined}
@@ -1004,7 +1008,7 @@ function ServicesCategoriesRoute() {
   return (
     <>
       <ServicesCategoriesManagementScreen
-        onNotifications={() => undefined}
+        onNotifications={() => navigation.navigate('BusinessNotifications')}
         onAddService={() => {
           navigation.navigate('AddServiceBasics');
         }}
@@ -1371,7 +1375,7 @@ function LocationsBranchesRoute() {
   const navigation = useBusinessNavigation();
   return (
     <LocationsBranchesScreen
-      onNotifications={() => undefined}
+      onNotifications={() => navigation.navigate('BusinessNotifications')}
       onAddLocation={() => undefined}
       onChangeScope={() => undefined}
       onViewDetails={() => navigation.navigate('WuseBranchDetails')}
@@ -1404,7 +1408,7 @@ function CustomerCrmDirectoryRoute() {
   const navigation = useBusinessNavigation();
   return (
     <CustomerCrmDirectoryScreen
-      onNotifications={() => undefined}
+      onNotifications={() => navigation.navigate('BusinessNotifications')}
       onScanCode={() => undefined}
       onSearch={() => undefined}
       onFilter={() => undefined}
@@ -1439,7 +1443,7 @@ function LoyaltyProgrammeRoute() {
   const navigation = useBusinessNavigation();
   return (
     <LoyaltyProgrammeConfigurationScreen
-      onNotifications={() => undefined}
+      onNotifications={() => navigation.navigate('BusinessNotifications')}
       onChangeBranch={() => undefined}
       onSave={() => undefined}
       onPreviewPass={() => undefined}
@@ -1468,7 +1472,7 @@ function StaffDirectoryRoute() {
   const navigation = useBusinessNavigation();
   return (
     <StaffTeamAccessDirectoryScreen
-      onNotifications={() => undefined}
+      onNotifications={() => navigation.navigate('BusinessNotifications')}
       onChangeScope={() => undefined}
       onInvite={() => navigation.navigate('InviteStaff')}
       onOpenPermissions={() => navigation.navigate('InviteStaff')}
@@ -1545,7 +1549,7 @@ function DealsFlashRadarRoute() {
   return (
     <CentralDealsManagementScreen
       layout="compact"
-      onNotifications={() => undefined}
+      onNotifications={() => navigation.navigate('BusinessNotifications')}
       onCreateDeal={() => navigation.navigate('CreateDealLocationAssignment')}
       onSearch={() => undefined}
       onFilter={() => undefined}
@@ -1566,7 +1570,7 @@ function CampaignsDealsManagementRoute() {
   return (
     <CentralDealsManagementScreen
       layout="discovery"
-      onNotifications={() => undefined}
+      onNotifications={() => navigation.navigate('BusinessNotifications')}
       onCreateDeal={() => navigation.navigate('CreateDealLocationAssignment')}
       onSearch={() => undefined}
       onFilter={() => undefined}
@@ -1587,7 +1591,7 @@ function BusinessHubCatalogueRoute() {
   return (
     <CentralCatalogueScreen
       layout="businessHub"
-      onNotifications={() => undefined}
+      onNotifications={() => navigation.navigate('BusinessNotifications')}
       onQuickSwitch={() => undefined}
       onSearch={() => undefined}
       onChangeScope={() => navigation.navigate('LocationsBranches')}
@@ -1701,6 +1705,7 @@ function DigitalEReceiptRoute() {
 function BusinessNotificationsRoute() {
   const navigation = useBusinessNavigation();
   const { data: feed } = useBusinessNotifications();
+  const markAllRead = useMarkAllNotificationsRead();
 
   // Same allowlist as the consumer side, mapped onto the business stacks.
   // Navigating to `BusinessNotifications` here — the screen the row lives on —
@@ -1727,7 +1732,7 @@ function BusinessNotificationsRoute() {
     <BusinessNotificationsCenterScreen
       onBack={navigation.goBack}
       onOpenProfile={() => undefined}
-      onMarkAllRead={() => undefined}
+      onMarkAllRead={() => markAllRead.mutate()}
       onOpenCategory={() => undefined}
       onOpenNotification={openNotification}
       onConfigureDispatch={() => undefined}

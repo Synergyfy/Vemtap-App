@@ -51,6 +51,8 @@ export interface BusinessDashboardOverviewScreenProps {
   onOpenAnalytics?: () => void;
   onOpenOrders?: () => void;
   onOpenMessages?: () => void;
+  /** Bell target. Separate from messages: the badge counts notifications. */
+  onOpenNotifications?: () => void;
   onOpenClaims?: () => void;
   onOpenPosSync?: () => void;
   onOpenScanner?: () => void;
@@ -67,6 +69,7 @@ export function BusinessDashboardOverviewScreen({
   onOpenAnalytics,
   onOpenOrders,
   onOpenMessages,
+  onOpenNotifications,
   onOpenClaims,
   onOpenPosSync,
   onOpenScanner,
@@ -316,10 +319,13 @@ export function BusinessDashboardOverviewScreen({
         >
           <View className="min-w-0 flex-1">
             {businessName === undefined ? (
-              /** No business payload yet: skeleton bars, never a designed name. */
+              /**
+               * No business payload yet: skeleton bars, never a designed name.
+               * Decorative — the body's progressbar carries the announcement.
+               */
               <View
-                accessibilityRole="progressbar"
-                accessibilityLabel={copy.bodyLoadingLabel}
+                accessibilityElementsHidden
+                importantForAccessibility="no-hide-descendants"
                 className="gap-1.5"
               >
                 <View className="h-5 w-36 rounded-md bg-surface-container-high" />
@@ -361,7 +367,7 @@ export function BusinessDashboardOverviewScreen({
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={copy.notifications}
-              onPress={onOpenMessages}
+              onPress={onOpenNotifications}
               className="relative h-9 w-9 items-center justify-center"
             >
               <Icon name="notifications" size={21} color={colors.text} />

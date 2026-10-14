@@ -6,7 +6,6 @@ import { businessDashboardApi } from '@api/businessDashboardApi';
 import {
   activityPercents,
   countPendingClaims,
-  countUnreadMessages,
   formatCompactNaira,
   pickStat,
   toBranchList,
@@ -56,7 +55,7 @@ const branchB = {
 function mockLiveBackend(
   overrides: {
     stats?: Record<string, unknown>;
-    messages?: Record<string, unknown>[];
+    unreadMessages?: number;
   } = {},
 ) {
   mockGetMyBusiness.mockResolvedValue({
@@ -75,12 +74,10 @@ function mockLiveBackend(
       customers: 137,
       dealsClaimed: 63,
       revenue: 72400,
+      bookingsCount: 12,
     },
-    messages: overrides.messages ?? [
-      { id: 'm1', read: false },
-      { id: 'm2', read: true },
-      { id: 'm3', read: true },
-    ],
+    unreadMessages: overrides.unreadMessages ?? 1,
+    weekly: { visits: 42, claims: 7, revenue: 125000 },
     notifications: [],
     activityData: [
       { day: 'Mon', value: 10 },
@@ -100,14 +97,19 @@ function mockLiveBackend(
   mockGetUnreadCount.mockResolvedValue(5);
   mockGetNewOrdersCount.mockResolvedValue(4);
   mockGetClaims.mockResolvedValue([
-    { id: 'c1', status: 'pending' },
-    { id: 'c2', status: 'pending' },
+    { id: 'c1', status: 'claimed' },
+    { id: 'c2', status: 'claimed' },
     { id: 'c3', status: 'redeemed' },
   ]);
 }
 
 function renderDashboard() {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  // `gcTime: 0` stops React Query from scheduling its 5-minute garbage
+  // collection timer — in tests that timer keeps the jest process alive
+  // long after the assertions finish.
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false, gcTime: 0 } },
+  });
   return render(
     <QueryClientProvider client={client}>
       <BusinessDashboardOverviewScreen />
@@ -132,6 +134,7 @@ describe('business dashboard — live data', () => {
     expect(view.getByText('137')).toBeTruthy();
     expect(view.getByText('63')).toBeTruthy();
     expect(view.getByText('₦72.4k vol')).toBeTruthy();
+    expect(view.getByText('12 Bookings')).toBeTruthy();
     expect(view.getByText('27 txns')).toBeTruthy();
     // Unread notifications drive the header badge (hidden when zero).
     expect(view.getByText('5')).toBeTruthy();
@@ -200,7 +203,7 @@ describe('business dashboard — live data', () => {
 });
 
 describe('business dashboard — API unavailable', () => {
-  it('falls back to the designed copy when every call fails', async () => {
+  it('shows a retry panel instead of designed copy when every call fails', async () => {
     mockGetMyBusiness.mockRejectedValue(new Error('offline'));
     mockGetBusinessDashboard.mockRejectedValue(new Error('offline'));
     mockGetPosDashboard.mockRejectedValue(new Error('offline'));
@@ -210,15 +213,51 @@ describe('business dashboard — API unavailable', () => {
 
     const view = await renderDashboard();
 
-    await waitFor(() => expect(view.getByText(copy.pageTitle)).toBeTruthy());
-    expect(view.getByText(copy.metrics.viewsValue)).toBeTruthy();
-    expect(view.getByText(copy.posAmount)).toBeTruthy();
+    await waitFor(() => expect(view.getByText('Something went wrong')).toBeTruthy());
+    expect(view.getByText(strings.common.retry)).toBeTruthy();
+    // Nothing fabricated stands in for the data we could not load.
+    expect(view.queryByText(copy.pageTitle)).toBeNull();
+    expect(view.queryByText(copy.metrics.viewsValue)).toBeNull();
+    expect(view.queryByText(copy.posAmount)).toBeNull();
+    expect(view.queryByText(copy.growthTrial)).toBeNull();
     copy.activity.forEach(row => {
-      expect(view.getByText(row.title)).toBeTruthy();
+      expect(view.queryByText(row.title)).toBeNull();
     });
     // Nothing was verified, so the verified marks stay hidden.
     expect(view.queryByText(copy.verifiedBusiness)).toBeNull();
     expect(view.queryByText('5')).toBeNull();
+  });
+
+  it('renders a skeleton while the first payload is still in flight', async () => {
+    mockLiveBackend();
+    let settle: ((value: unknown) => void) | undefined;
+    mockGetBusinessDashboard.mockReturnValue(
+      new Promise(resolve => {
+        settle = resolve;
+      }),
+    );
+
+    const view = await renderDashboard();
+
+    expect(view.getByLabelText(copy.bodyLoadingLabel)).toBeTruthy();
+    expect(view.queryByText(copy.metrics.viewsValue)).toBeNull();
+    expect(view.queryByText(copy.pageTitle)).toBeNull();
+
+    // Settle before the test ends so the in-flight query cannot outlive it.
+    await act(async () => {
+      settle?.({
+        businessName: 'Aurora Grill',
+        stats: {},
+        weekly: { visits: 42, claims: 7, revenue: 125000 },
+        unreadMessages: 0,
+        notifications: [],
+        activityData: [],
+        recentVisitors: [],
+        rewards: [],
+        staffMembers: [],
+        devices: [],
+      });
+    });
   });
 });
 
@@ -229,14 +268,6 @@ describe('business dashboard mappers', () => {
     expect(pickStat({ profileViews: 9 }, ['views', 'profileViews'])).toBe(9);
     expect(pickStat({ views: 'n/a' }, ['views'])).toBeUndefined();
     expect(pickStat(undefined, ['views'])).toBeUndefined();
-  });
-
-  it('counts unread messages with or without read state', () => {
-    expect(countUnreadMessages([{ read: false }, { read: true }, { read: false }])).toBe(
-      2,
-    );
-    expect(countUnreadMessages([{ id: 'a' }, { id: 'b' }])).toBe(2);
-    expect(countUnreadMessages([{ unread: true }, { unread: false }])).toBe(1);
   });
 
   it('counts only claims still awaiting verification', () => {

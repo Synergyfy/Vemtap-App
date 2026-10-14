@@ -322,6 +322,20 @@ jest.mock('expo-image-picker', () => ({
   },
 }));
 
+// The verification-docs flow picks PDFs; without this stub the screens barrel
+// pulls in the real expo-document-picker, which loads expo-modules-core and
+// dies in jest on the missing native EventEmitter.
+jest.mock('expo-document-picker', () => ({
+  getDocumentAsync: jest.fn(async () => ({
+    canceled: true,
+    assets: [],
+  })),
+  DocumentPickerActionType: {
+    PICK: 'pick',
+    IMPORT: 'import',
+  },
+}));
+
 jest.mock('expo-location', () => ({
   requestForegroundPermissionsAsync: jest.fn(async () => ({
     status: 'granted',
