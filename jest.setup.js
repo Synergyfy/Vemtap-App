@@ -220,6 +220,18 @@ jest.mock('expo-secure-store', () => {
   };
 });
 
+// expo-constants is used by pushNotifications and App; without this stub the
+// real module loads expo-modules-core which dies in jest on the missing native
+// EventEmitter.
+jest.mock('expo-constants', () => ({
+  manifest: {
+    extra: {},
+  },
+  expoConfig: {
+    extra: {},
+  },
+}));
+
 jest.mock('expo-notifications', () => ({
   setNotificationHandler: jest.fn(),
   getPermissionsAsync: jest.fn(async () => ({

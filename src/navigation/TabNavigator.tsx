@@ -339,7 +339,12 @@ function DiscoverHomeScreen() {
       onOpenBusiness={onOpenBusiness}
       onOpenFilters={openFilters}
       onToggleMap={() => undefined}
-      onOpenNotifications={() => undefined}
+      onOpenNotifications={() =>
+        navigation.navigate('Account', {
+          screen: 'PersonalHub',
+          params: { screen: 'PersonalNotifications' },
+        })
+      }
       onOpenAccount={() => navigation.navigate('Tabs', { screen: 'Account' })}
       onOpenEnrollment={openBusinessSetup}
       onOpenLocationSelect={onOpenLocationSelect}
@@ -806,7 +811,9 @@ function ConversationRoute() {
 
   // The thread and its linked claim drive which actions the navbar can offer.
   const threadsQuery = useCustomerThreads();
-  const thread = (threadsQuery.data ?? []).find(item => item.id === route.params?.threadId);
+  const thread = (threadsQuery.data ?? []).find(
+    item => item.id === route.params?.threadId,
+  );
   const branchCode = thread?.branch?.code ?? undefined;
   const branchPhone = thread?.branch?.phone ?? undefined;
   const claimId = route.params?.claimId ?? thread?.claimId ?? undefined;
@@ -816,10 +823,11 @@ function ConversationRoute() {
     claimId,
     branchCode,
     branchPhone,
-    onOpenBusiness: code => navigation.navigate('Discover', {
-      screen: 'BusinessProfile',
-      params: { code },
-    }),
+    onOpenBusiness: code =>
+      navigation.navigate('Discover', {
+        screen: 'BusinessProfile',
+        params: { code },
+      }),
     onOpenPass: id => navigation.navigate('ClaimedDealPass', { claimId: id }),
   });
 

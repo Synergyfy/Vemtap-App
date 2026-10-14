@@ -12,7 +12,7 @@ const merchantThumbnail = {
   uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCqx_chQxFA1JDezBmai9JKaK2_VSbVcWG08duHTy9WqIStdgSnRn6pcaz-5rHrhL1pgP9lY438PWJMvFXMaclxaL6e0Sy3PsldCXnXOqaU6fTRhjAM2JLQSuSfCZKOfBp9_RpV3csZb5vvbOyeLETSLCGFJ61C0C18Y37Yr4Z_IM012MMWw6T0K1JWaP53ulQqOLC6WWW4qGhB3beje45UjVg29rMTim6FMJ3yRGbjKEQ68j11aGrORg',
 };
 
-export type BubbleStatus = 'sent' | 'delivered' | 'read';
+export type BubbleStatus = 'pending' | 'sent' | 'delivered' | 'read';
 
 /**
  * A message's backend receipt state (PENDING | QUEUED | SENT | DELIVERED |
@@ -21,6 +21,13 @@ export type BubbleStatus = 'sent' | 'delivered' | 'read';
  * "sent" so the row never renders a blank gap where the indicator goes.
  */
 export function bubbleStatusOf(status: string | null | undefined): BubbleStatus {
+  if (
+    status === 'PENDING' ||
+    status === 'QUEUED' ||
+    status === 'FAILED' ||
+    status === 'REJECTED'
+  )
+    return 'pending';
   if (status === 'READ') return 'read';
   if (status === 'DELIVERED') return 'delivered';
   return 'sent';
