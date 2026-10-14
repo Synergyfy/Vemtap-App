@@ -243,7 +243,9 @@ export function VerificationStageRail({
           <View
             className={cn(
               'flex-row items-center gap-1.5 rounded-full py-1',
-              stage.state === 'active' ? 'bg-surface-tint-blue px-3 shadow-sm' : 'px-2',
+              stage.state === 'active'
+                ? 'bg-surface-tint-blue px-3 shadow-sm'
+                : 'px-2 shadow-none',
             )}
           >
             {stage.state === 'done' ? (
@@ -341,14 +343,17 @@ export function SelectableRadioCard({
   disabled = false,
   className,
 }: SelectableRadioCardProps) {
+  // Every branch sets a shadow utility: a card that gains one after its first
+  // render makes css-interop "upgrade" (remount) it, which crashes the app on
+  // device the moment an option is tapped. Same for opacity below.
   const surfaceClass =
     layout === 'grid'
       ? selected
         ? 'bg-surface-container-high shadow-sm'
-        : 'bg-surface-container-low'
+        : 'bg-surface-container-low shadow-none'
       : layout === 'inline'
         ? selected
-          ? 'bg-surface-container-low'
+          ? 'bg-surface-container-low shadow-none'
           : 'bg-surface shadow-sm'
         : selected
           ? 'bg-surface-tint-blue shadow-md'
@@ -394,7 +399,7 @@ export function SelectableRadioCard({
         'rounded-card',
         layout === 'grid' ? 'items-center gap-0.5 p-2.5' : 'p-4',
         surfaceClass,
-        disabled && 'opacity-60',
+        disabled ? 'opacity-60' : 'opacity-100',
         className,
       )}
     >
@@ -449,7 +454,7 @@ export function SelectableRadioCard({
             <View
               className={cn(
                 'h-11 w-11 shrink-0 items-center justify-center rounded-lg',
-                selected ? 'bg-primary shadow-sm' : 'bg-surface-container',
+                selected ? 'bg-primary shadow-sm' : 'bg-surface-container shadow-none',
               )}
             >
               <Icon
