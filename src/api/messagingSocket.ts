@@ -1,40 +1,41 @@
 /**
  * Socket.io client for the backend `/messaging` namespace.
  *
- * The namespace lives at the server root: NestJS applies its global prefix to
- * HTTP routes only, so a base URL that carries a path prefix must not be reused
- * here — hence `API_WEBSOCKET_ORIGIN`, which strips it.
+ * The connection itself is the shared per-namespace singleton in
+ * `namespaceSocket` — this module is the messaging vocabulary layered on top
+ * (join, leave, typing, read receipts) plus the one piece of state that socket
+ * events need to see: the thread currently open on screen, so inbound messages
+ * in it are acked as read instead of showing an unread badge.
  *
- * One process-wide connection: the business tab mounts a single realtime hook
- * that owns it, and screens interact through the module-level helpers (join,
- * leave, typing, read receipts) so no screen can spawn a duplicate socket.
- *
- * Tokens live only in secure storage; the socket connects lazily once one is
- * available and stays quiet when the build has no API base URL.
+ * One process-wide connection: a single realtime hook owns it, and screens
+ * interact through these helpers so no screen can spawn a duplicate socket.
  */
 
-import { io, type Socket } from 'socket.io-client';
-import { API_WEBSOCKET_ORIGIN, IS_API_CONFIGURED } from '@constants/config';
-import { getSecureItem } from '@utils/secureStorage';
-import { logger } from '@utils/logger';
+import type { Socket } from 'socket.io-client';
+import {
+  connectNamespaceSocket,
+  disconnectNamespaceSocket,
+  disposeNamespaceSocket,
+  getNamespaceSocket,
+  isNamespaceSocketConnected,
+  isSocketConfigured,
+} from '@api/namespaceSocket';
 
 const MESSAGING_NAMESPACE = '/messaging';
 
-let socket: Socket | null = null;
-let connecting: Promise<Socket | null> | null = null;
 /** Thread currently open on screen; inbound messages in it are acked as read. */
 let activeThreadId: string | null = null;
 
 export function isMessagingSocketConfigured(): boolean {
-  return IS_API_CONFIGURED && API_WEBSOCKET_ORIGIN.length > 0;
+  return isSocketConfigured();
 }
 
 export function getMessagingSocket(): Socket | null {
-  return socket;
+  return getNamespaceSocket(MESSAGING_NAMESPACE);
 }
 
 export function isMessagingSocketConnected(): boolean {
-  return socket?.connected === true;
+  return isNamespaceSocketConnected(MESSAGING_NAMESPACE);
 }
 
 export function setActiveMessagingThread(threadId: string | null): void {
@@ -51,77 +52,36 @@ export function getActiveMessagingThread(): string | null {
  * unconfigured or signed out.
  */
 export async function connectMessagingSocket(): Promise<Socket | null> {
-  if (!isMessagingSocketConfigured()) return null;
-
-  if (socket) {
-    if (socket.connected) return socket;
-    const token = await getSecureItem('accessToken');
-    if (!token) return null;
-    socket.auth = { token, Authorization: `Bearer ${token}` };
-    socket.connect();
-    return socket;
-  }
-
-  if (connecting) return connecting;
-
-  connecting = (async () => {
-    const token = await getSecureItem('accessToken');
-    if (!token) return null;
-
-    const next = io(`${API_WEBSOCKET_ORIGIN}${MESSAGING_NAMESPACE}`, {
-      transports: ['websocket'],
-      autoConnect: true,
-      reconnection: true,
-      reconnectionDelay: 1_000,
-      reconnectionDelayMax: 15_000,
-      auth: { token, Authorization: `Bearer ${token}` },
-    });
-
-    next.on('connect_error', error => {
-      logger.warn(
-        'api',
-        `messaging socket connect error: ${error?.message ?? 'unknown'}`,
-      );
-    });
-
-    socket = next;
-    return next;
-  })().finally(() => {
-    connecting = null;
-  });
-
-  return connecting;
+  return connectNamespaceSocket(MESSAGING_NAMESPACE);
 }
 
 /** Drop the transport but keep the instance and its listeners (app backgrounds). */
 export function disconnectMessagingSocket(): void {
-  socket?.disconnect();
+  disconnectNamespaceSocket(MESSAGING_NAMESPACE);
 }
 
 /** Tear the instance down completely (owner unmounts / sign-out). */
 export function disposeMessagingSocket(): void {
-  socket?.removeAllListeners();
-  socket?.disconnect();
-  socket = null;
+  disposeNamespaceSocket(MESSAGING_NAMESPACE);
   activeThreadId = null;
 }
 
 export function joinMessagingThread(threadId: string): void {
-  socket?.emit('joinThread', { threadId });
+  getMessagingSocket()?.emit('joinThread', { threadId });
 }
 
 export function leaveMessagingThread(threadId: string): void {
-  socket?.emit('leaveThread', { threadId });
+  getMessagingSocket()?.emit('leaveThread', { threadId });
 }
 
 export function emitMessagingTyping(threadId: string, isTyping: boolean): void {
-  socket?.emit('typing', { threadId, isTyping });
+  getMessagingSocket()?.emit('typing', { threadId, isTyping });
 }
 
 export function markMessagingRead(threadId: string, messageIds?: string[]): void {
-  socket?.emit('markRead', { threadId, messageIds });
+  getMessagingSocket()?.emit('markRead', { threadId, messageIds });
 }
 
 export function markMessagingDelivered(messageId: string, threadId: string): void {
-  socket?.emit('markDelivered', { messageId, threadId });
+  getMessagingSocket()?.emit('markDelivered', { messageId, threadId });
 }

@@ -327,7 +327,6 @@ export type RootStackParamList = {
 
 export type AuthStackParamList = {
   Welcome: undefined;
-  DiscoverDeals: undefined;
   StartVemtap: undefined;
   SignIn: undefined;
   Register: undefined;

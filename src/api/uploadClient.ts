@@ -86,6 +86,26 @@ export interface UploadResult<T> {
   data: T;
 }
 
+/**
+ * Extension that matches a picker mime type. Fallback upload names must not
+ * disagree with the type they carry — a PNG filed as `.jpg` leaves a lying
+ * asset name on the CDN for every consumer that trusts the extension.
+ */
+export function extensionForMimeType(mimeType?: string | null): string {
+  switch (mimeType) {
+    case 'image/png':
+      return 'png';
+    case 'image/webp':
+      return 'webp';
+    case 'image/heic':
+      return 'heic';
+    case 'application/pdf':
+      return 'pdf';
+    default:
+      return 'jpg';
+  }
+}
+
 export async function uploadFile<T>(options: UploadOptions): Promise<UploadResult<T>> {
   const {
     url,

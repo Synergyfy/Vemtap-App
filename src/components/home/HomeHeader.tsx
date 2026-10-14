@@ -9,6 +9,7 @@ import { navbarBottomShadow } from '@theme/shadows';
 import { colors } from '@theme/colors';
 import { strings } from '@constants/strings';
 import { LocationTargetingControls } from '@components/home/LocationTargetingControls';
+import { useUnreadNotificationsCount } from '@features/accountHub/hooks/useNotifications';
 
 cssInterop(View, { className: 'style' });
 cssInterop(Pressable, { className: 'style' });
@@ -55,6 +56,11 @@ export function HomeHeader({
   avatarUri,
 }: HomeHeaderProps = {}) {
   const display = useCurrentUserDisplay();
+  // Live count behind the bell's dot — the same cache the notifications socket
+  // keeps fresh, so the dot appears the moment a notification lands and
+  // disappears once the centre is read.
+  const unread = useUnreadNotificationsCount();
+  const hasUnread = (unread.data ?? 0) > 0;
 
   return (
     <View style={navbarBottomShadow} className="bg-surface px-6 py-1">
@@ -81,7 +87,9 @@ export function HomeHeader({
             className="relative h-10 w-10 items-center justify-center rounded-full bg-surface-container-lowest shadow-sm"
           >
             <Icon name="notifications" size={22} color={colors.text} />
-            <View className="absolute right-2 top-2 h-2 w-2 rounded-full bg-error" />
+            {hasUnread ? (
+              <View className="absolute right-2 top-2 h-2 w-2 rounded-full bg-error" />
+            ) : null}
           </Pressable>
           <Pressable
             accessibilityRole="button"
@@ -92,7 +100,7 @@ export function HomeHeader({
             {/* Initials of the signed-in customer; a portrait only exists once
                 the account actually has one. */}
             <Avatar
-              uri={avatarUri}
+              uri={avatarUri ?? display.avatar}
               name={avatarName ?? display.fullName}
               size="md"
               className="h-full w-full"

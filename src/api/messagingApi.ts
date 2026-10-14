@@ -9,7 +9,6 @@ export const threadParticipantSchema = z.object({
   firstName: z.string().nullish(),
   lastName: z.string().nullish(),
   logoUrl: z.string().nullable().optional(),
-  avatarUrl: z.string().nullable().optional(),
   avatar: z.string().nullable().optional(),
   address: z.string().nullable().optional(),
   phone: z.string().nullish(),

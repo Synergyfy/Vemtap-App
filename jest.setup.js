@@ -220,6 +220,18 @@ jest.mock('expo-secure-store', () => {
   };
 });
 
+// expo-constants is used by pushNotifications and App; without this stub the
+// real module loads expo-modules-core which dies in jest on the missing native
+// EventEmitter.
+jest.mock('expo-constants', () => ({
+  manifest: {
+    extra: {},
+  },
+  expoConfig: {
+    extra: {},
+  },
+}));
+
 jest.mock('expo-notifications', () => ({
   setNotificationHandler: jest.fn(),
   getPermissionsAsync: jest.fn(async () => ({
@@ -322,22 +334,18 @@ jest.mock('expo-image-picker', () => ({
   },
 }));
 
+// The verification-docs flow picks PDFs; without this stub the screens barrel
+// pulls in the real expo-document-picker, which loads expo-modules-core and
+// dies in jest on the missing native EventEmitter.
 jest.mock('expo-document-picker', () => ({
   getDocumentAsync: jest.fn(async () => ({
-    canceled: false,
-    assets: [{ uri: 'file:///tmp/nin_slip_scan.jpg', name: 'nin_slip_scan.jpg' }],
+    canceled: true,
+    assets: [],
   })),
-  releaseSecureAccess: jest.fn(async () => undefined),
-  pick: jest.fn(async () => ({
-    canceled: false,
-    assets: [{ uri: 'file:///tmp/nin_slip_scan.jpg', name: 'nin_slip_scan.jpg' }],
-  })),
-  types: {
-    pdf: 'application/pdf',
-    images: 'image/*',
-    all: '*/*',
+  DocumentPickerActionType: {
+    PICK: 'pick',
+    IMPORT: 'import',
   },
-  allowsMultipleSelection: false,
 }));
 
 jest.mock('expo-location', () => ({

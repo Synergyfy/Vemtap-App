@@ -136,7 +136,7 @@ export function LocationConfirmationScreen() {
         >
           {strings.auth.confirmHeader}
         </VemtapText>
-        <Avatar name={display.fullName} size="sm" tone="brand" />
+        <Avatar uri={display.avatar} name={display.fullName} size="sm" tone="brand" />
       </View>
 
       <ScrollView contentContainerClassName="flex-grow px-6 pb-6 pt-2">

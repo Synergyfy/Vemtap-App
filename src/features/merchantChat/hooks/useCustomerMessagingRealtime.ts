@@ -46,6 +46,27 @@ interface MessageUpdatePayload {
   isDeleted?: boolean;
 }
 
+interface MessageReceiptPayload {
+  threadId?: string;
+  messageId?: string;
+  messageIds?: string[];
+  status?: string;
+}
+
+/**
+ * Advance one or more messages' receipt state in the cached transcript. The
+ * bubble reads `status`, so this is what flips a single tick into the double
+ * tick and then into the blue "read" mark without a refetch.
+ */
+function applyReceipt(
+  existing: ChatMessage[] | undefined,
+  matches: (id: string) => boolean,
+  status: string,
+): ChatMessage[] | undefined {
+  if (!existing) return existing;
+  return existing.map(item => (matches(item.id) ? { ...item, status } : item));
+}
+
 /** Collapse bursts of list invalidations triggered by event storms. */
 const INVALIDATE_THROTTLE_MS = 2_000;
 const DELETED_MESSAGE_TEXT = 'Message deleted';
@@ -201,6 +222,25 @@ export function useCustomerMessagingRealtime(enabled = true): void {
       invalidateLists(true);
     };
 
+    const handleMessageStatus = (payload: MessageReceiptPayload) => {
+      const { threadId, messageId, status } = payload ?? {};
+      if (!threadId || !messageId || !status) return;
+      queryClient.setQueryData<ChatMessage[]>(
+        customerMessagingKeys.messages(accountKey.current, threadId),
+        old => applyReceipt(old, id => id === messageId, status),
+      );
+    };
+
+    const handleMessageRead = (payload: MessageReceiptPayload) => {
+      const { threadId, messageIds } = payload ?? {};
+      if (!threadId || !messageIds?.length) return;
+      const ids = new Set(messageIds);
+      queryClient.setQueryData<ChatMessage[]>(
+        customerMessagingKeys.messages(accountKey.current, threadId),
+        old => applyReceipt(old, id => ids.has(id), payload.status ?? 'READ'),
+      );
+    };
+
     /**
      * Re-join the open thread's room. `newMessage` is emitted to the thread
      * room, so a reconnect (or a switch of the active thread) has to re-enter
@@ -235,6 +275,8 @@ export function useCustomerMessagingRealtime(enabled = true): void {
       socket.on('notification', handleNotification);
       socket.on('messageUpdate', handleMessageUpdate);
       socket.on('threadDeleted', handleThreadDeleted);
+      socket.on('messageStatus', handleMessageStatus);
+      socket.on('messageRead', handleMessageRead);
       socket.on('connect', handleConnect);
     };
 
@@ -254,6 +296,8 @@ export function useCustomerMessagingRealtime(enabled = true): void {
         bound.off('notification', handleNotification);
         bound.off('messageUpdate', handleMessageUpdate);
         bound.off('threadDeleted', handleThreadDeleted);
+        bound.off('messageStatus', handleMessageStatus);
+        bound.off('messageRead', handleMessageRead);
         bound.off('connect', handleConnect);
       }
       disposeMessagingSocket();

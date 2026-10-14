@@ -4,6 +4,8 @@ import { cssInterop } from 'nativewind';
 import { Icon, type IconName } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { colors } from '@theme/colors';
+import { strings } from '@constants/strings';
+import { formatLastSeen } from '../hooks/usePresence';
 
 cssInterop(Pressable, { className: 'style' });
 // Without this the avatar `className` is ignored and the remote image renders
@@ -26,6 +28,8 @@ export interface ConversationListCardProps {
   verified?: boolean;
   sender?: string;
   onPress: () => void;
+  /** Optional last seen timestamp for offline users */
+  lastSeen?: string;
 }
 
 const contextToneStyles: Record<
@@ -63,12 +67,23 @@ export function ConversationListCard({
   verified = false,
   sender = '',
   onPress,
+  // New prop for presence
+  lastSeen,
 }: ConversationListCardProps) {
   const tone = contextToneStyles[contextTone];
+  const isOnline = online === true;
+  const lastSeenTime = lastSeen ? formatLastSeen(lastSeen) : null;
+  // Screen readers get the presence state the dot only hints at visually.
+  const presenceInLabel = isOnline
+    ? `, ${strings.presence.online}`
+    : lastSeenTime
+      ? `, ${strings.presence.lastSeenPrefix} ${lastSeenTime}`
+      : '';
+
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={name}
+      accessibilityLabel={`${name}${presenceInLabel}`}
       onPress={onPress}
       className="w-full min-w-0 flex-row gap-3 overflow-hidden rounded-card border border-border bg-surface p-4 shadow-md active:bg-surface-container-low"
     >
@@ -81,7 +96,9 @@ export function ConversationListCard({
         ) : (
           avatarFallback
         )}
-        {online ? (
+        {/* Online indicator: the dot appears only for a merchant/customer
+            actually connected — a gray dot on every row is noise. */}
+        {isOnline ? (
           <View className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-surface bg-success" />
         ) : null}
       </View>
@@ -101,6 +118,7 @@ export function ConversationListCard({
             variant="caption"
             tone={unread ? 'brand' : 'tertiary'}
             className={`shrink-0 ${unread ? 'font-sans-semibold' : ''}`}
+            numberOfLines={1}
           >
             {time}
           </VemtapText>

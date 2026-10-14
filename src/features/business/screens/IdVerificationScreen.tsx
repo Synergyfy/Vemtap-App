@@ -309,7 +309,7 @@ export function IdVerificationScreen({
             onPress={pickAndUploadSlip}
           />
           <Button
-            label="Upload Photo"
+            label={copy.uploadPhotoAction}
             labelVariant="labelSm"
             variant="outline"
             size="sm"

@@ -1,12 +1,37 @@
 import React from 'react';
-import { Image, View } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { colors } from '@theme/colors';
 
+const styles = StyleSheet.create({
+  tickGap: { marginLeft: 4 },
+});
+
 const merchantThumbnail = {
   uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCqx_chQxFA1JDezBmai9JKaK2_VSbVcWG08duHTy9WqIStdgSnRn6pcaz-5rHrhL1pgP9lY438PWJMvFXMaclxaL6e0Sy3PsldCXnXOqaU6fTRhjAM2JLQSuSfCZKOfBp9_RpV3csZb5vvbOyeLETSLCGFJ61C0C18Y37Yr4Z_IM012MMWw6T0K1JWaP53ulQqOLC6WWW4qGhB3beje45UjVg29rMTim6FMJ3yRGbjKEQ68j11aGrORg',
 };
+
+export type BubbleStatus = 'pending' | 'sent' | 'delivered' | 'read';
+
+/**
+ * A message's backend receipt state (PENDING | QUEUED | SENT | DELIVERED |
+ * FAILED | READ | REJECTED) reduced to what the bubble can draw. Anything
+ * unrecognised — including PENDING and FAILED — stays at the single tick of
+ * "sent" so the row never renders a blank gap where the indicator goes.
+ */
+export function bubbleStatusOf(status: string | null | undefined): BubbleStatus {
+  if (
+    status === 'PENDING' ||
+    status === 'QUEUED' ||
+    status === 'FAILED' ||
+    status === 'REJECTED'
+  )
+    return 'pending';
+  if (status === 'READ') return 'read';
+  if (status === 'DELIVERED') return 'delivered';
+  return 'sent';
+}
 
 export interface ConversationBubbleProps {
   message: string;
@@ -26,6 +51,8 @@ export interface ConversationBubbleProps {
   /** Hosted image sent with the message; rendered above the caption. */
   mediaUrl?: string;
   children?: React.ReactNode;
+  /** Message delivery status: 'sent' | 'delivered' | 'read' */
+  status?: BubbleStatus;
 }
 
 export function ConversationBubble({
@@ -35,12 +62,45 @@ export function ConversationBubble({
   isOwn,
   mediaUrl,
   children,
+  status = 'sent',
 }: ConversationBubbleProps) {
   const own = isOwn ?? sender === 'customer';
   // Identity decides the avatar, not perspective: only a message that really
   // came from a merchant shows the merchant's face, so the business screen never
   // puts a shop's avatar next to a customer's message.
   const showAvatar = !own && sender === 'merchant';
+
+  const renderStatusIndicator = () => {
+    if (status === 'sent') {
+      return (
+        <View className="flex items-center gap-1">
+          <Icon name="check" size={14} color={colors.textTertiary} />
+        </View>
+      );
+    }
+    if (status === 'delivered') {
+      return (
+        <View className="flex items-center gap-1">
+          <Icon name="check" size={14} color={colors.textTertiary} />
+          <Icon
+            name="check"
+            size={14}
+            color={colors.textTertiary}
+            style={styles.tickGap}
+          />
+        </View>
+      );
+    }
+    if (status === 'read') {
+      return (
+        <View className="flex items-center gap-1">
+          <Icon name="doneAll" size={14} color={colors.primary} />
+          <Icon name="check" size={14} color={colors.primary} style={styles.tickGap} />
+        </View>
+      );
+    }
+    return null;
+  };
 
   return (
     <View
@@ -87,7 +147,7 @@ export function ConversationBubble({
         <VemtapText variant="caption" tone="tertiary">
           {time}
         </VemtapText>
-        {own ? <Icon name="doneAll" size={15} color={colors.primary} /> : null}
+        {own ? renderStatusIndicator() : null}
       </View>
     </View>
   );

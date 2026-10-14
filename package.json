@@ -20,7 +20,7 @@
     "ios:env": "expo run:ios --environment development",
     "android:env": "expo run:android --environment development",
     "doctor": "npx expo-doctor",
-    "verify": "npm run typecheck && npm run lint && npm run test",
+    "verify": "npm run typecheck && npm run lint && npm run test -- --maxWorkers=2",
     "postinstall": "patch-package",
     "prepare": "husky || true"
   },
@@ -49,6 +49,7 @@
     "axios": "^1.20.0",
     "clsx": "^2.1.1",
     "expo": "~57.0.25",
+    "expo-constants": "~57.0.19",
     "expo-document-picker": "~57.0.3",
     "expo-font": "~57.0.4",
     "expo-image-picker": "~57.0.20",

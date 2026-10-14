@@ -19,25 +19,28 @@ type UpgradeStateShape = {
   originalProps: Record<string, unknown>;
 };
 
-// The dist module is CJS without types; only these exports are used.
-const cssInteropRender = jest.requireActual(
-  'react-native-css-interop/dist/runtime/native/render-component.js',
-) as {
-  renderComponent: (
-    baseComponent: unknown,
-    state: UpgradeStateShape,
-    props: Record<string, unknown>,
-    possiblyAnimatedProps: Record<string, unknown>,
-    variables: unknown,
-    containers: unknown,
-  ) => unknown;
-  UpgradeState: {
-    NONE: number;
-    SHOULD_UPGRADE: number;
-    UPGRADED: number;
-    WARNED: number;
+// The dist module is CJS without types; only these two exports are used.
+// The disable has to sit directly above the `require` on the next line: the
+// statement wraps, so a comment above `const cssInteropRender` covers the
+// binding and suppresses nothing.
+const cssInteropRender =
+  // eslint-disable-next-line global-require
+  require('react-native-css-interop/dist/runtime/native/render-component.js') as {
+    renderComponent: (
+      baseComponent: unknown,
+      state: UpgradeStateShape,
+      props: Record<string, unknown>,
+      possiblyAnimatedProps: Record<string, unknown>,
+      variables: unknown,
+      containers: unknown,
+    ) => unknown;
+    UpgradeState: {
+      NONE: number;
+      SHOULD_UPGRADE: number;
+      UPGRADED: number;
+      WARNED: number;
+    };
   };
-};
 
 function pressableUpgradeState(
   originalProps: Record<string, unknown>,

@@ -94,6 +94,12 @@ export const businessDashboardSchema = z.looseObject({
   rewards: nullableArray(looseRecord),
   notifications: nullableArray(looseRecord),
   messages: nullableArray(looseRecord),
+  /**
+   * Conversation messages the branch has not opened yet — a scalar the
+   * backend sums from `branchUnreadCount`. Unlike `messages[]` (campaign
+   * broadcast history) this is what an unread-message badge must read.
+   */
+  unreadMessages: z.number().nullish(),
   staffMembers: nullableArray(looseRecord),
   devices: nullableArray(looseRecord),
 });

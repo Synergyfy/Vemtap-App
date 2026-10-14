@@ -18,6 +18,7 @@ import {
 import { BusinessInitialsAvatar } from '@features/business/components/BusinessPosPrimitives';
 import { HubSearchField } from '@features/accountHub/components/HubPrimitives';
 import { ConversationListCard } from '@features/merchantChat/components/ConversationListCard';
+import { usePresence } from '@features/merchantChat/hooks/usePresence';
 import type { ConversationThread } from '@api/messagingApi';
 
 cssInterop(ScrollView, {
@@ -44,6 +45,8 @@ export interface BusinessMessageThreadView {
   contextIcon: IconName;
   contextTone: ContextTone;
   categories: BusinessMessageCategory[];
+  /** Customer on the other end; the presence channel for the row. */
+  customerId?: string;
 }
 
 const SUBJECT_META: Record<string, { label: string; icon: IconName; tone: ContextTone }> =
@@ -95,6 +98,7 @@ export function toBusinessMessageThreadView(
     contextIcon: meta.icon,
     contextTone: meta.tone,
     categories,
+    customerId: thread.customerId ?? undefined,
   };
 }
 
@@ -165,6 +169,13 @@ export function BusinessMessagesHomeScreen({
   const hasConstraint = filter !== 0 || query.trim().length > 0;
   const emptyTitle = hasConstraint ? copy.emptyFilteredTitle : copy.emptyTitle;
   const emptyBody = hasConstraint ? copy.emptyFilteredBody : copy.emptyBody;
+
+  // Live customer presence for the rows on screen.
+  const { userPresence } = usePresence({
+    userIds: visibleThreads
+      .map(thread => thread.customerId)
+      .filter((id): id is string => !!id),
+  });
 
   // Dense hub: many rows read at a glance, so the subtree (navbar included)
   // uses the compact type density rather than per-row size overrides.
@@ -289,27 +300,34 @@ export function BusinessMessagesHomeScreen({
           />
         ) : (
           <View className="gap-1">
-            {visibleThreads.map(thread => (
-              <ConversationListCard
-                key={thread.id}
-                image={thread.avatarUri ? { uri: thread.avatarUri } : undefined}
-                avatarFallback={
-                  <BusinessInitialsAvatar
-                    initials={thread.initials}
-                    size="md"
-                    className="h-[52px] w-[52px]"
-                  />
-                }
-                name={thread.name}
-                time={thread.time}
-                message={thread.preview}
-                context={thread.context}
-                contextIcon={thread.contextIcon}
-                contextTone={thread.contextTone}
-                unread={thread.unread}
-                onPress={() => onOpenThread?.(thread.id)}
-              />
-            ))}
+            {visibleThreads.map(thread => {
+              const presence = thread.customerId
+                ? userPresence(thread.customerId)
+                : undefined;
+              return (
+                <ConversationListCard
+                  key={thread.id}
+                  image={thread.avatarUri ? { uri: thread.avatarUri } : undefined}
+                  avatarFallback={
+                    <BusinessInitialsAvatar
+                      initials={thread.initials}
+                      size="md"
+                      className="h-[52px] w-[52px]"
+                    />
+                  }
+                  name={thread.name}
+                  time={thread.time}
+                  message={thread.preview}
+                  context={thread.context}
+                  contextIcon={thread.contextIcon}
+                  contextTone={thread.contextTone}
+                  unread={thread.unread}
+                  online={presence?.isOnline ?? false}
+                  lastSeen={presence?.lastSeen ?? undefined}
+                  onPress={() => onOpenThread?.(thread.id)}
+                />
+              );
+            })}
           </View>
         )}
       </BusinessScreenLayout>

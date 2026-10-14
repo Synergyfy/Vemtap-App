@@ -340,7 +340,12 @@ function DiscoverHomeScreen() {
       onOpenBusiness={onOpenBusiness}
       onOpenFilters={openFilters}
       onToggleMap={() => undefined}
-      onOpenNotifications={() => undefined}
+      onOpenNotifications={() =>
+        navigation.navigate('Account', {
+          screen: 'PersonalHub',
+          params: { screen: 'PersonalNotifications' },
+        })
+      }
       onOpenAccount={() => navigation.navigate('Tabs', { screen: 'Account' })}
       onOpenEnrollment={openBusinessSetup}
       onOpenLocationSelect={onOpenLocationSelect}

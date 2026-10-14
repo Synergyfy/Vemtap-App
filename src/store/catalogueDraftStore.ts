@@ -53,6 +53,9 @@ export interface ServiceDraft {
   serviceMode: string;
   isBookable: boolean;
   bookingMethod?: string;
+  /** Optional category for service organization (mirrors product categoryId). */
+  categoryId?: string;
+  categoryName?: string;
   publishedServiceId?: string;
 }
 

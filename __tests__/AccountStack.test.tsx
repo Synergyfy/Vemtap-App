@@ -52,6 +52,7 @@ jest.mock('@features/accountHub/hooks/useNotifications', () => ({
   }),
   useMarkNotificationRead: () => ({ mutate: jest.fn() }),
   useMarkAllNotificationsRead: () => ({ mutate: jest.fn() }),
+  useUnreadNotificationsCount: () => ({ data: 0 }),
 }));
 
 // Selector-capable so screens can read the signed-in user, plus `getState` for

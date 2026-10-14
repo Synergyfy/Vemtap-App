@@ -16,12 +16,16 @@ jest.mock('axios', () => {
       response: { use: jest.fn() },
     },
   };
-  const create = jest.fn(() => instance) as jest.Mock & {
-    isAxiosError: jest.Mock;
-    AxiosError: typeof Error;
-  };
-  create.isAxiosError = jest.fn(() => false);
-  create.AxiosError = class AxiosErrorMock extends Error {} as unknown as typeof Error;
+  // Built as an object literal rather than by assigning onto `jest.fn()`: the
+  // mock's inferred type is narrower than the axios surface, so the two
+  // statics below would not type-check as properties of it.
+  const create = Object.assign(
+    jest.fn(() => instance),
+    {
+      isAxiosError: jest.fn(() => false),
+      AxiosError: class extends Error {},
+    },
+  );
   return { __esModule: true, default: { create }, isAxiosError: () => false };
 });
 

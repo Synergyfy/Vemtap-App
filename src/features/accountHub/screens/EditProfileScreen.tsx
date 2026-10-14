@@ -9,6 +9,7 @@ import {
   ProfileField,
 } from '@features/accountHub/components/AccountScreensPrimitives';
 import { Button } from '@components/ui/Button';
+import { Avatar } from '@components/ui/Avatar';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
@@ -40,6 +41,13 @@ export function EditProfileScreen({
   // Starts from whatever was saved, falling back to the first option so the
   // control is never blank for a profile saved before gender existed.
   const [gender, setGender] = useState<string>(me.gender ?? copy.female);
+
+  // Saving with nothing changed was how the old screen announced "updated"
+  // for a no-op; the button stays disabled until a field is actually touched.
+  const pristine =
+    firstName === me.firstName &&
+    lastName === me.lastName &&
+    gender === (me.gender ?? copy.female);
 
   // Trimmed so a stray space in a name field is not what gets persisted.
   const handleSave = () => {
@@ -78,10 +86,18 @@ export function EditProfileScreen({
 
     if (result.canceled || !result.assets[0]?.uri) return;
 
-    uploadAvatar.mutate(result.assets[0].uri, {
-      onSuccess: () => showToast(copy.avatarUpdated, 'success'),
-      onError: () => showToast(copy.photoUploadFailed, 'error'),
-    });
+    const asset = result.assets[0];
+    uploadAvatar.mutate(
+      {
+        uri: asset.uri,
+        fileName: asset.fileName,
+        mimeType: asset.mimeType,
+      },
+      {
+        onSuccess: () => showToast(copy.avatarUpdated, 'success'),
+        onError: () => showToast(copy.photoUploadFailed, 'error'),
+      },
+    );
   };
 
   return (
@@ -90,12 +106,14 @@ export function EditProfileScreen({
       <PageScroll>
         <View className="items-center gap-2 py-3">
           <View className="h-28 w-28 items-center justify-center rounded-full bg-surface-container-high shadow-md">
-            <VemtapText
-              variant="displayMobile"
-              className="text-heading-xl text-secondary"
-            >
-              {me.initials}
-            </VemtapText>
+            <Avatar
+              uri={me.avatar}
+              name={me.fullName}
+              size="xl"
+              tone="neutral"
+              className="h-full w-full"
+              accessibilityLabel={copy.changePhoto}
+            />
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={copy.changePhoto}
@@ -217,7 +235,7 @@ export function EditProfileScreen({
             onPress={handleSave}
             labelVariant="labelMd"
             loading={updateProfile.isPending}
-            disabled={updateProfile.isPending}
+            disabled={updateProfile.isPending || pristine}
           />
           <Button
             label={copy.discard}

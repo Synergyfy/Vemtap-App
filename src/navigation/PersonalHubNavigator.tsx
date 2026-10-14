@@ -26,7 +26,7 @@ import { SavedHubScreen } from '@features/accountHub/screens/SavedHubScreen';
 import { ComposeMessageSheet } from '@features/merchantChat/components/ComposeMessageSheet';
 import { NotificationsCenterScreen } from '@features/accountHub/screens/NotificationsCenterScreen';
 import { useNotifications } from '@features/accountHub/hooks/useNotifications';
-import { matchSegment } from '@navigation/notificationRoutes';
+import { resolveNotificationUrl } from '@navigation/notificationRoutes';
 import { AccountSettingsSecurityScreen } from '@features/accountHub/screens/AccountSettingsSecurityScreen';
 import { EditProfileScreen } from '@features/accountHub/screens/EditProfileScreen';
 import { HelpCentreScreen } from '@features/accountHub/screens/HelpCentreScreen';
@@ -294,14 +294,13 @@ function PersonalNotificationsRoute() {
   // destination, so navigating to them blindly would dead-end the tap.
   const openNotification = (id: string) => {
     const actionUrl = rows?.find(row => row.id === id)?.actionUrl;
-    const orderId = matchSegment(actionUrl, 'orders');
-    if (orderId) {
-      navigation.navigate('PersonalOrderDetail', { orderId });
+    const target = resolveNotificationUrl(actionUrl);
+    if (target?.kind === 'order') {
+      navigation.navigate('PersonalOrderDetail', { orderId: target.id });
       return;
     }
-    const threadId = matchSegment(actionUrl, 'messages');
-    if (threadId) {
-      navigation.navigate('PersonalConversation', { threadId });
+    if (target?.kind === 'message') {
+      navigation.navigate('PersonalConversation', { threadId: target.id });
     }
   };
 

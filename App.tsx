@@ -35,9 +35,15 @@ import { useAuthBootstrap } from '@features/auth/hooks/useAuthBootstrap';
 import { endSession } from '@features/auth/endSession';
 import { useCustomerTokenSync } from '@features/auth/hooks/useCustomerTokenSync';
 import { useCustomerMessagingRealtime } from '@features/merchantChat/hooks/useCustomerMessagingRealtime';
+import { usePushTokenRegistration } from '@features/accountHub/hooks/usePushTokenRegistration';
+import { useNotificationsRealtime } from '@features/accountHub/hooks/useNotificationsRealtime';
 import { startOfflineReplay } from '@services/offlineReplay';
 import { refreshFeatureFlags } from '@services/featureFlags';
-import { initPushNotifications } from '@services/pushNotifications';
+import {
+  initPushNotifications,
+  setNotificationNavigationHandler,
+} from '@services/pushNotifications';
+import { openNotificationUrl } from '@services/notificationTaps';
 import { analytics } from '@services/analytics';
 import { logger } from '@utils/logger';
 import { colors } from '@theme/colors';
@@ -131,6 +137,28 @@ function CustomerMessagingRealtime() {
   return null;
 }
 
+/**
+ * Keeps this device's push token pointed at whoever is signed in. Mounted above
+ * the shell, not inside it, so it survives navigation and applies to both the
+ * consumer and business accounts — a role switch is the same phone changing
+ * owner, and the token has to follow it.
+ */
+function PushTokenRegistration() {
+  usePushTokenRegistration();
+  return null;
+}
+
+/**
+ * The live bell. Mounted once for the whole app, not per shell: the gateway puts
+ * every connection in a single personal room, so there is one subscription to
+ * own whichever side is showing, and a role switch needs no re-mount.
+ */
+function NotificationsRealtime() {
+  const status = useAuthStore(state => state.status);
+  useNotificationsRealtime(status === 'authenticated');
+  return null;
+}
+
 export default function App() {
   const [bootReady, setBootReady] = useState(false);
   const [fontsLoaded, fontError] = useFonts({
@@ -161,6 +189,12 @@ export default function App() {
 
     const stopOffline = startOfflineReplay();
     refreshFeatureFlags().catch(() => undefined);
+    // Route a tapped push through the same allowlist the notification centre
+    // uses. Set before init so a cold launch from a tap is already handled —
+    // init replays the last notification response through this handler.
+    setNotificationNavigationHandler(data => {
+      openNotificationUrl(data?.url);
+    });
     // Never block boot on notifications — Expo Go / missing native modules must not black-screen Android.
     initPushNotifications().catch(() => undefined);
     analytics.logEvent('app_open').catch(() => undefined);
@@ -195,6 +229,8 @@ export default function App() {
                     repaired before the first screen's fetches run. */}
                 <CustomerTokenSync />
                 <CustomerMessagingRealtime />
+                <PushTokenRegistration />
+                <NotificationsRealtime />
                 {booted ? (
                   <Shell>
                     <RootNavigator />

@@ -33,6 +33,7 @@ export const strings = {
     confirm: 'Confirm',
     save: 'Save',
     error: 'Something went wrong. Please try again.',
+    uploadFailed: 'Could not upload the photo. Please try again.',
     offline: 'You are offline. Some features may be unavailable.',
     empty: 'Nothing here yet.',
     next: 'Next',
@@ -774,6 +775,12 @@ export const strings = {
       mentionCode: 'Mention voucher code VT-48291 when connecting with the merchant.',
       close: 'Close',
     },
+  },
+  presence: {
+    online: 'Online',
+    activeNow: 'Active now',
+    offline: 'Offline',
+    lastSeenPrefix: 'Last seen',
   },
   merchantChat: {
     goBack: 'Go back',
@@ -4661,6 +4668,8 @@ export const strings = {
     branchLive: 'Wuse II Branch',
     branchLiveSuffix: '(Live)',
     allBranches: 'All (2 Branches)',
+    /** Live branch count for the switcher's trailing label. */
+    allBranchesFor: (n: number) => `All (${n} Branch${n === 1 ? '' : 'es'})`,
     growthTipLabel: 'VEMTAP Growth Tip',
     growthTipTitle: 'Boost your business this weekend',
     growthTipCta: 'Boost a Deal',
@@ -4678,7 +4687,9 @@ export const strings = {
       dealsClaimedValue: '19',
       dealsClaimedDelta: '22%',
       ordersBookings: 'Orders & Bookings',
-      ordersBookingsVolume: '\u20A648.2k vol',
+      ordersBookingsVolume: '₦48.2k vol',
+      /** Live bookings count shown under the Orders & Bookings tile. */
+      ordersBookingsNote: (n: number) => `${n} Booking${n === 1 ? '' : 's'}`,
     },
     posTitle: 'In-Store POS Sales',
     posTxns: '12 txns',
@@ -4703,6 +4714,8 @@ export const strings = {
       `Growth Trial \u00b7 ${days} day${days === 1 ? '' : 's'} left`,
     /** Metric tile value when the backend answered without that stat. */
     emptyValue: '—',
+    /** Announced while the dashboard payload is still loading. */
+    bodyLoadingLabel: 'Loading dashboard',
     activity: [
       {
         id: 'orders',
@@ -5884,6 +5897,7 @@ export const strings = {
     saveDraft: 'Save as Draft & Exit',
     mediaTitle: 'Product Media',
     mediaRequired: 'Required',
+    uploadFailed: 'Could not upload media. Please try again.',
     guidelines: 'Guidelines',
     coverPhoto: 'Cover Photo',
     dragToArrange: 'Drag to arrange',

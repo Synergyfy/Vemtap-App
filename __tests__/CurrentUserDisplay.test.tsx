@@ -11,7 +11,7 @@ import { MoreHubScreen } from '@features/accountHub/screens/MoreHubScreen';
 
 /** The account the signup flow created — first/last name, phone, email. */
 const signedInUser = userSchema.parse({
-  id: '11111111-1111-4111-8111-111111111111',
+  id: '3c0d3a2a-1f6b-4b3e-9c2d-5a1e0b7f4d21',
   email: 'ada.okon@example.com',
   firstName: 'Ada',
   lastName: 'Okon',

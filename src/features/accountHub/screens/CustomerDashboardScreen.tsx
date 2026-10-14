@@ -40,7 +40,7 @@ import {
   usePublicOffersFeed,
   useRecommendations,
 } from '@features/deals/hooks/usePublicOffers';
-import { useUnreadNotificationsCount } from '@features/business/hooks/useBusinessDashboardData';
+import { useUnreadNotificationsCount } from '@features/accountHub/hooks/useNotifications';
 import type { LoyaltyLog, LoyaltyTier, Reward } from '@api/loyaltyApi';
 import { formatCompactNaira, formatPoints, formatWhen } from '@utils/formatters';
 import { colors } from '@theme/colors';

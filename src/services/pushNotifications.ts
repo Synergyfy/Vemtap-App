@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import { logger } from '@utils/logger';
 import { analytics } from '@services/analytics';
 
@@ -51,6 +52,22 @@ async function loadNotifications(): Promise<NotificationsModule | null> {
   }
 }
 
+/**
+ * The EAS project id, which `getExpoPushTokenAsync` requires on SDK 53+.
+ *
+ * Expo Push addresses a token as `ExponentPushToken[…@expo.io]` plus the
+ * project it was minted for, so the bare call throws without this — every
+ * token request failed silently (the catch logged and returned null). Read from
+ * `extra.eas.projectId` in app.json rather than duplicated here, so the id the
+ * build uses is the id the token is minted for.
+ */
+function pushProjectId(): string | undefined {
+  const extra = Constants.expoConfig?.extra as
+    { eas?: { projectId?: unknown } } | undefined;
+  const projectId = extra?.eas?.projectId;
+  return typeof projectId === 'string' && projectId.length > 0 ? projectId : undefined;
+}
+
 /** Register the deep-link handler used when a notification is tapped. */
 export function setNotificationNavigationHandler(handler: NotificationHandler): void {
   navigationHandler = handler;
@@ -66,7 +83,7 @@ function toData(notification: {
 /**
  * Request push permission (via Expo push service) and return the device token.
  * No-ops (returns null) inside Expo Go — remote push is unsupported there.
- * Wire the token to your backend via POST /devices after login.
+ * Wire the token to your backend via notificationsApi.registerPushToken.
  */
 export async function requestPushPermission(): Promise<string | null> {
   if (shouldSkipPushSetup()) {
@@ -85,6 +102,16 @@ export async function requestPushPermission(): Promise<string | null> {
     if (!Notifications) {
       return null;
     }
+    const projectId = pushProjectId();
+    if (!projectId) {
+      // Without it the token call throws, and the generic catch below cannot
+      // tell a config problem from a denied prompt.
+      logger.error(
+        'push',
+        'No EAS projectId in app config — cannot mint an Expo push token',
+      );
+      return null;
+    }
     let settings = await Notifications.getPermissionsAsync();
     if (!settings.granted) {
       settings = await Notifications.requestPermissionsAsync();
@@ -93,7 +120,7 @@ export async function requestPushPermission(): Promise<string | null> {
       logger.info('push', 'Push permission denied');
       return null;
     }
-    const token = await Notifications.getExpoPushTokenAsync();
+    const token = await Notifications.getExpoPushTokenAsync({ projectId });
     logger.info('push', 'Expo push token obtained');
     await analytics.logEvent('push_token_registered');
     return token.data;

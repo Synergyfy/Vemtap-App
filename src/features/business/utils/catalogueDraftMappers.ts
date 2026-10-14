@@ -96,6 +96,7 @@ export function serviceDraftToCreateInput(
     galleryImages: draft.galleryImages.length ? draft.galleryImages : undefined,
     itemType: 'service',
     branchId,
+    categoryId: draft.categoryId,
   };
 }
 

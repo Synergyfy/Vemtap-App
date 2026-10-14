@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import {
   businessDashboardApi,
   type ActiveSubscription,
@@ -51,12 +51,18 @@ export function useBusinessSubscription() {
   });
 }
 
-/** Overview stats for one branch. Pass `null` while the branch is unknown. */
+/**
+ * Overview stats for one branch. Pass `null` while the branch is unknown.
+ *
+ * `keepPreviousData` holds the last branch's payload across a switch, so the
+ * Overview never blanks itself — and with it the switcher you just used.
+ */
 export function useBusinessDashboard(branchId: string | null, enabled = true) {
   return useQuery<BusinessDashboard>({
     queryKey: businessDashboardKeys.dashboard(branchId ?? ''),
     queryFn: () => businessDashboardApi.getBusinessDashboard(branchId as string),
     enabled: Boolean(branchId) && enabled,
+    placeholderData: keepPreviousData,
     staleTime: 60_000,
   });
 }
@@ -67,6 +73,7 @@ export function usePosDashboard(branchId: string | null, enabled = true) {
     queryKey: businessDashboardKeys.posDashboard(branchId ?? ''),
     queryFn: () => businessDashboardApi.getPosDashboard(branchId),
     enabled: Boolean(branchId) && enabled,
+    placeholderData: keepPreviousData,
     staleTime: 60_000,
   });
 }
@@ -228,34 +235,13 @@ export function activityPointLabels(
 }
 
 /**
- * How many messages are unread. If the payload carries read state we count
- * the unread ones; if it does not, every returned message counts — a list
- * endpoint that returns only threads is assumed to return the unread set.
- */
-export function countUnreadMessages(
-  messages: readonly Record<string, unknown>[],
-): number {
-  const withState = messages.filter(
-    message =>
-      typeof message.read === 'boolean' ||
-      typeof message.isRead === 'boolean' ||
-      typeof message.unread === 'boolean',
-  );
-  if (withState.length === 0) return messages.length;
-  return withState.filter(message => {
-    if (typeof message.unread === 'boolean') return message.unread;
-    if (typeof message.read === 'boolean') return !message.read;
-    return message.isRead === false;
-  }).length;
-}
-
-/**
- * How many claims still need verification. Claims without a `status` field
- * count as pending (the endpoint's response is undocumented — §10).
+ * How many claims still need verification. The endpoint publishes exactly
+ * three statuses — `claimed` (awaiting the business), `redeemed` and
+ * `expired` — so only `claimed` counts; rows without a `status` field fall
+ * back to "everything is pending" until the payload documents otherwise.
  */
 export function countPendingClaims(claims: readonly Record<string, unknown>[]): number {
   const withStatus = claims.filter(claim => typeof claim.status === 'string');
   if (withStatus.length === 0) return claims.length;
-  return withStatus.filter(claim => /pending|awaiting|new/i.test(claim.status as string))
-    .length;
+  return withStatus.filter(claim => /^claimed$/i.test(claim.status as string)).length;
 }

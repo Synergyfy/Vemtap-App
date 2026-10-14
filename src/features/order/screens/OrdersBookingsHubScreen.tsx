@@ -147,7 +147,12 @@ export function OrdersBookingsHubScreen({
           >
             <Icon name="search" size={22} color={colors.textSecondary} />
           </Pressable>
-          <Avatar uri={avatarUri} name={display.fullName} size="sm" tone="brand" />
+          <Avatar
+            uri={avatarUri ?? display.avatar}
+            name={display.fullName}
+            size="sm"
+            tone="brand"
+          />
         </View>
       </View>
 

@@ -52,6 +52,7 @@ test('uploads logo, cover and only locally picked gallery photos', async () => {
     logoUrl: 'https://cdn/uploaded.jpg',
     coverImage: 'https://cdn/uploaded.jpg',
     gallery: ['https://cdn/uploaded.jpg', 'https://cdn/uploaded.jpg'],
+    failures: 0,
   });
   // 1 logo + 1 cover + 2 local gallery photos; the bundled https demo is skipped.
   expect(mockUploadFile).toHaveBeenCalledTimes(4);
@@ -69,7 +70,7 @@ test('keeps registration moving when every upload fails', async () => {
       coverUri: 'file://cover.png',
       galleryUris: ['file://photo-1.png'],
     }),
-  ).resolves.toEqual({});
+  ).resolves.toEqual({ failures: 3 });
 });
 
 test('uploads nothing when only bundled demo media is present', async () => {
@@ -77,6 +78,6 @@ test('uploads nothing when only bundled demo media is present', async () => {
     uploadBrandingMedia({
       galleryUris: ['https://lh3.googleusercontent.com/demo.jpg'],
     }),
-  ).resolves.toEqual({});
+  ).resolves.toEqual({ failures: 0 });
   expect(mockUploadFile).not.toHaveBeenCalled();
 });

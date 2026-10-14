@@ -21,6 +21,8 @@ export interface CurrentUserDisplay {
   initials: string;
   email: string;
   phone: string;
+  /** User avatar URL. */
+  avatar: string;
   /**
    * Email-verification flag from the session. False when signed out — the
    * schema normalises an absent or null flag the same way.
@@ -63,6 +65,7 @@ export function useCurrentUserDisplay(): CurrentUserDisplay {
     initials: initialsOf(fullName),
     email: user?.email?.trim() || placeholderEmail,
     phone: user?.phone?.trim() || placeholderPhone,
+    avatar: user?.avatar?.trim() || '',
     emailVerified: user?.emailVerified ?? false,
     gender: user?.gender ?? undefined,
   };

@@ -32,6 +32,7 @@ export type CatalogueDraftKind = 'product' | 'service';
  * `inactive` (items are active-by-default on create).
  */
 export function usePublishCatalogueItem() {
+  const queryClient = useQueryClient();
   const setPublishedProduct = useCatalogueDraftStore(state => state.setPublishedProduct);
   const setPublishedService = useCatalogueDraftStore(state => state.setPublishedService);
 
@@ -44,9 +45,8 @@ export function usePublishCatalogueItem() {
       status: 'active' | 'inactive';
     }): Promise<BusinessCatalogueItem> => {
       const state = useCatalogueDraftStore.getState();
-      const { primaryBranchId, remainingBranchIds } = splitBranchIds(
-        kind === 'product' ? state.product.branchIds : state.service.branchIds,
-      );
+      const draft = kind === 'product' ? state.product : state.service;
+      const { primaryBranchId, remainingBranchIds } = splitBranchIds(draft.branchIds);
       if (!primaryBranchId) {
         throw new Error('Select at least one branch before publishing');
       }
@@ -56,22 +56,40 @@ export function usePublishCatalogueItem() {
           ? productDraftToCreateInput(state.product, primaryBranchId)
           : serviceDraftToCreateInput(state.service, primaryBranchId);
 
-      let created = await catalogueApi.createCatalogueItem(input);
-      await Promise.all(
-        remainingBranchIds.map(targetBranchId =>
-          catalogueApi.importItemToBranch(created.id, targetBranchId),
-        ),
-      );
-      if (status === 'inactive') {
-        created = await catalogueApi.updateCatalogueItem(created.id, {
+      // Deduplication: if saving as draft and there's already a published draft item,
+      // update it instead of creating a duplicate.
+      const existingDraftId =
+        kind === 'product'
+          ? state.product.publishedItemId
+          : state.service.publishedServiceId;
+
+      let created: BusinessCatalogueItem;
+      if (status === 'inactive' && existingDraftId) {
+        // Update existing draft item
+        created = await catalogueApi.updateCatalogueItem(existingDraftId, {
+          ...input,
           status: 'inactive',
         });
+      } else {
+        // Create new item
+        created = await catalogueApi.createCatalogueItem(input);
+        await Promise.all(
+          remainingBranchIds.map(targetBranchId =>
+            catalogueApi.importItemToBranch(created.id, targetBranchId),
+          ),
+        );
+        if (status === 'inactive') {
+          created = await catalogueApi.updateCatalogueItem(created.id, {
+            status: 'inactive',
+          });
+        }
       }
       return created;
     },
     onSuccess: (created, { kind }) => {
       if (kind === 'product') setPublishedProduct(created.id);
       else setPublishedService(created.id);
+      queryClient.invalidateQueries({ queryKey: ['catalogue', 'business'] });
     },
   });
 }

@@ -64,7 +64,6 @@ import { BusinessSupportHelpScreen } from '@features/business/screens/BusinessSu
 import { BusinessSettingsScreen } from '@features/business/screens/BusinessSettingsScreen';
 import { SwitchToCustomerScreen } from '@features/business/screens/SwitchToCustomerScreen';
 import {
-  countUnreadMessages,
   useBusinessDashboard,
   useMyBusiness,
   usePosDashboard,
@@ -114,6 +113,7 @@ import {
   useUpdateCatalogueItemDetails,
   useUpdateCatalogueItemStatus,
   useUpdateOfferStatus,
+  useDeleteCatalogueItem,
 } from '@features/business/hooks/useCatalogueMutations';
 import { CategoryReorderSheet } from '@features/business/components/CategoryReorderSheet';
 import { PromptDialog } from '@features/business/components/PromptDialog';
@@ -199,8 +199,11 @@ import { BusinessNetworkActiveDashboardScreen } from '@features/business/screens
 import { InviteABusinessSheet } from '@features/business/screens/InviteABusinessSheet';
 import { TypeDensityProvider } from '@theme/TypeDensityProvider';
 import { useSwitchRole } from '@features/auth/hooks/useSwitchRole';
-import { useBusinessNotifications } from '@features/accountHub/hooks/useNotifications';
-import { matchSegment } from '@navigation/notificationRoutes';
+import {
+  useBusinessNotifications,
+  useMarkAllNotificationsRead,
+} from '@features/accountHub/hooks/useNotifications';
+import { resolveNotificationUrl } from '@navigation/notificationRoutes';
 import { useBusinessNavigation } from './useBusinessNavigation';
 import type { BusinessTabParamList } from './types';
 
@@ -227,11 +230,13 @@ function BusinessOverviewRoute() {
       onOpenAnalytics={() => navigation.navigate('BusinessAnalytics')}
       onOpenOrders={() => navigation.navigate('BusinessOrders')}
       onOpenMessages={() => navigation.navigate('BusinessMessages')}
+      onOpenNotifications={() => navigation.navigate('BusinessNotifications')}
       // Quick shortcuts + the rows/cards that share their handlers.
       onOpenScanner={() => navigation.navigate('PosCustomerLookupActive')}
       onOpenPos={() => navigation.navigate('PosHomeSalesOperations')}
       onCreateDeal={() => navigation.navigate('CreateDealLocationAssignment')}
       onAddProduct={() => navigation.navigate('AddProductBasicsMedia')}
+      onOpenClaims={() => navigation.navigate('CentralDealsManagement')}
       onBoostDeal={() => navigation.navigate('BoostEngine')}
       onOpenPosSync={() => navigation.navigate('PosSyncReconciliation')}
       onAddBranch={() => navigation.navigate('LocationsBranches')}
@@ -454,6 +459,7 @@ function BusinessConversationRoute() {
   return (
     <BusinessConversationScreen
       onBack={navigation.goBack}
+      customerId={headerThread?.customerId}
       thread={
         headerThread
           ? {
@@ -536,7 +542,7 @@ function BusinessManagementHubRoute() {
   const navigation = useBusinessNavigation();
   return (
     <BusinessManagementHubScreen
-      onNotifications={() => undefined}
+      onNotifications={() => navigation.navigate('BusinessNotifications')}
       onChangeBranch={() => undefined}
       onOpenModule={id => {
         const moduleRoutes: Record<
@@ -603,7 +609,7 @@ function CentralDealsManagementRoute() {
   return (
     <CentralDealsManagementScreen
       layout={layout}
-      onNotifications={() => undefined}
+      onNotifications={() => navigation.navigate('BusinessNotifications')}
       onCreateDeal={() => navigation.navigate('CreateDealStep1')}
       onSearch={() => undefined}
       onFilter={() => undefined}
@@ -886,6 +892,7 @@ function CentralCatalogueRoute() {
   const layout = route.params?.layout ?? 'directory';
   const updateItemStatus = useUpdateCatalogueItemStatus();
   const updateDetails = useUpdateCatalogueItemDetails();
+  const deleteItem = useDeleteCatalogueItem();
   const catalogue = useBusinessCatalogue();
   const [editing, setEditing] = useState<{
     id: string;
@@ -897,7 +904,7 @@ function CentralCatalogueRoute() {
     <>
       <CentralCatalogueScreen
         layout={layout}
-        onNotifications={() => undefined}
+        onNotifications={() => navigation.navigate('BusinessNotifications')}
         onQuickSwitch={() => undefined}
         onSearch={() => undefined}
         onChangeScope={() => undefined}
@@ -923,14 +930,10 @@ function CentralCatalogueRoute() {
         }}
         onSheetAction={(actionId, itemId) => {
           if (actionId === 'delete') {
-            updateItemStatus.mutate(
-              { itemId, status: 'archived' },
-              {
-                onSuccess: () =>
-                  showSuccess('Item archived. Customers no longer see it.'),
-                onError: () => showError('Could not archive the item.'),
-              },
-            );
+            deleteItem.mutate(itemId, {
+              onSuccess: () => showSuccess('Item deleted permanently.'),
+              onError: () => showError('Could not delete the item.'),
+            });
           } else if (actionId === 'archive' || actionId === 'pause') {
             updateItemStatus.mutate(
               { itemId, status: 'inactive' },
@@ -1003,7 +1006,7 @@ function ServicesCategoriesRoute() {
   return (
     <>
       <ServicesCategoriesManagementScreen
-        onNotifications={() => undefined}
+        onNotifications={() => navigation.navigate('BusinessNotifications')}
         onAddService={() => {
           navigation.navigate('AddServiceBasics');
         }}
@@ -1370,7 +1373,7 @@ function LocationsBranchesRoute() {
   const navigation = useBusinessNavigation();
   return (
     <LocationsBranchesScreen
-      onNotifications={() => undefined}
+      onNotifications={() => navigation.navigate('BusinessNotifications')}
       onAddLocation={() => undefined}
       onChangeScope={() => undefined}
       onViewDetails={() => navigation.navigate('WuseBranchDetails')}
@@ -1403,7 +1406,7 @@ function CustomerCrmDirectoryRoute() {
   const navigation = useBusinessNavigation();
   return (
     <CustomerCrmDirectoryScreen
-      onNotifications={() => undefined}
+      onNotifications={() => navigation.navigate('BusinessNotifications')}
       onScanCode={() => undefined}
       onSearch={() => undefined}
       onFilter={() => undefined}
@@ -1438,7 +1441,7 @@ function LoyaltyProgrammeRoute() {
   const navigation = useBusinessNavigation();
   return (
     <LoyaltyProgrammeConfigurationScreen
-      onNotifications={() => undefined}
+      onNotifications={() => navigation.navigate('BusinessNotifications')}
       onChangeBranch={() => undefined}
       onSave={() => undefined}
       onPreviewPass={() => undefined}
@@ -1467,7 +1470,7 @@ function StaffDirectoryRoute() {
   const navigation = useBusinessNavigation();
   return (
     <StaffTeamAccessDirectoryScreen
-      onNotifications={() => undefined}
+      onNotifications={() => navigation.navigate('BusinessNotifications')}
       onChangeScope={() => undefined}
       onInvite={() => navigation.navigate('InviteStaff')}
       onOpenPermissions={() => navigation.navigate('InviteStaff')}
@@ -1544,7 +1547,7 @@ function DealsFlashRadarRoute() {
   return (
     <CentralDealsManagementScreen
       layout="compact"
-      onNotifications={() => undefined}
+      onNotifications={() => navigation.navigate('BusinessNotifications')}
       onCreateDeal={() => navigation.navigate('CreateDealLocationAssignment')}
       onSearch={() => undefined}
       onFilter={() => undefined}
@@ -1565,7 +1568,7 @@ function CampaignsDealsManagementRoute() {
   return (
     <CentralDealsManagementScreen
       layout="discovery"
-      onNotifications={() => undefined}
+      onNotifications={() => navigation.navigate('BusinessNotifications')}
       onCreateDeal={() => navigation.navigate('CreateDealLocationAssignment')}
       onSearch={() => undefined}
       onFilter={() => undefined}
@@ -1586,7 +1589,7 @@ function BusinessHubCatalogueRoute() {
   return (
     <CentralCatalogueScreen
       layout="businessHub"
-      onNotifications={() => undefined}
+      onNotifications={() => navigation.navigate('BusinessNotifications')}
       onQuickSwitch={() => undefined}
       onSearch={() => undefined}
       onChangeScope={() => navigation.navigate('LocationsBranches')}
@@ -1700,25 +1703,25 @@ function DigitalEReceiptRoute() {
 function BusinessNotificationsRoute() {
   const navigation = useBusinessNavigation();
   const { data: feed } = useBusinessNotifications();
+  const markAllRead = useMarkAllNotificationsRead();
 
   // Same allowlist as the consumer side, mapped onto the business stacks.
   // Navigating to `BusinessNotifications` here — the screen the row lives on —
   // would push a duplicate of the list onto itself every tap.
   const openNotification = (id: string) => {
     const actionUrl = feed?.data.find(row => row.id === id)?.actionUrl;
-    const orderId = matchSegment(actionUrl, 'orders');
-    if (orderId) {
+    const target = resolveNotificationUrl(actionUrl);
+    if (target?.kind === 'order') {
       navigation.navigate('BusinessOrders', {
         screen: 'BusinessOrderDetail',
-        params: { orderId },
+        params: { orderId: target.id },
       });
       return;
     }
-    const threadId = matchSegment(actionUrl, 'messages');
-    if (threadId) {
+    if (target?.kind === 'message') {
       navigation.navigate('BusinessMessages', {
         screen: 'BusinessConversation',
-        params: { threadId },
+        params: { threadId: target.id },
       });
     }
   };
@@ -1727,7 +1730,7 @@ function BusinessNotificationsRoute() {
     <BusinessNotificationsCenterScreen
       onBack={navigation.goBack}
       onOpenProfile={() => undefined}
-      onMarkAllRead={() => undefined}
+      onMarkAllRead={() => markAllRead.mutate()}
       onOpenCategory={() => undefined}
       onOpenNotification={openNotification}
       onConfigureDispatch={() => undefined}
@@ -3703,9 +3706,8 @@ function BusinessTabBarWithLiveBadges(
     badges.BusinessOrders = { count: counts.counts.new, tone: 'brand' };
   }
 
-  const unreadMessages = dashboard.data
-    ? countUnreadMessages(dashboard.data.messages)
-    : 0;
+  /** `unreadMessages` is the branch-side counter — broadcasts never badge. */
+  const unreadMessages = dashboard.data?.unreadMessages ?? 0;
   if (unreadMessages > 0) {
     badges.BusinessMessages = { count: unreadMessages, tone: 'error' };
   }

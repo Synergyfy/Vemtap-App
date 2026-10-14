@@ -199,4 +199,53 @@ export const notificationsApi = {
       z.unknown(),
     );
   },
+
+  /**
+   * Hand this device's push token to the backend.
+   *
+   * Without it the server has no address for the phone and every notification
+   * is skipped in the worker, so this is what makes the app reachable while it
+   * is closed or backgrounded. Idempotent per token: re-registering refreshes
+   * the existing `push_tokens` row rather than adding a second one.
+   */
+  async registerPushToken(
+    token: string,
+    options: ApiRequestOptions & { platform?: string } = {},
+  ): Promise<void> {
+    const { platform, ...requestOptions } = options;
+    await requestValidated<unknown>(
+      {
+        method: 'POST',
+        url: '/notifications/push-token',
+        // Omitted rather than sent as null: the backend whitelists its DTO
+        // fields, and `platform` is only useful when it is actually known.
+        data: {
+          token,
+          transport: 'expo',
+          ...(platform ? { platform } : {}),
+        },
+        ...requestOptions,
+      },
+      z.unknown(),
+    );
+  },
+
+  /**
+   * Revoke push tokens on sign-out.
+   *
+   * Omit `token` to clear every device, which is the honest default for a
+   * logout: a session that is gone should stop being pushed to, whichever
+   * device happened to sign out.
+   */
+  async clearPushToken(token?: string, options: ApiRequestOptions = {}): Promise<void> {
+    await requestValidated<unknown>(
+      {
+        method: 'DELETE',
+        url: '/notifications/push-token',
+        data: token ? { token } : {},
+        ...options,
+      },
+      z.unknown(),
+    );
+  },
 };

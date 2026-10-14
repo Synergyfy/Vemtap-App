@@ -144,11 +144,18 @@ test('opens on the gender the profile already has', async () => {
     render(<EditProfileScreen />);
   });
 
+  // The pills open on the session's gender…
+  expect(
+    screen.getByRole('button', { name: copy.preferNot }).props.accessibilityState
+      ?.selected,
+  ).toBe(true);
+  expect(
+    screen.getByRole('button', { name: copy.female }).props.accessibilityState?.selected,
+  ).toBe(false);
+
+  // …and an untouched form has nothing to save, so Save stays inert.
   await act(async () => {
     fireEvent.press(screen.getByText(copy.save));
   });
-
-  expect(authApi.updateProfile).toHaveBeenCalledWith(
-    expect.objectContaining({ gender: copy.preferNot }),
-  );
+  expect(authApi.updateProfile).not.toHaveBeenCalled();
 });

@@ -11,6 +11,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ConversationListCard } from '@features/merchantChat/components/ConversationListCard';
 import { useCustomerThreads } from '@features/merchantChat/hooks/useCustomerMessaging';
+import { usePresence } from '@features/merchantChat/hooks/usePresence';
 import type { ConversationThread } from '@api/messagingApi';
 import { LoadingState } from '@components/shared/LoadingState';
 import { EmptyState } from '@components/shared/EmptyState';
@@ -62,6 +63,8 @@ interface ThreadEntry {
   contextIcon: IconName;
   unread: number;
   categories: string[];
+  /** Merchant the thread belongs to; the presence channel on the row. */
+  businessId?: string;
 }
 
 // Design `data-filter` values for the four chips, in render order.
@@ -109,6 +112,7 @@ function toEntry(thread: ConversationThread, index: number): ThreadEntry {
     contextIcon: 'locationOn',
     unread,
     categories,
+    businessId: thread.businessId ?? undefined,
   };
 }
 
@@ -153,6 +157,14 @@ export function MessagesScreen({
         return matchesSearch && matchesFilter;
       });
   }, [activeFilter, query, threads]);
+
+  // Live merchant presence for the rows on screen: a merchant is "online"
+  // while any of their staff holds a messaging socket.
+  const { businessPresence } = usePresence({
+    businessIds: entries
+      .map(entry => entry.businessId)
+      .filter((id): id is string => !!id),
+  });
 
   const hasConstraint = activeFilter !== 0 || query.trim().length > 0;
   const emptyCopy = hasConstraint
@@ -201,7 +213,7 @@ export function MessagesScreen({
           >
             <Icon name="tune" size={21} color={colors.textSecondary} />
           </Pressable>
-          <Avatar name={display.fullName} size="sm" tone="brand" />
+          <Avatar uri={display.avatar} name={display.fullName} size="sm" tone="brand" />
         </View>
       </View>
 
@@ -306,19 +318,26 @@ export function MessagesScreen({
             description={emptyCopy.body}
           />
         ) : (
-          entries.map(entry => (
-            <ConversationListCard
-              key={entry.key}
-              image={entry.image}
-              name={entry.name}
-              time={entry.time}
-              message={entry.message}
-              context={entry.context}
-              contextIcon={entry.contextIcon}
-              unread={entry.unread}
-              onPress={() => onOpenConversation?.(entry.key)}
-            />
-          ))
+          entries.map(entry => {
+            const presence = entry.businessId
+              ? businessPresence(entry.businessId)
+              : undefined;
+            return (
+              <ConversationListCard
+                key={entry.key}
+                image={entry.image}
+                name={entry.name}
+                time={entry.time}
+                message={entry.message}
+                context={entry.context}
+                contextIcon={entry.contextIcon}
+                unread={entry.unread}
+                online={presence?.isOnline ?? false}
+                lastSeen={presence?.lastSeen ?? undefined}
+                onPress={() => onOpenConversation?.(entry.key)}
+              />
+            );
+          })
         )}
         <View className="mt-2 flex-row items-center gap-2 rounded-xl bg-surface-container-low px-3 py-3">
           <Icon name="lock" size={17} color={colors.primary} />

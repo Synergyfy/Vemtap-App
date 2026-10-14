@@ -97,11 +97,18 @@ export const sessionSchema = z.object({
 
 export type LoginInput = z.infer<typeof loginInputSchema>;
 
-/** The editable slice of a profile, as the edit screen collects it. */
+/**
+ * The editable slice of a profile, as the edit screen collects it.
+ *
+ * Every field is optional because the endpoint is: the edit screen sends the
+ * names and gender together, while an avatar upload persists only `avatar`.
+ */
 export interface UpdateProfileInput {
-  firstName: string;
-  lastName: string;
+  firstName?: string;
+  lastName?: string;
   gender?: string;
+  /** Hosted portrait URL from `POST /uploads`, persisted server-side. */
+  avatar?: string;
 }
 export type RegisterInput = z.infer<typeof registerInputSchema>;
 export type User = z.infer<typeof userSchema>;
