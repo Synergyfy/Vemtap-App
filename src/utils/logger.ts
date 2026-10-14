@@ -42,7 +42,16 @@ function redact(value: unknown, depth = 0): unknown {
 }
 
 type LogScope =
-  'http' | 'auth' | 'app' | 'nav' | 'upload' | 'flags' | 'push' | 'api' | 'business';
+  | 'http'
+  | 'auth'
+  | 'app'
+  | 'nav'
+  | 'upload'
+  | 'flags'
+  | 'push'
+  | 'api'
+  | 'business'
+  | 'notifications';
 
 function log(
   level: 'debug' | 'info' | 'warn' | 'error',

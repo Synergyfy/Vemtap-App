@@ -20,9 +20,9 @@ import {
 } from '@features/business/components/BusinessPrimitives';
 import {
   businessMedia,
-  productBranches,
   productIdentity,
 } from '@features/business/data/businessSetupData';
+import { LoadingSkeletonList } from '@components/shared/LoadingState';
 import { useBusinessBranches } from '@features/business/hooks/useCatalogueMutations';
 
 export type ProductLocationPricingValue = {
@@ -58,9 +58,9 @@ export function AddProductLocationPricingScreen({
   const [pricingMode, setPricingMode] = useState<'uniform' | 'branch'>('branch');
   const [inStock, setInStock] = useState(true);
 
-  // Live branch list; falls back to the static copy only before the query
-  // resolves so the picker never renders an empty row set. The first two
-  // branches are preselected until the owner overrides the selection.
+  // Live branches only: the picker shows a loader until they arrive, so a tap
+  // or "continue" can never submit a placeholder id the API does not know.
+  // The first two branches are preselected until the owner overrides it.
   const branchesQuery = useBusinessBranches();
   const availableBranches = branchesQuery.data ?? productBranches;
   const defaultBranchIds = useMemo(
@@ -68,11 +68,10 @@ export function AddProductLocationPricingScreen({
     [availableBranches],
   );
   const selectedBranchIds = selectedOverride ?? defaultBranchIds;
-  const shownBranches = availableBranches.map(branch => ({
+  const shownBranches = (branchesQuery.data ?? []).map(branch => ({
     id: branch.id,
     name: branch.name,
     address: branch.address ?? '',
-    badge: 'badge' in branch ? branch.badge : undefined,
   }));
 
   const toggleBranch = (id: string) => {
@@ -206,12 +205,12 @@ export function AddProductLocationPricingScreen({
           subtitle="Select which branches stock or prepare this item."
         />
         <View className="gap-2.5">
+          {branchesQuery.isLoading ? <LoadingSkeletonList rows={2} /> : null}
           {shownBranches.map(branch => (
             <BusinessCheckRow
               key={branch.id}
               title={branch.name}
               subtitle={branch.address}
-              badge={branch.badge}
               selected={selectedBranchIds.includes(branch.id)}
               onPress={() => toggleBranch(branch.id)}
             />

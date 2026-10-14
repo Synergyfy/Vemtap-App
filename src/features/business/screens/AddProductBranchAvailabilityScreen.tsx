@@ -17,7 +17,7 @@ import {
   SetupCard,
 } from '@features/business/components/BusinessPrimitives';
 import { ServiceChoiceCard } from '@features/business/components/ServiceFlowPrimitives';
-import { productBranches } from '@features/business/data/businessSetupData';
+import { LoadingSkeletonList } from '@components/shared/LoadingState';
 import { useBusinessBranches } from '@features/business/hooks/useCatalogueMutations';
 
 export type ProductBranchAvailabilityValue = {
@@ -88,13 +88,18 @@ export function AddProductBranchAvailabilityScreen({
     [availableBranches],
   );
   const selectedBranchIds = selectedOverride ?? defaultBranchIds;
-  const shownBranches = availableBranches.map(branch => ({
+  // The branch API carries no per-product badge or stock yet, so those lines
+  // stay hidden rather than showing placeholder figures.
+  const shownBranches: {
+    id: string;
+    name: string;
+    address: string;
+    badge?: string;
+    stock?: string;
+  }[] = (branchesQuery.data ?? []).map(branch => ({
     id: branch.id,
     name: branch.name,
     address: branch.address ?? '',
-    price: 'price' in branch ? branch.price : undefined,
-    badge: 'badge' in branch ? branch.badge : undefined,
-    stock: 'stock' in branch ? branch.stock : undefined,
   }));
   const value = useMemo(
     () => ({ selectedBranchIds, pricingMode, fulfillment, preparationWindow }),
@@ -195,6 +200,7 @@ export function AddProductBranchAvailabilityScreen({
               </VemtapText>
             </Pressable>
           </View>
+          {branchesQuery.isLoading ? <LoadingSkeletonList rows={2} /> : null}
           {shownBranches.map(branch => {
             const inactive = false;
             const selected = selectedBranchIds.includes(branch.id);
@@ -264,15 +270,19 @@ export function AddProductBranchAvailabilityScreen({
                       </VemtapText>
                     ) : (
                       <View className="mt-3 flex-row items-center justify-between gap-2">
-                        <View className="flex-row items-center gap-1.5 rounded-md bg-badge-discount-bg px-2 py-1">
-                          <View className="h-1.5 w-1.5 rounded-full bg-badge-discount-text" />
-                          <VemtapText
-                            variant="caption"
-                            className="text-badge-discount-text"
-                          >
-                            {branch.stock}
-                          </VemtapText>
-                        </View>
+                        {branch.stock ? (
+                          <View className="flex-row items-center gap-1.5 rounded-md bg-badge-discount-bg px-2 py-1">
+                            <View className="h-1.5 w-1.5 rounded-full bg-badge-discount-text" />
+                            <VemtapText
+                              variant="caption"
+                              className="text-badge-discount-text"
+                            >
+                              {branch.stock}
+                            </VemtapText>
+                          </View>
+                        ) : (
+                          <View />
+                        )}
                         <BusinessInlineAction
                           label="Edit Price"
                           icon="edit"

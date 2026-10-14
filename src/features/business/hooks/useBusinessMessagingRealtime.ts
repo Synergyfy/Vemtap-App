@@ -14,6 +14,7 @@ import {
   disconnectMessagingSocket,
   disposeMessagingSocket,
   getActiveMessagingThread,
+  joinMessagingThread,
   markMessagingDelivered,
   markMessagingRead,
 } from '@api/messagingSocket';
@@ -45,10 +46,14 @@ interface MessageReceiptPayload {
   status?: string;
 }
 
+/** Receipt states in the order they may advance; anything else ranks lowest. */
+const RECEIPT_RANK: Record<string, number> = { SENT: 1, DELIVERED: 2, READ: 3 };
+
 /**
  * Advance one or more messages' receipt state in the cached transcript. The
  * bubble reads `status`, so this is what flips a single tick into the double
- * tick and then into the blue "read" mark without a refetch.
+ * tick and then into the blue "read" mark without a refetch. Receipts only move
+ * forward: DELIVERED and READ can arrive out of order on different rooms.
  */
 function applyReceipt(
   existing: ChatMessage[] | undefined,
@@ -56,12 +61,26 @@ function applyReceipt(
   status: string,
 ): ChatMessage[] | undefined {
   if (!existing) return existing;
-  return existing.map(item => (matches(item.id) ? { ...item, status } : item));
+  const rank = RECEIPT_RANK[status] ?? 0;
+  return existing.map(item =>
+    matches(item.id) && rank > (RECEIPT_RANK[item.status ?? ''] ?? 0)
+      ? { ...item, status }
+      : item,
+  );
+}
+
+/** The ids a receipt event covers: batched receipts carry `messageIds`. */
+function receiptIds(payload: MessageReceiptPayload): Set<string> {
+  const ids = new Set(payload.messageIds ?? []);
+  if (payload.messageId) ids.add(payload.messageId);
+  return ids;
 }
 
 /** Collapse bursts of list invalidations triggered by event storms. */
 const INVALIDATE_THROTTLE_MS = 2_000;
 const DELETED_MESSAGE_TEXT = 'Message deleted';
+/** How many recent message ids are remembered to drop duplicate deliveries. */
+const SEEN_LIMIT = 200;
 
 function appendMessage(
   existing: ChatMessage[] | undefined,
@@ -119,17 +138,36 @@ export function useBusinessMessagingRealtime(branchId?: string | null): void {
       });
     };
 
+    /**
+     * One customer message reaches staff up to three times — `newMessage` on the
+     * open thread's room, plus `inboxUpdate` and `notification` on the branch
+     * room — so each id is acked once.
+     */
+    const seen = new Set<string>();
+    const firstSighting = (id: string) => {
+      if (seen.has(id)) return false;
+      seen.add(id);
+      if (seen.size > SEEN_LIMIT) {
+        const oldest = seen.values().next().value;
+        if (oldest !== undefined) seen.delete(oldest);
+      }
+      return true;
+    };
+
     const handleNewMessage = (message: ChatMessage) => {
       const threadId = message.threadId ?? '';
-      if (!threadId) return;
+      if (!threadId || !message.id) return;
       queryClient.setQueryData<ChatMessage[]>(
         businessMessagingKeys.messages(threadId, branchId),
         old => appendMessage(old, message),
       );
-      if (message.direction === 'INBOUND') {
-        markMessagingDelivered(message.id, threadId);
+      // INBOUND is what the customer wrote: the only messages staff ack. A read
+      // implies delivery, so an open thread skips straight to READ.
+      if (message.direction === 'INBOUND' && firstSighting(message.id)) {
         if (getActiveMessagingThread() === threadId) {
           markMessagingRead(threadId, [message.id]);
+        } else {
+          markMessagingDelivered(message.id, threadId);
         }
       }
       invalidateLists();
@@ -175,18 +213,19 @@ export function useBusinessMessagingRealtime(branchId?: string | null): void {
     };
 
     const handleMessageStatus = (payload: MessageReceiptPayload) => {
-      const { threadId, messageId, status } = payload ?? {};
-      if (!threadId || !messageId || !status) return;
+      const { threadId, status } = payload ?? {};
+      const ids = receiptIds(payload ?? {});
+      if (!threadId || ids.size === 0 || !status) return;
       queryClient.setQueryData<ChatMessage[]>(
         businessMessagingKeys.messages(threadId, branchId),
-        old => applyReceipt(old, id => id === messageId, status),
+        old => applyReceipt(old, id => ids.has(id), status),
       );
     };
 
     const handleMessageRead = (payload: MessageReceiptPayload) => {
-      const { threadId, messageIds } = payload ?? {};
-      if (!threadId || !messageIds?.length) return;
-      const ids = new Set(messageIds);
+      const threadId = payload?.threadId;
+      const ids = receiptIds(payload ?? {});
+      if (!threadId || ids.size === 0) return;
       queryClient.setQueryData<ChatMessage[]>(
         businessMessagingKeys.messages(threadId, branchId),
         old => applyReceipt(old, id => ids.has(id), payload.status ?? 'READ'),
@@ -195,6 +234,16 @@ export function useBusinessMessagingRealtime(branchId?: string | null): void {
 
     const handleConnect = () => {
       invalidateLists(true);
+      // `newMessage` and receipts for the open chat go to its thread room, which
+      // a reconnect has left; a read emitted while disconnected was dropped too.
+      const active = getActiveMessagingThread();
+      if (active) {
+        joinMessagingThread(active);
+        markMessagingRead(active);
+        queryClient.invalidateQueries({
+          queryKey: businessMessagingKeys.messages(active, branchId),
+        });
+      }
     };
 
     const bind = (socket: Socket) => {

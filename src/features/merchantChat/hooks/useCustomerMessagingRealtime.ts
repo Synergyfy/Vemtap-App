@@ -53,10 +53,14 @@ interface MessageReceiptPayload {
   status?: string;
 }
 
+/** Receipt states in the order they may advance; anything else ranks lowest. */
+const RECEIPT_RANK: Record<string, number> = { SENT: 1, DELIVERED: 2, READ: 3 };
+
 /**
  * Advance one or more messages' receipt state in the cached transcript. The
  * bubble reads `status`, so this is what flips a single tick into the double
- * tick and then into the blue "read" mark without a refetch.
+ * tick and then into the blue "read" mark without a refetch. Receipts only move
+ * forward: DELIVERED and READ can arrive out of order on different rooms.
  */
 function applyReceipt(
   existing: ChatMessage[] | undefined,
@@ -64,12 +68,26 @@ function applyReceipt(
   status: string,
 ): ChatMessage[] | undefined {
   if (!existing) return existing;
-  return existing.map(item => (matches(item.id) ? { ...item, status } : item));
+  const rank = RECEIPT_RANK[status] ?? 0;
+  return existing.map(item =>
+    matches(item.id) && rank > (RECEIPT_RANK[item.status ?? ''] ?? 0)
+      ? { ...item, status }
+      : item,
+  );
+}
+
+/** The ids a receipt event covers: batched receipts carry `messageIds`. */
+function receiptIds(payload: MessageReceiptPayload): Set<string> {
+  const ids = new Set(payload.messageIds ?? []);
+  if (payload.messageId) ids.add(payload.messageId);
+  return ids;
 }
 
 /** Collapse bursts of list invalidations triggered by event storms. */
 const INVALIDATE_THROTTLE_MS = 2_000;
 const DELETED_MESSAGE_TEXT = 'Message deleted';
+/** How many recent message ids are remembered to drop duplicate deliveries. */
+const SEEN_LIMIT = 200;
 
 function appendMessage(
   existing: ChatMessage[] | undefined,
@@ -133,12 +151,29 @@ export function useCustomerMessagingRealtime(enabled = true): void {
     };
 
     /**
-     * Fold an inbound message into the thread list row: latest snippet,
+     * The same message reaches the customer twice — `newMessage` on the open
+     * thread's room and `notification` on their user room — so each id is
+     * handled once. Without this the unread count went up by two and the
+     * receipt was sent twice.
+     */
+    const seen = new Set<string>();
+    const firstSighting = (id: string) => {
+      if (seen.has(id)) return false;
+      seen.add(id);
+      if (seen.size > SEEN_LIMIT) {
+        const oldest = seen.values().next().value;
+        if (oldest !== undefined) seen.delete(oldest);
+      }
+      return true;
+    };
+
+    /**
+     * Fold an incoming message into the thread list row: latest snippet,
      * activity time, the unread counter the badge and "Unread" chip depend on,
      * and therefore its categories. Left as an optimistic patch — the forced
      * invalidation afterwards reconciles it with the server.
      */
-    const patchThreadRow = (message: ChatMessage) => {
+    const patchThreadRow = (message: ChatMessage, isOpenThread: boolean) => {
       const { threadId } = message;
       if (!threadId) return;
 
@@ -149,9 +184,10 @@ export function useCustomerMessagingRealtime(enabled = true): void {
           const row = rows.find(candidate => candidate.id === threadId);
           if (!row) return rows;
 
-          // A message the customer just sent is not theirs to be marked unread.
-          const isInbound = message.direction === 'INBOUND';
-          const unreadCount = isInbound
+          // Only the business's reply (OUTBOUND) is unread for the customer, and
+          // not while they are looking at the thread it landed in.
+          const isUnread = message.direction === 'OUTBOUND' && !isOpenThread;
+          const unreadCount = isUnread
             ? (row.customerUnreadCount ?? 0) + 1
             : (row.customerUnreadCount ?? 0);
 
@@ -169,10 +205,15 @@ export function useCustomerMessagingRealtime(enabled = true): void {
 
     const handleMessage = (message: ChatMessage) => {
       const threadId = message.threadId ?? '';
-      if (!threadId) return;
+      if (!threadId || !message.id || !firstSighting(message.id)) return;
 
       const isOpenThread = getActiveMessagingThread() === threadId;
-      patchThreadRow(message);
+      patchThreadRow(message, isOpenThread);
+
+      // The backend stamps OUTBOUND for what the business wrote: those are the
+      // messages addressed to the customer and the only ones they ack. Their own
+      // (INBOUND) messages are acked by the business, never by themselves.
+      const isForMe = message.direction === 'OUTBOUND';
 
       if (isOpenThread) {
         // The customer is reading this thread, so show the message rather than
@@ -181,11 +222,9 @@ export function useCustomerMessagingRealtime(enabled = true): void {
           customerMessagingKeys.messages(accountKey.current, threadId),
           rows => appendMessage(rows, message),
         );
-        if (message.direction === 'INBOUND') {
-          markMessagingRead(threadId, [message.id]);
-        }
-      } else if (message.direction === 'INBOUND') {
-        // Delivered at once for a thread the customer is not looking at.
+        if (isForMe) markMessagingRead(threadId, [message.id]);
+      } else if (isForMe) {
+        // Reached the device but not read yet: the second grey tick.
         markMessagingDelivered(message.id, threadId);
       }
 
@@ -195,8 +234,10 @@ export function useCustomerMessagingRealtime(enabled = true): void {
     const handleNotification = (payload: NotificationPayload) => {
       const message = payload?.message;
       if (message?.threadId) {
-        patchThreadRow(message);
-        invalidateLists();
+        // For a thread the customer is not looking at this is the only copy of
+        // the message they get, so it goes through the same path as
+        // `newMessage` — which is what sends its delivery receipt.
+        handleMessage(message);
         return;
       }
       // Payload without a message (a read receipt, a typing echo): nothing to
@@ -223,18 +264,20 @@ export function useCustomerMessagingRealtime(enabled = true): void {
     };
 
     const handleMessageStatus = (payload: MessageReceiptPayload) => {
-      const { threadId, messageId, status } = payload ?? {};
-      if (!threadId || !messageId || !status) return;
+      const { threadId, status } = payload ?? {};
+      const ids = receiptIds(payload ?? {});
+      if (!threadId || ids.size === 0 || !status) return;
       queryClient.setQueryData<ChatMessage[]>(
         customerMessagingKeys.messages(accountKey.current, threadId),
-        old => applyReceipt(old, id => id === messageId, status),
+        // A late DELIVERED must never pull an already-read message back to grey.
+        old => applyReceipt(old, id => ids.has(id), status),
       );
     };
 
     const handleMessageRead = (payload: MessageReceiptPayload) => {
-      const { threadId, messageIds } = payload ?? {};
-      if (!threadId || !messageIds?.length) return;
-      const ids = new Set(messageIds);
+      const threadId = payload?.threadId;
+      const ids = receiptIds(payload ?? {});
+      if (!threadId || ids.size === 0) return;
       queryClient.setQueryData<ChatMessage[]>(
         customerMessagingKeys.messages(accountKey.current, threadId),
         old => applyReceipt(old, id => ids.has(id), payload.status ?? 'READ'),
@@ -265,6 +308,9 @@ export function useCustomerMessagingRealtime(enabled = true): void {
         queryClient.invalidateQueries({
           queryKey: customerMessagingKeys.messages(accountKey.current, active),
         });
+        // Anything that landed in it while the socket was down has now been
+        // seen, and a read emitted while disconnected was dropped.
+        markMessagingRead(active);
       }
     };
 
