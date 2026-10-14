@@ -18,6 +18,7 @@ import {
 } from '@features/business/components/BusinessPrimitives';
 import { ServiceChoiceCard } from '@features/business/components/ServiceFlowPrimitives';
 import { LoadingSkeletonList } from '@components/shared/LoadingState';
+import { productBranches } from '@features/business/data/businessSetupData';
 import { useBusinessBranches } from '@features/business/hooks/useCatalogueMutations';
 
 export type ProductBranchAvailabilityValue = {
@@ -82,8 +83,12 @@ export function AddProductBranchAvailabilityScreen({
   const [preparationWindow, setPreparationWindow] = useState('20-30');
 
   const branchesQuery = useBusinessBranches();
-  const availableBranches = branchesQuery.data ?? productBranches;
-  const defaultBranchIds = useMemo(
+  const availableBranches: ReadonlyArray<{
+    id: string;
+    name: string;
+    address?: string | null;
+  }> = branchesQuery.data ?? productBranches;
+  const defaultBranchIds = useMemo<string[]>(
     () => availableBranches.slice(0, 2).map(branch => branch.id),
     [availableBranches],
   );
@@ -112,7 +117,9 @@ export function AddProductBranchAvailabilityScreen({
   const toggleBranch = (id: string) => {
     setSelectedOverride(current => {
       const base = current ?? defaultBranchIds;
-      return base.includes(id) ? base.filter(branchId => branchId !== id) : [...base, id];
+      return base.includes(id)
+        ? base.filter((branchId: string) => branchId !== id)
+        : [...base, id];
     });
   };
   const toggleFulfillment = (id: string) => {

@@ -20,6 +20,7 @@ import {
 } from '@features/business/components/BusinessPrimitives';
 import {
   businessMedia,
+  productBranches,
   productIdentity,
 } from '@features/business/data/businessSetupData';
 import { LoadingSkeletonList } from '@components/shared/LoadingState';
@@ -62,8 +63,12 @@ export function AddProductLocationPricingScreen({
   // or "continue" can never submit a placeholder id the API does not know.
   // The first two branches are preselected until the owner overrides it.
   const branchesQuery = useBusinessBranches();
-  const availableBranches = branchesQuery.data ?? productBranches;
-  const defaultBranchIds = useMemo(
+  const availableBranches: ReadonlyArray<{
+    id: string;
+    name: string;
+    address?: string | null;
+  }> = branchesQuery.data ?? productBranches;
+  const defaultBranchIds = useMemo<string[]>(
     () => availableBranches.slice(0, 2).map(branch => branch.id),
     [availableBranches],
   );
@@ -77,7 +82,9 @@ export function AddProductLocationPricingScreen({
   const toggleBranch = (id: string) => {
     setSelectedOverride(current => {
       const base = current ?? defaultBranchIds;
-      return base.includes(id) ? base.filter(branchId => branchId !== id) : [...base, id];
+      return base.includes(id)
+        ? base.filter((branchId: string) => branchId !== id)
+        : [...base, id];
     });
   };
 
