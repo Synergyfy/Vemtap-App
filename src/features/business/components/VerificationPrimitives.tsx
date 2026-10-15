@@ -7,7 +7,7 @@ import { AppModal } from '@components/ui/Modal';
 import { Button } from '@components/ui/Button';
 import { Icon, type IconName } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
-import { colors } from '@theme/colors';
+import { colors, shadowTokens } from '@theme/colors';
 import { TypeDensityProvider } from '@theme/TypeDensityProvider';
 import type { TypeDensity } from '@theme/typography';
 import { cn } from '@utils/cn';
@@ -309,13 +309,24 @@ export interface SelectableRadioCardProps {
   className?: string;
 }
 
+/**
+ * Applied through the `style` prop rather than an `opacity-*` utility, for the
+ * same reason as `shadowTokens`: a disabled state must not change the
+ * className, or css-interop remounts the card.
+ */
+const DISABLED_STYLE = { opacity: 0.6 };
+
 function RadioIndicator({ selected }: { selected: boolean }) {
+  // className is constant across states: switching background via className
+  // changes the parsed utility set, which makes css-interop "upgrade" the
+  // component (remount, and pre-patch an app-killing warning serializer).
+  // backgroundColor belongs in the plain style prop, which is never re-parsed.
   return (
     <View
-      className={cn(
-        'h-6 w-6 shrink-0 items-center justify-center rounded-full',
-        selected ? 'bg-primary' : 'bg-surface-container-high',
-      )}
+      className="h-6 w-6 shrink-0 items-center justify-center rounded-full"
+      style={{
+        backgroundColor: selected ? colors.primary : colors.surfaceContainerHigh,
+      }}
     >
       {selected ? <Icon name="check" size={16} color={colors.surface} /> : null}
     </View>
@@ -343,21 +354,38 @@ export function SelectableRadioCard({
   disabled = false,
   className,
 }: SelectableRadioCardProps) {
-  // Every branch sets a shadow utility: a card that gains one after its first
-  // render makes css-interop "upgrade" (remount) it, which crashes the app on
-  // device the moment an option is tapped. Same for opacity below.
-  const surfaceClass =
+  // The className is byte-identical in every state below. Selection is styled
+  // through the plain `style` prop instead, because a className that gains or
+  // drops a utility after the first render makes css-interop "upgrade" the
+  // component — it swaps the element type (render-component.js) and remounts
+  // the subtree, which closed the app when an ID option was tapped on Verify
+  // Your Identity. A plain style array is never re-parsed, so no state change
+  // can cross that boundary.
+  const surfaceColor =
     layout === 'grid'
       ? selected
-        ? 'bg-surface-container-high shadow-sm'
-        : 'bg-surface-container-low shadow-none'
+        ? colors.surfaceContainerHigh
+        : colors.surfaceContainerLow
       : layout === 'inline'
         ? selected
-          ? 'bg-surface-container-low shadow-none'
-          : 'bg-surface shadow-sm'
+          ? colors.surfaceContainerLow
+          : colors.surface
         : selected
-          ? 'bg-surface-tint-blue shadow-md'
-          : 'bg-surface shadow-sm';
+          ? colors.surfaceTint
+          : colors.surface;
+
+  const surfaceShadow =
+    layout === 'grid'
+      ? selected
+        ? shadowTokens.sm
+        : shadowTokens.none
+      : layout === 'inline'
+        ? selected
+          ? shadowTokens.none
+          : shadowTokens.sm
+        : selected
+          ? shadowTokens.md
+          : shadowTokens.sm;
 
   const titleBlock = (
     <View className="min-w-0 flex-1">
@@ -398,10 +426,13 @@ export function SelectableRadioCard({
       className={cn(
         'rounded-card',
         layout === 'grid' ? 'items-center gap-0.5 p-2.5' : 'p-4',
-        surfaceClass,
-        disabled ? 'opacity-60' : 'opacity-100',
         className,
       )}
+      style={[
+        { backgroundColor: surfaceColor },
+        surfaceShadow,
+        disabled ? DISABLED_STYLE : null,
+      ]}
     >
       {layout === 'stacked' ? (
         <View className="gap-3">
@@ -452,10 +483,11 @@ export function SelectableRadioCard({
         <View className="flex-row items-start gap-3">
           {icon ? (
             <View
-              className={cn(
-                'h-11 w-11 shrink-0 items-center justify-center rounded-lg',
-                selected ? 'bg-primary shadow-sm' : 'bg-surface-container shadow-none',
-              )}
+              className="h-11 w-11 shrink-0 items-center justify-center rounded-lg"
+              style={{
+                backgroundColor: selected ? colors.primary : colors.surfaceContainer,
+                ...(selected ? shadowTokens.sm : shadowTokens.none),
+              }}
             >
               <Icon
                 name={icon}

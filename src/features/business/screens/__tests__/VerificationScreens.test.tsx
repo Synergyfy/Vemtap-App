@@ -32,6 +32,10 @@ import {
 } from '@features/business/verificationCopy';
 import type { VerificationCheck, VerificationStatus } from '@api/verificationApi';
 import type { Plan, PricePreview } from '@api/subscriptionsApi';
+import {
+  classNameOf,
+  press,
+} from '../../../../../__tests__/helpers/CssInteropUpgradeSafety';
 
 // The screens submit through the verification hooks; mocked so the tests assert
 // each screen's contract (what it sends, what it reports back), not the network.
@@ -162,6 +166,39 @@ describe('business verification entry and identity screens', () => {
       fireEvent.press(view.getByText(identityCopy.continue));
     });
     expect(onContinue).toHaveBeenCalledWith('voters_card');
+  });
+
+  it('keeps every ID option className identical while the user picks one', async () => {
+    const view = await render(<VerifyYourIdentityScreen onContinue={jest.fn()} />);
+
+    const options = [
+      identityCopy.nin,
+      identityCopy.licence,
+      identityCopy.votersCard,
+      identityCopy.passport,
+    ];
+
+    // A className that changes while picking an option changes the css-interop
+    // rule set, which remounts the card and (pre-patch) closed the app on
+    // device. Tapping every option in turn is the exact reported action.
+    const before = new Map(options.map(label => [label, classNameOf(view, label)]));
+
+    // Tapping every option in turn is the exact reported action.
+    for (const label of options) {
+      // eslint-disable-next-line no-await-in-loop -- presses must run sequentially
+      await press(view, label);
+    }
+
+    for (const label of options) {
+      expect(classNameOf(view, label)).toBe(before.get(label));
+    }
+
+    // The taps really did select, so the stability above is not vacuous.
+    const last = view.getByLabelText(identityCopy.passport);
+    expect(last.props.accessibilityState.selected).toBe(true);
+    expect(view.getByLabelText(identityCopy.nin).props.accessibilityState.selected).toBe(
+      false,
+    );
   });
 
   it('takes the selfie, then submits the NIN check and reports the result', async () => {
