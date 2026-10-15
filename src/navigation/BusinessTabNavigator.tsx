@@ -127,7 +127,10 @@ import {
 import { CategoryReorderSheet } from '@features/business/components/CategoryReorderSheet';
 import { PromptDialog } from '@features/business/components/PromptDialog';
 import { catalogueApi } from '@api/catalogueApi';
-import { useBusinessCatalogue } from '@features/business/hooks/useBusinessCatalogue';
+import {
+  ALL_BRANCHES_SCOPE,
+  useBusinessCatalogue,
+} from '@features/business/hooks/useBusinessCatalogue';
 import {
   catalogueCategoryToRow,
   catalogueItemToCentralRow,
@@ -923,7 +926,11 @@ function CentralCatalogueRoute() {
   const updateItemStatus = useUpdateCatalogueItemStatus();
   const updateDetails = useUpdateCatalogueItemDetails();
   const deleteItem = useDeleteCatalogueItem();
-  const catalogue = useBusinessCatalogue();
+  const { branches, isLive: hasLiveBranches } = useActiveBranch();
+  // The catalogue is central: it opens on every location, like the design.
+  const [scope, setScope] = useState(ALL_BRANCHES_SCOPE);
+  const catalogue = useBusinessCatalogue({}, scope);
+  const categories = useCatalogueCategories();
   const [editing, setEditing] = useState<{
     id: string;
     name: string;
@@ -932,14 +939,36 @@ function CentralCatalogueRoute() {
   // Shown inside the sheet rather than toasted — a Modal covers a toast.
   const [itemError, setItemError] = useState<string | null>(null);
   const items = catalogue.data?.data ?? [];
+  const itemsPerCategory = new Map<string, number>();
+  items.forEach(item => {
+    const categoryId = item.categoryId ?? item.category?.id;
+    if (categoryId) {
+      itemsPerCategory.set(categoryId, (itemsPerCategory.get(categoryId) ?? 0) + 1);
+    }
+  });
+  const scopeOptions = hasLiveBranches
+    ? [
+        {
+          label: strings.centralCatalogue.allLocationsCount(branches.length),
+          value: ALL_BRANCHES_SCOPE,
+        },
+        ...branches.map(branch => ({
+          label: branch.name,
+          value: branch.id,
+          meta: branch.address || undefined,
+        })),
+      ]
+    : undefined;
   return (
     <>
       <CentralCatalogueScreen
         layout={layout}
+        scope={scope}
+        scopeOptions={scopeOptions}
         onNotifications={() => navigation.navigate('BusinessNotifications')}
         onQuickSwitch={() => undefined}
         onSearch={() => undefined}
-        onChangeScope={() => undefined}
+        onChangeScope={setScope}
         onAddProduct={() => navigation.navigate('AddProductBasicsMedia')}
         onAddService={() => navigation.navigate('ServicesCategories')}
         onEditItem={itemId => {
@@ -951,15 +980,16 @@ function CentralCatalogueRoute() {
             price: item.price != null ? String(item.price) : '',
           });
         }}
-        onToggleStock={(itemId, value) => {
-          updateItemStatus.mutate(
-            { itemId, status: value ? 'active' : 'inactive' },
-            {
-              onSuccess: () => showSuccess(value ? 'Item is live.' : 'Item paused.'),
-              onError: () => showError('Could not update the item.'),
-            },
-          );
-        }}
+        onToggleStock={(itemId, value) =>
+          // Returned so the screen can flip the switch back when the save fails.
+          updateItemStatus
+            .mutateAsync({ itemId, status: value ? 'active' : 'inactive' })
+            .then(() => showSuccess(value ? 'Item is live.' : 'Item paused.'))
+            .catch((error: unknown) => {
+              showError('Could not update the item.');
+              throw error;
+            })
+        }
         onSheetAction={(actionId, itemId) => {
           if (actionId === 'delete') {
             deleteItem.mutate(itemId, {
@@ -978,7 +1008,15 @@ function CentralCatalogueRoute() {
             showError('This item action is not yet available.');
           }
         }}
-        items={items.map(catalogueItemToCentralRow)}
+        items={items
+          .filter(item => item.itemType !== 'service')
+          .map(catalogueItemToCentralRow)}
+        services={items
+          .filter(item => item.itemType === 'service')
+          .map(catalogueItemToServiceRow)}
+        categories={(categories.data ?? []).map(category =>
+          catalogueCategoryToRow(category, itemsPerCategory.get(category.id) ?? 0),
+        )}
       />
       <PromptDialog
         visible={Boolean(editing)}

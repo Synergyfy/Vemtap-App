@@ -1,14 +1,16 @@
-import type { BusinessCatalogueItem, BusinessOfferAdmin, CatalogueCategory } from '@api/catalogueApi';
+import { strings } from '@constants/strings';
 import type {
-  CategoryManagementRow,
-  ServicesManagementRow,
-} from '@features/business/screens/ServicesCategoriesManagementScreen';
-import type {
-  CentralCatalogueItemRow,
-} from '@features/business/screens/CentralCatalogueScreen';
-import type {
-  CentralDealRow,
-} from '@features/business/screens/CentralDealsManagementScreen';
+  BusinessCatalogueItem,
+  BusinessOfferAdmin,
+  CatalogueCategory,
+} from '@api/catalogueApi';
+import type { CategoryManagementRow } from '@features/business/components/CatalogueCategoryRow';
+import {
+  DRAFT_SERVICE_STATUS,
+  type ServicesManagementRow,
+} from '@features/business/components/CatalogueServiceCard';
+import type { CentralCatalogueItemRow } from '@features/business/screens/CentralCatalogueScreen';
+import type { CentralDealRow } from '@features/business/screens/CentralDealsManagementScreen';
 
 /**
  * Live-catalogue → hub-row mappers. The hub management screens were built as
@@ -19,6 +21,15 @@ import type {
  */
 
 /**
+ * Money columns are Postgres decimals, so the API sends `"4500.00"` as often as
+ * `4500`. Reading only numbers rendered every live price as ₦0.
+ */
+function toAmount(value: unknown, fallback = 0): number {
+  const amount = typeof value === 'string' ? Number(value) : value;
+  return typeof amount === 'number' && Number.isFinite(amount) ? amount : fallback;
+}
+
+/**
  * Maps a catalogue item to the CentralCatalogue row shape. The API uses
  * `active | inactive | ...`; the prototype rows use marketing labels, so map
  * the known statuses and pass the raw status through as a fallback.
@@ -26,16 +37,15 @@ import type {
 export function catalogueItemToCentralRow(
   item: BusinessCatalogueItem,
 ): CentralCatalogueItemRow {
-  const price = typeof item.price === 'number' ? item.price : 0;
-  const statusLabel =
-    item.itemType === 'service' ? 'Standard Menu' : iconStatusForItem(item);
+  const price = toAmount(item.price);
   return {
     id: item.id,
+    kind: item.itemType === 'service' ? 'service' : 'product',
     title: item.name,
     sku: item.sku ?? '',
     category: item.category?.name ?? '',
     price: `₦${price.toLocaleString()}`,
-    status: statusLabel,
+    status: iconStatusForItem(item),
     location: '',
     stock: '',
     image: item.mainImage ? { uri: item.mainImage, alt: item.name } : undefined,
@@ -58,7 +68,7 @@ function iconStatusForItem(item: BusinessCatalogueItem): string {
 export function catalogueItemToServiceRow(
   item: BusinessCatalogueItem,
 ): ServicesManagementRow {
-  const price = typeof item.price === 'number' ? item.price : 0;
+  const price = toAmount(item.price);
   return {
     id: item.id,
     name: item.name,
@@ -67,20 +77,25 @@ export function catalogueItemToServiceRow(
     price: `₦${price.toLocaleString()}`,
     priceSuffix: undefined,
     duration: item.duration ?? '',
-    status: item.status === 'active' ? 'Live' : 'Draft',
+    status: item.status === 'active' ? 'Live' : DRAFT_SERVICE_STATUS,
     note: item.shortDescription ?? item.description ?? '',
+    image: item.mainImage ? { uri: item.mainImage, alt: item.name } : undefined,
   };
 }
 
 /** Business catalogue categories for the reorderable list. */
 export function catalogueCategoryToRow(
   category: CatalogueCategory,
+  itemCount?: number,
 ): CategoryManagementRow {
   return {
     id: category.id,
     title: category.name,
-    count: '',
-    type: 'Catalogue',
+    count:
+      itemCount === undefined
+        ? ''
+        : strings.centralCatalogue.categoryItemCount(itemCount),
+    type: strings.centralCatalogue.categoryType,
     accent: 'brand',
     icon: 'folder',
   };

@@ -8,7 +8,6 @@ import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
 import { colors } from '@theme/colors';
 import {
-  BusinessProductImage,
   BusinessScreenLayout,
   BusinessSelectionChip,
   BusinessStatusPill,
@@ -22,7 +21,14 @@ import {
   BusinessSheetActionRow,
 } from '@features/business/components/BusinessOpsPrimitives';
 import { SetupCallout } from '@features/business/components/BusinessSetupPrimitives';
-import { businessOpsImageById } from '@features/business/data/businessOpsImages';
+import {
+  CatalogueCategoryRow,
+  type CategoryManagementRow,
+} from '@features/business/components/CatalogueCategoryRow';
+import {
+  CatalogueServiceCard,
+  type ServicesManagementRow,
+} from '@features/business/components/CatalogueServiceCard';
 
 cssInterop(Pressable, { className: 'style' });
 
@@ -30,38 +36,9 @@ const copy = strings.servicesCategories;
 
 const tabs = copy.tabs.map(tab => ({ key: tab.key, label: tab.label, count: tab.count }));
 
-const categoryAccent: Record<string, string> = {
-  brand: 'bg-surface-tint',
-  neutral: 'bg-surface-container',
-  tertiary: 'bg-tertiary-fixed',
-};
+export type { ServicesManagementRow };
 
-const categoryAccentIcon: Record<string, string> = {
-  brand: colors.primary,
-  neutral: colors.secondary,
-  tertiary: colors.tertiaryContainer,
-};
-
-export interface ServicesManagementRow {
-  id: string;
-  name: string;
-  eyebrow: string;
-  tag: string;
-  price: string;
-  priceSuffix?: string;
-  duration: string;
-  status: string;
-  note: string;
-}
-
-export interface CategoryManagementRow {
-  id: string;
-  title: string;
-  count: string;
-  type: string;
-  accent: 'brand' | 'neutral' | 'tertiary';
-  icon: string;
-}
+export type { CategoryManagementRow };
 
 export interface ServicesCategoriesManagementScreenProps {
   onNotifications?: () => void;
@@ -178,93 +155,13 @@ export function ServicesCategoriesManagementScreen({
       </View>
 
       <View className="mt-3 gap-3">
-        {shownServices.map(service => {
-          const image = businessOpsImageById[service.id];
-          return (
-            <View
-              key={service.id}
-              className="gap-3 overflow-hidden rounded-card bg-surface p-3 shadow-sm"
-            >
-              <View className="flex-row items-start gap-3">
-                <View className="relative h-20 w-20 shrink-0 overflow-hidden rounded-card bg-surface-container">
-                  {image ? (
-                    <BusinessProductImage
-                      source={image}
-                      alt={image.alt}
-                      className="h-full w-full"
-                    />
-                  ) : null}
-                  <View className="absolute left-1 top-1 rounded bg-surface px-1.5 py-0.5">
-                    <VemtapText
-                      variant="micro"
-                      className="font-sans-semibold text-primary"
-                    >
-                      {service.tag}
-                    </VemtapText>
-                  </View>
-                </View>
-                <View className="min-w-0 flex-1">
-                  <View className="flex-row items-start justify-between gap-2">
-                    <VemtapText
-                      variant="micro"
-                      tone="tertiary"
-                      className="font-sans-medium uppercase tracking-wider"
-                      numberOfLines={1}
-                    >
-                      {service.eyebrow}
-                    </VemtapText>
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel={service.name}
-                      hitSlop={8}
-                      onPress={() => setSheetService(service.id)}
-                    >
-                      <Icon name="more" size={19} color={colors.textSecondary} />
-                    </Pressable>
-                  </View>
-                  <VemtapText
-                    variant="labelMd"
-                    className="mt-1 font-sans-semibold"
-                    numberOfLines={2}
-                  >
-                    {service.name}
-                  </VemtapText>
-                  <View className="mt-1 flex-row items-baseline gap-1.5">
-                    <VemtapText
-                      variant="labelSm"
-                      className="font-sans-semibold text-primary"
-                    >
-                      {service.price}
-                    </VemtapText>
-                    {'priceSuffix' in service && service.priceSuffix ? (
-                      <VemtapText variant="caption" tone="secondary">
-                        {service.priceSuffix}
-                      </VemtapText>
-                    ) : null}
-                    <Icon name="schedule" size={14} color={colors.textSecondary} />
-                    <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-                      {service.duration}
-                    </VemtapText>
-                  </View>
-                </View>
-              </View>
-              <View className="flex-row flex-wrap items-center gap-2">
-                <BusinessStatusPill label={service.status} tone="success" />
-              </View>
-              <View className="flex-row items-center gap-1.5 rounded-field bg-surface-subtle px-2.5 py-2">
-                <Icon name="info" size={15} color={colors.textSecondary} />
-                <VemtapText
-                  variant="caption"
-                  tone="secondary"
-                  className="min-w-0 flex-1"
-                  numberOfLines={2}
-                >
-                  {service.note}
-                </VemtapText>
-              </View>
-            </View>
-          );
-        })}
+        {shownServices.map(service => (
+          <CatalogueServiceCard
+            key={service.id}
+            service={service}
+            onPressMenu={() => setSheetService(service.id)}
+          />
+        ))}
       </View>
 
       <View className="mt-5 flex-row items-start justify-between gap-3">
@@ -292,75 +189,13 @@ export function ServicesCategoriesManagementScreen({
 
       <View className="mt-3 gap-2">
         {shownCategories.map(category => (
-          <View
+          <CatalogueCategoryRow
             key={category.id}
-            className="flex-row items-center gap-3 rounded-card bg-surface p-3 shadow-sm"
-          >
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`${copy.reorderLabel} ${category.title}`}
-              onPress={() => onReorderCategory?.(category.id)}
-              hitSlop={6}
-              className="shrink-0 rounded-lg p-1 active:bg-surface-subtle"
-            >
-              <Icon name="drag" size={19} color={colors.textTertiary} />
-            </Pressable>
-            <View
-              className={`h-9 w-9 shrink-0 items-center justify-center rounded-lg ${categoryAccent[category.accent]}`}
-            >
-              <Icon
-                name={category.icon as IconName}
-                size={19}
-                color={categoryAccentIcon[category.accent]}
-              />
-            </View>
-            <View className="min-w-0 flex-1">
-              <VemtapText
-                variant="labelMd"
-                className="font-sans-semibold"
-                numberOfLines={1}
-              >
-                {category.title}
-              </VemtapText>
-              <View className="mt-0.5 flex-row items-center gap-1.5">
-                <View className="rounded bg-surface-container px-1.5 py-0.5">
-                  <VemtapText variant="micro" tone="secondary">
-                    {category.count}
-                  </VemtapText>
-                </View>
-                <VemtapText variant="caption" tone="tertiary">
-                  •
-                </VemtapText>
-                <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-                  {category.type}
-                </VemtapText>
-              </View>
-            </View>
-            <View className="shrink-0 flex-row items-center">
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`${copy.editLabel} ${category.title}`}
-                hitSlop={8}
-                onPress={() => onEditCategory?.(category.id)}
-                className="min-h-9 justify-center px-2"
-              >
-                <VemtapText variant="labelSm" className="font-sans-medium text-primary">
-                  {copy.editLabel}
-                </VemtapText>
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`${copy.archiveLabel} ${category.title}`}
-                hitSlop={8}
-                onPress={() => onArchiveCategory?.(category.id)}
-                className="min-h-9 justify-center px-2"
-              >
-                <VemtapText variant="labelSm" tone="secondary">
-                  {copy.archiveLabel}
-                </VemtapText>
-              </Pressable>
-            </View>
-          </View>
+            category={category}
+            onReorder={() => onReorderCategory?.(category.id)}
+            onEdit={() => onEditCategory?.(category.id)}
+            onArchive={() => onArchiveCategory?.(category.id)}
+          />
         ))}
       </View>
 

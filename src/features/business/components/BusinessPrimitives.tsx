@@ -18,7 +18,7 @@ import { Avatar } from '@components/ui/Avatar';
 import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
 import { VemtapText } from '@components/ui/Text';
 import { RangeSlider } from '@components/ui/RangeSlider';
-import { colors } from '@theme/colors';
+import { colors, shadowTokens } from '@theme/colors';
 import { navbarBottomShadow } from '@theme/shadows';
 import type { TextVariant } from '@theme/typography';
 import { cn } from '@utils/cn';
@@ -1125,6 +1125,18 @@ export function BusinessRange({
   );
 }
 
+function chipSurfaceStyle(selected: boolean, tone: 'brand' | 'neutral', plain: boolean) {
+  if (selected) {
+    return tone === 'brand'
+      ? { backgroundColor: colors.surfaceTint, ...shadowTokens.sm }
+      : { backgroundColor: colors.primary, ...shadowTokens.none };
+  }
+  return {
+    backgroundColor: plain ? 'transparent' : colors.surfaceContainer,
+    ...shadowTokens.none,
+  };
+}
+
 export function BusinessSelectionChip({
   label,
   selected,
@@ -1153,17 +1165,14 @@ export function BusinessSelectionChip({
       accessibilityRole="button"
       accessibilityState={{ selected }}
       accessibilityLabel={label}
+      // className must not change with `selected`: gaining a shadow/bg utility
+      // after first render makes css-interop swap and remount the Pressable,
+      // which swallows the tap on device. State visuals live in `style`.
       className={cn(
         'min-h-9 flex-row items-center justify-center gap-1.5 rounded-full px-3 py-1 text-center active:scale-95',
-        selected
-          ? tone === 'brand'
-            ? 'bg-surface-tint text-primary shadow-sm'
-            : 'bg-primary text-primary-foreground'
-          : plain
-            ? 'text-text-secondary'
-            : 'bg-surface-container text-text-secondary',
         className,
       )}
+      style={chipSurfaceStyle(selected, tone, plain)}
       onPress={onPress}
     >
       {selected && showCheck ? (

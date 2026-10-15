@@ -15,7 +15,7 @@ cssInterop(Pressable, { className: 'style' });
 
 const buttonVariants = tv({
   base: [
-    'flex-row items-center justify-center rounded-cta',
+    'flex-row items-center justify-center gap-1.5 rounded-cta',
     'min-h-[52px] px-6',
     'active:scale-[0.98]',
   ],

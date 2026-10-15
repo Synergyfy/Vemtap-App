@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { Pressable, useWindowDimensions, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { BottomSheet } from '@components/shared/BottomSheet';
 import { Button } from '@components/ui/Button';
@@ -22,25 +22,54 @@ import {
   BusinessSearchTrigger,
   BusinessSegmentTabs,
   BusinessSheetActionRow,
-  BusinessToastPill,
 } from '@features/business/components/BusinessOpsPrimitives';
 import { businessOpsImageById } from '@features/business/data/businessOpsImages';
+import {
+  CatalogueCategoryRow,
+  type CategoryManagementRow,
+} from '@features/business/components/CatalogueCategoryRow';
+import {
+  CatalogueServiceCard,
+  DRAFT_SERVICE_STATUS,
+  type ServicesManagementRow,
+} from '@features/business/components/CatalogueServiceCard';
 
 cssInterop(Pressable, { className: 'style' });
 
 const copy = strings.centralCatalogue;
 
-const catalogueTabs = copy.tabs.map(tab => ({
-  key: tab.key,
-  label: tab.label,
-  count: tab.count,
-}));
+type CatalogueTabKey = 'products' | 'services' | 'categories';
 
-const businessHubTabs = [
-  { key: 'products', label: copy.tabsBusiness[0].label },
-  { key: 'services', label: copy.tabsBusiness[1].label },
-  { key: 'categories', label: copy.tabsBusiness[2].label },
-];
+/** Below this width the secondary CTA uses the HTML's short "Service" label. */
+const NARROW_FOOTER_WIDTH = 375;
+
+const DRAFT_STATUS = 'Draft / Paused';
+const DEAL_STATUS = 'Deal Active • 20% OFF';
+const LOW_STOCK_STATUS = 'Low Stock';
+
+/** Service rows only know live vs draft, so only those chips narrow them. */
+function matchesServiceFilter(service: ServicesManagementRow, filter: string): boolean {
+  if (filter === 'active') return service.status !== DRAFT_SERVICE_STATUS;
+  if (filter === 'drafts') return service.status === DRAFT_SERVICE_STATUS;
+  return true;
+}
+
+/** Status-chip predicate; chips with no matching data (e.g. dine-in) show all. */
+function matchesFilter(item: CentralCatalogueItemRow, filter: string): boolean {
+  switch (filter) {
+    case 'active':
+      return item.status !== DRAFT_STATUS;
+    case 'deal':
+    case 'deals':
+      return item.status === DEAL_STATUS;
+    case 'low':
+      return item.status === LOW_STOCK_STATUS;
+    case 'drafts':
+      return item.status === DRAFT_STATUS;
+    default:
+      return true;
+  }
+}
 
 /** `directory` = catalogue tab with search + filter carousel, `businessHub` = compact business hub list. */
 export type CentralCatalogueLayout = 'directory' | 'businessHub';
@@ -48,6 +77,8 @@ export type CentralCatalogueLayout = 'directory' | 'businessHub';
 /** Row shape the catalogue list renders; either live-mapped or prototype copy. */
 export interface CentralCatalogueItemRow {
   id: string;
+  /** Drives the Products / Services tabs; prototype rows are products. */
+  kind?: 'product' | 'service';
   title: string;
   sku: string;
   category: string;
@@ -60,11 +91,17 @@ export interface CentralCatalogueItemRow {
 }
 
 const statusTone: Record<string, 'success' | 'neutral' | 'warning'> = {
-  'Deal Active • 20% OFF': 'success',
+  [DEAL_STATUS]: 'success',
   'Standard Menu': 'neutral',
-  'Low Stock': 'warning',
-  'Draft / Paused': 'neutral',
+  [LOW_STOCK_STATUS]: 'warning',
+  [DRAFT_STATUS]: 'neutral',
 };
+
+export interface CentralCatalogueScopeOption {
+  label: string;
+  value: string;
+  meta?: string;
+}
 
 export interface CentralCatalogueScreenProps {
   layout?: CentralCatalogueLayout;
@@ -75,30 +112,42 @@ export interface CentralCatalogueScreenProps {
   onAddProduct?: () => void;
   onAddService?: () => void;
   onEditItem?: (itemId: string) => void;
-  onToggleStock?: (itemId: string, value: boolean) => void;
+  /**
+   * Publish switch (`true` = live). Return a promise to have a rejection flip
+   * the switch back; the screen moves it optimistically.
+   */
+  onToggleStock?: (itemId: string, value: boolean) => void | Promise<unknown>;
   onSheetAction?: (actionId: string, itemId: string) => void;
   /** Optional live catalogue items from API. When provided, renders live data instead of prototype copy. */
   items?: CentralCatalogueItemRow[];
+  /** Optional live services for the Services tab. */
+  services?: ServicesManagementRow[];
+  /** Optional live categories for the Categories tab. */
+  categories?: CategoryManagementRow[];
+  /** Live location scope: `all` first, then one option per branch. */
+  scopeOptions?: CentralCatalogueScopeOption[];
+  /** Controlled scope value; omit to let the picker own it. */
+  scope?: string;
 }
 
 function CatalogueRow({
   item,
   layout,
-  inStock,
+  published,
   onToggleStock,
   onPressMenu,
   onEdit,
 }: {
   item: CentralCatalogueItemRow;
   layout: CentralCatalogueLayout;
-  inStock: boolean;
+  published: boolean;
   onToggleStock: () => void;
   onPressMenu: () => void;
   onEdit: () => void;
 }) {
   const image = item.image ?? businessOpsImageById[item.id];
-  const draft = item.status === 'Draft / Paused';
-  const isDeal = item.status === 'Deal Active • 20% OFF';
+  const draft = item.status === DRAFT_STATUS;
+  const isDeal = item.status === DEAL_STATUS;
 
   return (
     <View
@@ -228,9 +277,10 @@ function CatalogueRow({
       <View className="-mx-3 -mb-3 flex-row items-center justify-between gap-2 border-t border-border px-3 py-2.5">
         <View className="min-w-0 flex-1">
           <BusinessSwitchRow
-            title={item.stock ?? 'In Stock'}
-            accessibilityLabel={item.stock ?? 'In Stock'}
-            value={inStock}
+            title={published ? copy.publishedToggle : copy.pausedToggle}
+            subtitle={item.stock || undefined}
+            accessibilityLabel={copy.publishToggleLabel(item.title)}
+            value={published}
             onValueChange={onToggleStock}
           />
         </View>
@@ -267,50 +317,77 @@ export function CentralCatalogueScreen({
   onToggleStock,
   onSheetAction,
   items,
+  services,
+  categories,
+  scopeOptions,
+  scope: controlledScope,
 }: CentralCatalogueScreenProps) {
-  const [tab, setTab] = useState('products');
+  const { width } = useWindowDimensions();
+  const [tab, setTab] = useState<CatalogueTabKey>('products');
   const [filter, setFilter] = useState('all');
-  const [scope, setScope] = useState('all');
-  const [stock, setStock] = useState<Record<string, boolean>>({
-    ribeye: true,
-    fries: true,
-    cabernet: true,
-    sourdough: false,
-  });
+  const [ownScope, setOwnScope] = useState('all');
+  const scope = controlledScope ?? ownScope;
+  // Optimistic switch positions keyed by item id; absent = derive from status.
+  const [publishOverride, setPublishOverride] = useState<Record<string, boolean>>({});
   const [sheetItem, setSheetItem] = useState<string | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
 
   const isDirectory = layout === 'directory';
 
-  // Use live items if provided, otherwise fall back to prototype copy.
-  // Map live items to the prototype item shape expected by CatalogueRow.
-  // Helper to map any item (live or prototype) to the CatalogueRow shape.
-  const mapToCatalogueRow = (item: {
-    id: string;
-    title: string;
-    sku?: string;
-    category: string;
-    price: string;
-    status: string;
-    location?: string;
-    stock?: string;
-    wasPrice?: string;
-    image?: { uri: string; alt: string };
-  }) => ({
-    id: item.id,
-    title: item.title,
-    sku: item.sku ?? '',
-    category: item.category,
-    price: item.price,
-    status: item.status,
-    location: item.location ?? '',
-    stock: item.stock,
-    wasPrice: item.wasPrice,
-    image: item.image ?? businessOpsImageById[item.id],
+  // Live rows when the navigator supplies them, otherwise the prototype copy.
+  const sourceItems: CentralCatalogueItemRow[] =
+    items ??
+    copy.items.map(item => ({
+      ...item,
+      image: businessOpsImageById[item.id],
+    }));
+  const products = sourceItems.filter(item => item.kind !== 'service');
+  const shownServices: ServicesManagementRow[] =
+    services ?? strings.servicesCategories.services.map(service => ({ ...service }));
+  const shownCategories: CategoryManagementRow[] =
+    categories ??
+    strings.servicesCategories.categories.map(category => ({ ...category }));
+  const isCategories = tab === 'categories';
+  const isServices = tab === 'services';
+  const visibleItems = products.filter(item => matchesFilter(item, filter));
+  const visibleServices = shownServices.filter(service =>
+    matchesServiceFilter(service, filter),
+  );
+  const visibleCount = isServices ? visibleServices.length : visibleItems.length;
+
+  const tabCounts: Record<CatalogueTabKey, number> = {
+    products: products.length,
+    services: shownServices.length,
+    categories: shownCategories.length,
+  };
+  // The prototype keeps its designed counts; live data counts itself.
+  const isLive = Boolean(items);
+  const catalogueTabs = copy.tabs.map((entry, index) => {
+    if (isDirectory) {
+      return {
+        key: entry.key,
+        label: entry.label,
+        count: isLive ? tabCounts[entry.key] : entry.count,
+      };
+    }
+    return {
+      key: entry.key,
+      label: isLive
+        ? `${entry.label} (${tabCounts[entry.key]})`
+        : copy.tabsBusiness[index].label,
+    };
   });
 
-  const sourceItems = items ?? copy.items;
-  const visibleItems = filter === 'drafts' ? [] : sourceItems.map(mapToCatalogueRow);
+  const allScopeLabel = isDirectory ? copy.allLocations : copy.allLocationsTwo;
+  const pickerOptions: CentralCatalogueScopeOption[] = scopeOptions ?? [
+    { label: allScopeLabel, value: 'all', meta: copy.scopeBranches[0].meta },
+    ...copy.scopeBranches.map(option => ({
+      label: option.label,
+      value: option.value,
+      meta: option.meta,
+    })),
+  ];
+  const emptyTitle = isServices ? copy.emptyServicesTitle : copy.emptyTitle;
+  const narrowFooter = width < NARROW_FOOTER_WIDTH;
 
   return (
     <BusinessScreenLayout
@@ -342,20 +419,29 @@ export function CentralCatalogueScreen({
       contentContainerClassName="pb-8"
       footer={
         <BusinessActionDock>
+          {/* Primary takes the slack, secondary sizes to its label (Stitch HTML).
+              Both opt out of the Button's default w-full, which made the pair
+              wider than the row and pushed Add Service off-screen. */}
           <View className="flex-row gap-2">
             <Button
               label={copy.addProduct}
               labelVariant="labelMd"
+              labelNumberOfLines={1}
+              fullWidth={false}
               onPress={onAddProduct}
               leftIcon={<Icon name="plus" size={18} color={colors.surface} />}
-              className="flex-1"
+              className="min-w-0 flex-1 px-4"
             />
             <Button
-              label={copy.addService}
+              label={narrowFooter ? copy.addServiceShort : copy.addService}
+              accessibilityLabel={copy.addService}
               labelVariant="labelMd"
+              labelNumberOfLines={1}
+              fullWidth={false}
               variant="secondary"
               onPress={onAddService}
               leftIcon={<Icon name="autoAwesome" size={18} color={colors.primary} />}
+              className="shrink-0 px-4"
             />
           </View>
         </BusinessActionDock>
@@ -374,22 +460,11 @@ export function CentralCatalogueScreen({
           ) : null}
           <BusinessScopePicker
             className="mt-1 self-start"
-            label={isDirectory ? copy.allLocations : copy.allLocationsTwo}
+            label={pickerOptions[0]?.label ?? allScopeLabel}
             value={scope}
-            options={[
-              {
-                label: isDirectory ? copy.allLocations : copy.allLocationsTwo,
-                value: 'all',
-                meta: copy.scopeBranches[0].meta,
-              },
-              ...copy.scopeBranches.map(option => ({
-                label: option.label,
-                value: option.value,
-                meta: option.meta,
-              })),
-            ]}
+            options={pickerOptions}
             onChange={value => {
-              setScope(value);
+              setOwnScope(value);
               onChangeScope?.(value);
             }}
           />
@@ -399,9 +474,12 @@ export function CentralCatalogueScreen({
 
       <View className="mt-3">
         <BusinessSegmentTabs
-          tabs={isDirectory ? catalogueTabs : businessHubTabs}
+          tabs={catalogueTabs}
           value={tab}
-          onChange={setTab}
+          onChange={key => {
+            setTab(key as CatalogueTabKey);
+            setFilter('all');
+          }}
           accessibilityLabel={copy.headerTitle}
           shape={isDirectory ? 'segmented' : 'rounded'}
         />
@@ -413,49 +491,84 @@ export function CentralCatalogueScreen({
         onPress={onSearch}
       />
 
-      <View className="mt-3">
-        <BusinessChipScroller>
-          {(isDirectory ? copy.filters : copy.filtersAlt).map(chip => (
-            <BusinessSelectionChip
-              key={chip.key}
-              label={chip.label}
-              selected={filter === chip.key}
-              showCheck={false}
-              onPress={() => setFilter(chip.key)}
+      {isCategories ? (
+        <>
+          <View className="mt-3 gap-2">
+            {shownCategories.map(category => (
+              <CatalogueCategoryRow key={category.id} category={category} />
+            ))}
+          </View>
+          {shownCategories.length ? null : (
+            <EmptyState
+              title={copy.emptyCategoriesTitle}
+              description={copy.emptyCategoriesBody}
+              className="px-0"
             />
-          ))}
-        </BusinessChipScroller>
-      </View>
+          )}
+        </>
+      ) : (
+        <>
+          <View className="mt-3">
+            <BusinessChipScroller>
+              {(isDirectory ? copy.filters : copy.filtersAlt).map(chip => (
+                <BusinessSelectionChip
+                  key={chip.key}
+                  label={chip.label}
+                  selected={filter === chip.key}
+                  showCheck={false}
+                  onPress={() => setFilter(chip.key)}
+                />
+              ))}
+            </BusinessChipScroller>
+          </View>
 
-      <View className="mt-3 gap-3">
-        {visibleItems.map(item => (
-          <CatalogueRow
-            key={item.id}
-            item={item}
-            layout={layout}
-            inStock={stock[item.id] ?? false}
-            onToggleStock={() => {
-              setStock(current => ({ ...current, [item.id]: !current[item.id] }));
-              setToast(item.stock ?? '');
-              onToggleStock?.(item.id, !stock[item.id]);
-            }}
-            onPressMenu={() => setSheetItem(item.id)}
-            onEdit={() => onEditItem?.(item.id)}
-          />
-        ))}
-      </View>
+          <View className="mt-3 gap-3">
+            {isServices
+              ? visibleServices.map(service => (
+                  <CatalogueServiceCard
+                    key={service.id}
+                    service={service}
+                    onPressMenu={() => setSheetItem(service.id)}
+                  />
+                ))
+              : visibleItems.map(item => (
+                  <CatalogueRow
+                    key={item.id}
+                    item={item}
+                    layout={layout}
+                    published={publishOverride[item.id] ?? item.status !== DRAFT_STATUS}
+                    onToggleStock={() => {
+                      const current =
+                        publishOverride[item.id] ?? item.status !== DRAFT_STATUS;
+                      const next = !current;
+                      setPublishOverride(overrides => ({
+                        ...overrides,
+                        [item.id]: next,
+                      }));
+                      Promise.resolve(onToggleStock?.(item.id, next)).catch(() =>
+                        setPublishOverride(overrides => ({
+                          ...overrides,
+                          [item.id]: current,
+                        })),
+                      );
+                    }}
+                    onPressMenu={() => setSheetItem(item.id)}
+                    onEdit={() => onEditItem?.(item.id)}
+                  />
+                ))}
+          </View>
 
-      {visibleItems.length ? null : (
-        <EmptyState
-          title={copy.emptyTitle}
-          description={copy.emptyBody}
-          actionLabel={copy.resetFilters}
-          onAction={() => setFilter('all')}
-          className="px-0"
-        />
+          {visibleCount ? null : (
+            <EmptyState
+              title={emptyTitle}
+              description={copy.emptyBody}
+              actionLabel={copy.resetFilters}
+              onAction={() => setFilter('all')}
+              className="px-0"
+            />
+          )}
+        </>
       )}
-
-      {toast ? <BusinessToastPill message={toast} /> : null}
 
       <BottomSheet
         visible={Boolean(sheetItem)}

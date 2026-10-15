@@ -204,11 +204,15 @@ describe('central catalogue', () => {
     },
   );
 
-  it('toggles the stock switch for a catalogue row', async () => {
+  it('toggles the publish switch for a catalogue row', async () => {
     const onToggleStock = jest.fn();
     const view = await render(<CentralCatalogueScreen onToggleStock={onToggleStock} />);
 
-    fireEvent(view.getAllByLabelText(copy.items[0].stock)[0], 'valueChange', false);
+    fireEvent(
+      view.getAllByLabelText(copy.publishToggleLabel(copy.items[0].title))[0],
+      'valueChange',
+      false,
+    );
 
     await waitFor(() =>
       expect(onToggleStock).toHaveBeenCalledWith(copy.items[0].id, false),

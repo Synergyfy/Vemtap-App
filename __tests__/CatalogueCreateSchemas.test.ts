@@ -1,6 +1,7 @@
 import {
   createCatalogueItemInputSchema,
   updateCatalogueItemInputSchema,
+  updatedCatalogueItemSchema,
   createCatalogueOfferInputSchema,
   updateCatalogueOfferInputSchema,
   catalogueOfferSchema,
@@ -82,15 +83,15 @@ test('update accepts a draft toggle with no other fields', () => {
 });
 
 test('update accepts a publish toggle', () => {
-  expect(
-    updateCatalogueItemInputSchema.safeParse({ status: 'active' }).success,
-  ).toBe(true);
+  expect(updateCatalogueItemInputSchema.safeParse({ status: 'active' }).success).toBe(
+    true,
+  );
 });
 
 test('rejects an unknown item status', () => {
-  expect(
-    updateCatalogueItemInputSchema.safeParse({ status: 'draft' }).success,
-  ).toBe(false);
+  expect(updateCatalogueItemInputSchema.safeParse({ status: 'draft' }).success).toBe(
+    false,
+  );
 });
 
 const fullOffer = {
@@ -147,4 +148,15 @@ test('parses generated terms', () => {
     terms: ['Cannot be combined with other offers'],
   });
   expect(parsed.success).toBe(true);
+});
+
+test('accepts a PATCH item echo that omits the fields it did not send', () => {
+  // Deployed builds return a name/price edit without status or itemType.
+  const parsed = updatedCatalogueItemSchema.safeParse({
+    id: 'c14cd6b3-6cd9-417e-89bb-2a0e60af413f',
+    name: 'Jollof Bowl',
+    price: '4500.00',
+  });
+  expect(parsed.success).toBe(true);
+  expect(updatedCatalogueItemSchema.safeParse({ name: 'No id' }).success).toBe(false);
 });

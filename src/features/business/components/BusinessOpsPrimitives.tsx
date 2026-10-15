@@ -9,7 +9,7 @@ import {
 import { cssInterop } from 'nativewind';
 import { Icon, type IconName } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
-import { colors } from '@theme/colors';
+import { colors, shadowTokens } from '@theme/colors';
 import { cn } from '@utils/cn';
 import {
   BusinessStatusPill,
@@ -452,6 +452,11 @@ export interface BusinessSegmentTabsProps {
 }
 
 /** Single-select segmented control with optional count badges. */
+const segmentTabStyles = {
+  active: { backgroundColor: colors.surface, ...shadowTokens.sm },
+  idle: { backgroundColor: 'transparent', ...shadowTokens.none },
+};
+
 export function BusinessSegmentTabs({
   tabs,
   value,
@@ -481,11 +486,14 @@ export function BusinessSegmentTabs({
             accessibilityState={{ selected: active }}
             accessibilityLabel={tab.label}
             onPress={() => onChange(tab.key)}
+            // className is identical for every tab in every state: swapping
+            // `shadow-sm`/`active:` in on selection made css-interop remount
+            // the Pressable, so taps never switched tabs on device.
             className={cn(
-              'min-h-9 flex-1 flex-row items-center justify-center gap-1.5',
+              'min-h-9 flex-1 flex-row items-center justify-center gap-1.5 active:opacity-80',
               shape === 'segmented' ? 'rounded-lg' : 'rounded-full',
-              active ? 'bg-surface shadow-sm' : 'active:bg-surface-container',
             )}
+            style={active ? segmentTabStyles.active : segmentTabStyles.idle}
           >
             {tab.icon ? (
               <Icon
@@ -505,10 +513,10 @@ export function BusinessSegmentTabs({
             </VemtapText>
             {typeof tab.count === 'string' || typeof tab.count === 'number' ? (
               <View
-                className={cn(
-                  'min-w-5 items-center rounded-full px-1.5 py-0.5',
-                  active ? 'bg-surface-tint' : 'bg-surface-container',
-                )}
+                className="min-w-5 items-center rounded-full px-1.5 py-0.5"
+                style={{
+                  backgroundColor: active ? colors.surfaceTint : colors.surfaceContainer,
+                }}
               >
                 <VemtapText
                   variant="micro"

@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { catalogueApi } from '@api/catalogueApi';
 import type {
-  BusinessCatalogueItem,
+  UpdatedCatalogueItem,
   CatalogueCategory,
   CatalogueOfferDetail,
 } from '@api/catalogueApi';
@@ -42,7 +42,7 @@ export function usePublishCatalogueItem() {
     }: {
       kind: CatalogueDraftKind;
       status: 'active' | 'inactive';
-    }): Promise<BusinessCatalogueItem> => {
+    }): Promise<UpdatedCatalogueItem> => {
       const state = useCatalogueDraftStore.getState();
       const draft = kind === 'product' ? state.product : state.service;
       const { primaryBranchId, remainingBranchIds } = splitBranchIds(draft.branchIds);
@@ -62,7 +62,7 @@ export function usePublishCatalogueItem() {
           ? state.product.publishedItemId
           : state.service.publishedServiceId;
 
-      let created: BusinessCatalogueItem;
+      let created: UpdatedCatalogueItem;
       if (status === 'inactive' && existingDraftId) {
         // Update existing draft item
         created = await catalogueApi.updateCatalogueItem(existingDraftId, {
@@ -95,6 +95,7 @@ export function usePublishCatalogueItem() {
 
 /** Live/draft toggle from the published-confirmation screens. */
 export function useUpdateCatalogueItemStatus() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({
       itemId,
@@ -102,8 +103,12 @@ export function useUpdateCatalogueItemStatus() {
     }: {
       itemId: string;
       status: 'active' | 'inactive' | 'archived';
-    }): Promise<BusinessCatalogueItem> =>
+    }): Promise<UpdatedCatalogueItem> =>
       catalogueApi.updateCatalogueItem(itemId, { status }),
+    // Refetch every catalogue list so status pills and chip filters match the
+    // saved row instead of waiting out the 60s staleTime.
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ['catalogue', 'business'] }),
   });
 }
 
@@ -122,7 +127,7 @@ export function useUpdateCatalogueItemDetails() {
       itemId: string;
       name?: string;
       price?: number;
-    }): Promise<BusinessCatalogueItem> =>
+    }): Promise<UpdatedCatalogueItem> =>
       catalogueApi.updateCatalogueItem(itemId, { name, price }),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: ['catalogue', 'business'] }),
