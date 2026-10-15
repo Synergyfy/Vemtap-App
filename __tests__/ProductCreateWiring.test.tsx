@@ -75,9 +75,7 @@ describe('product location & pricing screen', () => {
     listBusinessBranches.mockResolvedValue(branches);
     const onSave = jest.fn();
     await render(
-      withQuery(
-        <AddProductLocationPricingScreen onBack={jest.fn()} onSave={onSave} />,
-      ),
+      withQuery(<AddProductLocationPricingScreen onBack={jest.fn()} onSave={onSave} />),
     );
 
     await waitFor(() => {
@@ -87,19 +85,14 @@ describe('product location & pricing screen', () => {
 
     await fireEvent.press(screen.getByText('Save Product & Availability'));
     expect(onSave).toHaveBeenCalledTimes(1);
-    expect(onSave.mock.calls[0][0].selectedBranchIds).toEqual([
-      'branch-1',
-      'branch-2',
-    ]);
+    expect(onSave.mock.calls[0][0].selectedBranchIds).toEqual(['branch-1', 'branch-2']);
   });
 
   test('toggle unselects a seeded branch', async () => {
     listBusinessBranches.mockResolvedValue(branches);
     const onSave = jest.fn();
     await render(
-      withQuery(
-        <AddProductLocationPricingScreen onBack={jest.fn()} onSave={onSave} />,
-      ),
+      withQuery(<AddProductLocationPricingScreen onBack={jest.fn()} onSave={onSave} />),
     );
     await waitFor(() => {
       expect(screen.getByText('Wuse Branch')).toBeTruthy();
@@ -117,10 +110,7 @@ describe('product branch availability screen', () => {
     const onContinue = jest.fn();
     await render(
       withQuery(
-        <AddProductBranchAvailabilityScreen
-          onBack={jest.fn()}
-          onContinue={onContinue}
-        />,
+        <AddProductBranchAvailabilityScreen onBack={jest.fn()} onContinue={onContinue} />,
       ),
     );
 

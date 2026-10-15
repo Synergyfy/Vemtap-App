@@ -57,21 +57,34 @@ export function productDraftToCreateInput(
   draft: ProductDraft,
   branchId: string,
 ): CreateCatalogueItemInput {
+  const fulfillmentModes = draft.fulfillmentModes.filter(
+    (mode): mode is 'pickup' | 'delivery' | 'dine_in' =>
+      mode === 'pickup' || mode === 'delivery' || mode === 'dine_in',
+  );
+
   return {
     name: draft.name.trim() || 'Untitled product',
     description: resolveDescription(draft.description, draft.name),
     price: parseMoneyInput(draft.regularPrice) ?? 0,
+    compareAtPrice: parseMoneyInput(draft.compareAtPrice),
     brand: draft.unbranded ? undefined : draft.brand.trim() || undefined,
     sku: draft.sku?.trim() || undefined,
     costPrice: parseMoneyInput(draft.costPrice),
     minStock: parseCountInput(draft.lowStockThreshold),
     stockQuantity: draft.inStock ? undefined : 0,
     allowBackOrder: draft.backorder,
+    condition: draft.condition?.trim() || undefined,
     tags: [...draft.attributes, draft.condition].filter(Boolean),
     variants: draft.variants.map(variant => ({
-      type: variant.name,
-      value: variant.price,
+      name: variant.name,
+      price: parseMoneyInput(variant.price) ?? 0,
+      stockQuantity: variant.inventory,
     })),
+    pricingMode:
+      draft.pricingMode === 'branch' || draft.pricingMode === 'custom'
+        ? 'per_branch'
+        : 'uniform',
+    fulfillmentModes: fulfillmentModes.length ? fulfillmentModes : undefined,
     categoryId: draft.categoryId,
     mainImage: draft.mainImage,
     galleryImages: draft.galleryImages.length ? draft.galleryImages : undefined,
@@ -88,11 +101,13 @@ export function serviceDraftToCreateInput(
     name: draft.name.trim() || 'Untitled service',
     description: resolveDescription(draft.description, draft.name),
     price: parseMoneyInput(draft.basePrice) ?? 0,
+    compareAtPrice: parseMoneyInput(draft.compareAtPrice),
     priceType: 'fixed',
     duration: draft.duration?.trim() || undefined,
     serviceMode: SERVICE_MODE_MAP[draft.serviceMode] ?? 'location',
     isBookable: draft.bookingEnabled,
     bookingMethod: 'vemtap',
+    audience: draft.audience?.trim() || undefined,
     tags: draft.highlights.length ? draft.highlights : undefined,
     mainImage: draft.mainImage,
     galleryImages: draft.galleryImages.length ? draft.galleryImages : undefined,

@@ -154,17 +154,17 @@ export function ReviewServiceSummaryScreen({
               Base Starting Rate
             </VemtapText>
             <View className="mt-0.5 flex-row flex-wrap items-baseline gap-2">
-                <VemtapText variant="headingSm" className="font-sans-bold text-text">
-                  ₦{draft?.basePrice || '0'}
-                </VemtapText>
-                <VemtapText variant="caption" tone="tertiary" className="line-through">
-                  {draft?.compareAtPrice
-                    ? `₦${draft.compareAtPrice}`
-                    : serviceFlowDraft.compareAtPriceFormatted}
-                </VemtapText>
-                <VemtapText variant="caption" tone="secondary">
-                  • {draft?.duration || serviceFlowDraft.duration}
-                </VemtapText>
+              <VemtapText variant="headingSm" className="font-sans-bold text-text">
+                ₦{draft?.basePrice || '0'}
+              </VemtapText>
+              <VemtapText variant="caption" tone="tertiary" className="line-through">
+                {draft?.compareAtPrice
+                  ? `₦${draft.compareAtPrice}`
+                  : serviceFlowDraft.compareAtPriceFormatted}
+              </VemtapText>
+              <VemtapText variant="caption" tone="secondary">
+                • {draft?.duration || serviceFlowDraft.duration}
+              </VemtapText>
             </View>
           </View>
           <View className="rounded-full bg-success-container px-2 py-1">
@@ -325,9 +325,7 @@ export function ReviewServiceSummaryScreen({
 
       <View className="gap-3 pt-1">
         <Button
-          label={
-            publishing ? 'Publishing…' : 'Publish Service to Storefront 🚀'
-          }
+          label={publishing ? 'Publishing…' : 'Publish Service to Storefront 🚀'}
           labelVariant="labelMd"
           labelNumberOfLines={2}
           disabled={publishing}

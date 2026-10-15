@@ -88,9 +88,7 @@ function rowIcon(type: string | null | undefined): IconName {
   }
 }
 
-function rowTone(
-  type: string | null | undefined,
-): BusinessNotificationRow['iconTone'] {
+function rowTone(type: string | null | undefined): BusinessNotificationRow['iconTone'] {
   const kind = rowKind(type);
   if (kind === 'pos' || kind === 'sync') return 'success';
   if (kind === 'deal') return 'tertiary';
@@ -177,9 +175,7 @@ export function BusinessNotificationsCenterScreen({
   );
 
   const visible =
-    category === 'all'
-      ? rows
-      : rows.filter(item => item.categories.includes(category));
+    category === 'all' ? rows : rows.filter(item => item.categories.includes(category));
   // Trust the server's count: it is the same read the bell already shows, and
   // deriving a second one here is how the badge and the list drift apart.
   const unread = feed?.unreadCount ?? 0;

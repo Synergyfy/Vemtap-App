@@ -1,11 +1,9 @@
 import React from 'react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react-native';
 import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-} from '@testing-library/react-native';
-import { serviceBranches, serviceFlowDraft } from '@features/business/data/serviceFlowData';
+  serviceBranches,
+  serviceFlowDraft,
+} from '@features/business/data/serviceFlowData';
 import { AddServiceBasicsMediaScreen } from '@features/business/screens/AddServiceBasicsMediaScreen';
 import { AddServiceDurationPricingScreen } from '@features/business/screens/AddServiceDurationPricingScreen';
 import { AddServiceAvailabilityRulesScreen } from '@features/business/screens/AddServiceAvailabilityRulesScreen';
@@ -21,9 +19,7 @@ describe('service basics screen', () => {
 
     const title = screen.getByDisplayValue(serviceFlowDraft.title);
     await fireEvent.changeText(title, 'Express Glow Facial');
-    await fireEvent.press(
-      screen.getByText('Continue to Duration & Pricing'),
-    );
+    await fireEvent.press(screen.getByText('Continue to Duration & Pricing'));
 
     expect(onNext).toHaveBeenCalledTimes(1);
     const value = onNext.mock.calls[0][0];
@@ -53,13 +49,9 @@ describe('service basics screen', () => {
 describe('service duration & pricing screen', () => {
   test('emits pricing and duration values', async () => {
     const onNext = jest.fn();
-    await render(
-      <AddServiceDurationPricingScreen onBack={jest.fn()} onNext={onNext} />,
-    );
+    await render(<AddServiceDurationPricingScreen onBack={jest.fn()} onNext={onNext} />);
 
-    await fireEvent.press(
-      screen.getByText('Continue to Branch Availability'),
-    );
+    await fireEvent.press(screen.getByText('Continue to Branch Availability'));
 
     expect(onNext).toHaveBeenCalledTimes(1);
     expect(onNext.mock.calls[0][0]).toMatchObject({
@@ -91,14 +83,10 @@ describe('service availability rules screen', () => {
       <AddServiceAvailabilityRulesScreen onBack={jest.fn()} onNext={onNext} />,
     );
 
-    await fireEvent.press(
-      screen.getByLabelText(serviceBranches[0].name),
-    );
+    await fireEvent.press(screen.getByLabelText(serviceBranches[0].name));
     await fireEvent.press(screen.getByText('Review & Publish'));
 
-    expect(onNext.mock.calls[0][0].branchIds).toEqual([
-      serviceBranches[1].id,
-    ]);
+    expect(onNext.mock.calls[0][0].branchIds).toEqual([serviceBranches[1].id]);
   });
 });
 

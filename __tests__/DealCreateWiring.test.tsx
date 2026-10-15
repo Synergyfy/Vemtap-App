@@ -91,10 +91,7 @@ describe('deal auto-imported screen', () => {
   test('emits offer value on publish', async () => {
     const onPublish = jest.fn();
     await render(
-      <CreateDealOfferAutoImportedScreen
-        onBack={jest.fn()}
-        onPublish={onPublish}
-      />,
+      <CreateDealOfferAutoImportedScreen onBack={jest.fn()} onPublish={onPublish} />,
     );
 
     await fireEvent.press(screen.getByText(/publish|launch|create deal/i));

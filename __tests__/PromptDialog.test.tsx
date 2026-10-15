@@ -30,7 +30,12 @@ describe('PromptDialog', () => {
         title="Edit item"
         fields={[
           { key: 'name', label: 'Name', value: 'Ribeye' },
-          { key: 'price', label: 'Price (₦)', value: '9600', keyboardType: 'decimal-pad' },
+          {
+            key: 'price',
+            label: 'Price (₦)',
+            value: '9600',
+            keyboardType: 'decimal-pad',
+          },
         ]}
         confirmLabel="Save"
         onCancel={jest.fn()}

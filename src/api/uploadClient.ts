@@ -150,3 +150,29 @@ export async function uploadFile<T>(options: UploadOptions): Promise<UploadResul
   const response = await uploadClient.request<unknown, { data: T }>(config);
   return { data: response.data };
 }
+
+export interface UploadImageInput {
+  fileUri: string;
+  fileName: string;
+  mimeType?: string;
+}
+
+export async function uploadImage({
+  fileUri,
+  fileName,
+  mimeType,
+}: UploadImageInput): Promise<string> {
+  const result = await uploadFile<{ url?: string; data?: { url?: string } }>({
+    url: '/uploads',
+    fileUri,
+    fileName,
+    mimeType: mimeType ?? 'image/jpeg',
+  });
+
+  const url = result.data?.url ?? result.data?.data?.url;
+  if (!url || typeof url !== 'string') {
+    throw new Error('Upload response did not include a hosted URL');
+  }
+
+  return url;
+}

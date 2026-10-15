@@ -83,6 +83,7 @@ describe('productDraftToCreateInput', () => {
     attributes: ['beef'],
     galleryImages: ['https://img/1.jpg'],
     regularPrice: '14,000',
+    compareAtPrice: '16,000',
     costPrice: '8,500',
     lowStockThreshold: '5',
     sku: 'UG-RB-042',
@@ -101,15 +102,19 @@ describe('productDraftToCreateInput', () => {
       name: 'Cheeseburger',
       description: 'Double patty',
       price: 14000,
+      compareAtPrice: 16000,
       costPrice: 8500,
       minStock: 5,
       brand: 'Urban Grill',
       sku: 'UG-RB-042',
       itemType: 'product',
       branchId,
+      condition: 'Fresh / New',
+      pricingMode: 'uniform',
+      fulfillmentModes: ['pickup'],
     });
     expect(input.tags).toEqual(['beef', 'Fresh / New']);
-    expect(input.variants).toEqual([{ type: 'Large', value: '16,000' }]);
+    expect(input.variants).toEqual([{ name: 'Large', price: 16000, stockQuantity: 3 }]);
   });
 
   it('drops the brand for unbranded items and zeroes stock when out of stock', () => {
@@ -140,6 +145,7 @@ describe('serviceDraftToCreateInput', () => {
         deliveryMode: 'in-salon',
         highlights: ['Organic Botanicals'],
         audience: 'all',
+        compareAtPrice: '5,500',
         galleryImages: [],
         basePrice: '5,000',
         duration: '60 mins',
@@ -156,11 +162,13 @@ describe('serviceDraftToCreateInput', () => {
       name: 'Deep tissue massage',
       description: 'Deep tissue massage',
       price: 5000,
+      compareAtPrice: 5500,
       priceType: 'fixed',
       duration: '60 mins',
       serviceMode: 'location',
       isBookable: true,
       bookingMethod: 'vemtap',
+      audience: 'all',
       itemType: 'service',
     });
   });
@@ -195,7 +203,7 @@ describe('dealDraftToCreateInput', () => {
   });
 
   it('maps limits, claim frequency and claim steps onto the offer DTO', () => {
-    const input = dealDraftToCreateInput(baseDraft, branchId);
+    const input = dealDraftToCreateInput(baseDraft, branchId, baseDraft.branchIds);
 
     expect(input).toMatchObject({
       name: 'Summer special',
@@ -204,6 +212,7 @@ describe('dealDraftToCreateInput', () => {
       quantity: 100,
       maxClaimsPerCustomer: 1,
       branchId,
+      branchIds: [branchId, otherBranchId],
       sourceProductId: itemId,
       itemIds: [itemId],
     });

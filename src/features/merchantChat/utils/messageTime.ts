@@ -24,9 +24,9 @@ const MONTHS = [
  * first keeps the transcript consistent with its own ordering, and falling back
  * means a row that somehow lacks it still shows a time instead of a blank.
  */
-export function messageTimeOf(message: Pick<ChatMessage, 'timestamp' | 'createdAt'>):
-  | string
-  | undefined {
+export function messageTimeOf(
+  message: Pick<ChatMessage, 'timestamp' | 'createdAt'>,
+): string | undefined {
   return message.timestamp ?? message.createdAt ?? undefined;
 }
 
