@@ -244,6 +244,7 @@ export const catalogueItemStatusSchema = z.enum([
 export const createCatalogueItemInputSchema = z.object({
   name: z.string().min(1),
   price: z.number().min(0).optional(),
+  compareAtPrice: z.number().min(0).optional(),
   shortDescription: z.string().optional(),
   /** Backend requires a non-empty description; publish callers fall back to name. */
   description: z.string().min(1),
@@ -259,9 +260,24 @@ export const createCatalogueItemInputSchema = z.object({
   costPrice: z.number().min(0).optional(),
   minStock: z.number().min(0).optional(),
   brand: z.string().optional(),
+  condition: z.string().optional(),
   weight: z.string().optional(),
   dimensions: z.string().optional(),
-  variants: z.array(z.object({ type: z.string(), value: z.string() })).optional(),
+  variants: z
+    .array(
+      z.union([
+        z.object({
+          name: z.string(),
+          price: z.union([z.number(), z.string()]).optional(),
+          compareAtPrice: z.union([z.number(), z.string()]).optional(),
+          sku: z.string().optional(),
+          stockQuantity: z.number().min(0).optional(),
+          id: z.string().optional(),
+        }),
+        z.object({ type: z.string(), value: z.string() }),
+      ]),
+    )
+    .optional(),
   tags: z.array(z.string()).optional(),
   allowBackOrder: z.boolean().optional(),
   loyaltyPoints: z.number().min(0).optional(),
@@ -275,6 +291,9 @@ export const createCatalogueItemInputSchema = z.object({
   isBookable: z.boolean().optional(),
   bookingMethod: z.enum(['vemtap', 'call', 'whatsapp', 'external']).optional(),
   externalBookingLink: z.string().optional(),
+  audience: z.string().optional(),
+  pricingMode: z.enum(['uniform', 'per_branch']).optional(),
+  fulfillmentModes: z.array(z.enum(['pickup', 'delivery', 'dine_in'])).optional(),
   branchId: z.string().uuid(),
 });
 export type CreateCatalogueItemInput = z.input<typeof createCatalogueItemInputSchema>;
@@ -306,6 +325,7 @@ export const createCatalogueOfferInputSchema = z.object({
   loyaltyPoints: z.number().min(0).optional(),
   rewardId: z.string().uuid().optional(),
   branchId: z.string().uuid(),
+  branchIds: z.array(z.string().uuid()).optional(),
   itemIds: z.array(z.string().uuid()).optional(),
   startDate: z.string().optional(),
   endDate: z.string().optional(),

@@ -228,7 +228,8 @@ export function usePublishCatalogueOffer() {
       branchId?: string;
     }): Promise<CatalogueOfferDetail> => {
       const { deal } = useCatalogueDraftStore.getState();
-      const resolvedBranchId = branchId ?? deal.branchIds[0];
+      const [firstBranchId] = deal.branchIds;
+      const resolvedBranchId = branchId ?? firstBranchId;
       if (!resolvedBranchId) {
         throw new Error('Select at least one branch before launching the deal');
       }
@@ -237,6 +238,14 @@ export function usePublishCatalogueOffer() {
         { ...deal, itemIds: itemIds?.length ? itemIds : deal.itemIds },
         resolvedBranchId,
       );
+
+      // Keep the legacy single-branch field for compatibility, but also send the
+      // selected branch set so the backend can retain multi-branch deals instead of
+      // silently dropping every branch after the first.
+      if (input.branchIds?.length) {
+        const [primaryBranchId] = input.branchIds;
+        input.branchId = primaryBranchId;
+      }
 
       let created = await catalogueApi.createCatalogueOffer(input);
       if (status === 'inactive') {
