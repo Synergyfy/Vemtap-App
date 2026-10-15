@@ -16,3 +16,7 @@ export * from './messagingApi';
 export * from './savedApi';
 export * from './savingsApi';
 export * from './bookingsApi';
+export * from './segmentsApi';
+export * from './promotionsApi';
+export * from './boostsApi';
+export * from './adWalletApi';

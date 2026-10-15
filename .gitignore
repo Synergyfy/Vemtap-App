@@ -102,7 +102,6 @@ stitch_vemtap_mobile_app_design/
 # Real secrets (Sentry DSN, Google Maps key) belong in the `.local` variants,
 # which take priority over the tracked files. These must never be committed.
 # ---------------------------------------------------------------------------
-.env.local
 .env.*.local
 
 # Lint/format caches
@@ -122,7 +121,6 @@ zz-*
 scratch-*
 
 # Editor / OS noise
-.vscode/
 !.vscode/extensions.json
 *.orig
 *.rej
@@ -137,3 +135,4 @@ ios/GoogleService-Info.plist
 *.mobileprovision
 *.cer
 *.certSigningRequest
+config.bat
