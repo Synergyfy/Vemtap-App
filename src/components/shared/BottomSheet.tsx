@@ -51,12 +51,14 @@ export function BottomSheet({
   /**
    * The running entry/exit animation.
    *
-   * `Animated.timing().start()` schedules a timer that nothing cancels, so
-   * unmounting mid-entry — or simply closing before the 120ms scrim delay
-   * elapses — let the callback fire against a view that no longer exists. That
-   * reached for a native handle that was gone and threw, and because the stray
-   * timer outlives the component it blew up in whatever test or screen happened
-   * to be running next. Stopping it on unmount is the difference.
+   * `Animated.timing().start()` schedules a timer that nothing cancels, so a
+   * sheet that goes away mid-entry left a callback to fire against a view that
+   * was already gone. That reached for a native handle that no longer existed
+   * and threw; because the stray timer outlives the component, it failed
+   * whatever test or screen happened to be running next. Stopping the animation
+   * is the difference — and it has to happen both on unmount *and* when
+   * `visible` goes false, because hiding a sheet tears down the Modal's
+   * children while this component stays mounted.
    */
   const animation = useRef<Animated.CompositeAnimation | null>(null);
 
@@ -68,6 +70,15 @@ export function BottomSheet({
       dismissKeyboard();
     }
   }, [dismissKeyboard, visible]);
+
+  useEffect(() => {
+    if (!visible) {
+      // The children are about to be torn down; an entry still running would
+      // keep scheduling frames against them.
+      animation.current?.stop();
+      animation.current = null;
+    }
+  }, [visible]);
 
   useEffect(
     () => () => {

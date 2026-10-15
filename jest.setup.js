@@ -1,5 +1,27 @@
 /* eslint-env jest */
 
+/**
+ * Give the test environment the one Fabric lookup that `findNodeHandle` needs.
+ *
+ * An `Animated` node bound with `useNativeDriver: true` resolves its view
+ * through `ReactNativePrivateInterface.getNativeTagFromPublicInstance`. The
+ * interface is a lazy getter over a module that is alive during a test but gone
+ * once that test file's environment is torn down — so an animation still
+ * settling at teardown read it as `undefined` and threw
+ * "getNativeTagFromPublicInstance is not a function". Because the work runs on a
+ * timer that outlives its own suite, Jest blamed whichever file happened to be
+ * running at that moment, which is why unrelated suites failed intermittently.
+ *
+ * A stable stub returning 0 is the right answer here: there is no native view
+ * tree under Jest, so no tag is meaningful, and nothing asserts on it. It is
+ * defined non-configurably so a later teardown cannot drop it again.
+ */
+const nativePrivateInterface = require('react-native/Libraries/ReactPrivate/ReactNativePrivateInterface');
+Object.defineProperty(nativePrivateInterface, 'getNativeTagFromPublicInstance', {
+  configurable: true,
+  get: () => () => 0,
+});
+
 jest.mock('react-native-gesture-handler', () => {
   const React = require('react');
   const { View } = require('react-native');
