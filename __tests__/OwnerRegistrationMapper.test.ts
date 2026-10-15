@@ -103,6 +103,17 @@ describe('mapping the profile draft to register/owner', () => {
     );
   });
 
+  it('treats an empty category as not chosen yet, not as a fictional one', () => {
+    // The setup gate creates the account before Basic Info runs; an empty
+    // category used to throw 'No API category matches ""'.
+    const early = draft();
+    early.basic.category = '  ';
+
+    const mapped = mapDraftToOwnerRegistration(early, CATEGORIES);
+    expect(mapped.payload).not.toHaveProperty('categoryId');
+    expect(mapped.payload).not.toHaveProperty('subcategoryId');
+  });
+
   it('lists the real names when it refuses, so the fix is obvious', () => {
     const bad = draft();
     bad.basic.category = 'Spa & Wellness';

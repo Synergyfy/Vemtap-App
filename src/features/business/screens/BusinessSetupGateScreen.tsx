@@ -3,7 +3,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LoadingState } from '@components/shared/LoadingState';
 import { businessProfileCopy } from '@features/business/businessCopy';
-import { useAuthStore, selectIsAuthenticated } from '@store/authStore';
+import { useAuthStore, selectHasSession } from '@store/authStore';
 import type { BusinessSetupStackParamList } from '@navigation/types';
 
 /** Where the gate sends the caller; params are always `fromGate`. */
@@ -53,7 +53,8 @@ export interface BusinessSetupGateScreenProps {
  * session changes.
  */
 export function BusinessSetupGateScreen({ navigation }: BusinessSetupGateScreenProps) {
-  const isAuthenticated = useAuthStore(selectIsAuthenticated);
+  // `onboarding` counts: a just-registered owner is mid-wizard, not signed out.
+  const isAuthenticated = useAuthStore(selectHasSession);
   const role = useAuthStore(state => state.user?.role);
 
   useEffect(() => {

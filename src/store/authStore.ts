@@ -155,3 +155,11 @@ export const selectIsAuthenticated = (s: AuthState): boolean =>
 
 /** Registered, but still inside AuthStack until the location step completes. */
 export const selectNeedsOnboarding = (s: AuthState): boolean => s.status === 'onboarding';
+
+/**
+ * Signed in at all — including a freshly registered owner still `onboarding`
+ * inside the business setup wizard. The wizard's gate and steps use this; a
+ * check on `authenticated` alone would send that owner back to sign up.
+ */
+export const selectHasSession = (s: AuthState): boolean =>
+  s.status === 'authenticated' || s.status === 'onboarding';

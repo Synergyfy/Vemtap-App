@@ -157,6 +157,8 @@ export const businessProfileCopy = {
     gate: {
       checking: 'Checking your account…',
     },
+    businessSyncFailed: 'We could not create your business',
+    businessSyncRetry: 'Try again',
     create: {
       header: 'Create Account',
       step: 'Account Setup',

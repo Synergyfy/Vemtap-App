@@ -61,10 +61,17 @@ import {
   businessProfileCopy,
 } from '@features/business/businessCopy';
 import { useUpgradeOwnerRegistration } from '@features/business/hooks/useUpgradeOwnerRegistration';
+import {
+  useRegisterOwnerAccount,
+  useUpgradeToOwnerAccount,
+} from '@features/business/hooks/useOwnerAccountSetup';
+import { EmptyState } from '@components/shared/EmptyState';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { uploadBrandingMedia } from '@features/business/utils/uploadBusinessMedia';
 import { ForgotPinScreen } from '@features/auth/screens/ForgotPinScreen';
 import { TypeDensityProvider } from '@theme/TypeDensityProvider';
 import { useBusinessOnboardingStore } from '@store/businessOnboardingStore';
-import { useAuthStore, selectIsAuthenticated } from '@store/authStore';
+import { useAuthStore, selectHasSession, selectIsAuthenticated } from '@store/authStore';
 import { useCatalogueDraftStore } from '@store/catalogueDraftStore';
 import {
   useBusinessBranches,
@@ -217,7 +224,7 @@ function useFinishAccountStep(fromGate: boolean) {
 
 function BusinessIntroductionRoute() {
   const navigation = useFlowNavigation();
-  const isAuthenticated = useAuthStore(selectIsAuthenticated);
+  const isAuthenticated = useAuthStore(selectHasSession);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -326,8 +333,6 @@ async function syncOwnerDraftToBusiness(draft: {
   const { branding } = draft;
 
   // Upload branding media (logo, cover, gallery) if any local URIs are present
-  const { uploadBrandingMedia } =
-    await import('@features/business/utils/uploadBusinessMedia');
   const media = await uploadBrandingMedia({
     logoUri: branding.logoUri,
     coverUri: branding.coverUri,
@@ -367,11 +372,9 @@ async function syncOwnerDraftToBusiness(draft: {
 
   if (Object.keys(updates).length === 0) return;
 
-  await businessDashboardApi.updateMyBusiness(updates).catch(error =>
-    logger.warn('business', 'Failed to sync owner draft before location', {
-      message: error instanceof Error ? error.message : String(error),
-    }),
-  );
+  // Not best-effort: this request is what creates the business. A failure is
+  // surfaced by the caller rather than continuing to Location with nothing.
+  await businessDashboardApi.updateMyBusiness(updates);
 }
 
 /**
@@ -384,12 +387,18 @@ function BusinessAccountCredentialsRoute() {
   const route =
     useRoute<RouteProp<BusinessSetupStackParamList, 'BusinessAccountCredentials'>>();
   const fromGate = route.params?.fromGate === true;
-  const isAuthenticated = useAuthStore(selectIsAuthenticated);
+  const isAuthenticated = useAuthStore(selectHasSession);
   const user = useAuthStore(state => state.user);
   const contact = useBusinessOnboardingStore(state => state.profile.contact);
   const setCredentials = useBusinessOnboardingStore(state => state.setCredentials);
-  const upgrade = useUpgradeOwnerRegistration();
+  // At the gate the business details do not exist yet, so only the account is
+  // upgraded; the business is created after Contact, from the full draft.
+  const fullUpgrade = useUpgradeOwnerRegistration();
+  const accountUpgrade = useUpgradeToOwnerAccount();
+  const upgrade = fromGate ? accountUpgrade : fullUpgrade;
   const syncedOwnerDraft = useRef(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const [syncAttempt, setSyncAttempt] = useState(0);
 
   const role = user?.role?.toLowerCase();
   const ownerRegistered = role === 'owner' && Boolean(user?.businessId);
@@ -411,11 +420,26 @@ function BusinessAccountCredentialsRoute() {
       if (ownerWithoutBusiness && !syncedOwnerDraft.current) {
         syncedOwnerDraft.current = true;
         const store = useBusinessOnboardingStore.getState();
-        await syncOwnerDraftToBusiness({
-          basic: store.profile.basic,
-          branding: store.profile.branding,
-          contact: store.profile.contact,
-        });
+        try {
+          // Creates the business (PATCH my-business auto-creates for an owner
+          // without one). Continuing without it would strand every later step.
+          await syncOwnerDraftToBusiness({
+            basic: store.profile.basic,
+            branding: store.profile.branding,
+            contact: store.profile.contact,
+          });
+        } catch (error) {
+          syncedOwnerDraft.current = false;
+          if (mounted) {
+            const message = (error as { message?: unknown } | null)?.message;
+            setSyncError(
+              typeof message === 'string' && message
+                ? message
+                : businessProfileCopy.accountSetup.businessSyncFailed,
+            );
+          }
+          return;
+        }
       }
 
       if (mounted) {
@@ -426,10 +450,22 @@ function BusinessAccountCredentialsRoute() {
     return () => {
       mounted = false;
     };
-  }, [ownerWithoutBusiness, skipCredentials, finish]);
+  }, [ownerWithoutBusiness, skipCredentials, finish, syncAttempt]);
 
   if (skipCredentials) {
-    return null;
+    return syncError ? (
+      <SafeAreaView edges={['top']} className="flex-1 bg-background">
+        <EmptyState
+          title={businessProfileCopy.accountSetup.businessSyncFailed}
+          description={syncError}
+          actionLabel={businessProfileCopy.accountSetup.businessSyncRetry}
+          onAction={() => {
+            setSyncError(null);
+            setSyncAttempt(attempt => attempt + 1);
+          }}
+        />
+      </SafeAreaView>
+    ) : null;
   }
 
   if (isAuthenticated && role === 'customer') {
@@ -485,6 +521,10 @@ function BusinessAccountOtpRoute() {
   const fromGate = route.params?.fromGate === true;
   const credentials = useBusinessOnboardingStore(state => state.credentials);
   const submit = useSubmitOwnerRegistration();
+  // From the gate there is no business draft yet: create the account only;
+  // the business follows after Contact, from the finished draft.
+  const accountOnly = useRegisterOwnerAccount();
+  const register = fromGate ? accountOnly.register : submit.register;
 
   const finish = useFinishAccountStep(fromGate);
 
@@ -494,12 +534,12 @@ function BusinessAccountOtpRoute() {
         'Your account details are missing. Go back and re-enter your email and password.',
       );
     }
-    await submit.register({
+    await register({
       email: credentials.email,
       password: credentials.password,
     });
     finish();
-  }, [credentials.email, credentials.password, finish, submit]);
+  }, [credentials.email, credentials.password, finish, register]);
 
   return (
     <BusinessAccountOtpScreen

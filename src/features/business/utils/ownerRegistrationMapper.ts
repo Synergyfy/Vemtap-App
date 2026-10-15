@@ -135,7 +135,7 @@ function resolveSpecialties(
 /**
  * Resolve the category by name and split out what registration cannot send.
  *
- * @throws {UnresolvableCategoryError} when the chosen category has no real
+ * @throws {UnresolvableCategoryError} when a chosen (non-empty) category has no real
  * counterpart — the API would reject a fabricated UUID anyway, and failing here
  * keeps that rejection close to its cause instead of surfacing as an opaque 400.
  */
@@ -154,7 +154,10 @@ export function mapDraftToOwnerRegistration(
       } as Category))
     : findCategory(draft.basic.category, categories);
 
-  if (!category) {
+  // No category chosen yet is not an error: the API does not require one, and
+  // the business can be categorised later. Only a name that was chosen but has
+  // no real counterpart is rejected.
+  if (!category && draft.basic.category.trim()) {
     throw new UnresolvableCategoryError(
       draft.basic.category,
       categories.map(item => item.name),
@@ -163,7 +166,7 @@ export function mapDraftToOwnerRegistration(
 
   const subcategoryId =
     draft.category?.subcategoryId ??
-    category.subcategories.find(
+    category?.subcategories.find(
       sub => normalize(sub.name) === normalize(draft.branding.specialtyNames?.[0] ?? ''),
     )?.id;
 
@@ -179,7 +182,7 @@ export function mapDraftToOwnerRegistration(
 
   const payload: OwnerRegistrationPayload = {
     businessName: draft.basic.name,
-    categoryId: category.id,
+    categoryId: category?.id,
     subcategoryId,
     otherSubcategoryName,
     businessLogo: draft.branding.logoUrl,

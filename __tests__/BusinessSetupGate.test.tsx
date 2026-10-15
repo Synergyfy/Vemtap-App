@@ -8,6 +8,8 @@ import { BusinessSetupNavigator } from '@navigation/BusinessSetupNavigator';
 import { businessSetupGateTarget } from '@features/business/screens/BusinessSetupGateScreen';
 import { businessProfileCopy } from '@features/business/businessCopy';
 import { useAuthStore } from '@store/authStore';
+import { useBusinessOnboardingStore } from '@store/businessOnboardingStore';
+import { businessDashboardApi } from '@api/businessDashboardApi';
 import type { BusinessSetupStackParamList } from '@navigation/types';
 
 /**
@@ -19,7 +21,9 @@ import type { BusinessSetupStackParamList } from '@navigation/types';
 
 afterEach(() => {
   cleanup();
+  jest.restoreAllMocks();
   useAuthStore.setState({ status: 'unauthenticated', user: null } as never);
+  useBusinessOnboardingStore.getState().reset();
 });
 
 describe('businessSetupGateTarget', () => {
@@ -75,6 +79,37 @@ describe('BusinessSetupGate in the real setup navigator', () => {
       expect(view.queryByText(businessProfileCopy.accountSetup.gate.checking)).toBeNull();
     },
   );
+
+  it('treats an owner still onboarding as signed in, not as signed out', async () => {
+    // A just-registered owner is `onboarding` until the wizard ends; treating
+    // that as signed out bounced them from Introduction back to sign-up.
+    const { ref } = await openWizard({ status: 'onboarding', role: 'Owner' });
+    expect(ref.getCurrentRoute()?.name).toBe('BusinessIntroduction');
+  });
+
+  it('stays on the account step when the business cannot be created', async () => {
+    jest
+      .spyOn(businessDashboardApi, 'updateMyBusiness')
+      .mockRejectedValue(new Error('Network down'));
+    useBusinessOnboardingStore
+      .getState()
+      .setBasicInfo({ name: 'Mama Put', category: '', specialties: [], description: '' });
+    const { ref, view } = await openWizard({ status: 'authenticated', role: 'Owner' });
+
+    await act(async () => {
+      ref.navigate('BusinessAccountCredentials');
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(ref.getCurrentRoute()?.name).toBe('BusinessAccountCredentials');
+    expect(
+      (await view.findAllByText(businessProfileCopy.accountSetup.businessSyncFailed))
+        .length,
+    ).toBeGreaterThan(0);
+    expect(view.getByText('Network down')).toBeTruthy();
+  });
 
   it('tells the credentials step it came from the gate', async () => {
     const { ref } = await openWizard({ status: 'unauthenticated' });
