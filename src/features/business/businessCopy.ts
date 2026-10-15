@@ -375,6 +375,18 @@ export const businessCatalogCopy = {
   continue: 'Continue to First Deal Setup',
   skip: "Skip for now, I'll add items later",
   catalogueLoadFailed: 'Failed to load catalogue. Please try again.',
+  /** Labels for a live catalogue item rendered as a setup card. */
+  setupCard: {
+    live: 'Live on VEMTAP',
+    draft: 'Draft / Paused',
+    suspended: 'Suspended',
+    lowStock: 'Low stock',
+    outOfStock: 'Out of stock',
+    durationNotSet: 'Duration not set',
+    inventory: (units: number) => `Inventory: ${units} units`,
+    bookable: 'Bookable on VEMTAP',
+    notBookable: 'Not bookable yet',
+  },
 } as const;
 
 /**

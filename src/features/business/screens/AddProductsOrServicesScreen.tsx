@@ -6,6 +6,8 @@ import { RegistrationHeader } from '@components/auth/RegistrationHeader';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { colors } from '@theme/colors';
+import { LoadingState } from '@components/shared/LoadingState';
+import { ErrorState } from '@components/shared/ErrorState';
 import { businessCatalogCopy as copy } from '@features/business/businessCopy';
 import { catalogItems, type CatalogItem } from '@features/business/businessData';
 import {
@@ -42,6 +44,10 @@ export interface AddProductsOrServicesScreenProps {
   onRemoveItem?: (item: CatalogItem) => void;
   onFilter?: () => void;
   items?: CatalogItem[];
+  /** True while the owner's live catalogue is loading. */
+  isLoading?: boolean;
+  /** Shown in place of the list when the catalogue fails to load. */
+  error?: string;
 }
 
 /**
@@ -59,6 +65,8 @@ export function AddProductsOrServicesScreen({
   onRemoveItem,
   onFilter,
   items = catalogItems,
+  isLoading = false,
+  error,
 }: AddProductsOrServicesScreenProps) {
   const [removedIds, setRemovedIds] = useState<string[]>([]);
 
@@ -200,14 +208,20 @@ export function AddProductsOrServicesScreen({
           </View>
 
           <View className="gap-3">
-            {visibleItems.map(item => (
-              <CatalogItemCard
-                key={item.id}
-                item={item}
-                onEdit={() => onEditItem?.(item)}
-                onRemove={() => onRemove(item)}
-              />
-            ))}
+            {isLoading ? (
+              <LoadingState />
+            ) : error ? (
+              <ErrorState description={error} />
+            ) : (
+              visibleItems.map(item => (
+                <CatalogItemCard
+                  key={item.id}
+                  item={item}
+                  onEdit={() => onEditItem?.(item)}
+                  onRemove={() => onRemove(item)}
+                />
+              ))
+            )}
           </View>
 
           <Pressable

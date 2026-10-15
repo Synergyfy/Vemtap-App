@@ -6,6 +6,8 @@ import {
   type ServicesManagementRow,
 } from '@features/business/components/CatalogueServiceCard';
 import type { CentralCatalogueItemRow } from '@features/business/screens/CentralCatalogueScreen';
+import { businessCatalogCopy } from '@features/business/businessCopy';
+import type { CatalogItem } from '@features/business/businessData';
 
 /**
  * Live-catalogue → hub-row mappers. The hub management screens were built as
@@ -97,40 +99,48 @@ export function catalogueCategoryToRow(
 }
 
 /**
- * Maps a catalogue item to the setup-card shape the wizard's
- * AddProductsOrServices screen expects. Identity passthrough: the card is a
- * read-only preview of the owner's own catalogue during setup. The screen
- * falls back to prototype copy whenever a prop is absent, so storybook use still works.
+ * Maps a catalogue item to the setup card the wizard's AddProductsOrServices
+ * screen renders, a read-only preview of the owner's own catalogue during setup.
  */
-export function catalogueItemToSetupCard(item: BusinessCatalogueItem) {
+export function catalogueItemToSetupCard(item: BusinessCatalogueItem): CatalogItem {
+  const card = businessCatalogCopy.setupCard;
+  const isService = item.itemType === 'service';
+  const price = toAmount(item.price);
+  const isRange = item.priceType === 'range';
+  const isLive = item.status === 'active' && !item.isSuspended;
+  const stock = toAmount(item.stockQuantity, Number.NaN);
+
   return {
     id: item.id,
-    name: item.name,
-    price: item.price,
-    shortDescription: item.shortDescription,
-    description: item.description,
-    mainImage: item.mainImage,
-    galleryImages: item.galleryImages,
-    businessId: item.businessId,
-    category: item.category,
-    categoryId: item.categoryId,
-    status: item.status,
-    itemType: item.itemType,
-    sku: item.sku ?? '',
-    discountType: item.discountType,
-    discountValue: item.discountValue,
-    stockQuantity: item.stockQuantity,
-    barcode: item.barcode,
-    brand: item.brand,
-    priceType: item.priceType,
-    priceRangeMin: item.priceRangeMin,
-    priceRangeMax: item.priceRangeMax,
-    duration: item.duration,
-    serviceMode: item.serviceMode,
-    isBookable: item.isBookable,
-    bookingMethod: item.bookingMethod,
-    externalBookingLink: item.externalBookingLink,
-    isSuspended: item.isSuspended,
-    loyaltyPoints: item.loyaltyPoints,
+    kind: isService ? 'service' : 'product',
+    category: item.category?.name ?? '',
+    title: item.name,
+    image: item.mainImage ? { uri: item.mainImage } : undefined,
+    priceSummary: isRange
+      ? `₦${toAmount(item.priceRangeMin, price).toLocaleString()} – ₦${toAmount(
+          item.priceRangeMax,
+          price,
+        ).toLocaleString()}`
+      : `₦${price.toLocaleString()}`,
+    priceNote: isService ? (item.duration ?? card.durationNotSet) : undefined,
+    multiPrice: isRange,
+    availability: setupCardAvailability(item, isLive),
+    availabilityIcon: isLive ? 'verified' : 'pauseCircle',
+    availabilityTone: isLive ? 'success' : 'secondary',
+    meta: isService
+      ? item.isBookable
+        ? card.bookable
+        : card.notBookable
+      : Number.isFinite(stock)
+        ? card.inventory(stock)
+        : '',
   };
+}
+
+function setupCardAvailability(item: BusinessCatalogueItem, isLive: boolean): string {
+  const card = businessCatalogCopy.setupCard;
+  if (item.isSuspended) return card.suspended;
+  if (item.status === 'out_of_stock') return card.outOfStock;
+  if (item.status === 'low_stock') return card.lowStock;
+  return isLive ? card.live : card.draft;
 }
