@@ -154,6 +154,9 @@ export const businessProfileCopy = {
     emailRequired: 'Enter a valid official business email to continue.',
   },
   accountSetup: {
+    gate: {
+      checking: 'Checking your account…',
+    },
     create: {
       header: 'Create Account',
       step: 'Account Setup',
@@ -227,6 +230,7 @@ export const businessProfileCopy = {
       errorFallback: 'Could not add your business. Please try again.',
     },
   },
+  catalogueLoadFailed: 'Failed to load catalogue. Please try again.',
 } as const;
 
 export const businessLocationCopy = {
@@ -368,6 +372,7 @@ export const businessCatalogCopy = {
   addAnother: '+ Add Another Item or Menu Bundle',
   continue: 'Continue to First Deal Setup',
   skip: "Skip for now, I'll add items later",
+  catalogueLoadFailed: 'Failed to load catalogue. Please try again.',
 } as const;
 
 /**

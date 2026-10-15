@@ -95,3 +95,42 @@ export function catalogueCategoryToRow(
     icon: 'folder',
   };
 }
+
+/**
+ * Maps a catalogue item to the setup-card shape the wizard's
+ * AddProductsOrServices screen expects. Identity passthrough: the card is a
+ * read-only preview of the owner's own catalogue during setup. The screen
+ * falls back to prototype copy whenever a prop is absent, so storybook use still works.
+ */
+export function catalogueItemToSetupCard(item: BusinessCatalogueItem) {
+  return {
+    id: item.id,
+    name: item.name,
+    price: item.price,
+    shortDescription: item.shortDescription,
+    description: item.description,
+    mainImage: item.mainImage,
+    galleryImages: item.galleryImages,
+    businessId: item.businessId,
+    category: item.category,
+    categoryId: item.categoryId,
+    status: item.status,
+    itemType: item.itemType,
+    sku: item.sku ?? '',
+    discountType: item.discountType,
+    discountValue: item.discountValue,
+    stockQuantity: item.stockQuantity,
+    barcode: item.barcode,
+    brand: item.brand,
+    priceType: item.priceType,
+    priceRangeMin: item.priceRangeMin,
+    priceRangeMax: item.priceRangeMax,
+    duration: item.duration,
+    serviceMode: item.serviceMode,
+    isBookable: item.isBookable,
+    bookingMethod: item.bookingMethod,
+    externalBookingLink: item.externalBookingLink,
+    isSuspended: item.isSuspended,
+    loyaltyPoints: item.loyaltyPoints,
+  };
+}

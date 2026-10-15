@@ -69,7 +69,7 @@ describe('BusinessSetupGate in the real setup navigator', () => {
       const { ref, view } = await openWizard(auth);
 
       expect(ref.getCurrentRoute()?.name).toBe(target);
-      expect(ref.getRootState().routes.map(route => route.name)).not.toContain(
+      expect(ref.getRootState()?.routes.map(route => route.name) ?? []).not.toContain(
         'BusinessSetupGate',
       );
       expect(view.queryByText(businessProfileCopy.accountSetup.gate.checking)).toBeNull();
