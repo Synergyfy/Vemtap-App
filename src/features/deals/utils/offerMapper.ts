@@ -61,8 +61,23 @@ export function toAmount(value: string | number | null | undefined): number | nu
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-export function offerImage(offer: Offer): string {
-  const withImage = offer.items.find(item => item.mainImage);
+/**
+ * The one image a deal is shown with — on Home, the Deals tab and the deal
+ * page alike, so a card never opens onto a different picture.
+ *
+ * 1. The deal's own photo (`mainImage`), which the merchant chose.
+ * 2. Otherwise an item photo, picked from the items in a fixed order. The API
+ *    used to return a deal's items in arbitrary join order, so "the first item
+ *    with a photo" differed between the feed and the details endpoint.
+ * 3. Otherwise the placeholder.
+ */
+export function offerImage(
+  offer: Pick<Offer, 'items'> & { mainImage?: string | null },
+): string {
+  if (offer.mainImage) return offer.mainImage;
+  const withImage = [...offer.items]
+    .filter(item => item.mainImage)
+    .sort((a, b) => a.id.localeCompare(b.id))[0];
   return withImage?.mainImage ?? PLACEHOLDER_IMAGE;
 }
 

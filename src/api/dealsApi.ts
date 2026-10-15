@@ -108,6 +108,9 @@ export const offerSchema = z.object({
   id: z.string(),
   name: z.string(),
   description: z.string().nullable().optional(),
+  /** The deal's own photo — what every card and the deal page should show. */
+  mainImage: z.string().nullable().optional(),
+  galleryImages: z.array(z.string()).nullable().optional(),
   pricingType: z.string().nullable().optional(),
   fixedPrice: money,
   percentageOff: money,

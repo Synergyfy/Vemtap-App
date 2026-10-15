@@ -1,4 +1,4 @@
-import type { Offer } from '@api/dealsApi';
+import type { Offer, PublicOfferDetail } from '@api/dealsApi';
 import {
   formatDistanceLabel,
   haversineMeters,
@@ -10,6 +10,8 @@ import {
   priceLabels,
 } from '@features/deals/utils/offerMapper';
 import { areaCoords } from '@constants/locations';
+import { mapOfferToHomeFeatured } from '@features/home/utils/homeOfferMapper';
+import { mapOfferDetailToResolved } from '@features/dealDetail/utils/liveDealMapper';
 
 function makeOffer(overrides: Partial<Offer> = {}): Offer {
   return {
@@ -245,5 +247,41 @@ describe('mapping', () => {
     const item = mapOfferToListItem(makeOffer({ business: null }), areaCoords('Apo'));
     expect(item.merchant).toBe('Synergyfy');
     expect(item.location).toBe('');
+  });
+});
+
+describe('one image per deal, everywhere', () => {
+  const pasta = { id: 'item-b', name: 'Alfredo', price: 6000, mainImage: 'pasta.jpg' };
+  const wings = { id: 'item-a', name: 'Wings', price: 4000, mainImage: 'wings.jpg' };
+
+  it("uses the deal's own photo when the merchant set one", () => {
+    expect(offerImage(makeOffer({ mainImage: 'deal.jpg', items: [pasta, wings] }))).toBe(
+      'deal.jpg',
+    );
+  });
+
+  it('otherwise picks the same item photo whatever order the items arrive in', () => {
+    // The feed and the details endpoint used to return a deal's items in
+    // different orders, so the card and the deal page showed different photos.
+    const fromFeed = offerImage(makeOffer({ items: [pasta, wings] }));
+    const fromDetail = offerImage(makeOffer({ items: [wings, pasta] }));
+    expect(fromFeed).toBe(fromDetail);
+  });
+
+  it('shows the same image on the Home card and the deal page', () => {
+    const origin = areaCoords('Apo');
+    const card = mapOfferToHomeFeatured(makeOffer({ items: [pasta, wings] }), origin);
+    const page = mapOfferDetailToResolved(
+      {
+        ...makeOffer({ items: [wings, pasta] }),
+        dealPrice: 8000,
+        galleryImages: [],
+        terms: [],
+        likesCount: 0,
+        reviewsCount: 0,
+      } as unknown as PublicOfferDetail,
+      origin,
+    );
+    expect(page.image).toEqual(card.image);
   });
 });
