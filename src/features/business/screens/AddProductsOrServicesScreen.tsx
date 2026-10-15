@@ -118,7 +118,12 @@ export function AddProductsOrServicesScreen({
         </View>
 
         <View className="gap-4">
-          <View className="flex-row gap-3">
+          {/*
+            `w-full` pins the row to the screen's content width; the cards' own
+            `min-w-0 flex-1` then splits it evenly. These two sit side by side, so
+            a long label in one previously widened the row past the edge.
+          */}
+          <View className="w-full flex-row items-stretch gap-3">
             <AddChoiceCard
               icon="shoppingBag"
               title={copy.addProduct}

@@ -496,9 +496,17 @@ export interface AddChoiceCardProps {
   body: string;
   tone: 'brand' | 'tertiary';
   onPress?: () => void;
+  className?: string;
 }
 
-export function AddChoiceCard({ icon, title, body, tone, onPress }: AddChoiceCardProps) {
+export function AddChoiceCard({
+  icon,
+  title,
+  body,
+  tone,
+  onPress,
+  className,
+}: AddChoiceCardProps) {
   const iconTile = tone === 'brand' ? 'bg-surface-tint-blue' : 'bg-tertiary-fixed';
 
   return (
@@ -506,11 +514,14 @@ export function AddChoiceCard({ icon, title, body, tone, onPress }: AddChoiceCar
       accessibilityRole="button"
       accessibilityLabel={title}
       onPress={onPress}
-      className="min-w-0 flex-1 flex-col items-start rounded-card bg-surface-container-lowest p-4 shadow-sm active:scale-[0.98]"
+      className={cn(
+        'min-w-0 flex-1 flex-col items-start rounded-card bg-surface-container-lowest p-4 shadow-sm active:scale-[0.98]',
+        className,
+      )}
     >
       <View
         className={cn(
-          'mb-3 h-10 w-10 items-center justify-center rounded-full',
+          'mb-3 h-10 w-10 shrink-0 items-center justify-center rounded-full',
           iconTile,
         )}
       >
@@ -520,12 +531,28 @@ export function AddChoiceCard({ icon, title, body, tone, onPress }: AddChoiceCar
           color={tone === 'brand' ? colors.primary : colors.tertiary}
         />
       </View>
-      <View className="flex-row items-center gap-1">
-        <VemtapText variant="labelMd" className="font-sans-semibold text-text">
+      {/*
+        `min-w-0 flex-1` lets the title shrink and wrap inside the card instead of
+        sizing to its full text width. Without it this row laid out at its
+        content width and pushed a long label ("Create Product", "Create
+        Service", or any translation) past the card's rounded edge — the card's
+        own `flex-1 min-w-0` only constrains the card, not what sits inside it.
+      */}
+      <View className="w-full min-w-0 flex-row items-center gap-1">
+        <VemtapText
+          variant="labelMd"
+          className="min-w-0 flex-1 font-sans-semibold text-text"
+          numberOfLines={2}
+        >
           {title}
         </VemtapText>
       </View>
-      <VemtapText variant="caption" tone="secondary" className="mt-1" numberOfLines={3}>
+      <VemtapText
+        variant="caption"
+        tone="secondary"
+        className="mt-1 w-full"
+        numberOfLines={3}
+      >
         {body}
       </VemtapText>
       <View className="mt-1">
