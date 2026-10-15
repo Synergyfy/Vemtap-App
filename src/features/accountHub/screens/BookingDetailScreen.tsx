@@ -15,6 +15,7 @@ import { LoadingState } from '@components/shared/LoadingState';
 import { strings } from '@constants/strings';
 import { colors } from '@theme/colors';
 import { useBooking, useCancelBooking } from '@features/booking/hooks/useBookings';
+import { usePullToRefresh } from '@hooks/usePullToRefresh';
 
 const copy = strings.accountScreens.bookingDetail;
 
@@ -115,6 +116,7 @@ export function BookingDetailScreen({
 }: BookingDetailScreenProps) {
   const booking = useBooking(bookingId);
   const cancel = useCancelBooking();
+  const refresh = usePullToRefresh([['bookings']]);
 
   const header = (
     <AccountHeader
@@ -170,7 +172,7 @@ export function BookingDetailScreen({
   return (
     <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-background">
       {header}
-      <PageScroll>
+      <PageScroll refreshControl={refresh.refreshControl}>
         <View className="gap-3 rounded-card bg-surface p-4 shadow-sm">
           <View className="flex-row items-center justify-between gap-2">
             <View className="rounded-full bg-badge-discount-bg px-3 py-1">

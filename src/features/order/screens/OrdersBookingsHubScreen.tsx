@@ -18,6 +18,7 @@ import { orderImages } from '@features/order/orderData';
 import { formatBookingSlot, formatCurrency, formatWhen } from '@utils/formatters';
 import { colors } from '@theme/colors';
 import { navbarBottomShadow } from '@theme/shadows';
+import { usePullToRefresh } from '@hooks/usePullToRefresh';
 
 /**
  * `formatBookingSlot` renders a booking's `YYYY-MM-DD` + `HH:mm` pair as
@@ -97,6 +98,7 @@ export function OrdersBookingsHubScreen({
     mode === 'orders' ? strings.ordersHub.orderFilters : strings.ordersHub.bookingFilters;
 
   const bookings = useMyBookings();
+  const refresh = usePullToRefresh([['customerOrders'], ['bookings']]);
   const bookingList = useMemo(() => bookings.data ?? [], [bookings.data]);
   const bookingFilterCounts = BOOKING_STATUS_GROUPS.map(
     group => bookingList.filter(booking => group.includes(booking.status ?? '')).length,
@@ -185,6 +187,7 @@ export function OrdersBookingsHubScreen({
         className="flex-1"
         contentContainerClassName="gap-4 px-6 pb-6 pt-4"
         showsVerticalScrollIndicator={false}
+        refreshControl={refresh.refreshControl}
       >
         <View className="flex-row rounded-full bg-surface-container p-1 shadow-sm">
           <Pressable

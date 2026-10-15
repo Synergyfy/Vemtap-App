@@ -26,6 +26,7 @@ import { ErrorState } from '@components/shared/ErrorState';
 import { LoadingState } from '@components/shared/LoadingState';
 import { strings } from '@constants/strings';
 import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
+import { usePullToRefresh } from '@hooks/usePullToRefresh';
 import { useLocationStore } from '@store/locationStore';
 import {
   useLoyaltyAnalytics,
@@ -159,6 +160,14 @@ export function CustomerDashboardScreen({
   const activeClaimsCount = useActiveClaimsCount();
   const activeClaims = useMyClaims('ACTIVE');
   const activeClaimsList = (activeClaims.data?.data ?? []).slice(0, 2);
+
+  const refresh = usePullToRefresh([
+    ['loyalty'],
+    ['offers'],
+    ['campaigns'],
+    ['notifications'],
+    ['me'],
+  ]);
   const points = balance.isSuccess ? (balance.data ?? 0) : null;
   const activeDealsMetric = activeClaimsCount.isSuccess
     ? String(activeClaimsCount.data ?? 0)
@@ -239,6 +248,7 @@ export function CustomerDashboardScreen({
         className="flex-1"
         contentContainerClassName="gap-5 pb-5"
         showsVerticalScrollIndicator={false}
+        refreshControl={refresh.refreshControl}
       >
         <View className="relative mx-4 mt-5 h-48 overflow-hidden rounded-card shadow-sm">
           <Image

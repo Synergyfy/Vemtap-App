@@ -18,6 +18,7 @@ import { DealShareSheet } from '@features/dealDetail/components/DealShareSheet';
 import { strings } from '@constants/strings';
 import type { IconName } from '@components/ui/Icon';
 import { useConsumerTargeting } from '@features/home/hooks/useConsumerTargeting';
+import { usePullToRefresh } from '@hooks/usePullToRefresh';
 import { useHomeDeals } from '@features/home/hooks/useHomeDeals';
 import { useNearbyBusinesses } from '@features/home/hooks/useNearbyBusinesses';
 import { useNearbyProducts } from '@features/home/hooks/useNearbyProducts';
@@ -115,6 +116,9 @@ function LiveTrendingCard({
   );
 }
 
+/** Every query Home renders: deals feeds, nearby businesses/products, bell badge. */
+const HOME_REFRESH_KEYS = [['offers'], ['businesses'], ['products'], ['notifications']];
+
 export function HomeScreen({
   onOpenDiscover,
   onOpenDeal,
@@ -191,6 +195,7 @@ export function HomeScreen({
 
   // Same navbar + targeting behaviour as the Deals feed — one owner, so the two
   // bars can never disagree about the active district or radius.
+  const refresh = usePullToRefresh(HOME_REFRESH_KEYS);
   const targeting = useConsumerTargeting({
     onOpenLocationSelect: onOpenLocationSelect ?? (() => onSearchArea?.()),
     onUseCurrentLocation,
@@ -208,6 +213,7 @@ export function HomeScreen({
       <ScrollView
         contentContainerClassName="px-6 pb-8 pt-4 gap-6"
         showsVerticalScrollIndicator={false}
+        refreshControl={refresh.refreshControl}
       >
         <View className="gap-4">
           {/* Same shared filter page the Deals feed opens, so the two feeds

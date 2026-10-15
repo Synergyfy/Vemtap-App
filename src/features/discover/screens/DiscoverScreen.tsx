@@ -26,6 +26,7 @@ import {
   type BusinessProfileSummary,
 } from '@features/discover/data/discoverData';
 import { useConsumerTargeting } from '@features/home/hooks/useConsumerTargeting';
+import { usePullToRefresh } from '@hooks/usePullToRefresh';
 
 cssInterop(View, { className: 'style' });
 cssInterop(Pressable, { className: 'style' });
@@ -46,11 +47,15 @@ export interface DiscoverScreenProps {
   onUseCurrentLocation?: () => void;
 }
 
+/** The business directory and the bell badge. */
+const DISCOVER_REFRESH_KEYS = [['businesses'], ['notifications']];
+
 export function DiscoverScreen(props: DiscoverScreenProps): React.JSX.Element;
 export function DiscoverScreen(): React.JSX.Element;
 export function DiscoverScreen(props: Partial<DiscoverScreenProps> = {}) {
   const display = useCurrentUserDisplay();
   const search = useSearch();
+  const refresh = usePullToRefresh(DISCOVER_REFRESH_KEYS);
   const targeting = useConsumerTargeting({
     onOpenLocationSelect: props.onOpenLocationSelect ?? (() => undefined),
     onUseCurrentLocation: props.onUseCurrentLocation,
@@ -173,6 +178,7 @@ export function DiscoverScreen(props: Partial<DiscoverScreenProps> = {}) {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerClassName="w-full max-w-screen self-center pb-8"
+        refreshControl={refresh.refreshControl}
       >
         <View className="gap-3 bg-surface-canvas px-6 pb-3 pt-2 shadow-sm">
           <View className="flex-row items-center justify-between gap-3">

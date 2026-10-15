@@ -28,6 +28,7 @@ import type {
   SavedRow,
   SavedServiceItem,
 } from '@api/savedApi';
+import { usePullToRefresh } from '@hooks/usePullToRefresh';
 
 cssInterop(Image, { className: 'style' });
 cssInterop(Pressable, { className: 'style' });
@@ -396,6 +397,7 @@ export function SavedHubScreen({
 
   const feed = useSavedFeed(filter === 'ALL' ? undefined : filter);
   const totals = useSavedTotals();
+  const refresh = usePullToRefresh([['me', 'saved']]);
   const toggleDealSave = useToggleDealSave();
   const toggleBusinessSave = useToggleBusinessSave();
   const toggleServiceSave = useToggleServiceSave();
@@ -442,6 +444,7 @@ export function SavedHubScreen({
         className="flex-1"
         contentContainerClassName="gap-4 px-4 pb-8 pt-1"
         showsVerticalScrollIndicator={false}
+        refreshControl={refresh.refreshControl}
       >
         <HubSearchField
           value={query}

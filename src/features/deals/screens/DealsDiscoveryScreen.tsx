@@ -22,6 +22,7 @@ import { useDealReaction } from '@features/deals/hooks/useDealEngagementActions'
 import type { DealListItem, FeaturedDealOfDay } from '@features/deals/data/dealsFeed';
 import { DealCommentsSheet } from '@features/dealDetail/components/DealCommentsSheet';
 import { useConsumerTargeting } from '@features/home/hooks/useConsumerTargeting';
+import { usePullToRefresh } from '@hooks/usePullToRefresh';
 import { useSearch } from '@features/search/hooks/usePublicSearch';
 import { SearchResults } from '@features/search/components/SearchResults';
 
@@ -112,6 +113,9 @@ function FeaturedDealCard({
   );
 }
 
+/** The offers feed (all pages), per-deal engagement, and the bell badge. */
+const DEALS_REFRESH_KEYS = [['offers'], ['notifications']];
+
 export function DealsDiscoveryScreen({
   variant = 'featured',
   onOpenFilters,
@@ -146,6 +150,7 @@ export function DealsDiscoveryScreen({
     return dealsList.find(deal => deal.id === commentsDealId) ?? null;
   }, [commentsDealId, dealsList, featuredDealOfDay]);
   // Same navbar, same targeting behaviour as Home — only the overline differs.
+  const refresh = usePullToRefresh(DEALS_REFRESH_KEYS);
   const targeting = useConsumerTargeting({
     title: isFeaturedTitle(variant),
     onOpenLocationSelect: onOpenLocationSelect ?? (() => undefined),
@@ -167,6 +172,7 @@ export function DealsDiscoveryScreen({
       <ScrollView
         contentContainerClassName="px-6 pb-16 pt-4 gap-4"
         showsVerticalScrollIndicator={false}
+        refreshControl={refresh.refreshControl}
       >
         <HomeSearchBar
           variant={isFeatured ? 'outlined' : 'default'}

@@ -8,6 +8,7 @@ import { Icon, type IconName } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
 import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
+import { usePullToRefresh } from '@hooks/usePullToRefresh';
 import { useLoyaltyAnalytics } from '@features/accountHub/hooks/useLoyalty';
 import { useSavedTotals } from '@features/accountHub/hooks/useSavedHub';
 import { useActiveClaimsCount } from '@features/myDeals/hooks/useMyClaims';
@@ -152,6 +153,12 @@ export function AccountHomeScreen({
   const analytics = useLoyaltyAnalytics();
   const savedTotals = useSavedTotals();
   const activeClaims = useActiveClaimsCount();
+  const refresh = usePullToRefresh([
+    ['loyalty'],
+    ['me'],
+    ['me', 'saved'],
+    ['customerOrders'],
+  ]);
 
   // Same source as the dashboard's "Saved Total": the customer's net savings
   // across all businesses. `—` until the query settles, so the tile can never
@@ -242,6 +249,7 @@ export function AccountHomeScreen({
         className="flex-1"
         contentContainerClassName="gap-4 px-4 pb-8 pt-3"
         showsVerticalScrollIndicator={false}
+        refreshControl={refresh.refreshControl}
       >
         <View className="gap-4 rounded-card border border-border bg-surface p-4 shadow-md">
           <View className="flex-row items-center gap-3">

@@ -23,6 +23,7 @@ import {
   useMarkNotificationRead,
   useMarkAllNotificationsRead,
 } from '@features/accountHub/hooks/useNotifications';
+import { usePullToRefresh } from '@hooks/usePullToRefresh';
 import { strings } from '@constants/strings';
 import { formatWhen } from '@utils/formatters';
 import { colors } from '@theme/colors';
@@ -116,11 +117,7 @@ function toEntry(item: {
             {stat.label}
           </VemtapText>
         ) : null}
-        <VemtapText
-          variant="headingSm"
-          className="font-sans-bold"
-          numberOfLines={1}
-        >
+        <VemtapText variant="headingSm" className="font-sans-bold" numberOfLines={1}>
           {stat.value}
         </VemtapText>
         {stat.trend ? (
@@ -190,6 +187,7 @@ export function NotificationsCenterScreen({
   onNotificationAction,
 }: NotificationsCenterScreenProps) {
   const notifications = useNotifications();
+  const refresh = usePullToRefresh([['notifications']]);
   const markReadMutation = useMarkNotificationRead();
   const markAllReadMutation = useMarkAllNotificationsRead();
 
@@ -267,6 +265,7 @@ export function NotificationsCenterScreen({
           className="flex-1"
           contentContainerClassName="gap-5 px-4 pb-8 pt-3"
           showsVerticalScrollIndicator={false}
+          refreshControl={refresh.refreshControl}
         >
           <View className="flex-row items-center justify-between gap-2">
             <View className="min-w-0 flex-1 flex-row items-center gap-2">

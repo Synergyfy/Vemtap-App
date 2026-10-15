@@ -1,5 +1,11 @@
 import React from 'react';
-import { Pressable, ScrollView, TextInput, View } from 'react-native';
+import {
+  Pressable,
+  ScrollView,
+  TextInput,
+  View,
+  type RefreshControlProps,
+} from 'react-native';
 import { cssInterop } from 'nativewind';
 import { Button } from '@components/ui/Button';
 import { Avatar } from '@components/ui/Avatar';
@@ -337,12 +343,19 @@ export function ActivityTimelineRow({
   );
 }
 
-export function PageScroll({ children }: { children: React.ReactNode }) {
+export interface PageScrollProps {
+  children: React.ReactNode;
+  /** Pull-to-refresh control; omit to disable. */
+  refreshControl?: React.ReactElement<RefreshControlProps>;
+}
+
+export function PageScroll({ children, refreshControl }: PageScrollProps) {
   return (
     <ScrollView
       className="flex-1"
       contentContainerClassName="gap-4 px-4 pb-8 pt-4"
       showsVerticalScrollIndicator={false}
+      refreshControl={refreshControl}
     >
       {children}
     </ScrollView>
