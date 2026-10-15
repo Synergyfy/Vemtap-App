@@ -69,3 +69,34 @@ export const nullableNumber = (fallback = 0) =>
     .union([z.number(), z.null()])
     .optional()
     .transform(value => value ?? fallback);
+
+/**
+ * A Postgres `decimal`/`numeric` column. `pg` returns these as strings
+ * ("8000.00"), so unless the backend entity attaches its `numericTransformer`
+ * the API sends a string where the schema expects a number — and one string
+ * price used to fail the whole response (the Business hub's
+ * `GET /catalogue/offers/admin`). Both shapes are accepted and the parsed value
+ * is always a number.
+ *
+ * Deliberately not `z.coerce.number()`: that turns `null` and `''` into `0`,
+ * which would show a free deal instead of a missing price.
+ */
+const numericString = z
+  .string()
+  .trim()
+  .refine(
+    value => value !== '' && Number.isFinite(Number(value)),
+    'Expected a numeric string',
+  )
+  .transform(Number);
+
+/** A required decimal column; number or numeric string in, number out. */
+export const decimal = () => z.union([z.number(), numericString]);
+
+/**
+ * A nullable decimal column: number or numeric string in, number out; `null`
+ * stays `null` (never `0`) and an absent key stays absent, so the parsed shape
+ * matches a plain `z.number().nullish()`.
+ */
+export const nullableDecimal = () =>
+  z.union([z.number(), numericString, z.null()]).optional();

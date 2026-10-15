@@ -1,6 +1,11 @@
 import { z } from 'zod';
 import { request, requestValidated } from '@api/client';
-import { nullableArray, nullableFlag, nullableText } from '@api/schemaHelpers';
+import {
+  nullableArray,
+  nullableDecimal,
+  nullableFlag,
+  nullableText,
+} from '@api/schemaHelpers';
 import { profileBranchSchema } from '@api/businessProfileApi';
 import type { ApiRequestOptions } from '@app-types/api';
 
@@ -122,7 +127,7 @@ export type ActiveSubscription = z.infer<typeof activeSubscriptionSchema>;
 
 /** Merchant rating summary for the Business hub stat tile. */
 export const reviewsSummarySchema = z.looseObject({
-  averageRating: z.number().nullable().optional(),
+  averageRating: nullableDecimal(),
   totalReviews: z
     .number()
     .nullish()

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { requestValidated, createIdempotencyKey } from '@api/client';
-import { nullableText } from '@api/schemaHelpers';
+import { decimal, nullableText } from '@api/schemaHelpers';
 import type { ApiRequestOptions } from '@app-types/api';
 
 /**
@@ -80,8 +80,8 @@ export const myClaimOfferSchema = z.object({
   id: z.string(),
   name: z.string(),
   mainImage: z.string().nullable().optional(),
-  calculatedPrice: z.number(),
-  originalPrice: z.number(),
+  calculatedPrice: decimal(),
+  originalPrice: decimal(),
   discountPercent: z.number(),
   pricingType: z.string().nullable().optional(),
   discountValue: money,

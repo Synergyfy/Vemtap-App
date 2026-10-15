@@ -65,11 +65,19 @@ test('parses a claim whose discountValue is null or absent', () => {
   expect(absent.success).toBe(true);
 });
 
-test('still rejects a string where the API already coerces the number', () => {
+test('reads a string price as a number instead of failing the page', () => {
+  // The claims endpoint coerces this today, but an untransformed decimal column
+  // is how GET /catalogue/offers/admin broke the Business hub; a regression
+  // must not empty My Deals. The parsed value is still always a number.
   const parsed = myClaimsPageSchema.safeParse(page({ calculatedPrice: '8500.00' }));
 
-  expect(parsed.success).toBe(false);
-  if (parsed.success) return;
+  expect(parsed.success).toBe(true);
+  if (!parsed.success) return;
+  expect(parsed.data.data[0].offer.calculatedPrice).toBe(8500);
+});
 
-  expect(parsed.error.flatten().fieldErrors).toHaveProperty('data');
+test('still rejects a price that is not a number at all', () => {
+  const parsed = myClaimsPageSchema.safeParse(page({ calculatedPrice: 'free' }));
+
+  expect(parsed.success).toBe(false);
 });

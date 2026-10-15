@@ -1,6 +1,11 @@
 import { z } from 'zod';
 import { requestValidated } from '@api/client';
-import { nullableText, nullableTimestamp, nullableNumber } from '@api/schemaHelpers';
+import {
+  decimal,
+  nullableText,
+  nullableTimestamp,
+  nullableNumber,
+} from '@api/schemaHelpers';
 import type { ApiRequestOptions } from '@app-types/api';
 
 /**
@@ -19,7 +24,7 @@ export const myGiftOfferSchema = z.object({
   id: z.string(),
   name: z.string(),
   mainImage: nullableText().nullable().optional(),
-  calculatedPrice: z.number(),
+  calculatedPrice: decimal(),
   /** Sum of the offer's item prices, `null` when the offer has none. */
   originalPrice: nullableNumber().nullable(),
 });

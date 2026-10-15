@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { nullableFlag, nullableNumber } from '@api/schemaHelpers';
+import { nullableDecimal, nullableFlag, nullableNumber } from '@api/schemaHelpers';
 import { requestValidated } from '@api/client';
 import { ApiError } from '@api/ApiError';
 import { isPlanError } from '@api/planErrors';
@@ -212,9 +212,9 @@ export const businessOfferAdminSchema = z.looseObject({
   status: z.string().nullish(),
   branchId: z.string().nullish(),
   pricingType: z.string().nullish(),
-  discountValue: z.number().nullish(),
-  fixedPrice: z.number().nullish(),
-  calculatedPrice: z.number().nullish(),
+  discountValue: nullableDecimal(),
+  fixedPrice: nullableDecimal(),
+  calculatedPrice: nullableDecimal(),
   quantity: z.number().nullish(),
   itemIds: z.array(z.string()).nullish(),
   startDate: z.string().nullish(),

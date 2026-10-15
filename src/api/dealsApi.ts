@@ -1,6 +1,11 @@
 import { z } from 'zod';
 import { request, requestValidated } from '@api/client';
-import { nullableArray, nullableFlag, nullableNumber } from '@api/schemaHelpers';
+import {
+  nullableArray,
+  nullableDecimal,
+  nullableFlag,
+  nullableNumber,
+} from '@api/schemaHelpers';
 import type { ApiRequestOptions } from '@app-types/api';
 
 /**
@@ -206,7 +211,7 @@ export const publicOfferDetailSchema = z.object({
   likesCount: nullableNumber(),
   dislikesCount: nullableNumber(),
   reviewsCount: nullableNumber(),
-  averageRating: z.number().nullable().optional(),
+  averageRating: nullableDecimal(),
   views: nullableNumber(),
   visits: nullableNumber(),
 
@@ -233,7 +238,7 @@ export const dealEngagementSchema = z.object({
   likesCount: nullableNumber(),
   dislikesCount: nullableNumber(),
   reviewsCount: nullableNumber(),
-  averageRating: z.number().nullable().optional(),
+  averageRating: nullableDecimal(),
 });
 export type DealEngagement = z.infer<typeof dealEngagementSchema>;
 
