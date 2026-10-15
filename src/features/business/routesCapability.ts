@@ -51,6 +51,12 @@ export const BUSINESS_ROUTE_CAPABILITIES: BusinessRouteCapability[] = [
     note: 'Onboarding splash. Local only by nature.',
   },
   {
+    routes: ['BusinessSetupGate'],
+    capability: 'no-endpoint',
+    endpoints: [],
+    note: 'Entry gate that routes to credentials or the wizard.',
+  },
+  {
     routes: [
       'BusinessAccountCredentials',
       'BusinessAccountOtp',

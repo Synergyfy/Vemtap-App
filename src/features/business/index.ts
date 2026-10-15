@@ -129,6 +129,7 @@ export * from './screens/AddServiceAvailabilityRulesScreen';
 export * from './screens/AddServiceBasicsMediaScreen';
 export * from './screens/AddServiceDurationPricingScreen';
 export * from './screens/BusinessIntroductionScreen';
+export * from './screens/BusinessSetupGateScreen';
 export * from './screens/BusinessLocationsMultiBranchScreen';
 export * from './screens/BusinessPlanTrialOverviewScreen';
 export * from './screens/BusinessAccountCredentialsScreen';

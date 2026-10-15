@@ -21,6 +21,7 @@ import {
   BusinessProfileBrandingScreen,
   BusinessProfileContactChannelsScreen,
   BusinessRegistrationScreen,
+  BusinessSetupGateScreen,
   BusinessVerificationStatusCenterScreen,
   CacVerificationScreen,
   CacVerificationSuccessScreen,
@@ -53,6 +54,12 @@ import {
   YourVemtapBusinessQrIsReadyScreen,
 } from '@features/business';
 import { useSubmitOwnerRegistration } from '@features/business/hooks/useSubmitOwnerRegistration';
+import { useBusinessCatalogue } from '@features/business/hooks/useBusinessCatalogue';
+import { catalogueItemToSetupCard } from '@features/business/utils/catalogueHubRowMappers';
+import {
+  businessCatalogCopy as copy,
+  businessProfileCopy,
+} from '@features/business/businessCopy';
 import { useUpgradeOwnerRegistration } from '@features/business/hooks/useUpgradeOwnerRegistration';
 import { ForgotPinScreen } from '@features/auth/screens/ForgotPinScreen';
 import { TypeDensityProvider } from '@theme/TypeDensityProvider';
@@ -71,7 +78,6 @@ import { DealItemPickerSheet } from '@features/business/components/DealItemPicke
 import { businessDashboardApi } from '@api/businessDashboardApi';
 import { showError, showSuccess } from '@components/shared';
 import { mapLocationDraft } from '@features/business/utils/locationDraftMapper';
-import { businessProfileCopy } from '@features/business/businessCopy';
 import { logger } from '@utils/logger';
 import {
   useRequestManualReview,
@@ -188,8 +194,41 @@ export function useBusinessNetworkEntry() {
   return () => navigation.navigate('BusinessTabs', businessNetworkEntry);
 }
 
+function BusinessSetupGateRoute() {
+  const navigation = useFlowNavigation();
+  return <BusinessSetupGateScreen navigation={navigation} />;
+}
+
+/**
+ * Finishing account setup from the gate starts the wizard clean: the
+ * credentials / OTP screens are behind the owner now, so back must not return
+ * to them.
+ */
+function useFinishAccountStep(fromGate: boolean) {
+  const navigation = useFlowNavigation();
+  return useCallback(() => {
+    if (fromGate) {
+      navigation.reset({ index: 0, routes: [{ name: 'BusinessIntroduction' }] });
+    } else {
+      navigation.navigate('BusinessLocation');
+    }
+  }, [fromGate, navigation]);
+}
+
 function BusinessIntroductionRoute() {
   const navigation = useFlowNavigation();
+  const isAuthenticated = useAuthStore(selectIsAuthenticated);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigation.replace('BusinessSetupGate');
+    }
+  }, [isAuthenticated, navigation]);
+
+  if (!isAuthenticated) {
+    return null;
+  }
+
   return (
     <BusinessIntroductionScreen
       onBack={navigation.goBack}
@@ -342,6 +381,9 @@ async function syncOwnerDraftToBusiness(draft: {
  */
 function BusinessAccountCredentialsRoute() {
   const navigation = useFlowNavigation();
+  const route =
+    useRoute<RouteProp<BusinessSetupStackParamList, 'BusinessAccountCredentials'>>();
+  const fromGate = route.params?.fromGate === true;
   const isAuthenticated = useAuthStore(selectIsAuthenticated);
   const user = useAuthStore(state => state.user);
   const contact = useBusinessOnboardingStore(state => state.profile.contact);
@@ -351,8 +393,6 @@ function BusinessAccountCredentialsRoute() {
 
   const role = user?.role?.toLowerCase();
   const ownerRegistered = role === 'owner' && Boolean(user?.businessId);
-  // An owner without a business (e.g. registered elsewhere) already has the
-  // credentials this step would collect; sync the draft and continue.
   const ownerWithoutBusiness = isAuthenticated && role === 'owner' && !user?.businessId;
   const skipCredentials = ownerRegistered || ownerWithoutBusiness;
 
@@ -360,8 +400,8 @@ function BusinessAccountCredentialsRoute() {
     String(user?.authProvider ?? '').toUpperCase() === 'GOOGLE' ||
     Boolean(user?.googleId);
 
-  // Re-entering after registering (e.g. back from Location) — nothing to
-  // collect, so skip straight back to where the wizard continues.
+  const finish = useFinishAccountStep(fromGate);
+
   useEffect(() => {
     if (!skipCredentials) return;
 
@@ -379,14 +419,14 @@ function BusinessAccountCredentialsRoute() {
       }
 
       if (mounted) {
-        navigation.navigate('BusinessLocation');
+        finish();
       }
     })();
 
     return () => {
       mounted = false;
     };
-  }, [ownerWithoutBusiness, skipCredentials, navigation]);
+  }, [ownerWithoutBusiness, skipCredentials, finish]);
 
   if (skipCredentials) {
     return null;
@@ -402,12 +442,7 @@ function BusinessAccountCredentialsRoute() {
         loading={upgrade.isPending}
         error={upgrade.error?.message ?? null}
         onForgotPassword={() => navigation.navigate('BusinessAccountResetPin')}
-        onContinue={({ password }) =>
-          upgrade.mutate(
-            { password },
-            { onSuccess: () => navigation.navigate('BusinessLocation') },
-          )
-        }
+        onContinue={({ password }) => upgrade.mutate({ password }, { onSuccess: finish })}
       />
     );
   }
@@ -419,7 +454,7 @@ function BusinessAccountCredentialsRoute() {
       onBack={navigation.goBack}
       onContinue={({ email, password }) => {
         setCredentials({ email, password });
-        navigation.navigate('BusinessAccountOtp');
+        navigation.navigate('BusinessAccountOtp', { fromGate });
       }}
     />
   );
@@ -428,20 +463,30 @@ function BusinessAccountCredentialsRoute() {
 /** Signed-in PIN/password reset, reached from the confirm step's forgot link. */
 function BusinessAccountResetPinRoute() {
   const navigation = useFlowNavigation();
+  const route =
+    useRoute<RouteProp<BusinessSetupStackParamList, 'BusinessAccountResetPin'>>();
   const user = useAuthStore(state => state.user);
   return (
     <ForgotPinScreen
       initialEmail={user?.email}
       doneLabel={businessProfileCopy.accountSetup.confirm.resetDone}
-      onDone={() => navigation.navigate('BusinessAccountCredentials')}
+      onDone={() =>
+        navigation.navigate('BusinessAccountCredentials', {
+          fromGate: route.params?.fromGate,
+        })
+      }
     />
   );
 }
 
 function BusinessAccountOtpRoute() {
   const navigation = useFlowNavigation();
+  const route = useRoute<RouteProp<BusinessSetupStackParamList, 'BusinessAccountOtp'>>();
+  const fromGate = route.params?.fromGate === true;
   const credentials = useBusinessOnboardingStore(state => state.credentials);
   const submit = useSubmitOwnerRegistration();
+
+  const finish = useFinishAccountStep(fromGate);
 
   const handleVerified = useCallback(async () => {
     if (!credentials.email || !credentials.password) {
@@ -453,8 +498,8 @@ function BusinessAccountOtpRoute() {
       email: credentials.email,
       password: credentials.password,
     });
-    navigation.navigate('BusinessLocation');
-  }, [credentials.email, credentials.password, navigation, submit]);
+    finish();
+  }, [credentials.email, credentials.password, finish, submit]);
 
   return (
     <BusinessAccountOtpScreen
@@ -527,8 +572,15 @@ function AddBranchLocationRoute() {
 
 function AddProductsOrServicesRoute() {
   const navigation = useFlowNavigation();
+  // The screen used to render three hard-coded sample items here. It now shows
+  // the owner's own catalogue, so setup reflects what they actually offer.
+  const catalogue = useBusinessCatalogue();
+  const items = (catalogue.data?.data ?? []).map(catalogueItemToSetupCard);
   return (
     <AddProductsOrServicesScreen
+      items={items}
+      isLoading={catalogue.isLoading}
+      error={catalogue.isError ? copy.catalogueLoadFailed : undefined}
       onBack={navigation.goBack}
       onContinue={() => navigation.navigate('BusinessQrReady')}
       onSkip={() => navigation.navigate('BusinessQrReady')}
@@ -1337,7 +1389,7 @@ function verifiedPillars(
   status: VerificationStatus | undefined,
   business: MyBusiness | undefined,
 ): YouReVerifiedPillar[] {
-  const copy = youReVerifiedCopy;
+  const verifiedCopy = youReVerifiedCopy;
   const identity = status?.identity ?? null;
   const check = status?.business ?? null;
   const branches = business?.branches ?? [];
@@ -1345,35 +1397,39 @@ function verifiedPillars(
   return [
     {
       icon: 'badge',
-      title: copy.identityTitle,
-      tag: copy.identityTag,
-      body: operator ? `${copy.operatorLead}${operator}` : idTypeLabel(identity?.idType),
+      title: verifiedCopy.identityTitle,
+      tag: verifiedCopy.identityTag,
+      body: operator
+        ? `${verifiedCopy.operatorLead}${operator}`
+        : idTypeLabel(identity?.idType),
       done: identity?.status === 'verified',
     },
     {
       icon: 'domain',
-      title: copy.businessTitle,
-      tag: check?.idType === 'cac' ? copy.cacTag : copy.reviewedTag,
+      title: verifiedCopy.businessTitle,
+      tag: check?.idType === 'cac' ? verifiedCopy.cacTag : verifiedCopy.reviewedTag,
       body:
         check?.idType === 'cac' && check.maskedId
-          ? `${copy.registryLead}${check.maskedId}`
-          : copy.reviewedBody,
+          ? `${verifiedCopy.registryLead}${check.maskedId}`
+          : verifiedCopy.reviewedBody,
       done: status?.status === 'verified',
     },
     {
       icon: 'storefront',
-      title: copy.locationTitle,
-      tag: branches.length ? copy.locationTag : copy.locationMissingTag,
+      title: verifiedCopy.locationTitle,
+      tag: branches.length ? verifiedCopy.locationTag : verifiedCopy.locationMissingTag,
       body: branches.length
-        ? `${branches.length}${branches.length === 1 ? copy.branchesOne : copy.branchesMany}`
+        ? `${branches.length}${
+            branches.length === 1 ? verifiedCopy.branchesOne : verifiedCopy.branchesMany
+          }`
         : '',
       done: branches.length > 0,
     },
     {
       icon: 'palette',
-      title: copy.profileTitle,
-      tag: copy.profileTag,
-      body: copy.profileBody,
+      title: verifiedCopy.profileTitle,
+      tag: verifiedCopy.profileTag,
+      body: verifiedCopy.profileBody,
       done: Boolean(business?.logoUrl),
     },
   ];
@@ -1676,6 +1732,7 @@ export function BusinessSetupNavigator() {
   return (
     <TypeDensityProvider density="compact">
       <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="BusinessSetupGate" component={BusinessSetupGateRoute} />
         <Stack.Screen name="BusinessIntroduction" component={BusinessIntroductionRoute} />
         <Stack.Screen
           name="BusinessProfileBasicInfo"

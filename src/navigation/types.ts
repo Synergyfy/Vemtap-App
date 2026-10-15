@@ -270,13 +270,19 @@ export type BusinessTabRootParamList = {
 export type BusinessTabParamList = BusinessTabRootParamList & BusinessStackParamList;
 
 export type BusinessSetupStackParamList = {
+  BusinessSetupGate: undefined;
   BusinessIntroduction: undefined;
   BusinessProfileBasicInfo: undefined;
   BusinessProfileBranding: undefined;
   BusinessProfileContactChannels: undefined;
-  BusinessAccountCredentials: undefined;
-  BusinessAccountOtp: undefined;
-  BusinessAccountResetPin: undefined;
+  /**
+   * Create vs confirm is chosen from the session, not a param. `fromGate`
+   * means the owner arrived from the wizard's entry gate, so success resets
+   * to BusinessIntroduction instead of continuing to BusinessLocation.
+   */
+  BusinessAccountCredentials: { fromGate?: boolean } | undefined;
+  BusinessAccountOtp: { fromGate?: boolean } | undefined;
+  BusinessAccountResetPin: { fromGate?: boolean } | undefined;
   BusinessLocation: undefined;
   BusinessLocations: undefined;
   AddBranchLocation: undefined;
