@@ -100,7 +100,7 @@ export type BusinessStackParamList = {
   AddServiceAvailabilityRules: undefined;
   ReviewServiceSummary: undefined;
   LocationsBranches: undefined;
-  WuseBranchDetails: undefined;
+  WuseBranchDetails: { branchId?: string } | undefined;
   CustomerCrmDirectory: undefined;
   CustomerProfileDossier: undefined;
   LoyaltyProgramme: undefined;

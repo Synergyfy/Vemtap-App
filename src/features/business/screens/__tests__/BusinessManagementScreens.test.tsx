@@ -21,6 +21,7 @@ import { LoyaltyProgrammeConfigurationScreen } from '@features/business/screens/
 import { LoyaltyRewardsRulesScreen } from '@features/business/screens/LoyaltyRewardsRulesScreen';
 import { InviteStaffPermissionsScreen } from '@features/business/screens/InviteStaffPermissionsScreen';
 import { StaffTeamAccessDirectoryScreen } from '@features/business/screens/StaffTeamAccessDirectoryScreen';
+import type { Branch } from '@api/branchApi';
 
 afterEach(cleanup);
 
@@ -258,6 +259,34 @@ describe('add product basics and media', () => {
 });
 
 describe('locations and branches', () => {
+  /**
+   * `Branch` is a *parsed* type, so every nullable column is a required key
+   * holding a fallback — a partial literal is not assignable. Tests say only
+   * what they care about; this fills the rest with the same "unset" shape the
+   * schema produces.
+   */
+  const makeBranch = (overrides: Partial<Branch> = {}): Branch => ({
+    id: 'b-1',
+    name: 'Branch',
+    uniqueCode: '',
+    username: '',
+    address: '',
+    state: '',
+    city: '',
+    latitude: undefined,
+    longitude: undefined,
+    phone: '',
+    isActive: true,
+    isMainBranch: false,
+    logoUrl: '',
+    businessId: '',
+    website: '',
+    whatsappNumber: '',
+    officialEmail: '',
+    businessHours: null,
+    ...overrides,
+  });
+
   it('lists branches with their trading status and reach actions', async () => {
     const copy = strings.locationsBranches;
     const onViewDetails = jest.fn();
@@ -273,18 +302,90 @@ describe('locations and branches', () => {
     await waitFor(() => expect(onViewDetails).toHaveBeenCalledWith('wuse'));
   });
 
-  it('wuse branch detail renders inventory, dossier and the deactivation modal', async () => {
+  it('branch detail renders the branch it was given, not a fixture', async () => {
     const copy = strings.wuseBranchDetails;
-    const view = await render(<WuseBranchDetailsScreen />);
+    const view = await render(
+      <WuseBranchDetailsScreen
+        branch={makeBranch({
+          name: 'Victoria Island Branch',
+          address: '8B Adeola Odeku Street, Lagos',
+          state: 'Lagos',
+          city: 'Victoria Island',
+          phone: '+234 812 443 0912',
+          businessHours: {
+            monday: { open: '09:00', close: '22:00', closed: false },
+            tuesday: { open: '09:00', close: '22:00', closed: false },
+          },
+        })}
+      />,
+    );
 
-    expect(view.getByText(copy.inventoryTitle)).toBeTruthy();
-    copy.stats.forEach(stat => expect(view.getByText(stat.value)).toBeTruthy());
-    copy.dossier.forEach(row => expect(view.getByText(row.label)).toBeTruthy());
+    expect(view.getByText('Victoria Island Branch')).toBeTruthy();
+    expect(view.getByText('8B Adeola Odeku Street, Lagos')).toBeTruthy();
+    // Shown twice on purpose: once as the tappable contact row, once in the dossier.
+    expect(view.getAllByText('+234 812 443 0912').length).toBe(2);
+    expect(view.getByText(copy.dossierLabels.contact)).toBeTruthy();
+
+    // The old fixtures belonged to a different branch entirely — none of them
+    // may survive onto a screen that is now driven by real data.
+    expect(view.queryByText('Wuse Branch')).toBeNull();
+    expect(view.queryByText('John Peter')).toBeNull();
+    expect(view.queryByText('9.0765° N, 7.4735° E • Wuse Market Cluster')).toBeNull();
+  });
+
+  it('branch detail shows only the dossier rows the branch actually has', async () => {
+    const copy = strings.wuseBranchDetails;
+    const view = await render(
+      <WuseBranchDetailsScreen
+        branch={makeBranch({ name: 'Garki Branch', isActive: false })}
+      />,
+    );
+
+    // No phone, no location pair — so neither row may be rendered rather than
+    // rendered with placeholder text.
+    expect(view.queryByText(copy.dossierLabels.contact)).toBeNull();
+    expect(view.queryByText(copy.dossierLabels.location)).toBeNull();
+    expect(view.getByText(copy.dossierLabels.hours)).toBeTruthy();
+    expect(view.getByText(copy.hoursUnavailable)).toBeTruthy();
+    expect(view.getByText(copy.noCoordinates)).toBeTruthy();
+  });
+
+  it('branch detail offers deactivation only while the branch is active', async () => {
+    const copy = strings.wuseBranchDetails;
+    const view = await render(
+      <WuseBranchDetailsScreen branch={makeBranch({ name: 'Maitama' })} />,
+    );
+
+    expect(view.getByLabelText(copy.deactivate)).toBeTruthy();
+    expect(view.queryByLabelText(copy.reactivate)).toBeNull();
+  });
+
+  it('branch detail offers reactivation only while the branch is paused', async () => {
+    const copy = strings.wuseBranchDetails;
+    const view = await render(
+      <WuseBranchDetailsScreen
+        branch={makeBranch({ name: 'Maitama', isActive: false })}
+      />,
+    );
+
+    expect(view.getByLabelText(copy.reactivate)).toBeTruthy();
+    expect(view.queryByLabelText(copy.deactivate)).toBeNull();
+  });
+
+  it('branch detail deactivation confirm fires onConfirmDeactivate', async () => {
+    const copy = strings.wuseBranchDetails;
+    const onConfirmDeactivate = jest.fn();
+    const view = await render(
+      <WuseBranchDetailsScreen
+        branch={makeBranch({ name: 'Wuse' })}
+        onConfirmDeactivate={onConfirmDeactivate}
+      />,
+    );
 
     fireEvent.press(view.getByLabelText(copy.deactivate));
     await waitFor(() => expect(view.getByText(copy.confirmDeactivate)).toBeTruthy());
-    fireEvent.press(view.getByText(copy.keepActive));
-    await waitFor(() => expect(view.queryByText(copy.confirmDeactivate)).toBeNull());
+    fireEvent.press(view.getByText(copy.confirmDeactivate));
+    await waitFor(() => expect(onConfirmDeactivate).toHaveBeenCalledTimes(1));
   });
 });
 

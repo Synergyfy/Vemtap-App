@@ -30,7 +30,7 @@ import {
   bubbleStatusOf,
 } from '@features/merchantChat/components/ConversationBubble';
 import { ChatComposer } from '@features/merchantChat/components/ChatComposer';
-import { useKeyboardInset } from '@features/merchantChat/hooks/useKeyboardInset';
+import { useKeyboardInset } from '@hooks/useKeyboardInset';
 import { presenceCaption, usePresence } from '@features/merchantChat/hooks/usePresence';
 import {
   dayLabel,

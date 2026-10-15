@@ -12,10 +12,7 @@ import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { colors } from '@theme/colors';
 import { navbarBottomShadow } from '@theme/shadows';
-import {
-  composerLift,
-  composerPaddingBottom,
-} from '@features/merchantChat/hooks/useKeyboardInset';
+import { composerLift, composerPaddingBottom } from '@hooks/useKeyboardInset';
 
 export interface ChatComposerProps {
   value: string;
@@ -142,22 +139,22 @@ export function ChatComposer({
             </VemtapText>
           ) : null}
           <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          contentContainerClassName="gap-2 py-1"
-        >
-          {quickReplies.map(reply => (
-            <Pressable
-              key={reply}
-              accessibilityRole="button"
-              accessibilityLabel={reply}
-              onPress={() => onQuickReply(reply)}
-              className="shrink-0 rounded-full bg-surface px-3 py-2 shadow-sm active:bg-surface-tint"
-            >
-              <VemtapText variant="labelSm">{reply}</VemtapText>
-            </Pressable>
-          ))}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            contentContainerClassName="gap-2 py-1"
+          >
+            {quickReplies.map(reply => (
+              <Pressable
+                key={reply}
+                accessibilityRole="button"
+                accessibilityLabel={reply}
+                onPress={() => onQuickReply(reply)}
+                className="shrink-0 rounded-full bg-surface px-3 py-2 shadow-sm active:bg-surface-tint"
+              >
+                <VemtapText variant="labelSm">{reply}</VemtapText>
+              </Pressable>
+            ))}
           </ScrollView>
         </>
       ) : null}

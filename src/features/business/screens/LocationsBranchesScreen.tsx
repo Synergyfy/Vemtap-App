@@ -7,6 +7,7 @@ import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
 import { colors } from '@theme/colors';
 import {
+  BusinessInlineAction,
   BusinessScreenLayout,
   BusinessStatusPill,
 } from '@features/business/components/BusinessPrimitives';
@@ -15,12 +16,61 @@ import {
   BusinessScopePicker,
 } from '@features/business/components/BusinessOpsPrimitives';
 import { SetupCallout } from '@features/business/components/BusinessSetupPrimitives';
+import type { ProfileBranch } from '@api/businessProfileApi';
 
 cssInterop(Pressable, { className: 'style' });
 
 const copy = strings.locationsBranches;
 
-const branchIds = ['wuse', 'vi', 'garki'] as const;
+/**
+ * One branch card. `products`/`services`/`deals` are optional because
+ * `profileBranchSchema` carries no per-branch catalogue counts — the pills are
+ * dropped rather than filled with design numbers when the API is silent.
+ */
+export interface LocationBranchRow {
+  id: string;
+  name: string;
+  tag: string;
+  cluster: string;
+  address: string;
+  status: string;
+  active: boolean;
+  phone?: string;
+  editable?: boolean;
+  notice?: string;
+  products?: string;
+  services?: string;
+  deals?: string;
+}
+
+/**
+ * `GET /businesses/my-business` → `branches[]` to the card shape.
+ *
+ * `isActive` is `nullish` on the wire, so only an explicit `false` means
+ * paused; a branch that simply omits the field is still trading.
+ */
+export function branchToLocationRow(branch: ProfileBranch): LocationBranchRow {
+  const active = branch.isActive !== false;
+  const cluster = [branch.city, branch.state].filter(Boolean).join(' • ');
+  return {
+    id: branch.id,
+    name: branch.name,
+    tag:
+      branch.isMainBranch === true ? 'Flagship Branch' : (branch.uniqueCode ?? 'Branch'),
+    cluster,
+    address: branch.address ?? 'Address not set',
+    status: active ? 'Active' : 'Inactive / Paused',
+    active,
+    phone: branch.phone ?? undefined,
+    editable: true,
+    // Only paused branches need the explanation; an active one has no notice.
+    ...(active
+      ? {}
+      : {
+          notice: 'This location is paused. Customers cannot discover or order from it.',
+        }),
+  };
+}
 
 export interface LocationsBranchesScreenProps {
   onNotifications?: () => void;
@@ -31,6 +81,19 @@ export interface LocationsBranchesScreenProps {
   onMoreBranchOptions?: (branchId: string) => void;
   onCallBranch?: (branchId: string) => void;
   onReactivate?: (branchId: string) => void;
+  /**
+   * Live branches from `GET /businesses/my-business`. Omitted keeps the designed
+   * copy so the standalone/storybook render still works.
+   */
+  branches?: readonly LocationBranchRow[];
+  /**
+   * True once the API has refused a location on plan grounds. Drives a
+   * persistent, actionable callout — a toast alone expires before the merchant
+   * can do anything about it.
+   */
+  planBlocked?: boolean;
+  onOpenPlan?: () => void;
+  onDismissPlanNotice?: () => void;
 }
 
 /**
@@ -46,13 +109,23 @@ export function LocationsBranchesScreen({
   onMoreBranchOptions,
   onCallBranch,
   onReactivate,
+  branches,
+  planBlocked = false,
+  onOpenPlan,
+  onDismissPlanNotice,
 }: LocationsBranchesScreenProps) {
   const [scope, setScope] = useState('wuse');
+  // Live rows win; the designed copy is the fallback so the standalone render
+  // still works. `scope` is re-checked against `rows` because the live ids
+  // replace the prototype's `'wuse' | 'vi' | 'garki'`.
+  const rows = branches?.length ? branches : copy.branches;
+  const firstRow = rows[0];
+  const scopeValue = rows.some(row => row.id === scope) ? scope : (firstRow?.id ?? scope);
 
   return (
     <BusinessScreenLayout
       header={{
-        title: copy.branches[0].name,
+        title: firstRow?.name ?? copy.title,
         eyebrow: copy.eyebrow,
         centerTitle: false,
         titleVariant: 'headingSm',
@@ -84,7 +157,42 @@ export function LocationsBranchesScreen({
         />
       </View>
 
-      <View className="mt-3 flex-row items-center justify-between gap-3 rounded-card bg-surface-container-high p-3 shadow-sm">
+      {/*
+        A plan refusal is permanent, so it outlives the four-second toast and is
+        still here once the sheet closes — otherwise the merchant taps "Add
+        Location" again, gets the same refusal, and has nothing to act on. It
+        sits directly under the heading because that is where the Add button
+        they just pressed lives.
+      */}
+      {planBlocked ? (
+        <SetupCallout
+          className="mt-3"
+          icon="info"
+          tone="tint"
+          iconSurface="circlePrimary"
+          title={copy.planNoticeTitle}
+          body={copy.planNoticeBody}
+          bodyVariant="bodyMd"
+          titleClassName="font-sans-semibold"
+        >
+          <View className="mt-2 flex-row items-center gap-2">
+            <BusinessInlineAction
+              label={copy.planNoticeCta}
+              icon="arrowForward"
+              onPress={onOpenPlan}
+            />
+            <BusinessInlineAction
+              label={copy.dismissPlanNotice}
+              onPress={onDismissPlanNotice}
+            />
+          </View>
+        </SetupCallout>
+      ) : null}
+
+      {/* z-10 sits on this row rather than on the picker: RN orders siblings
+          only, so the flyout's own z-30 could never lift it past the branch
+          cards — this container is their sibling, so this is what wins. */}
+      <View className="z-10 mt-3 flex-row items-center justify-between gap-3 rounded-card bg-surface-container-high p-3 shadow-sm">
         <View className="min-w-0 flex-1 flex-row items-center gap-2.5">
           <View className="h-2.5 w-2.5 shrink-0 rounded-full bg-badge-discount-text" />
           <VemtapText
@@ -97,13 +205,9 @@ export function LocationsBranchesScreen({
           </VemtapText>
           <BusinessScopePicker
             className="flex-1"
-            label={copy.branches[0].name}
-            value={scope}
-            options={[
-              { label: copy.branches[0].name, value: 'wuse' },
-              { label: copy.branches[1].name, value: 'vi' },
-              { label: copy.branches[2].name, value: 'garki' },
-            ]}
+            label={firstRow?.name ?? copy.title}
+            value={scopeValue}
+            options={rows.map(row => ({ label: row.name, value: row.id }))}
             onChange={value => {
               setScope(value);
               onChangeScope?.(value);
@@ -113,7 +217,7 @@ export function LocationsBranchesScreen({
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={copy.switch}
-          onPress={() => onChangeScope?.(scope === 'all' ? 'wuse' : 'all')}
+          onPress={() => onChangeScope?.(scopeValue)}
           className="min-h-8 shrink-0 justify-center rounded-full bg-surface px-2.5 py-1 shadow-sm active:scale-95"
         >
           <VemtapText variant="caption" className="font-sans-medium text-primary">
@@ -123,8 +227,8 @@ export function LocationsBranchesScreen({
       </View>
 
       <View className="mt-3 gap-3">
-        {copy.branches.map((branch, index) => {
-          const id = branchIds[index];
+        {rows.map((branch, index) => {
+          const { id } = branch;
           return (
             <View
               key={branch.id}

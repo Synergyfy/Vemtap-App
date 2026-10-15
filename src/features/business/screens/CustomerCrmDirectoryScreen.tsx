@@ -95,7 +95,7 @@ export function CustomerCrmDirectoryScreen({
         </VemtapText>
       </View>
 
-      <View className="mt-2 flex-row items-center justify-between gap-2">
+      <View className="z-10 mt-2 flex-row items-center justify-between gap-2">
         <BusinessScopePicker
           label={`${strings.locationsBranches.branches[0].name} (482 Customers)`}
           value={scope}

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Dimensions, Keyboard, Platform } from 'react-native';
+import { Dimensions, Keyboard } from 'react-native';
 
 export interface KeyboardInset {
   /**
@@ -29,7 +29,13 @@ const SHRINK_TOLERANCE_PX = 1;
  */
 export const COMPOSER_INNER_PADDING = 12;
 
-export function useKeyboardInset(): KeyboardInset {
+/**
+ * @param enabled Subscribe to keyboard events. Pass `false` for surfaces that
+ *   are mounted but not on screen — a hidden bottom sheet has nothing to lift,
+ *   and subscribing anyway meant every such sheet carried five listeners and
+ *   re-rendered on every keyboard event it could not affect.
+ */
+export function useKeyboardInset(enabled = true): KeyboardInset {
   const [keyboardInset, setKeyboardInset] = useState(0);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   /**
@@ -41,13 +47,20 @@ export function useKeyboardInset(): KeyboardInset {
   const restingHeight = useRef<number>(Dimensions.get('window').height);
 
   useEffect(() => {
-    const handle = (event: { endCoordinates?: { height?: number } }) => {
-      const keyboardHeight = event.endCoordinates?.height ?? 0;
+    if (!enabled) {
+      return;
+    }
 
+    const reset = () => {
+      restingHeight.current = Dimensions.get('window').height;
+      setIsKeyboardVisible(false);
+      setKeyboardInset(0);
+    };
+
+    const handleFrame = (event: { endCoordinates?: { height?: number } }) => {
+      const keyboardHeight = event.endCoordinates?.height ?? 0;
       if (keyboardHeight <= 0) {
-        restingHeight.current = Dimensions.get('window').height;
-        setIsKeyboardVisible(false);
-        setKeyboardInset(0);
+        reset();
         return;
       }
 
@@ -59,16 +72,30 @@ export function useKeyboardInset(): KeyboardInset {
       setKeyboardInset(windowAlreadyResized ? 0 : keyboardHeight);
     };
 
-    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-    const show = Keyboard.addListener(showEvent, handle);
-    const hide = Keyboard.addListener(hideEvent, handle);
+    /**
+     * Every hide signal resets outright rather than reading its reported
+     * height. Two reasons: iOS may report a non-zero height on the dismissing
+     * frame, and reading it would leave the lift applied; and a dismissal driven
+     * by a gesture emits no `keyboardWillHide` at all, which is what used to
+     * strand a pinned bar mid-screen with a lift nothing could take back.
+     * Listening for both the `Will` and `Did` variants means a missed one is
+     * covered by the other, and `DidChangeFrame` catches the interactive
+     * dismissal that emits neither.
+     */
+    const subs = [
+      Keyboard.addListener('keyboardWillShow', handleFrame),
+      Keyboard.addListener('keyboardDidShow', handleFrame),
+      Keyboard.addListener('keyboardWillHide', reset),
+      Keyboard.addListener('keyboardDidHide', reset),
+      // Settled frames only — `WillChangeFrame` fires mid-animation and would
+      // report a partial height, making the lift flicker.
+      Keyboard.addListener('keyboardDidChangeFrame', handleFrame),
+    ];
 
     return () => {
-      show.remove();
-      hide.remove();
+      subs.forEach(sub => sub.remove());
     };
-  }, []);
+  }, [enabled]);
 
   const dismissKeyboard = useCallback(() => {
     setIsKeyboardVisible(false);
@@ -96,6 +123,11 @@ export function composerLift(keyboardInset: number): number {
  * With the keyboard up the home indicator is behind it, so only the inner
  * padding applies; at rest the bar has to clear the home indicator instead.
  */
-export function composerPaddingBottom(keyboardOpen: boolean, bottomInset: number): number {
-  return keyboardOpen ? COMPOSER_INNER_PADDING : Math.max(bottomInset, COMPOSER_INNER_PADDING);
+export function composerPaddingBottom(
+  keyboardOpen: boolean,
+  bottomInset: number,
+): number {
+  return keyboardOpen
+    ? COMPOSER_INNER_PADDING
+    : Math.max(bottomInset, COMPOSER_INNER_PADDING);
 }

@@ -378,8 +378,10 @@ export function BusinessScopePicker({
           style={open ? rotateStyles.open : undefined}
         />
       </Pressable>
+      {/* max-w keeps a fixed-width flyout inside a narrow phone viewport; the
+          picker sits between other row content, so w-64 alone can overrun. */}
       {open ? (
-        <View className="absolute left-0 top-full z-30 mt-1.5 w-64 gap-1 rounded-xl bg-surface p-1.5 shadow-xl">
+        <View className="absolute left-0 top-full z-30 mt-1.5 w-64 max-w-[70vw] gap-1 rounded-xl bg-surface p-1.5 shadow-xl">
           {options.map(option => {
             const isSelected = option.value === value;
             return (

@@ -1,10 +1,18 @@
 import React, { useEffect, useRef, type ReactNode } from 'react';
-import { Animated, Modal, Pressable, StyleSheet, View } from 'react-native';
+import {
+  Animated,
+  Modal,
+  Pressable,
+  StyleSheet,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import { cssInterop } from 'nativewind';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { colors } from '@theme/colors';
+import { useKeyboardInset } from '@hooks/useKeyboardInset';
 import { cn } from '@utils/cn';
 
 cssInterop(View, { className: 'style' });
@@ -22,6 +30,9 @@ export interface BottomSheetProps {
   children: ReactNode;
 }
 
+/** Share of the window the sheet may occupy while nothing is blocking it. */
+const RESTING_MAX_HEIGHT_RATIO = 0.88;
+
 export function BottomSheet({
   visible,
   onClose,
@@ -32,9 +43,39 @@ export function BottomSheet({
   children,
 }: BottomSheetProps) {
   const insets = useSafeAreaInsets();
+  const { keyboardInset, dismissKeyboard } = useKeyboardInset(visible);
+  const { height: windowHeight } = useWindowDimensions();
   const scrimOpacity = useRef(new Animated.Value(0)).current;
   const sheetOpacity = useRef(new Animated.Value(0)).current;
   const sheetOffset = useRef(new Animated.Value(28)).current;
+  /**
+   * The running entry/exit animation.
+   *
+   * `Animated.timing().start()` schedules a timer that nothing cancels, so
+   * unmounting mid-entry — or simply closing before the 120ms scrim delay
+   * elapses — let the callback fire against a view that no longer exists. That
+   * reached for a native handle that was gone and threw, and because the stray
+   * timer outlives the component it blew up in whatever test or screen happened
+   * to be running next. Stopping it on unmount is the difference.
+   */
+  const animation = useRef<Animated.CompositeAnimation | null>(null);
+
+  // Closing unmounts this listener before the hide event can arrive, so a sheet
+  // reopened straight after would otherwise come up still holding the previous
+  // lift.
+  useEffect(() => {
+    if (!visible) {
+      dismissKeyboard();
+    }
+  }, [dismissKeyboard, visible]);
+
+  useEffect(
+    () => () => {
+      animation.current?.stop();
+      animation.current = null;
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!visible) {
@@ -45,7 +86,7 @@ export function BottomSheet({
     sheetOpacity.setValue(0);
     sheetOffset.setValue(28);
 
-    Animated.parallel([
+    animation.current = Animated.parallel([
       Animated.timing(scrimOpacity, {
         toValue: 1,
         duration: 180,
@@ -62,11 +103,14 @@ export function BottomSheet({
         duration: 260,
         useNativeDriver: true,
       }),
-    ]).start();
+    ]);
+    animation.current.start(() => {
+      animation.current = null;
+    });
   }, [sheetOffset, sheetOpacity, scrimOpacity, visible]);
 
   const requestClose = () => {
-    Animated.parallel([
+    animation.current = Animated.parallel([
       Animated.timing(scrimOpacity, {
         toValue: 0,
         duration: 160,
@@ -82,8 +126,30 @@ export function BottomSheet({
         duration: 180,
         useNativeDriver: true,
       }),
-    ]).start(onClose);
+    ]);
+    animation.current.start(() => {
+      animation.current = null;
+      onClose();
+    });
   };
+
+  // Keyboard avoidance by measured lift, not `KeyboardAvoidingView` — that
+  // component relies on an event/layout race that drops the first keyboard
+  // frame on an already-focused screen, and cannot lift anything where the
+  // window never resizes (iOS). `useKeyboardInset` reports 0 in exactly those
+  // resized-Android cases, where the OS has already made the room, so the two
+  // platforms do not double-lift.
+  //
+  // The height cap moves with it: lifting a full-height sheet by the keyboard
+  // would push its header off the top of the window, so with the keyboard up
+  // the sheet may only occupy what is left above it.
+  const lifted = keyboardInset > 0;
+  const maxHeight = lifted
+    ? Math.max(windowHeight - keyboardInset, 240)
+    : windowHeight * RESTING_MAX_HEIGHT_RATIO;
+  // With the keyboard up the home indicator is behind it, so the resting bottom
+  // inset would only add height for no reason.
+  const sheetPaddingBottom = lifted ? 16 : Math.max(insets.bottom, 16);
 
   return (
     <Modal
@@ -105,8 +171,10 @@ export function BottomSheet({
             styles.sheet,
             {
               opacity: sheetOpacity,
-              transform: [{ translateY: sheetOffset }],
-              paddingBottom: Math.max(insets.bottom, 16),
+              // Entry offset and keyboard lift compose as two translateY terms.
+              transform: [{ translateY: sheetOffset }, { translateY: -keyboardInset }],
+              maxHeight,
+              paddingBottom: sheetPaddingBottom,
             },
           ]}
         >
@@ -151,7 +219,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(41, 48, 64, 0.65)',
   },
   sheet: {
-    maxHeight: '88%',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     backgroundColor: colors.surface,

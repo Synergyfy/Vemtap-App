@@ -428,7 +428,7 @@ export function CentralDealsManagementScreen({
         ) : undefined
       }
     >
-      <View className="flex-row items-center justify-between gap-2">
+      <View className="z-10 flex-row items-center justify-between gap-2">
         <BusinessScopePicker
           label={copy.branches2[1].label}
           value={scope}

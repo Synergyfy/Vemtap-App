@@ -120,7 +120,7 @@ export function ServicesCategoriesManagementScreen({
       }}
       contentContainerClassName="pb-8"
     >
-      <View className="mt-1 flex-row items-center justify-between gap-2">
+      <View className="z-10 mt-1 flex-row items-center justify-between gap-2">
         <BusinessScopePicker
           label={copy.tabs[1].label}
           value="all"

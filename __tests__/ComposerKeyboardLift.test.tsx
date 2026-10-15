@@ -7,7 +7,7 @@ import {
   composerLift,
   composerPaddingBottom,
   useKeyboardInset,
-} from '@features/merchantChat/hooks/useKeyboardInset';
+} from '@hooks/useKeyboardInset';
 
 /**
  * The composer must sit above the keyboard while it is up, and must return to
@@ -144,10 +144,8 @@ describe('the composer through a keyboard session', () => {
     }
 
     const view = await render(<Probe />);
-    const margin = () =>
-      view.getByTestId('composer').props.style.at(-1).marginBottom;
-    const padding = () =>
-      view.getByTestId('composer').props.style.at(-1).paddingBottom;
+    const margin = () => view.getByTestId('composer').props.style.at(-1).marginBottom;
+    const padding = () => view.getByTestId('composer').props.style.at(-1).paddingBottom;
 
     expect(margin()).toBeUndefined();
     await act(async () => showKeyboard());
@@ -184,8 +182,7 @@ describe('the composer through a keyboard session', () => {
     }
 
     const view = await render(<Probe />);
-    const margin = () =>
-      view.getByTestId('composer').props.style.at(-1).marginBottom;
+    const margin = () => view.getByTestId('composer').props.style.at(-1).marginBottom;
 
     expect(margin()).toBeUndefined();
     await act(async () => showKeyboard());
@@ -203,7 +200,9 @@ test('clears the lift when the input loses focus, without a keyboard event', asy
   // lift is the field losing focus.
   function Probe() {
     const { keyboardInset, dismissKeyboard } = useKeyboardInset();
-    return <TextField keyboardInset={keyboardInset} onKeyboardDismiss={dismissKeyboard} />;
+    return (
+      <TextField keyboardInset={keyboardInset} onKeyboardDismiss={dismissKeyboard} />
+    );
   }
 
   const view = await render(<Probe />);

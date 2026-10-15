@@ -310,9 +310,7 @@ export function CentralCatalogueScreen({
   });
 
   const sourceItems = items ?? copy.items;
-  const visibleItems = filter === 'drafts'
-    ? []
-    : sourceItems.map(mapToCatalogueRow);
+  const visibleItems = filter === 'drafts' ? [] : sourceItems.map(mapToCatalogueRow);
 
   return (
     <BusinessScreenLayout
@@ -363,7 +361,7 @@ export function CentralCatalogueScreen({
         </BusinessActionDock>
       }
     >
-      <View className="mt-1 flex-row items-center justify-between gap-2">
+      <View className="z-10 mt-1 flex-row items-center justify-between gap-2">
         <View className="min-w-0 flex-1">
           {isDirectory ? (
             <VemtapText

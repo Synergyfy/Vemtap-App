@@ -20,7 +20,7 @@ import {
   composerLift,
   composerPaddingBottom,
   useKeyboardInset,
-} from '@features/merchantChat/hooks/useKeyboardInset';
+} from '@hooks/useKeyboardInset';
 import type { AppStackParamList } from '@navigation/types';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'MerchantChat'>;

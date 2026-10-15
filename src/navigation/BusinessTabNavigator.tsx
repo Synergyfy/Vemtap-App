@@ -40,7 +40,10 @@ import { BranchAvailabilityLocationPricingScreen } from '@features/business/scre
 import { CentralCatalogueScreen } from '@features/business/screens/CentralCatalogueScreen';
 import { ServicesCategoriesManagementScreen } from '@features/business/screens/ServicesCategoriesManagementScreen';
 import { AddProductBasicsMediaScreen } from '@features/business/screens/AddProductBasicsMediaScreen';
-import { LocationsBranchesScreen } from '@features/business/screens/LocationsBranchesScreen';
+import {
+  LocationsBranchesScreen,
+  branchToLocationRow,
+} from '@features/business/screens/LocationsBranchesScreen';
 import { WuseBranchDetailsScreen } from '@features/business/screens/WuseBranchDetailsScreen';
 import { CustomerCrmDirectoryScreen } from '@features/business/screens/CustomerCrmDirectoryScreen';
 import { CustomerProfileDossierScreen } from '@features/business/screens/CustomerProfileDossierScreen';
@@ -69,6 +72,12 @@ import {
   usePosDashboard,
 } from '@features/business/hooks/useBusinessDashboardData';
 import { useActiveBranch } from '@features/business/hooks/useActiveBranch';
+import { branchPlanErrorMessage } from '@api/planErrors';
+import {
+  useBranchDetail,
+  useCreateBranch,
+  useUpdateBranch,
+} from '@features/business/hooks/useBranchMutations';
 import {
   useBusinessHubData,
   useBusinessOffers,
@@ -633,7 +642,9 @@ function CentralDealsManagementRoute() {
       onSearch={() => undefined}
       onFilter={() => undefined}
       onChangeScope={() => undefined}
-      onBoostDeal={() => undefined}
+      // Same target the compact/discovery deals layouts use — the boost wizard has
+      // no `dealId` param, so the campaign hub is the honest entry point.
+      onBoostDeal={() => navigation.navigate('CampaignsHub')}
       onEditDeal={() => navigation.navigate('DealLocationAssignmentPricing')}
       onPauseDeal={dealId => {
         updateOfferStatus.mutate(
@@ -918,6 +929,8 @@ function CentralCatalogueRoute() {
     name: string;
     price: string;
   } | null>(null);
+  // Shown inside the sheet rather than toasted — a Modal covers a toast.
+  const [itemError, setItemError] = useState<string | null>(null);
   const items = catalogue.data?.data ?? [];
   return (
     <>
@@ -980,7 +993,12 @@ function CentralCatalogueRoute() {
           },
         ]}
         confirmLabel="Save"
-        onCancel={() => setEditing(null)}
+        error={itemError}
+        onChangeField={() => setItemError(null)}
+        onCancel={() => {
+          setItemError(null);
+          setEditing(null);
+        }}
         onConfirm={values => {
           if (!editing) return;
           const parsedPrice = Number(values.price.replace(/[^\d.]/g, ''));
@@ -993,9 +1011,10 @@ function CentralCatalogueRoute() {
             {
               onSuccess: () => {
                 showSuccess('Item updated.');
+                setItemError(null);
                 setEditing(null);
               },
-              onError: () => showError('Could not update the item.'),
+              onError: () => setItemError('Could not update the item.'),
             },
           );
         }}
@@ -1014,6 +1033,9 @@ function ServicesCategoriesRoute() {
   const services = useBusinessCatalogue({ itemType: 'service' });
   const categories = useCatalogueCategories();
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
+  // Shown inside the sheet rather than toasted — a Modal covers a toast.
+  const [renameError, setRenameError] = useState<string | null>(null);
+  const [serviceError, setServiceError] = useState<string | null>(null);
   const [editingService, setEditingService] = useState<{
     id: string;
     name: string;
@@ -1102,19 +1124,29 @@ function ServicesCategoriesRoute() {
         title="Rename category"
         fields={[{ key: 'name', label: 'Name', value: renaming?.name ?? '' }]}
         confirmLabel="Save"
-        onCancel={() => setRenaming(null)}
+        error={renameError}
+        onChangeField={() => setRenameError(null)}
+        onCancel={() => {
+          setRenameError(null);
+          setRenaming(null);
+        }}
         onConfirm={values => {
           if (!renaming) return;
           const name = values.name.trim();
-          if (!name) return;
+          if (!name) {
+            setRenameError('A category needs a name.');
+            return;
+          }
           updateCategory.mutate(
             { categoryId: renaming.id, name },
             {
               onSuccess: () => {
                 showSuccess('Category renamed.');
+                setRenameError(null);
                 setRenaming(null);
               },
-              onError: () => showError('Could not rename the category.'),
+              // Inline, not a toast: the sheet is a Modal and covers it.
+              onError: () => setRenameError('Could not rename the category.'),
             },
           );
         }}
@@ -1132,7 +1164,12 @@ function ServicesCategoriesRoute() {
           },
         ]}
         confirmLabel="Save"
-        onCancel={() => setEditingService(null)}
+        error={serviceError}
+        onChangeField={() => setServiceError(null)}
+        onCancel={() => {
+          setServiceError(null);
+          setEditingService(null);
+        }}
         onConfirm={values => {
           if (!editingService) return;
           const parsedPrice = Number(values.price.replace(/[^\d.]/g, ''));
@@ -1145,9 +1182,10 @@ function ServicesCategoriesRoute() {
             {
               onSuccess: () => {
                 showSuccess('Service updated.');
+                setServiceError(null);
                 setEditingService(null);
               },
-              onError: () => showError('Could not update the service.'),
+              onError: () => setServiceError('Could not update the service.'),
             },
           );
         }}
@@ -1390,33 +1428,236 @@ function AddProductBasicsMediaRoute() {
 
 function LocationsBranchesRoute() {
   const navigation = useBusinessNavigation();
+  const openPlanScreen = useOpenPlanScreen();
+  const myBusiness = useMyBusiness();
+  const createBranch = useCreateBranch();
+  const updateBranch = useUpdateBranch();
+  const [adding, setAdding] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  // Held in the sheet rather than toasted: see `reportSheetError`.
+  const [addError, setAddError] = useState<string | null>(null);
+  const [editError, setEditError] = useState<string | null>(null);
+  // Set only by a plan refusal, so the notice never appears for an unrelated
+  // failure (a bad name, a network drop) that the toast already explains.
+  const [planBlocked, setPlanBlocked] = useState(false);
+
+  const liveBranches = myBusiness.data?.branches ?? [];
+  const editing = liveBranches.find(branch => branch.id === editingId);
+
+  const callBranch = (branchId: string) => {
+    const phone = liveBranches.find(branch => branch.id === branchId)?.phone;
+    if (phone) {
+      Linking.openURL(`tel:${phone}`).catch(() => undefined);
+      return;
+    }
+    showError('No phone number is saved for this location.');
+  };
+
+  /**
+   * The failure text for the open sheet, and — when the plan is the reason — the
+   * persistent callout behind it.
+   *
+   * Deliberately *not* a toast: the sheet is a `Modal`, and the toast renders
+   * beneath it, so a save that was rejected used to look like nothing had
+   * happened. The banner inside the sheet is the only place the user is
+   * actually looking while it is open.
+   */
+  const reportSheetError = (
+    error: unknown,
+    fallback: string,
+    setSheetError: (message: string | null) => void,
+  ) => {
+    const planCopy = branchPlanErrorMessage(error);
+    if (planCopy) {
+      setPlanBlocked(true);
+      setSheetError(planCopy);
+      return;
+    }
+    setSheetError(error instanceof Error ? error.message : fallback);
+  };
+
   return (
-    <LocationsBranchesScreen
-      onNotifications={() => navigation.navigate('BusinessNotifications')}
-      onAddLocation={() => undefined}
-      onChangeScope={() => undefined}
-      onViewDetails={() => navigation.navigate('WuseBranchDetails')}
-      onEditLocation={() => undefined}
-      onMoreBranchOptions={() => undefined}
-      onCallBranch={() => undefined}
-      onReactivate={() => undefined}
-    />
+    <>
+      <LocationsBranchesScreen
+        branches={liveBranches.map(branchToLocationRow)}
+        planBlocked={planBlocked}
+        onOpenPlan={openPlanScreen}
+        onDismissPlanNotice={() => setPlanBlocked(false)}
+        onNotifications={() => navigation.navigate('BusinessNotifications')}
+        onAddLocation={() => {
+          setAddError(null);
+          setAdding(true);
+        }}
+        onChangeScope={() => undefined}
+        onViewDetails={branchId => navigation.navigate('WuseBranchDetails', { branchId })}
+        onEditLocation={branchId => {
+          setEditError(null);
+          setEditingId(branchId);
+        }}
+        onMoreBranchOptions={() => showError('Location options are not available yet.')}
+        onCallBranch={callBranch}
+        onReactivate={branchId =>
+          updateBranch.mutate(
+            { branchId, isActive: true },
+            {
+              onSuccess: () => showSuccess('Location is live again.'),
+              onError: error =>
+                showError(
+                  error instanceof Error
+                    ? error.message
+                    : 'Could not reactivate the location.',
+                ),
+            },
+          )
+        }
+      />
+
+      <PromptDialog
+        visible={adding}
+        title="Add Location"
+        confirmLabel="Create"
+        error={addError}
+        onChangeField={() => setAddError(null)}
+        fields={[
+          { key: 'name', label: 'Location name', value: '' },
+          { key: 'address', label: 'Address', value: '' },
+          { key: 'phone', label: 'Phone', value: '' },
+        ]}
+        onCancel={() => {
+          setAddError(null);
+          setAdding(false);
+        }}
+        onConfirm={values => {
+          const name = values.name.trim();
+          if (!name) {
+            // In the sheet, not a toast — see `reportSheetError`.
+            setAddError('A location needs a name.');
+            return;
+          }
+          createBranch.mutate(
+            {
+              name,
+              // Empty inputs are dropped rather than sent as '', so the backend
+              // inherits the business-level phone/email instead of blanking it.
+              ...(values.address.trim() ? { address: values.address.trim() } : {}),
+              ...(values.phone.trim() ? { phone: values.phone.trim() } : {}),
+            },
+            {
+              onSuccess: () => {
+                showSuccess('Location created.');
+                setAddError(null);
+                setAdding(false);
+                // The plan is no longer stopping the merchant, so the notice
+                // would be stale.
+                setPlanBlocked(false);
+              },
+              onError: error =>
+                reportSheetError(
+                  error,
+                  strings.locationsBranches.createFailed,
+                  setAddError,
+                ),
+            },
+          );
+        }}
+      />
+
+      <PromptDialog
+        visible={Boolean(editing)}
+        title="Edit Location"
+        confirmLabel="Save"
+        error={editError}
+        onChangeField={() => setEditError(null)}
+        fields={[
+          { key: 'name', label: 'Location name', value: editing?.name ?? '' },
+          { key: 'address', label: 'Address', value: editing?.address ?? '' },
+          { key: 'phone', label: 'Phone', value: editing?.phone ?? '' },
+        ]}
+        onCancel={() => {
+          setEditError(null);
+          setEditingId(null);
+        }}
+        onConfirm={values => {
+          if (!editing) return;
+          const name = values.name.trim();
+          if (!name) {
+            setEditError('A location needs a name.');
+            return;
+          }
+          updateBranch.mutate(
+            {
+              branchId: editing.id,
+              name,
+              address: values.address.trim(),
+              phone: values.phone.trim(),
+            },
+            {
+              onSuccess: () => {
+                showSuccess('Location updated.');
+                setEditError(null);
+                setEditingId(null);
+              },
+              onError: error =>
+                reportSheetError(
+                  error,
+                  strings.locationsBranches.editFailed,
+                  setEditError,
+                ),
+            },
+          );
+        }}
+      />
+    </>
   );
 }
 
 function WuseBranchDetailsRoute() {
   const navigation = useBusinessNavigation();
+  const route = useRoute<RouteProp<BusinessTabParamList, 'WuseBranchDetails'>>();
+  const branchId = route.params?.branchId ?? null;
+  const branchQuery = useBranchDetail(branchId);
+  const updateBranch = useUpdateBranch();
+  const { setActiveBranch } = useActiveBranch();
+  const branch = branchQuery.data;
+
+  const toggleActive = (isActive: boolean) => {
+    if (!branch) return;
+    updateBranch.mutate(
+      { branchId: branch.id, isActive },
+      {
+        onSuccess: () => {
+          showSuccess(isActive ? 'Location is live again.' : 'Location paused.');
+          navigation.goBack();
+        },
+        // The backend refuses to pause a business's last active location, and
+        // that is a rule about the business rather than a fault — so its own
+        // sentence is shown rather than a generic failure.
+        onError: error =>
+          showError(error instanceof Error ? error.message : strings.errors.server),
+      },
+    );
+  };
+
   return (
     <WuseBranchDetailsScreen
+      branch={branch}
+      isLoading={branchQuery.isLoading}
+      error={branchQuery.isError}
       onBack={navigation.goBack}
-      onMoreActions={() => undefined}
-      onEdit={() => undefined}
-      onCallManager={() => undefined}
-      onCopyCoordinates={() => undefined}
-      onDirections={() => undefined}
-      onOpenStat={() => undefined}
-      onSwitchOperatingView={navigation.goBack}
-      onConfirmDeactivate={navigation.goBack}
+      onRetry={() => branchQuery.refetch()}
+      onCallBranch={() => {
+        if (branch?.phone) {
+          Linking.openURL(`tel:${branch.phone}`).catch(() => undefined);
+        }
+      }}
+      onSwitchOperatingView={() => {
+        if (branch) {
+          setActiveBranch(branch.id);
+          navigation.goBack();
+        }
+      }}
+      onConfirmDeactivate={() => toggleActive(false)}
+      onConfirmReactivate={() => toggleActive(true)}
     />
   );
 }

@@ -111,7 +111,7 @@ export function StaffTeamAccessDirectoryScreen({
         />
       </View>
 
-      <View className="mt-3 flex-row items-center justify-between gap-2">
+      <View className="z-10 mt-3 flex-row items-center justify-between gap-2">
         <BusinessScopePicker
           label={copy.allLocations}
           value={scope}

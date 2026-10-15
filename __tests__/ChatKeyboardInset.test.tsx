@@ -2,7 +2,7 @@ import React from 'react';
 import { DeviceEventEmitter, Dimensions, StyleSheet, Text } from 'react-native';
 import { act, render } from '@testing-library/react-native';
 import { ChatComposer } from '@features/merchantChat/components/ChatComposer';
-import { COMPOSER_INNER_PADDING, useKeyboardInset } from '@features/merchantChat/hooks/useKeyboardInset';
+import { COMPOSER_INNER_PADDING, useKeyboardInset } from '@hooks/useKeyboardInset';
 
 /**
  * The composer is lifted by a measured inset rather than a
@@ -55,9 +55,9 @@ describe('useKeyboardInset', () => {
     // The standalone Android build case: `adjustResize` shrank the window, so
     // the layout reflowed on its own and lifting would double it.
     let windowHeight = RESTING_HEIGHT;
-    jest.spyOn(Dimensions, 'get').mockImplementation(
-      () => ({ height: windowHeight }) as never,
-    );
+    jest
+      .spyOn(Dimensions, 'get')
+      .mockImplementation(() => ({ height: windowHeight }) as never);
 
     const view = await render(<Probe />);
 
