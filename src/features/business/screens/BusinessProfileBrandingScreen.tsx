@@ -326,11 +326,7 @@ export function BusinessProfileBrandingScreen({
               </View>
               <StatusPill label={copy.branding.coverSpec} tone="neutral" />
             </View>
-            <InlineImageCard
-              uri={coverUri}
-              height={176}
-              rounded="field"
-            >
+            <InlineImageCard uri={coverUri} height={176} rounded="field">
               <View className="absolute left-2 top-2 flex-row items-center gap-1 rounded-full bg-inverse-surface/80 px-2 py-0.5">
                 <Icon name="aspectRatio" size={12} color={colors.inverseOnSurface} />
                 <VemtapText variant="caption" className="text-inverse-on-surface">

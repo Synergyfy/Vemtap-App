@@ -47,14 +47,13 @@ export function CategoryReorderSheet({
   const reorderTitle = strings.servicesCategories.reorderLabel;
 
   return (
-    <BottomSheet
-      visible={visible}
-      onClose={onClose}
-      title={reorderTitle}
-    >
+    <BottomSheet visible={visible} onClose={onClose} title={reorderTitle}>
       <View className="px-6 pb-6">
         {localOrder.length === 0 ? (
-          <Text className="text-center text-muted py-8" accessibilityLabel="No categories to reorder">
+          <Text
+            className="text-muted py-8 text-center"
+            accessibilityLabel="No categories to reorder"
+          >
             No categories yet
           </Text>
         ) : (
@@ -75,7 +74,9 @@ export function CategoryReorderSheet({
                     accessibilityRole="button"
                     testID={`moveUp:${category.id}`}
                   >
-                    <Text className="text-xl" aria-hidden={true}>▲</Text>
+                    <Text className="text-xl" aria-hidden={true}>
+                      ▲
+                    </Text>
                   </Pressable>
                   <Pressable
                     disabled={index === localOrder.length - 1}
@@ -84,14 +85,16 @@ export function CategoryReorderSheet({
                     accessibilityRole="button"
                     testID={`moveDown:${category.id}`}
                   >
-                    <Text className="text-xl" aria-hidden={true}>▼</Text>
+                    <Text className="text-xl" aria-hidden={true}>
+                      ▼
+                    </Text>
                   </Pressable>
                 </View>
               </View>
             ))}
           </View>
         )}
-        <View className="flex-row gap-3 mt-4">
+        <View className="mt-4 flex-row gap-3">
           <Button
             label="Cancel"
             variant="outline"

@@ -1,10 +1,5 @@
 import React from 'react';
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-} from '@testing-library/react-native';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react-native';
 import { CentralCatalogueScreen } from '@features/business/screens/CentralCatalogueScreen';
 import { CentralDealsManagementScreen } from '@features/business/screens/CentralDealsManagementScreen';
 import { ServicesCategoriesManagementScreen } from '@features/business/screens/ServicesCategoriesManagementScreen';
@@ -17,32 +12,24 @@ describe('central catalogue screen — item actions', () => {
   test('toggle stock fires with item id and value', async () => {
     const onToggleStock = jest.fn();
     await render(
-      <CentralCatalogueScreen
-        layout="directory"
-        onToggleStock={onToggleStock}
-      />,
+      <CentralCatalogueScreen layout="directory" onToggleStock={onToggleStock} />,
     );
 
     const toggle = screen.getAllByRole('switch')[0];
     await fireEvent(toggle, 'valueChange', true);
 
-    expect(onToggleStock).toHaveBeenCalledWith(
-      expect.any(String),
-      expect.any(Boolean),
-    );
+    expect(onToggleStock).toHaveBeenCalledWith(expect.any(String), expect.any(Boolean));
   });
 
   test('edit item fires with item id', async () => {
     const onEditItem = jest.fn();
-    await render(
-      <CentralCatalogueScreen layout="directory" onEditItem={onEditItem} />,
-    );
+    await render(<CentralCatalogueScreen layout="directory" onEditItem={onEditItem} />);
 
     const menus = screen.getAllByLabelText(/options/i);
     await fireEvent.press(menus[0]);
 
     const edit = screen.getAllByText(/edit/i).find(el => {
-      const {parent} = el;
+      const { parent } = el;
       return parent?.props?.accessibilityRole === 'menuitem';
     });
     if (edit) {
@@ -72,10 +59,7 @@ describe('central deals management screen — deal actions', () => {
   test('pause deal fires with deal id', async () => {
     const onPauseDeal = jest.fn();
     await render(
-      <CentralDealsManagementScreen
-        layout="hero"
-        onPauseDeal={onPauseDeal}
-      />,
+      <CentralDealsManagementScreen layout="hero" onPauseDeal={onPauseDeal} />,
     );
 
     const pauseButtons = screen.getAllByText(/pause/i);
@@ -88,9 +72,7 @@ describe('central deals management screen — deal actions', () => {
 describe('services categories screen — actions', () => {
   test('add category fires', async () => {
     const onAddCategory = jest.fn();
-    await render(
-      <ServicesCategoriesManagementScreen onAddCategory={onAddCategory} />,
-    );
+    await render(<ServicesCategoriesManagementScreen onAddCategory={onAddCategory} />);
 
     await fireEvent.press(screen.getByText(/add category/i));
     expect(onAddCategory).toHaveBeenCalledTimes(1);
@@ -112,9 +94,7 @@ describe('services categories screen — actions', () => {
 
   test('add service fires', async () => {
     const onAddService = jest.fn();
-    await render(
-      <ServicesCategoriesManagementScreen onAddService={onAddService} />,
-    );
+    await render(<ServicesCategoriesManagementScreen onAddService={onAddService} />);
 
     await fireEvent.press(screen.getByText('Add Service'));
     expect(onAddService).toHaveBeenCalledTimes(1);
@@ -122,9 +102,7 @@ describe('services categories screen — actions', () => {
 
   test('category edit fires with category id', async () => {
     const onEditCategory = jest.fn();
-    await render(
-      <ServicesCategoriesManagementScreen onEditCategory={onEditCategory} />,
-    );
+    await render(<ServicesCategoriesManagementScreen onEditCategory={onEditCategory} />);
 
     const editButtons = screen.getAllByLabelText(/^Edit /);
     await fireEvent.press(editButtons[0]);
@@ -134,9 +112,7 @@ describe('services categories screen — actions', () => {
   test('category archive fires with category id', async () => {
     const onArchiveCategory = jest.fn();
     await render(
-      <ServicesCategoriesManagementScreen
-        onArchiveCategory={onArchiveCategory}
-      />,
+      <ServicesCategoriesManagementScreen onArchiveCategory={onArchiveCategory} />,
     );
 
     const archiveButtons = screen.getAllByLabelText(/^Archive /);
@@ -162,10 +138,7 @@ describe('hub deal location assignment screen', () => {
   test('save draft fires', async () => {
     const onSaveDraft = jest.fn();
     await render(
-      <CreateDealLocationAssignmentScreen
-        onBack={jest.fn()}
-        onSaveDraft={onSaveDraft}
-      />,
+      <CreateDealLocationAssignmentScreen onBack={jest.fn()} onSaveDraft={onSaveDraft} />,
     );
 
     await fireEvent.press(screen.getByText('Save Deal as Draft'));

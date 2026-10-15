@@ -42,7 +42,9 @@ describe('CategoryReorderSheet', () => {
     const onSubmit = jest.fn();
     await renderSheet({ onSubmit });
     await fireEvent.press(screen.getByTestId('moveDown:cat-1'));
-    await waitFor(() => expect(onSubmit).toHaveBeenCalledWith(['cat-2', 'cat-1', 'cat-3']));
+    await waitFor(() =>
+      expect(onSubmit).toHaveBeenCalledWith(['cat-2', 'cat-1', 'cat-3']),
+    );
   });
 
   test('onClose is called when Cancel or Done is pressed', async () => {

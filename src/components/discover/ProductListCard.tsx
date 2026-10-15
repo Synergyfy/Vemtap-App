@@ -53,8 +53,8 @@ export function ProductListCard({ product, badge, onAdd }: ProductListCardProps)
             {product.description}
           </VemtapText>
         </View>
-        <View className="mt-2 flex-row items-end justify-between gap-2">
-          <View className="min-w-0 flex-row flex-wrap items-baseline gap-1.5">
+        <View className="mt-2 w-full flex-row items-center gap-2">
+          <View className="min-w-0 flex-1 flex-row flex-wrap items-baseline gap-1.5">
             <VemtapText className="font-sans-bold text-heading-sm text-text">
               {formatNaira(product.price)}
             </VemtapText>
@@ -64,14 +64,16 @@ export function ProductListCard({ product, badge, onAdd }: ProductListCardProps)
               </VemtapText>
             ) : null}
           </View>
-          <Button
-            label={strings.urbanMenu.add}
-            size="sm"
-            fullWidth={false}
-            className="min-h-9 shrink-0 rounded-full px-3"
-            leftIcon={<Icon name="plus" size={17} color={colors.surface} />}
-            onPress={() => onAdd(product.id)}
-          />
+          <View className="ml-auto shrink-0">
+            <Button
+              label={strings.urbanMenu.add}
+              size="sm"
+              fullWidth={false}
+              className="min-h-9 rounded-full px-3"
+              leftIcon={<Icon name="plus" size={17} color={colors.surface} />}
+              onPress={() => onAdd(product.id)}
+            />
+          </View>
         </View>
       </View>
       <Image

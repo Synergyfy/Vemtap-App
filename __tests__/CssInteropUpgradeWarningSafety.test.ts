@@ -24,7 +24,7 @@ type UpgradeStateShape = {
 // statement wraps, so a comment above `const cssInteropRender` covers the
 // binding and suppresses nothing.
 const cssInteropRender =
-  // eslint-disable-next-line global-require, import/no-extraneous-dependencies
+  // eslint-disable-next-line global-require
   require('react-native-css-interop/dist/runtime/native/render-component.js') as {
     renderComponent: (
       baseComponent: unknown,

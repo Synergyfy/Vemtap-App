@@ -42,47 +42,45 @@ export function DealsListCard({
     >
       <View className="relative h-48 w-full overflow-hidden bg-surface-container">
         <Image source={deal.image} className="h-full w-full" resizeMode="cover" />
-        <View
-          className={cn(
-            'absolute left-3 top-3 rounded-full px-2.5 py-1 shadow-sm',
-            isPromoLeft ? 'bg-secondary-container' : 'bg-badge-discount-bg',
+        <View className="absolute inset-x-3 top-3 flex-row items-center justify-between gap-2">
+          <View className="max-w-[60%] rounded-full px-2.5 py-1 shadow-sm">
+            <VemtapText
+              className={cn(
+                'font-sans-bold text-label-sm',
+                isPromoLeft ? 'text-on-secondary-container' : 'text-badge-discount-text',
+                isPromoLeft ? 'bg-secondary-container' : 'bg-badge-discount-bg',
+              )}
+            >
+              {deal.leftBadge.label}
+            </VemtapText>
+          </View>
+          {right.kind === 'timer' ? (
+            <View className="max-w-[38%] flex-row items-center gap-1 rounded-full bg-inverse-surface/85 px-2.5 py-1">
+              <Icon name="hourglass" size={13} color={colors.tertiaryFixed} />
+              <VemtapText className="font-sans-medium text-caption text-inverse-on-surface">
+                {right.label}
+              </VemtapText>
+            </View>
+          ) : right.tone === 'primary' ? (
+            <View className="max-w-[38%] rounded-full bg-surface-canvas/90 px-2.5 py-1">
+              <VemtapText className="font-sans-semibold text-caption text-primary">
+                {right.label}
+              </VemtapText>
+            </View>
+          ) : right.tone === 'discount' ? (
+            <View className="max-w-[38%] rounded-full bg-badge-discount-bg px-2.5 py-1">
+              <VemtapText className="font-sans-semibold text-caption text-badge-discount-text">
+                {right.label}
+              </VemtapText>
+            </View>
+          ) : (
+            <View className="max-w-[38%] rounded-full bg-surface-canvas/90 px-2.5 py-1">
+              <VemtapText className="font-sans-semibold text-caption text-text">
+                {right.label}
+              </VemtapText>
+            </View>
           )}
-        >
-          <VemtapText
-            className={cn(
-              'font-sans-bold text-label-sm',
-              isPromoLeft ? 'text-on-secondary-container' : 'text-badge-discount-text',
-            )}
-          >
-            {deal.leftBadge.label}
-          </VemtapText>
         </View>
-        {right.kind === 'timer' ? (
-          <View className="absolute right-3 top-3 flex-row items-center gap-1 rounded-full bg-inverse-surface/85 px-2.5 py-1">
-            <Icon name="hourglass" size={13} color={colors.tertiaryFixed} />
-            <VemtapText className="font-sans-medium text-caption text-inverse-on-surface">
-              {right.label}
-            </VemtapText>
-          </View>
-        ) : right.tone === 'primary' ? (
-          <View className="absolute right-3 top-3 rounded-full bg-surface-canvas/90 px-2.5 py-1">
-            <VemtapText className="font-sans-semibold text-caption text-primary">
-              {right.label}
-            </VemtapText>
-          </View>
-        ) : right.tone === 'discount' ? (
-          <View className="absolute right-3 top-3 rounded-full bg-badge-discount-bg px-2.5 py-1">
-            <VemtapText className="font-sans-semibold text-caption text-badge-discount-text">
-              {right.label}
-            </VemtapText>
-          </View>
-        ) : (
-          <View className="absolute right-3 top-3 rounded-full bg-surface-canvas/90 px-2.5 py-1">
-            <VemtapText className="font-sans-semibold text-caption text-text">
-              {right.label}
-            </VemtapText>
-          </View>
-        )}
       </View>
 
       <View className="flex-col p-4">
@@ -141,8 +139,8 @@ export function DealsListCard({
           </VemtapText>
         </View>
 
-        <View className="flex-row items-center justify-between border-t border-border pt-3">
-          <View className="flex-row items-center gap-4">
+        <View className="w-full flex-row items-center gap-3 border-t border-border pt-3">
+          <View className="min-w-0 flex-1 flex-row items-center gap-4">
             <DealEngagementRow
               liked={liked}
               likeCount={likeCount}
@@ -162,7 +160,7 @@ export function DealsListCard({
             accessibilityRole="button"
             accessibilityLabel={deal.claimLabel}
             onPress={() => onClaim?.(deal.id)}
-            className="h-10 items-center justify-center rounded-xl bg-primary px-4 shadow-sm active:scale-95"
+            className="ml-auto h-10 shrink-0 items-center justify-center rounded-xl bg-primary px-4 shadow-sm active:scale-95"
           >
             <VemtapText className="font-sans-semibold text-label-md text-primary-foreground">
               {deal.claimLabel}

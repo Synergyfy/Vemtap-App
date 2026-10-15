@@ -3,6 +3,7 @@ import { useHideTabBarOnFocus } from '@navigation/useHideTabBarOnFocus';
 import { useOpenClaimChat } from '@features/merchantChat/hooks/useOpenClaimChat';
 import { useConversationActions } from '@navigation/useConversationActions';
 import { useCustomerThreads } from '@features/merchantChat/hooks/useCustomerMessaging';
+import { useNavigation } from '@react-navigation/native';
 // Imported from its own module: the realtime bridge is NOT exported by
 // `useCustomerMessaging`, and pulling it from there left the binding
 // undefined, which threw on render and took the shell down.
@@ -10,7 +11,6 @@ import { useCustomerMessagingRealtime } from '@features/merchantChat/hooks/useCu
 import React, { useEffect, useState } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import {
-  useNavigation,
   useRoute,
   type CompositeNavigationProp,
   type RouteProp,

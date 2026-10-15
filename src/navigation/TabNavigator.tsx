@@ -5,6 +5,7 @@ import { useConversationActions } from '@navigation/useConversationActions';
 import { useCustomerThreads } from '@features/merchantChat/hooks/useCustomerMessaging';
 import { useClaimPass } from '@features/myDeals/hooks/useMyClaims';
 import { useTabBarStore } from '@store/tabBarStore';
+import { useNavigation } from '@react-navigation/native';
 import { tabRePressListenersFor } from '@navigation/navigationHistory';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
@@ -12,11 +13,11 @@ import {
   type BottomTabNavigationProp,
 } from '@react-navigation/bottom-tabs';
 import {
-  useNavigation,
   useRoute,
   type CompositeNavigationProp,
   type RouteProp,
 } from '@react-navigation/native';
+import { useOptionalNavigation } from '@navigation/useOptionalNavigation';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -89,7 +90,7 @@ type DealsTabNavigation = BottomTabNavigationProp<MainTabParamList> &
   NativeStackNavigationProp<RootStackParamList>;
 
 function DealsTabScreen() {
-  const navigation = useNavigation<DealsTabNavigation>();
+  const navigation = useOptionalNavigation<DealsTabNavigation>();
   const onOpenFilters = useMemo(
     () => () => navigation.navigate('DealFilters'),
     [navigation],
@@ -145,7 +146,7 @@ type HomeStackNavigation = CompositeNavigationProp<
 >;
 
 function HomeFeedScreen() {
-  const navigation = useNavigation<HomeStackNavigation>();
+  const navigation = useOptionalNavigation<HomeStackNavigation>();
   // The store is the single source for the district/radius both consumer
   // navbars read, so the selection page only has to write to it.
   const area = useLocationStore(state => state.area);
@@ -232,7 +233,7 @@ function HomeFeaturedDealsScreen() {
 }
 
 function HomeDealsDiscoveryScreen() {
-  const navigation = useNavigation<HomeStackNavigation>();
+  const navigation = useOptionalNavigation<HomeStackNavigation>();
   const onOpenFilters = useMemo(
     () => () => navigation.navigate('DealFilters'),
     [navigation],
@@ -537,7 +538,7 @@ const signOut = () => {
  * under the consumer nav when opened from Account.
  */
 function usePersonalFlowHandoff() {
-  const navigation = useNavigation<AccountStackNavigation>();
+  const navigation = useOptionalNavigation<AccountStackNavigation>();
   return useMemo(
     () => ({
       myDeals: () => navigation.navigate('PersonalHub', { screen: 'PersonalMyDeals' }),
@@ -560,7 +561,7 @@ function usePersonalFlowHandoff() {
 }
 
 function AccountHomeRoute() {
-  const navigation = useNavigation<AccountStackNavigation>();
+  const navigation = useOptionalNavigation<AccountStackNavigation>();
   const personal = usePersonalFlowHandoff();
   const ownerAccount = useAuthStore(state => state.ownerAccount);
   const onOpenBusinessSetup = useOpenBusinessSetup();
@@ -592,7 +593,7 @@ function AccountHomeRoute() {
 }
 
 function AccountDashboardRoute() {
-  const navigation = useNavigation<AccountStackNavigation>();
+  const navigation = useOptionalNavigation<AccountStackNavigation>();
   const openDeal = useCallback(
     (id: string) => {
       if (id === 'my-deals') {
@@ -641,7 +642,7 @@ function AccountDashboardRoute() {
 }
 
 function MyDealsRoute() {
-  const navigation = useNavigation<AccountStackNavigation>();
+  const navigation = useOptionalNavigation<AccountStackNavigation>();
   return (
     <MyDealsHubScreen
       onAccount={() => navigation.navigate('More')}
