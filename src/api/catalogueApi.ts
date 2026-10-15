@@ -1,5 +1,11 @@
 import { z } from 'zod';
-import { nullableDecimal, nullableFlag, nullableNumber } from '@api/schemaHelpers';
+import {
+  decimal,
+  nullableArray,
+  nullableDecimal,
+  nullableFlag,
+  nullableNumber,
+} from '@api/schemaHelpers';
 import { requestValidated } from '@api/client';
 import { ApiError } from '@api/ApiError';
 import { isPlanError } from '@api/planErrors';
@@ -205,8 +211,43 @@ export type CatalogueItemQuery = {
   sortBy?: string;
 };
 
+/** An item bundled into a deal, as the owner's admin list carries it. */
+export const businessOfferItemSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  price: decimal(),
+  mainImage: z.string().nullish(),
+});
+export type BusinessOfferItem = z.infer<typeof businessOfferItemSchema>;
+
+/** One branch of a multi-branch deal (`groupBy=deal` rows). */
+export const businessOfferBranchSchema = z.object({
+  offerId: z.string(),
+  branchId: z.string(),
+  branchName: z.string().nullish(),
+  status: z.string(),
+  calculatedPrice: nullableDecimal(),
+  quantity: z.number().nullish(),
+  claimedCount: nullableNumber(),
+  redeemedCount: nullableNumber(),
+});
+export type BusinessOfferBranch = z.infer<typeof businessOfferBranchSchema>;
+
 export const businessOfferAdminSchema = z.looseObject({
   id: z.string(),
+  /** Shared by every branch's row of one deal; equals `id` for a single-branch deal. */
+  dealGroupId: z.string().nullish(),
+  mainImage: z.string().nullish(),
+  /** Bundled items with their prices (name for the card, sum for the "was" price). */
+  items: z.array(businessOfferItemSchema).nullish(),
+  /** Sum of the item prices: what the deal is discounted from. */
+  originalPrice: nullableDecimal(),
+  /** Present on `groupBy=deal` rows: each branch's own offer, status and counts. */
+  branches: z.array(businessOfferBranchSchema).nullish(),
+  redeemedCount: z.number().nullish(),
+  allowGifting: z.boolean().nullish(),
+  claimLimitPeriod: z.string().nullish(),
+  claimSteps: z.array(z.string()).nullish(),
   name: z.string().nullish(),
   description: z.string().nullish(),
   status: z.string().nullish(),
@@ -231,6 +272,107 @@ export const businessOfferAdminSchema = z.looseObject({
   claimedCount: z.number().nullish(),
 });
 export type BusinessOfferAdmin = z.infer<typeof businessOfferAdminSchema>;
+
+/** `GET /catalogue/offers/summary`: the deals hub header numbers. */
+export const offersSummarySchema = z.object({
+  branchId: z.string().nullish(),
+  activeDeals: nullableNumber(),
+  activeOffers: nullableNumber(),
+  claimsToday: nullableNumber(),
+  redeemedToday: nullableNumber(),
+  /** Deal price over redeemed claims in the last 30 days. */
+  netRevenue30d: nullableDecimal(),
+  discountGiven30d: nullableDecimal(),
+});
+export type OffersSummary = z.infer<typeof offersSummarySchema>;
+
+/** `GET /catalogue/offers/groups/:dealGroupId/stats`: one deal across its branches. */
+export const dealGroupStatsSchema = z.looseObject({
+  dealGroupId: z.string().nullish(),
+  offerIds: nullableArray(z.string()),
+  name: z.string(),
+  status: z.string(),
+  views: nullableNumber(),
+  likes: nullableNumber(),
+  saves: nullableNumber(),
+  claims: nullableNumber(),
+  redeemed: nullableNumber(),
+  expired: nullableNumber(),
+  activeUnclaimed: nullableNumber(),
+  /** 0–1. */
+  redemptionRate: nullableDecimal(),
+  revenue: nullableDecimal(),
+  discountGiven: nullableDecimal(),
+  quantity: z.number().nullish(),
+  remaining: z.number().nullish(),
+  daysLeft: z.number().nullish(),
+  series: nullableArray(
+    z.object({ date: z.string(), claims: nullableNumber(), redeemed: nullableNumber() }),
+  ),
+  byBranch: nullableArray(
+    z.object({
+      offerId: z.string(),
+      branchId: z.string(),
+      branchName: z.string().nullish(),
+      status: z.string(),
+      claims: nullableNumber(),
+      redeemed: nullableNumber(),
+      revenue: nullableDecimal(),
+    }),
+  ),
+});
+export type DealGroupStats = z.infer<typeof dealGroupStatsSchema>;
+
+export const dealLedgerStatusSchema = z.enum(['claimed', 'redeemed', 'expired']);
+export type DealLedgerStatus = z.infer<typeof dealLedgerStatusSchema>;
+
+/** One claim in `GET /catalogue/offers/ledger`. Contact arrives already masked. */
+export const dealLedgerRowSchema = z.object({
+  id: z.string(),
+  claimCode: z.string(),
+  status: dealLedgerStatusSchema,
+  customerName: z.string(),
+  contact: z.string().nullish(),
+  dealName: z.string(),
+  dealGroupId: z.string(),
+  offerId: z.string(),
+  branchId: z.string(),
+  branchName: z.string().nullish(),
+  amount: decimal(),
+  discountGiven: decimal(),
+  claimedAt: z.string(),
+  redeemedAt: z.string().nullish(),
+  expiresAt: z.string().nullish(),
+  /** Redemption time when redeemed, otherwise claim time. */
+  activityAt: z.string(),
+});
+export type DealLedgerRow = z.infer<typeof dealLedgerRowSchema>;
+
+export const dealLedgerPageSchema = z.object({
+  data: z.array(dealLedgerRowSchema),
+  total: nullableNumber(),
+  page: nullableNumber(1),
+  limit: nullableNumber(20),
+  /** Over every claim matching branch/deal/date, regardless of status. */
+  totals: z.object({
+    claims: nullableNumber(),
+    redeemed: nullableNumber(),
+    expired: nullableNumber(),
+    netRevenue: decimal(),
+    discountGiven: decimal(),
+  }),
+});
+export type DealLedgerPage = z.infer<typeof dealLedgerPageSchema>;
+
+export interface DealLedgerQuery {
+  status?: DealLedgerStatus;
+  branchId?: string;
+  dealGroupId?: string;
+  from?: string;
+  to?: string;
+  page?: number;
+  limit?: number;
+}
 
 /** The admin list answers as a bare array or a `{ data }` envelope. */
 export const businessOffersAdminSchema = z.union([
@@ -349,6 +491,8 @@ export const createCatalogueOfferInputSchema = z.object({
   loyaltyPoints: z.number().min(0).optional(),
   rewardId: z.string().uuid().optional(),
   branchId: z.string().uuid(),
+  /** Publish to several branches at once (one offer each, sharing a `dealGroupId`). */
+  branchIds: z.array(z.string().uuid()).optional(),
   itemIds: z.array(z.string().uuid()).optional(),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
@@ -369,6 +513,8 @@ export const createCatalogueOfferInputSchema = z.object({
 export type CreateCatalogueOfferInput = z.input<typeof createCatalogueOfferInputSchema>;
 
 export const updateCatalogueOfferInputSchema = createCatalogueOfferInputSchema
+  // An update cannot move a deal between branches; the DTO rejects these.
+  .omit({ branchIds: true })
   .partial()
   .extend({
     /** Publish/draft toggle: `active` goes live, `inactive` hides the deal. */
@@ -510,14 +656,18 @@ export const catalogueApi = {
    */
   async listBusinessOffers(
     branchId?: string | null,
-    options: ApiRequestOptions = {},
+    /** `groupBy: 'deal'` collapses a multi-branch deal into one row. */
+    { groupBy, ...options }: ApiRequestOptions & { groupBy?: 'deal' } = {},
   ): Promise<BusinessOfferAdmin[]> {
     try {
       return await requestValidated<BusinessOfferAdmin[]>(
         {
           method: 'GET',
           url: '/catalogue/offers/admin',
-          params: branchId ? { branchId } : {},
+          params: {
+            ...(branchId ? { branchId } : {}),
+            ...(groupBy ? { groupBy } : {}),
+          },
           ...options,
         },
         businessOffersAdminSchema,
@@ -717,6 +867,78 @@ export const catalogueApi = {
         ...options,
       },
       catalogueOfferSchema,
+    );
+  },
+
+  /** Deals hub header numbers, optionally for one branch. */
+  async getOffersSummary(
+    branchId?: string | null,
+    options: ApiRequestOptions = {},
+  ): Promise<OffersSummary> {
+    return requestValidated<OffersSummary>(
+      {
+        method: 'GET',
+        url: '/catalogue/offers/summary',
+        params: branchId ? { branchId } : {},
+        ...options,
+      },
+      offersSummarySchema,
+    );
+  },
+
+  /** Performance of one deal summed across its branches, with a per-branch split. */
+  async getDealGroupStats(
+    dealGroupId: string,
+    options: ApiRequestOptions = {},
+  ): Promise<DealGroupStats> {
+    return requestValidated<DealGroupStats>(
+      { method: 'GET', url: `/catalogue/offers/groups/${dealGroupId}/stats`, ...options },
+      dealGroupStatsSchema,
+    );
+  },
+
+  /** Applies the same edit to every branch of a deal. */
+  async updateOfferGroup(
+    dealGroupId: string,
+    input: UpdateCatalogueOfferInput,
+    options: ApiRequestOptions = {},
+  ): Promise<unknown> {
+    return requestValidated<unknown>(
+      {
+        method: 'PATCH',
+        url: `/catalogue/offers/groups/${dealGroupId}`,
+        data: updateCatalogueOfferInputSchema.parse(input),
+        ...options,
+      },
+      z.unknown(),
+    );
+  },
+
+  /** Pauses (`inactive`) or resumes (`active`) a deal at every branch. */
+  async updateOfferGroupStatus(
+    dealGroupId: string,
+    status: 'active' | 'inactive',
+    options: ApiRequestOptions = {},
+  ): Promise<unknown> {
+    return requestValidated<unknown>(
+      {
+        method: 'PATCH',
+        url: `/catalogue/offers/groups/${dealGroupId}/status`,
+        data: { status },
+        ...options,
+      },
+      z.unknown(),
+    );
+  },
+
+  /** The owner's deal redemption ledger: one row per claim, newest first. */
+  async getDealLedger(
+    query: DealLedgerQuery = {},
+    options: ApiRequestOptions = {},
+  ): Promise<DealLedgerPage> {
+    return requestValidated<DealLedgerPage>(
+      { method: 'GET', url: '/catalogue/offers/ledger', params: query, ...options },
+      dealLedgerPageSchema,
     );
   },
 

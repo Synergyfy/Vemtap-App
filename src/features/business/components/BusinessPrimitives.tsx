@@ -9,6 +9,7 @@ import {
   View,
   type ImageSourcePropType,
   type KeyboardTypeOptions,
+  type RefreshControlProps,
 } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -219,6 +220,8 @@ export interface BusinessScreenLayoutProps {
   footer?: ReactNode;
   contentContainerClassName?: string;
   keyboardShouldPersistTaps?: 'always' | 'never' | 'handled';
+  /** Pull-to-refresh, typically `usePullToRefresh(...).refreshControl`. */
+  refreshControl?: React.ReactElement<RefreshControlProps>;
 }
 
 export function BusinessScreenLayout({
@@ -227,6 +230,7 @@ export function BusinessScreenLayout({
   footer,
   contentContainerClassName,
   keyboardShouldPersistTaps = 'handled',
+  refreshControl,
 }: BusinessScreenLayoutProps) {
   const insets = useSafeAreaInsets();
   return (
@@ -242,6 +246,7 @@ export function BusinessScreenLayout({
         }
         keyboardShouldPersistTaps={keyboardShouldPersistTaps}
         showsVerticalScrollIndicator={false}
+        refreshControl={refreshControl}
       >
         {children}
       </ScrollView>

@@ -76,6 +76,29 @@ export function formatWhen(iso: string, now: Date = new Date()): string {
   return `${MONTHS[date.getMonth()]} ${date.getDate()}, ${time}`;
 }
 
+/** `2026-10-20T…` → "Oct 20". Empty for an unparseable value. */
+export function formatShortDate(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return '';
+  return `${MONTHS[date.getMonth()]} ${date.getDate()}`;
+}
+
+/** `…T14:30…` → "2:30 PM" in the device's time zone. */
+export function formatClock(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return '';
+  const hour = date.getHours();
+  return `${((hour + 11) % 12) + 1}:${String(date.getMinutes()).padStart(2, '0')} ${hour < 12 ? 'AM' : 'PM'}`;
+}
+
+/** Whole local calendar days from `iso` to `now` (0 = same day, 1 = yesterday). */
+export function calendarDaysAgo(iso: string, now: Date = new Date()): number {
+  const date = new Date(iso);
+  const dayStart = (value: Date) =>
+    new Date(value.getFullYear(), value.getMonth(), value.getDate()).getTime();
+  return Math.round((dayStart(now) - dayStart(date)) / 86_400_000);
+}
+
 export function truncate(text: string, maxLength: number): string {
   if (text.length <= maxLength) {
     return text;

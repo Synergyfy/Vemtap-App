@@ -75,7 +75,11 @@ export type BusinessStackParamList = {
    */
   DealsFlashRadar: { layout?: 'compact' } | undefined;
   CampaignsDealsManagement: { layout?: 'discovery' } | undefined;
-  DealDetailsPerformance: undefined;
+  /** One deal across its branches; `dealGroupId` is the shared group (or offer) id. */
+  DealDetailsPerformance: { dealGroupId?: string } | undefined;
+  /** Claims and redemptions; opened pre-filtered from a deal or a branch scope. */
+  DealRedemptionLedger:
+    { dealGroupId?: string; dealName?: string; branchId?: string } | undefined;
   CreateDealLocationAssignment: undefined;
   DealLocationAssignmentPricing: undefined;
   /**

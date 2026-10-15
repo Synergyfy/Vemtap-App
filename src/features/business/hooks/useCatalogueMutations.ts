@@ -6,8 +6,10 @@ import type {
   CatalogueOfferDetail,
 } from '@api/catalogueApi';
 import { useCatalogueDraftStore } from '@store/catalogueDraftStore';
+import { invalidateDeals } from '@features/business/hooks/useDealsManagement';
 import {
   dealDraftToCreateInput,
+  dealDraftToUpdateInput,
   productDraftToCreateInput,
   serviceDraftToCreateInput,
   splitBranchIds,
@@ -200,6 +202,7 @@ export function useReorderCatalogueCategories() {
 }
 
 export function useUpdateOfferStatus() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({
       offerId,
@@ -209,6 +212,7 @@ export function useUpdateOfferStatus() {
       status: 'active' | 'inactive';
     }): Promise<CatalogueOfferDetail> =>
       catalogueApi.updateCatalogueOffer(offerId, { status }),
+    onSuccess: () => invalidateDeals(queryClient),
   });
 }
 
@@ -219,20 +223,25 @@ export function useUpdateOfferStatus() {
  */
 export function usePublishCatalogueOffer() {
   const setPublishedDeal = useCatalogueDraftStore(state => state.setPublishedDeal);
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({
       status,
       itemIds,
       branchId,
+      branchIds,
     }: {
       status: 'active' | 'inactive';
       /** Pre-resolved catalogue item ids when the draft carries none. */
       itemIds?: string[];
       branchId?: string;
+      /** Every branch to publish to; defaults to the draft's branches. */
+      branchIds?: string[];
     }): Promise<CatalogueOfferDetail> => {
       const { deal } = useCatalogueDraftStore.getState();
-      const resolvedBranchId = branchId ?? deal.branchIds[0];
+      const targets = branchIds?.length ? branchIds : deal.branchIds;
+      const resolvedBranchId = branchId ?? targets[0];
       if (!resolvedBranchId) {
         throw new Error('Select at least one branch before launching the deal');
       }
@@ -240,18 +249,49 @@ export function usePublishCatalogueOffer() {
       const input = dealDraftToCreateInput(
         { ...deal, itemIds: itemIds?.length ? itemIds : deal.itemIds },
         resolvedBranchId,
+        targets,
       );
 
-      let created = await catalogueApi.createCatalogueOffer(input);
+      const created = await catalogueApi.createCatalogueOffer(input);
       if (status === 'inactive') {
-        created = await catalogueApi.updateCatalogueOffer(created.id, {
-          status: 'inactive',
-        });
+        // A multi-branch create returns the first branch's offer; drafting
+        // only that row would leave the other branches live.
+        const dealGroupId =
+          typeof created.dealGroupId === 'string' ? created.dealGroupId : created.id;
+        await catalogueApi.updateOfferGroupStatus(dealGroupId, 'inactive');
+        return { ...created, status: 'inactive' };
       }
       return created;
     },
     onSuccess: created => {
       setPublishedDeal(created.id);
+      return invalidateDeals(queryClient);
+    },
+  });
+}
+
+/**
+ * Saves the edit flow: the draft loaded from an existing deal goes to every
+ * branch of that deal through the group endpoint, then the draft is cleared.
+ */
+export function useSaveDealEdit() {
+  const resetDeal = useCatalogueDraftStore(state => state.resetDeal);
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      const { deal } = useCatalogueDraftStore.getState();
+      if (!deal.editingDealGroupId) {
+        throw new Error('No deal is being edited');
+      }
+      await catalogueApi.updateOfferGroup(
+        deal.editingDealGroupId,
+        dealDraftToUpdateInput(deal),
+      );
+    },
+    onSuccess: () => {
+      resetDeal();
+      return invalidateDeals(queryClient);
     },
   });
 }

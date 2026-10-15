@@ -3,12 +3,18 @@ import { NavigationContainer } from '@react-navigation/native';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react-native';
 import { BusinessTabNavigator } from '@navigation/BusinessTabNavigator';
 import { strings } from '@constants/strings';
+import { catalogueApi } from '@api/catalogueApi';
+import { useCatalogueDraftStore } from '@store/catalogueDraftStore';
 
 const shell = strings.businessShell;
 const hub = strings.businessHub;
 const staff = strings.staffDirectory;
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  jest.restoreAllMocks();
+  useCatalogueDraftStore.getState().resetDeal();
+});
 
 /** Mount the shell and land on the Business hub tab. */
 async function openBusinessTab() {
@@ -98,6 +104,24 @@ describe('business management surfaces are reachable', () => {
   });
 
   it('reaches deals management, deal performance and location assignment pricing', async () => {
+    jest.spyOn(catalogueApi, 'listBusinessItems').mockResolvedValue({
+      data: [
+        {
+          id: 'item-1',
+          name: 'Jollof Bowl',
+          price: 6000,
+          status: 'active',
+          itemType: 'product',
+          isSuspended: false,
+        },
+      ],
+      total: 1,
+      page: undefined,
+      limit: undefined,
+      totalPages: undefined,
+      hasNextPage: false,
+      hasPrevPage: false,
+    } as never);
     await expectToReach([module('deals')], strings.centralDeals.headerTitle);
 
     // Deals management -> create a deal -> the four-step wizard (step 1).
@@ -108,26 +132,112 @@ describe('business management surfaces are reachable', () => {
       screen.getAllByText(strings.businessCreateDeal.step1.headerTitle).length,
     ).toBeGreaterThan(0);
 
+    // A new deal needs its item first; the picker opens on its own.
+    await act(async () => {
+      fireEvent.press(await screen.findByLabelText('Jollof Bowl'));
+    });
+    await act(async () => {
+      fireEvent.press(screen.getByText(strings.dealItemPicker.confirm(1)));
+    });
+
     // The wizard steps forward through the shared draft store.
     await act(async () => {
-      fireEvent.press(
-        screen.getByText(strings.businessCreateDeal.step1.continueLabel),
-      );
+      fireEvent.press(screen.getByText(strings.businessCreateDeal.step1.continueLabel));
     });
     expect(screen.getAllByText('Media & Creative').length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Step 2 of 4/).length).toBeGreaterThan(0);
   });
 
-  it('reaches location assignment pricing from a deal', async () => {
-    await expectToReach([module('deals')], strings.centralDeals.headerTitle);
-
-    // A deal card's Edit action opens the location assignment & pricing screen.
-    await act(async () => {
-      fireEvent.press(screen.getAllByText(strings.centralDeals.edit)[0]);
+  it('opens a live deal in the edit wizard from Deals & Promotions', async () => {
+    // Edit used to open the create flow with nothing loaded, so saving made a
+    // duplicate deal. It now loads the deal and walks the wizard in edit mode.
+    jest.spyOn(catalogueApi, 'listBusinessOffers').mockResolvedValue([
+      {
+        id: 'offer-1',
+        dealGroupId: 'group-1',
+        name: 'Lunch Combo',
+        status: 'active',
+        branchId: 'branch-1',
+        pricingType: 'percentage_discount',
+        discountValue: 20,
+        calculatedPrice: 8000,
+        originalPrice: 10000,
+        items: [{ id: 'item-1', name: 'Jollof Bowl', price: 10000 }],
+        branches: [],
+      },
+    ]);
+    jest.spyOn(catalogueApi, 'getOffersSummary').mockResolvedValue({
+      activeDeals: 1,
+      activeOffers: 1,
+      claimsToday: 0,
+      redeemedToday: 0,
+      netRevenue30d: 8000,
+      discountGiven30d: 2000,
     });
-    expect(screen.getAllByText(/Save Location Assignment/).length).toBeGreaterThan(
-      0,
-    );
+
+    await expectToReach([module('deals')], strings.centralDeals.headerTitle);
+    expect(await screen.findByText('Lunch Combo')).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.press(screen.getAllByLabelText(strings.centralDeals.edit)[0]);
+    });
+    expect(
+      screen.getAllByText(strings.businessCreateDeal.step1.headerTitle).length,
+    ).toBeGreaterThan(0);
+    expect(useCatalogueDraftStore.getState().deal.editingDealGroupId).toBe('group-1');
+  });
+
+  it('starts a new deal by choosing its items', async () => {
+    // Create Deal used to open the wizard with no item, which the API rejects.
+    jest.spyOn(catalogueApi, 'listBusinessOffers').mockResolvedValue([]);
+    jest.spyOn(catalogueApi, 'listBusinessItems').mockResolvedValue({
+      data: [
+        {
+          id: 'item-1',
+          name: 'Jollof Bowl',
+          price: '6000.00',
+          status: 'active',
+          itemType: 'product',
+          isSuspended: false,
+        },
+        {
+          id: 'item-2',
+          name: 'Paused Wings',
+          price: 4000,
+          status: 'inactive',
+          itemType: 'product',
+          isSuspended: false,
+        },
+      ],
+      total: 2,
+      page: undefined,
+      limit: undefined,
+      totalPages: undefined,
+      hasNextPage: false,
+      hasPrevPage: false,
+    } as never);
+
+    await expectToReach([module('deals')], strings.centralDeals.headerTitle);
+    await act(async () => {
+      fireEvent.press(screen.getAllByLabelText(strings.centralDeals.createDeal)[0]);
+    });
+
+    // The picker opens on its own and offers only live items.
+    expect(await screen.findByLabelText('Jollof Bowl')).toBeTruthy();
+    expect(screen.queryByLabelText('Paused Wings')).toBeNull();
+
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText('Jollof Bowl'));
+    });
+    await act(async () => {
+      fireEvent.press(screen.getByText(strings.dealItemPicker.confirm(1)));
+    });
+    expect(useCatalogueDraftStore.getState().deal).toMatchObject({
+      itemIds: ['item-1'],
+      sourceProductId: 'item-1',
+      name: 'Jollof Bowl deal',
+      basePrice: 6000,
+    });
   });
 
   it('reaches CRM directory, loyalty programme, staff directory and invite', async () => {

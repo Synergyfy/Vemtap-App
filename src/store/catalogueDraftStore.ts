@@ -78,6 +78,23 @@ export interface DealDraft {
   startDate?: string;
   endDate?: string;
   publishedOfferId?: string;
+  /** Pre-discount price of the bundled items; drives the Step 1 preview. */
+  basePrice?: number;
+  /**
+   * Set when the wizard is editing an existing deal: the group every branch's
+   * offer shares. Step 4 then saves the change to all of them instead of
+   * creating a new deal.
+   */
+  editingDealGroupId?: string;
+  /**
+   * The deal's pricing as loaded. The wizard's slider only expresses a
+   * percentage, so pricing is sent on save only if the owner changed it —
+   * otherwise a fixed-price or bundle deal would be rewritten as a percentage.
+   */
+  editingOriginal?: {
+    strategy: DealDraft['strategy'];
+    discountRate: number;
+  };
 }
 
 const emptyProduct: ProductDraft = {
@@ -138,6 +155,8 @@ export interface CatalogueDraftState {
   resetProduct: () => void;
   resetService: () => void;
   resetDeal: () => void;
+  /** Replaces the deal draft with an existing deal for the edit flow. */
+  loadDealForEdit: (deal: DealDraft) => void;
 }
 
 export const useCatalogueDraftStore = create<CatalogueDraftState>()(set => ({
@@ -159,4 +178,5 @@ export const useCatalogueDraftStore = create<CatalogueDraftState>()(set => ({
   resetProduct: () => set({ product: emptyProduct }),
   resetService: () => set({ service: emptyService }),
   resetDeal: () => set({ deal: emptyDeal }),
+  loadDealForEdit: deal => set({ deal: { ...emptyDeal, ...deal } }),
 }));

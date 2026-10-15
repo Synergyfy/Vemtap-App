@@ -26,6 +26,8 @@ export interface CreateDealStep3ParticipatingBranchesScheduleScreenProps {
   onSave?: (value: CreateDealScheduleTermsValue) => void;
   onAddClaimStep?: () => void;
   onAddTerm?: (term: string) => void;
+  /** Starting claim steps and terms, e.g. an existing deal being edited. */
+  initialValue?: CreateDealScheduleTermsValue;
 }
 
 const initialClaimSteps: ClaimStep[] = [
@@ -60,11 +62,14 @@ export function CreateDealStep3ParticipatingBranchesScheduleScreen({
   onSave,
   onAddClaimStep,
   onAddTerm,
+  initialValue,
 }: CreateDealStep3ParticipatingBranchesScheduleScreenProps) {
   const [claimExpanded, setClaimExpanded] = useState(true);
   const [termsExpanded, setTermsExpanded] = useState(true);
-  const [claimSteps, setClaimSteps] = useState(initialClaimSteps);
-  const [terms, setTerms] = useState(initialTerms);
+  const [claimSteps, setClaimSteps] = useState(
+    initialValue?.claimSteps ?? initialClaimSteps,
+  );
+  const [terms, setTerms] = useState(initialValue?.terms ?? initialTerms);
   const [newTerm, setNewTerm] = useState('');
 
   const addClaimStep = () => {

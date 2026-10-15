@@ -8,8 +8,8 @@ import {
   catalogueCategoryToRow,
   catalogueItemToCentralRow,
   catalogueItemToServiceRow,
-  offerToCentralDealRow,
 } from '@features/business/utils/catalogueHubRowMappers';
+import { offerToCentralDealRow } from '@features/business/utils/dealPresentation';
 
 afterEach(cleanup);
 
@@ -116,11 +116,13 @@ describe('offerToCentralDealRow', () => {
       title: 'Weekend Wings',
       discount: '20% OFF',
       branches: 'Wuse Branch',
-      claims: 100,
-      redeemed: 25,
+      // claimed counts against the voucher cap; redeemed is its own count
+      claims: 25,
+      redeemed: 0,
       percent: 25,
+      meterValue: '25/100',
     });
-    expect(row.schedule).toContain('7/1/2026');
+    expect(row.schedule).toBe('From Jul 1');
   });
 
   test('maps a fixed discount amount offer', () => {

@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, Linking, View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { useRoute, type RouteProp } from '@react-navigation/native';
+import { useFocusEffect, useRoute, type RouteProp } from '@react-navigation/native';
 import { strings } from '@constants/strings';
 import { useTabBarStore } from '@store/tabBarStore';
 import { useHideTabBarOnFocus } from '@navigation/useHideTabBarOnFocus';
@@ -29,6 +29,11 @@ import { BusinessManagementHubScreen } from '@features/business/screens/Business
 import { BusinessProfilePreviewScreen } from '@features/business/screens/BusinessProfilePreviewScreen';
 import { CentralDealsManagementScreen } from '@features/business/screens/CentralDealsManagementScreen';
 import { DealDetailsPerformanceScreen } from '@features/business/screens/DealDetailsPerformanceScreen';
+import {
+  DealRedemptionLedgerScreen,
+  type DealLedgerPeriod,
+  type DealLedgerStatusFilter,
+} from '@features/business/screens/DealRedemptionLedgerScreen';
 import { CreateDealLocationAssignmentScreen } from '@features/business/screens/CreateDealLocationAssignmentScreen';
 import { CreateDealStep1DiscountStrategyScreen } from '@features/business/screens/CreateDealStep1DiscountStrategyScreen';
 import { CreateDealStep2LimitsGiftingRulesScreen } from '@features/business/screens/CreateDealStep2LimitsGiftingRulesScreen';
@@ -78,10 +83,7 @@ import {
   useCreateBranch,
   useUpdateBranch,
 } from '@features/business/hooks/useBranchMutations';
-import {
-  useBusinessHubData,
-  useBusinessOffers,
-} from '@features/business/hooks/useBusinessHubData';
+import { useBusinessHubData } from '@features/business/hooks/useBusinessHubData';
 import {
   useBusinessThreadMessages,
   useBusinessThreads,
@@ -121,9 +123,27 @@ import {
   useUpdateCatalogueCategory,
   useUpdateCatalogueItemDetails,
   useUpdateCatalogueItemStatus,
-  useUpdateOfferStatus,
   useDeleteCatalogueItem,
 } from '@features/business/hooks/useCatalogueMutations';
+import {
+  dealsManagementKeys,
+  useDealGroups,
+  useDealGroupStats,
+  useDealLedger,
+  useDealsSummary,
+  useSetDealGroupStatus,
+  useUpdateDealGroup,
+} from '@features/business/hooks/useDealsManagement';
+import {
+  offerToCentralDealRow,
+  toDealPerformanceView,
+} from '@features/business/utils/dealPresentation';
+import { offerRowToDealDraft } from '@features/business/utils/catalogueDraftMappers';
+import { formatNaira } from '@features/business/data/businessSetupData';
+import { usePullToRefresh } from '@hooks/usePullToRefresh';
+import { useDealReviewLaunch } from '@features/business/hooks/useDealReviewLaunch';
+import { useDealStep1 } from '@features/business/hooks/useDealStep1';
+import { DealItemPickerSheet } from '@features/business/components/DealItemPickerSheet';
 import { CategoryReorderSheet } from '@features/business/components/CategoryReorderSheet';
 import { PromptDialog } from '@features/business/components/PromptDialog';
 import { catalogueApi } from '@api/catalogueApi';
@@ -135,7 +155,6 @@ import {
   catalogueCategoryToRow,
   catalogueItemToCentralRow,
   catalogueItemToServiceRow,
-  offerToCentralDealRow,
 } from '@features/business/utils/catalogueHubRowMappers';
 import { endSession } from '@features/auth/endSession';
 import { navigationRef } from '@navigation/navigationRef';
@@ -631,63 +650,257 @@ function BusinessProfilePreviewRoute() {
   );
 }
 
+const ALL_DEAL_SCOPE = 'all';
+const DEALS_REFRESH_KEYS = [[...dealsManagementKeys.all]];
+
+/**
+ * An edit is abandoned when the owner backs out of the wizard to the deals
+ * list or a deal's detail. Clear it there, so a later "create deal" from any
+ * entry point never updates the old deal instead.
+ */
+function useDiscardUnsavedDealEdit() {
+  const resetDeal = useCatalogueDraftStore(state => state.resetDeal);
+  useFocusEffect(
+    useCallback(() => {
+      if (useCatalogueDraftStore.getState().deal.editingDealGroupId) resetDeal();
+    }, [resetDeal]),
+  );
+}
+
+/** Pause / resume a whole deal (every branch) with the shared toasts. */
+function useDealStatusToggle() {
+  const setStatus = useSetDealGroupStatus();
+  const copy = strings.centralDeals;
+  return (dealGroupId: string, status: 'active' | 'inactive') =>
+    setStatus.mutate(
+      { dealGroupId, status },
+      {
+        onSuccess: () =>
+          showSuccess(status === 'active' ? copy.resumedToast : copy.pausedToast),
+        onError: () => showError(copy.statusError),
+      },
+    );
+}
+
 function CentralDealsManagementRoute() {
   const navigation = useBusinessNavigation();
   const route = useRoute<RouteProp<BusinessTabParamList, 'CentralDealsManagement'>>();
   const layout = route.params?.layout ?? 'hero';
-  const updateOfferStatus = useUpdateOfferStatus();
-  const offers = useBusinessOffers(null);
+  const { branches, isLive: hasLiveBranches } = useActiveBranch();
+  const [scope, setScope] = useState(ALL_DEAL_SCOPE);
+  const branchId = scope === ALL_DEAL_SCOPE ? null : scope;
+  const groups = useDealGroups(branchId);
+  const summary = useDealsSummary(branchId);
+  const toggleStatus = useDealStatusToggle();
+  const refresh = usePullToRefresh(DEALS_REFRESH_KEYS);
+  const loadDealForEdit = useCatalogueDraftStore(state => state.loadDealForEdit);
+  const resetDeal = useCatalogueDraftStore(state => state.resetDeal);
+  useDiscardUnsavedDealEdit();
+
+  const rows = groups.data ?? [];
+  const findRow = (dealGroupId: string) =>
+    rows.find(row => (row.dealGroupId ?? row.id) === dealGroupId);
+  const scopeOptions = hasLiveBranches
+    ? [
+        {
+          label: strings.centralCatalogue.allLocationsCount(branches.length),
+          value: ALL_DEAL_SCOPE,
+        },
+        ...branches.map(branch => ({
+          label: branch.name,
+          value: branch.id,
+          meta: branch.address || undefined,
+        })),
+      ]
+    : undefined;
+
   return (
     <CentralDealsManagementScreen
       layout={layout}
+      scope={scope}
+      scopeOptions={scopeOptions}
+      onChangeScope={setScope}
+      deals={rows.map(row => offerToCentralDealRow(row))}
+      isLoading={groups.isLoading}
+      isError={groups.isError}
+      onRetry={() => groups.refetch()}
+      refreshControl={refresh.refreshControl}
+      netRevenue={summary.data ? formatNaira(summary.data.netRevenue30d ?? 0) : undefined}
       onNotifications={() => navigation.navigate('BusinessNotifications')}
-      onCreateDeal={() => navigation.navigate('CreateDealStep1')}
+      onCreateDeal={() => {
+        resetDeal();
+        navigation.navigate('CreateDealStep1');
+      }}
       onSearch={() => undefined}
       onFilter={() => undefined}
-      onChangeScope={() => undefined}
       // Same target the compact/discovery deals layouts use — the boost wizard has
       // no `dealId` param, so the campaign hub is the honest entry point.
       onBoostDeal={() => navigation.navigate('CampaignsHub')}
-      onEditDeal={() => navigation.navigate('DealLocationAssignmentPricing')}
-      onPauseDeal={dealId => {
-        updateOfferStatus.mutate(
-          { offerId: dealId, status: 'inactive' },
-          {
-            onSuccess: () => showSuccess('Deal paused.'),
-            onError: () => showError('Could not pause the deal.'),
-          },
-        );
+      onEditDeal={dealGroupId => {
+        const row = findRow(dealGroupId);
+        if (!row) return;
+        loadDealForEdit(offerRowToDealDraft(row));
+        navigation.navigate('CreateDealStep1');
       }}
-      onDealActions={dealId => {
-        updateOfferStatus.mutate(
-          { offerId: dealId, status: 'inactive' },
-          {
-            onSuccess: () => showSuccess('Deal paused.'),
-            onError: () => showError('Could not pause the deal.'),
-          },
-        );
-      }}
-      onViewLedger={() => undefined}
-      onOpenDeal={() => navigation.navigate('DealDetailsPerformance')}
-      deals={(offers.data ?? []).map(offerToCentralDealRow)}
+      onPauseDeal={dealGroupId => toggleStatus(dealGroupId, 'inactive')}
+      onResumeDeal={dealGroupId => toggleStatus(dealGroupId, 'active')}
+      onDealActions={dealGroupId => toggleStatus(dealGroupId, 'inactive')}
+      onViewLedger={() =>
+        navigation.navigate('DealRedemptionLedger', branchId ? { branchId } : undefined)
+      }
+      onOpenDeal={dealGroupId =>
+        navigation.navigate('DealDetailsPerformance', { dealGroupId })
+      }
     />
   );
 }
 
 function DealDetailsPerformanceRoute() {
   const navigation = useBusinessNavigation();
+  const route = useRoute<RouteProp<BusinessTabParamList, 'DealDetailsPerformance'>>();
+  const dealGroupId = route.params?.dealGroupId;
+  // Same query (and cache) as the deals list's "all locations" scope.
+  const groups = useDealGroups(null);
+  const stats = useDealGroupStats(dealGroupId);
+  const toggleStatus = useDealStatusToggle();
+  const updateGroup = useUpdateDealGroup();
+  const loadDealForEdit = useCatalogueDraftStore(state => state.loadDealForEdit);
+  const refresh = usePullToRefresh(DEALS_REFRESH_KEYS);
+  useDiscardUnsavedDealEdit();
+  const copy = strings.dealPerformance;
+
+  const row = dealGroupId
+    ? (groups.data ?? []).find(
+        candidate => (candidate.dealGroupId ?? candidate.id) === dealGroupId,
+      )
+    : undefined;
+
+  // Opened without a deal (legacy entry points): show the Stitch prototype.
+  if (!dealGroupId) {
+    return <DealDetailsPerformanceScreen onBack={navigation.goBack} />;
+  }
+
+  const endDeal = () =>
+    Alert.alert(copy.endConfirmTitle, copy.endConfirmBody, [
+      { text: copy.cancel, style: 'cancel' },
+      {
+        text: copy.endConfirm,
+        style: 'destructive',
+        // Ending stops it at every branch and closes its window, so it files
+        // under Expired; vouchers already claimed stay redeemable.
+        onPress: () =>
+          updateGroup.mutate(
+            {
+              dealGroupId,
+              input: { status: 'inactive', endDate: new Date().toISOString() },
+            },
+            {
+              onSuccess: () => showSuccess(copy.endedToast),
+              onError: () => showError(strings.centralDeals.statusError),
+            },
+          ),
+      },
+    ]);
+
   return (
     <DealDetailsPerformanceScreen
       onBack={navigation.goBack}
-      onMoreActions={() => undefined}
-      onBoostDeal={() => undefined}
-      onPause={() => undefined}
-      onEdit={() => undefined}
-      onEnd={() => undefined}
-      onPreviewCustomerView={() => undefined}
-      onEditLocationAssignment={() =>
-        navigation.navigate('DealLocationAssignmentPricing')
+      view={row ? toDealPerformanceView(row, stats.data) : undefined}
+      isLoading={groups.isLoading}
+      isError={groups.isError || (!groups.isLoading && !row)}
+      onRetry={() => groups.refetch()}
+      refreshControl={refresh.refreshControl}
+      onBoostDeal={() => navigation.navigate('CampaignsHub')}
+      onPause={() => toggleStatus(dealGroupId, 'inactive')}
+      onResume={() => toggleStatus(dealGroupId, 'active')}
+      onEdit={() => {
+        if (!row) return;
+        loadDealForEdit(offerRowToDealDraft(row));
+        navigation.navigate('CreateDealStep1');
+      }}
+      onEnd={endDeal}
+      onViewLedger={() =>
+        navigation.navigate('DealRedemptionLedger', {
+          dealGroupId,
+          dealName: row?.name ?? undefined,
+        })
       }
+    />
+  );
+}
+
+const LEDGER_DEFAULT_PERIOD: DealLedgerPeriod = '30';
+
+function DealRedemptionLedgerRoute() {
+  const navigation = useBusinessNavigation();
+  const route = useRoute<RouteProp<BusinessTabParamList, 'DealRedemptionLedger'>>();
+  const { branches, isLive: hasLiveBranches } = useActiveBranch();
+  const [status, setStatus] = useState<DealLedgerStatusFilter>('all');
+  const [period, setPeriod] = useState<DealLedgerPeriod>(LEDGER_DEFAULT_PERIOD);
+  const [branch, setBranch] = useState(route.params?.branchId ?? ALL_DEAL_SCOPE);
+  const [dealGroupId, setDealGroupId] = useState(route.params?.dealGroupId);
+  const refresh = usePullToRefresh(DEALS_REFRESH_KEYS);
+
+  // Days → a stable start-of-day `from`, so the query key does not change
+  // every render.
+  const from =
+    period === 'all'
+      ? undefined
+      : (() => {
+          const start = new Date();
+          start.setHours(0, 0, 0, 0);
+          start.setDate(start.getDate() - (Number(period) - 1));
+          return start.toISOString();
+        })();
+  const ledger = useDealLedger({
+    status: status === 'all' ? undefined : status,
+    branchId: branch === ALL_DEAL_SCOPE ? undefined : branch,
+    dealGroupId,
+    from,
+  });
+  const pages = ledger.data?.pages ?? [];
+  const ledgerCopy = strings.dealLedger;
+
+  return (
+    <DealRedemptionLedgerScreen
+      onBack={navigation.goBack}
+      rows={pages.flatMap(page => page.data)}
+      totals={pages[0]?.totals}
+      status={status}
+      onChangeStatus={setStatus}
+      period={period}
+      onChangePeriod={setPeriod}
+      branch={branch}
+      branchOptions={
+        hasLiveBranches
+          ? [
+              { label: ledgerCopy.allBranches, value: ALL_DEAL_SCOPE },
+              ...branches.map(option => ({ label: option.name, value: option.id })),
+            ]
+          : []
+      }
+      onChangeBranch={setBranch}
+      dealName={dealGroupId ? route.params?.dealName : undefined}
+      onClearDeal={() => setDealGroupId(undefined)}
+      isLoading={ledger.isLoading}
+      isError={ledger.isError}
+      onRetry={() => ledger.refetch()}
+      hasMore={Boolean(ledger.hasNextPage)}
+      isLoadingMore={ledger.isFetchingNextPage}
+      onLoadMore={() => ledger.fetchNextPage()}
+      isFiltered={
+        status !== 'all' ||
+        period !== LEDGER_DEFAULT_PERIOD ||
+        branch !== ALL_DEAL_SCOPE ||
+        Boolean(dealGroupId)
+      }
+      onResetFilters={() => {
+        setStatus('all');
+        setPeriod(LEDGER_DEFAULT_PERIOD);
+        setBranch(ALL_DEAL_SCOPE);
+        setDealGroupId(undefined);
+      }}
+      refreshControl={refresh.refreshControl}
     />
   );
 }
@@ -774,47 +987,54 @@ function DealLocationAssignmentPricingRoute() {
  */
 function CreateDealStep1Route() {
   const navigation = useBusinessNavigation();
-  const setDeal = useCatalogueDraftStore(state => state.setDeal);
+  const step1 = useDealStep1(() => navigation.navigate('CreateDealStep2'));
   return (
-    <CreateDealStep1DiscountStrategyScreen
-      onBack={navigation.goBack}
-      onChangeItem={() => navigation.goBack()}
-      onContinue={value => {
-        setDeal({ strategy: value.strategy, discountRate: value.discountRate });
-        navigation.navigate('CreateDealStep2');
-      }}
-      onSave={value => {
-        setDeal({ strategy: value.strategy, discountRate: value.discountRate });
-        navigation.navigate('CreateDealStep2');
-      }}
-    />
+    <>
+      <CreateDealStep1DiscountStrategyScreen
+        onBack={navigation.goBack}
+        {...step1.screenProps}
+      />
+      <DealItemPickerSheet {...step1.pickerProps} />
+    </>
   );
 }
 
 function CreateDealStep2Route() {
   const navigation = useBusinessNavigation();
   const setDeal = useCatalogueDraftStore(state => state.setDeal);
+  const deal = useCatalogueDraftStore(state => state.deal);
+  const initial = deal.editingDealGroupId
+    ? {
+        totalVouchers: Number(deal.totalVouchers) || 50,
+        claimFrequency: deal.claimFrequency,
+        maxClaimsPerMonth: deal.maxClaimsPerMonth,
+        acceptGifting: deal.acceptGifting,
+      }
+    : undefined;
+  const commit = (value: {
+    totalVouchers: number;
+    claimFrequency: 'once' | 'multiple';
+    maxClaimsPerMonth: number;
+    acceptGifting: boolean;
+  }) => {
+    // Editing writes back only what changed: an uncapped deal must not pick up
+    // the slider's default voucher count just by passing through this step.
+    setDeal({
+      ...(!initial || value.totalVouchers !== initial.totalVouchers
+        ? { totalVouchers: String(value.totalVouchers) }
+        : {}),
+      claimFrequency: value.claimFrequency,
+      maxClaimsPerMonth: value.maxClaimsPerMonth,
+      acceptGifting: value.acceptGifting,
+    });
+    navigation.navigate('CreateDealStep3');
+  };
   return (
     <CreateDealStep2LimitsGiftingRulesScreen
       onBack={navigation.goBack}
-      onContinue={value => {
-        setDeal({
-          totalVouchers: String(value.totalVouchers),
-          claimFrequency: value.claimFrequency,
-          maxClaimsPerMonth: value.maxClaimsPerMonth,
-          acceptGifting: value.acceptGifting,
-        });
-        navigation.navigate('CreateDealStep3');
-      }}
-      onSave={value => {
-        setDeal({
-          totalVouchers: String(value.totalVouchers),
-          claimFrequency: value.claimFrequency,
-          maxClaimsPerMonth: value.maxClaimsPerMonth,
-          acceptGifting: value.acceptGifting,
-        });
-        navigation.navigate('CreateDealStep3');
-      }}
+      initialValue={initial}
+      onContinue={commit}
+      onSave={commit}
     />
   );
 }
@@ -822,9 +1042,15 @@ function CreateDealStep2Route() {
 function CreateDealStep3Route() {
   const navigation = useBusinessNavigation();
   const setDeal = useCatalogueDraftStore(state => state.setDeal);
+  const deal = useCatalogueDraftStore(state => state.deal);
   return (
     <CreateDealStep3ParticipatingBranchesScheduleScreen
       onBack={navigation.goBack}
+      initialValue={
+        deal.editingDealGroupId
+          ? { claimSteps: deal.claimSteps, terms: deal.terms }
+          : undefined
+      }
       onSave={value => {
         setDeal(value);
         navigation.navigate('CreateDealStep4');
@@ -835,38 +1061,24 @@ function CreateDealStep3Route() {
 
 function CreateDealStep4Route() {
   const navigation = useBusinessNavigation();
-  const publish = usePublishCatalogueOffer();
-  const branches = useBusinessBranches();
-
-  const submit = (status: 'active' | 'inactive') => {
-    const { deal } = useCatalogueDraftStore.getState();
-    const all = (branches.data ?? []).map(branch => branch.id);
-    const branchId = deal.branchIds[0] ?? all[0];
-    if (!branchId) {
-      showError('No branches available for this deal.');
-      return;
-    }
-    publish.mutate(
-      { status, branchId },
-      {
-        onSuccess: () => {
-          showSuccess(status === 'active' ? 'Deal launched.' : 'Deal saved as draft.');
-          navigation.navigate('BusinessHubHome');
-        },
-        onError: error =>
-          showError(error instanceof Error ? error.message : 'Could not launch the deal'),
-      },
-    );
-  };
+  const launch = useDealReviewLaunch({
+    onLaunched: () => navigation.navigate('BusinessHubHome'),
+    onDrafted: () => navigation.navigate('BusinessHubHome'),
+    onEdited: () => navigation.navigate('CentralDealsManagement', { layout: 'hero' }),
+  });
 
   return (
     <CreateDealStep4ReviewLaunchScreen
+      mode={launch.isEditing ? 'edit' : 'create'}
+      review={launch.review}
+      phase={launch.phase}
+      isBusy={launch.isBusy}
       onBack={navigation.goBack}
       onEditOffer={() => navigation.navigate('CreateDealStep1')}
       onEditRules={() => navigation.navigate('CreateDealStep2')}
       onEditBranches={() => navigation.navigate('CreateDealStep3')}
-      onLaunch={() => submit('active')}
-      onSaveDraft={() => submit('inactive')}
+      onLaunch={launch.launch}
+      onSaveDraft={launch.saveDraft}
       onSave={() => navigation.navigate('BusinessHubHome')}
     />
   );
@@ -3936,6 +4148,10 @@ function BusinessHubTabNavigator() {
       <HubStack.Screen
         name="DealDetailsPerformance"
         component={DealDetailsPerformanceRoute}
+      />
+      <HubStack.Screen
+        name="DealRedemptionLedger"
+        component={DealRedemptionLedgerRoute}
       />
       <HubStack.Screen
         name="CreateDealLocationAssignment"

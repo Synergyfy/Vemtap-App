@@ -36,18 +36,26 @@ export interface CreateDealStep2LimitsGiftingRulesScreenProps {
   onBack: () => void;
   onContinue?: (value: CreateDealLimitsValue) => void;
   onSave?: (value: CreateDealLimitsValue) => void;
+  /** Starting values, e.g. an existing deal being edited. */
+  initialValue?: Pick<
+    CreateDealLimitsValue,
+    'totalVouchers' | 'claimFrequency' | 'maxClaimsPerMonth' | 'acceptGifting'
+  >;
 }
 
 export function CreateDealStep2LimitsGiftingRulesScreen({
   onBack,
   onContinue,
   onSave,
+  initialValue,
 }: CreateDealStep2LimitsGiftingRulesScreenProps) {
-  const [vouchers, setVouchers] = useState(50);
+  const [vouchers, setVouchers] = useState(initialValue?.totalVouchers ?? 50);
   const [autoPause, setAutoPause] = useState(true);
-  const [claimFrequency, setClaimFrequency] = useState<'once' | 'multiple'>('once');
-  const [maxClaims, setMaxClaims] = useState(2);
-  const [acceptGifting, setAcceptGifting] = useState(true);
+  const [claimFrequency, setClaimFrequency] = useState<'once' | 'multiple'>(
+    initialValue?.claimFrequency ?? 'once',
+  );
+  const [maxClaims, setMaxClaims] = useState(initialValue?.maxClaimsPerMonth ?? 2);
+  const [acceptGifting, setAcceptGifting] = useState(initialValue?.acceptGifting ?? true);
   const [recipientVerification, setRecipientVerification] = useState(true);
   const [socialSharing, setSocialSharing] = useState(true);
   const [dineInWalkIns, setDineInWalkIns] = useState(true);

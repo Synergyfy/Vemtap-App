@@ -65,6 +65,9 @@ import {
   usePublishCatalogueOffer,
   useUpdateCatalogueItemStatus,
 } from '@features/business/hooks/useCatalogueMutations';
+import { useDealReviewLaunch } from '@features/business/hooks/useDealReviewLaunch';
+import { useDealStep1 } from '@features/business/hooks/useDealStep1';
+import { DealItemPickerSheet } from '@features/business/components/DealItemPickerSheet';
 import { businessDashboardApi } from '@api/businessDashboardApi';
 import { showError, showSuccess } from '@components/shared';
 import { mapLocationDraft } from '@features/business/utils/locationDraftMapper';
@@ -952,26 +955,17 @@ function CreateDealAutoImportedRoute() {
 
 function CreateDealStep1Route() {
   const navigation = useFlowNavigation();
-  const setDeal = useCatalogueDraftStore(state => state.setDeal);
+  // Shared with the Business-hub wizard: item picker, real item preview and
+  // the edit-safe discount commit.
+  const step1 = useDealStep1(() => navigation.navigate('CreateDealStep2'));
   return (
-    <CreateDealStep1DiscountStrategyScreen
-      onBack={navigation.goBack}
-      onChangeItem={() => navigation.navigate('ProductPublished')}
-      onContinue={value => {
-        setDeal({
-          strategy: value.strategy,
-          discountRate: value.discountRate,
-        });
-        navigation.navigate('CreateDealStep2');
-      }}
-      onSave={value => {
-        setDeal({
-          strategy: value.strategy,
-          discountRate: value.discountRate,
-        });
-        navigation.navigate('CreateDealStep2');
-      }}
-    />
+    <>
+      <CreateDealStep1DiscountStrategyScreen
+        onBack={navigation.goBack}
+        {...step1.screenProps}
+      />
+      <DealItemPickerSheet {...step1.pickerProps} />
+    </>
   );
 }
 
@@ -1019,38 +1013,25 @@ function CreateDealStep3Route() {
 
 function CreateDealStep4Route() {
   const navigation = useFlowNavigation();
-  const publish = usePublishCatalogueOffer();
-  const branches = useBusinessBranches();
-
-  const submit = (status: 'active' | 'inactive') => {
-    const { deal } = useCatalogueDraftStore.getState();
-    const allBranchIds = (branches.data ?? []).map(branch => branch.id);
-    const branchId = deal.branchIds[0] ?? allBranchIds[0];
-    if (!branchId) {
-      showError('No branches available for this deal.');
-      return;
-    }
-    publish.mutate(
-      { status, branchId },
-      {
-        onSuccess: () => {
-          showSuccess(status === 'active' ? 'Deal launched.' : 'Deal saved as draft.');
-          navigation.navigate('BusinessQrReady');
-        },
-        onError: error =>
-          showError(error instanceof Error ? error.message : 'Could not launch the deal'),
-      },
-    );
-  };
+  // Shared with the Business-hub wizard: live review, every-branch publish,
+  // and a launch state that follows the real request.
+  const launch = useDealReviewLaunch({
+    onLaunched: () => navigation.navigate('BusinessQrReady'),
+    onDrafted: () => navigation.navigate('BusinessQrReady'),
+  });
 
   return (
     <CreateDealStep4ReviewLaunchScreen
+      mode={launch.isEditing ? 'edit' : 'create'}
+      review={launch.review}
+      phase={launch.phase}
+      isBusy={launch.isBusy}
       onBack={navigation.goBack}
       onEditOffer={() => navigation.navigate('CreateDealStep1')}
       onEditRules={() => navigation.navigate('CreateDealStep2')}
       onEditBranches={() => navigation.navigate('CreateDealStep3')}
-      onLaunch={() => submit('active')}
-      onSaveDraft={() => submit('inactive')}
+      onLaunch={launch.launch}
+      onSaveDraft={launch.saveDraft}
       onSave={() => navigation.navigate('BusinessQrReady')}
     />
   );

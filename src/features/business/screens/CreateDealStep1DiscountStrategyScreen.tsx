@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { View } from 'react-native';
+import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { colors } from '@theme/colors';
@@ -33,6 +34,12 @@ const RATE_MINIMUM = 5;
 const RATE_MAXIMUM = 60;
 const RATE_STEP = 5;
 
+/** The nearest value the discount slider can show (5–60%, in steps of 5). */
+export function clampDealRate(rate: number): number {
+  const stepped = Math.round(rate / RATE_STEP) * RATE_STEP;
+  return Math.min(RATE_MAXIMUM, Math.max(RATE_MINIMUM, stepped));
+}
+
 export type CreateDealStrategyId = 'percentage' | 'fixed' | 'combo' | 'tiered';
 
 export type CreateDealDiscountValue = {
@@ -47,6 +54,15 @@ export interface CreateDealStep1DiscountStrategyScreenProps {
   onContinue?: (value: CreateDealDiscountValue) => void;
   onSave?: (value: CreateDealDiscountValue) => void;
   onChangeItem?: () => void;
+  /** Starting values, e.g. an existing deal being edited. */
+  initialValue?: Pick<CreateDealDiscountValue, 'strategy' | 'discountRate'>;
+  /** The real item(s) being discounted; the prototype item is the fallback. */
+  item?: { name: string; image?: string; basePrice: number; meta?: string };
+  /**
+   * No item chosen yet (a deal started from the Deals screen): show a "choose
+   * items" card instead of an item, and hold Continue until one is picked.
+   */
+  needsItem?: boolean;
 }
 
 export function CreateDealStep1DiscountStrategyScreen({
@@ -54,19 +70,27 @@ export function CreateDealStep1DiscountStrategyScreen({
   onContinue,
   onSave,
   onChangeItem,
+  initialValue,
+  item,
+  needsItem = false,
 }: CreateDealStep1DiscountStrategyScreenProps) {
-  const [strategy, setStrategy] = useState<CreateDealStrategyId>('percentage');
-  const [discountRate, setDiscountRate] = useState(20);
+  const [strategy, setStrategy] = useState<CreateDealStrategyId>(
+    initialValue?.strategy ?? 'percentage',
+  );
+  const [discountRate, setDiscountRate] = useState(
+    initialValue ? clampDealRate(initialValue.discountRate) : 20,
+  );
+  const basePrice = item?.basePrice ?? CATALOG_BASE_PRICE;
 
   const value = useMemo<CreateDealDiscountValue>(() => {
-    const memberPrice = Math.round(CATALOG_BASE_PRICE * (1 - discountRate / 100));
+    const memberPrice = Math.round(basePrice * (1 - discountRate / 100));
     return {
       strategy,
       discountRate,
       memberPrice,
-      savings: CATALOG_BASE_PRICE - memberPrice,
+      savings: basePrice - memberPrice,
     };
-  }, [discountRate, strategy]);
+  }, [basePrice, discountRate, strategy]);
 
   return (
     <BusinessScreenLayout
@@ -75,13 +99,14 @@ export function CreateDealStep1DiscountStrategyScreen({
         title: copy.headerTitle,
         onBack,
         actionLabel: 'Save',
-        onAction: () => onSave?.(value),
+        onAction: needsItem ? undefined : () => onSave?.(value),
       }}
       contentContainerClassName="pb-8"
       footer={
         <ServiceFlowFooter
           primaryLabel={copy.continueLabel}
           onPrimary={() => onContinue?.(value)}
+          primaryDisabled={needsItem}
           secondaryLabel={copy.backLabel}
           onSecondary={onBack}
           footnote={<LaunchFootnote text={copy.footnote} />}
@@ -97,46 +122,74 @@ export function CreateDealStep1DiscountStrategyScreen({
         stepNumber={1}
       />
 
-      <View className="mt-3">
-        <ProductStatusSnapshot
-          image={businessMedia.ribeyeThumbnailOne}
-          imageAlt="Woodfire grilled ribeye steak plated with rosemary potatoes"
-          imageBadge="POS Live"
-          className="gap-2 p-3"
-          name={productIdentity.name}
-          statusLabel={copy.syncedLabel}
-          statusVariant="eyebrow"
-          catalogId={copy.branchesPill}
-          price={
-            <View className="mt-1 flex-row flex-wrap items-baseline gap-1.5">
+      {needsItem ? (
+        <View className="mt-3 gap-3 rounded-card bg-surface-tint p-4">
+          <View className="flex-row items-start gap-3">
+            <View className="h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface">
+              <Icon name="inventory" size={20} color={colors.primary} />
+            </View>
+            <View className="min-w-0 flex-1 gap-1">
+              <VemtapText variant="labelMd" className="font-sans-semibold">
+                {copy.chooseItemsTitle}
+              </VemtapText>
               <VemtapText variant="caption" tone="secondary">
-                {copy.catalogBase}
-              </VemtapText>
-              <VemtapText variant="labelMd" className="font-sans-bold">
-                {formatNaira(CATALOG_BASE_PRICE)}
-              </VemtapText>
-              <VemtapText variant="caption" tone="tertiary">
-                {copy.catalogUnit}
+                {copy.chooseItemsBody}
               </VemtapText>
             </View>
-          }
-          footer={
-            <View className="-mx-3 -mb-3 mt-1 flex-row items-center justify-between gap-3 bg-surface-subtle px-3 py-1.5">
-              <View className="min-w-0 min-w-0 flex-1 flex-row items-center gap-1">
-                <Icon name="storefront" size={15} color={colors.primary} />
-                <VemtapText variant="caption" numberOfLines={1}>
-                  {copy.itemLocation}
+          </View>
+          <Button
+            label={copy.chooseItemsCta}
+            labelVariant="labelMd"
+            onPress={onChangeItem}
+            leftIcon={<Icon name="plus" size={18} color={colors.surface} />}
+          />
+        </View>
+      ) : (
+        <View className="mt-3">
+          <ProductStatusSnapshot
+            image={item?.image ? { uri: item.image } : businessMedia.ribeyeThumbnailOne}
+            imageAlt={
+              item?.name ?? 'Woodfire grilled ribeye steak plated with rosemary potatoes'
+            }
+            imageBadge={item ? undefined : 'POS Live'}
+            className="gap-2 p-3"
+            name={item?.name ?? productIdentity.name}
+            statusLabel={copy.syncedLabel}
+            statusVariant="eyebrow"
+            catalogId={item ? undefined : copy.branchesPill}
+            price={
+              <View className="mt-1 flex-row flex-wrap items-baseline gap-1.5">
+                <VemtapText variant="caption" tone="secondary">
+                  {copy.catalogBase}
                 </VemtapText>
+                <VemtapText variant="labelMd" className="font-sans-bold">
+                  {formatNaira(basePrice)}
+                </VemtapText>
+                {item ? null : (
+                  <VemtapText variant="caption" tone="tertiary">
+                    {copy.catalogUnit}
+                  </VemtapText>
+                )}
               </View>
-              <BusinessInlineAction
-                label={copy.changeItem}
-                icon="tune"
-                onPress={onChangeItem}
-              />
-            </View>
-          }
-        />
-      </View>
+            }
+            footer={
+              <View className="-mx-3 -mb-3 mt-1 flex-row items-center justify-between gap-3 bg-surface-subtle px-3 py-1.5">
+                <View className="min-w-0 min-w-0 flex-1 flex-row items-center gap-1">
+                  <Icon name="storefront" size={15} color={colors.primary} />
+                  <VemtapText variant="caption" numberOfLines={1}>
+                    {item ? (item.meta ?? '') : copy.itemLocation}
+                  </VemtapText>
+                </View>
+                <BusinessInlineAction
+                  label={copy.changeItem}
+                  icon="tune"
+                  onPress={onChangeItem}
+                />
+              </View>
+            }
+          />
+        </View>
+      )}
 
       <View className="mt-6">
         <BusinessSectionHeading
@@ -222,7 +275,7 @@ export function CreateDealStep1DiscountStrategyScreen({
                     </View>
                   </View>
 
-                  <PricingMath discountRate={discountRate} />
+                  <PricingMath discountRate={discountRate} basePrice={basePrice} />
                 </View>
               ) : null}
             </BusinessCollapsibleCard>
@@ -244,9 +297,15 @@ export function CreateDealStep1DiscountStrategyScreen({
   );
 }
 
-function PricingMath({ discountRate }: { discountRate: number }) {
-  const savings = Math.round((CATALOG_BASE_PRICE * discountRate) / 100);
-  const dealPrice = CATALOG_BASE_PRICE - savings;
+function PricingMath({
+  discountRate,
+  basePrice,
+}: {
+  discountRate: number;
+  basePrice: number;
+}) {
+  const savings = Math.round((basePrice * discountRate) / 100);
+  const dealPrice = basePrice - savings;
 
   return (
     <View className="gap-2 rounded-xl bg-surface-container-high p-4">
@@ -279,7 +338,7 @@ function PricingMath({ discountRate }: { discountRate: number }) {
             {copy.regularPrice}
           </VemtapText>
           <VemtapText variant="labelMd" tone="tertiary" className="shrink-0 line-through">
-            {formatNaira(CATALOG_BASE_PRICE)}
+            {formatNaira(basePrice)}
           </VemtapText>
         </View>
 

@@ -58,8 +58,11 @@ export interface ServiceFlowFooterProps {
   onPrimary: () => void;
   /** Pass `null` for a CTA without a trailing glyph. */
   primaryRightIcon?: IconName | null;
+  /** Blocks the primary action, e.g. while its request is in flight. */
+  primaryDisabled?: boolean;
   secondaryLabel?: string;
   onSecondary?: () => void;
+  secondaryDisabled?: boolean;
   backLabel?: string;
   onBack?: () => void;
   footnote?: ReactNode;
@@ -69,8 +72,10 @@ export function ServiceFlowFooter({
   primaryLabel,
   onPrimary,
   primaryRightIcon = 'arrowForward',
+  primaryDisabled = false,
   secondaryLabel,
   onSecondary,
+  secondaryDisabled = false,
   backLabel,
   onBack,
   footnote,
@@ -88,6 +93,7 @@ export function ServiceFlowFooter({
             ) : undefined
           }
           onPress={onPrimary}
+          disabled={primaryDisabled}
         />
         {backLabel ? (
           <Button
@@ -102,6 +108,8 @@ export function ServiceFlowFooter({
         {secondaryLabel ? (
           <Pressable
             accessibilityRole="button"
+            accessibilityState={{ disabled: secondaryDisabled }}
+            disabled={secondaryDisabled}
             onPress={onSecondary}
             className="min-h-11 w-full items-center justify-center rounded-field px-3 active:bg-surface-muted"
           >

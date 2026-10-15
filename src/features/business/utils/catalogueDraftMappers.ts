@@ -1,6 +1,8 @@
 import type {
+  BusinessOfferAdmin,
   CreateCatalogueItemInput,
   CreateCatalogueOfferInput,
+  UpdateCatalogueOfferInput,
 } from '@api/catalogueApi';
 import type { DealDraft, ProductDraft, ServiceDraft } from '@store/catalogueDraftStore';
 
@@ -113,6 +115,8 @@ export function dealPricingType(
 export function dealDraftToCreateInput(
   draft: DealDraft,
   branchId: string,
+  /** Every branch to publish to; one offer each, sharing a `dealGroupId`. */
+  branchIds: string[] = [],
 ): CreateCatalogueOfferInput {
   const claimInstructions = draft.claimSteps
     .map(step => step.value.trim())
@@ -136,11 +140,74 @@ export function dealDraftToCreateInput(
     pricingType: dealPricingType(draft.strategy),
     discountValue: draft.discountRate,
     branchId,
+    branchIds: branchIds.length > 1 ? [...new Set(branchIds)] : undefined,
     itemIds: itemIds.length ? itemIds : undefined,
     terms: terms.length ? terms : undefined,
     maxClaimsPerCustomer: draft.claimFrequency === 'once' ? 1 : draft.maxClaimsPerMonth,
     startDate: draft.startDate,
     endDate: draft.endDate,
+  };
+}
+
+/** The wizard strategy an existing deal's pricing type reads back as. */
+export function dealStrategyFor(pricingType?: string | null): DealDraft['strategy'] {
+  return pricingType === 'fixed_discount_amount' ? 'fixed' : 'percentage';
+}
+
+/**
+ * An existing deal (an admin row, ideally `groupBy=deal`) as a wizard draft,
+ * so Edit opens every step on the deal's real values. Claim instructions are
+ * stored inside `terms` on create, so they are split back out here.
+ */
+export function offerRowToDealDraft(row: BusinessOfferAdmin): DealDraft {
+  const claimSteps = (row.claimSteps ?? []).filter(Boolean);
+  const strategy = dealStrategyFor(row.pricingType);
+  const discountRate = row.discountValue ?? 0;
+  const maxClaims = row.maxClaimsPerCustomer ?? 1;
+  const branchIds = (row.branches ?? []).map(branch => branch.branchId);
+  return {
+    itemIds: row.itemIds ?? (row.items ?? []).map(item => item.id),
+    name: row.name ?? '',
+    description: row.description ?? '',
+    mainImage: row.mainImage ?? undefined,
+    strategy,
+    discountRate,
+    totalVouchers: row.quantity != null ? String(row.quantity) : undefined,
+    claimFrequency: maxClaims === 1 ? 'once' : 'multiple',
+    maxClaimsPerMonth: maxClaims,
+    acceptGifting: row.allowGifting ?? false,
+    terms: (row.terms ?? []).filter(term => !claimSteps.includes(term)),
+    claimSteps: claimSteps.map((value, index) => ({ id: `step-${index + 1}`, value })),
+    branchIds: branchIds.length ? branchIds : row.branchId ? [row.branchId] : [],
+    startDate: row.startDate ?? undefined,
+    endDate: row.endDate ?? undefined,
+    basePrice: row.originalPrice ?? undefined,
+    editingDealGroupId: row.dealGroupId ?? row.id,
+    editingOriginal: { strategy, discountRate },
+  };
+}
+
+/**
+ * The edited draft as a group update. Branch fields are left out (an update
+ * cannot move a deal between branches), and pricing is only sent when the
+ * owner changed it, so a fixed-price or bundle deal keeps its pricing type.
+ */
+export function dealDraftToUpdateInput(draft: DealDraft): UpdateCatalogueOfferInput {
+  const {
+    branchId: _branchId,
+    branchIds: _branchIds,
+    pricingType,
+    discountValue,
+    ...rest
+  } = dealDraftToCreateInput(draft, draft.branchIds[0] ?? '');
+  const original = draft.editingOriginal;
+  const pricingChanged =
+    !original ||
+    original.strategy !== draft.strategy ||
+    original.discountRate !== draft.discountRate;
+  return {
+    ...rest,
+    ...(pricingChanged ? { pricingType, discountValue } : {}),
   };
 }
 

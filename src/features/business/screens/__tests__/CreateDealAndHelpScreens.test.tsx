@@ -82,24 +82,122 @@ describe('create deal step 4 review and launch', () => {
     expect(view.getByText(step4.saveDraft)).toBeTruthy();
   });
 
-  it('confirms the launch and reports it after the broadcast delay', async () => {
-    jest.useFakeTimers();
+  it('launches at once and only reads "Published" once the request succeeds', async () => {
+    // It used to run a 1.2s timer and show "Published" before the request was
+    // even sent, so a failed save still looked published.
     const onLaunch = jest.fn();
     const view = await render(
       <CreateDealStep4ReviewLaunchScreen onBack={jest.fn()} onLaunch={onLaunch} />,
     );
-
     await act(async () => {
       fireEvent.press(view.getByText(step4.publishLabel));
     });
-    expect(view.getByText(step4.publishingLabel)).toBeTruthy();
+    expect(onLaunch).toHaveBeenCalledTimes(1);
+    expect(view.queryByText(step4.publishedLabel)).toBeNull();
 
+    await view.rerender(
+      <CreateDealStep4ReviewLaunchScreen
+        onBack={jest.fn()}
+        onLaunch={onLaunch}
+        phase="publishing"
+        isBusy
+      />,
+    );
+    expect(view.getByText(step4.publishingLabel)).toBeTruthy();
     await act(async () => {
-      jest.advanceTimersByTime(1200);
+      fireEvent.press(view.getByText(step4.publishingLabel));
     });
     expect(onLaunch).toHaveBeenCalledTimes(1);
+
+    await view.rerender(
+      <CreateDealStep4ReviewLaunchScreen
+        onBack={jest.fn()}
+        onLaunch={onLaunch}
+        phase="published"
+      />,
+    );
     expect(view.getByText(step4.publishedLabel)).toBeTruthy();
-    jest.useRealTimers();
+  });
+
+  it('renders the live review instead of the prototype', async () => {
+    const view = await render(
+      <CreateDealStep4ReviewLaunchScreen
+        onBack={jest.fn()}
+        review={{
+          title: 'Lunch Combo',
+          body: 'Rice and chicken',
+          discountBadge: '20% OFF',
+          strategySummary: 'Percentage Discount (20% Off)',
+          originalPrice: '₦10,000',
+          memberPrice: '₦8,000',
+          savings: 'Instant savings of ₦2,000',
+          vouchers: '40 Vouchers',
+          vouchersNote: 'Pauses when sold out',
+          claimLimit: '1 Per Customer',
+          claimLimitNote: 'Fair-share rule',
+          giftingTitle: 'Gifting Off',
+          giftingBody: 'Only the customer who claims the voucher can redeem it.',
+          branches: [{ id: 'b1', name: 'Wuse', address: '' }],
+          duration: 'Until Paused',
+          durationNote: 'No end date set',
+          claimSteps: ['Show the voucher'],
+          terms: ['Dine-in only'],
+        }}
+      />,
+    );
+    expect(view.getByText('Lunch Combo')).toBeTruthy();
+    expect(view.getByText('₦8,000')).toBeTruthy();
+    expect(view.getByText('40 Vouchers')).toBeTruthy();
+    expect(view.getByText('Show the voucher')).toBeTruthy();
+    // prototype-only sections are gone
+    expect(view.queryByText('~1,420')).toBeNull();
+    expect(view.queryByText(step4.offerTitle)).toBeNull();
+    expect(view.queryByText(step4.orderTypes)).toBeNull();
+  });
+
+  it('blocks launch and draft while the deal cannot launch', async () => {
+    const onLaunch = jest.fn();
+    const onSaveDraft = jest.fn();
+    const view = await render(
+      <CreateDealStep4ReviewLaunchScreen
+        onBack={jest.fn()}
+        onLaunch={onLaunch}
+        onSaveDraft={onSaveDraft}
+        review={{
+          title: 'Untitled deal',
+          body: '',
+          discountBadge: '20% OFF',
+          strategySummary: 'Percentage Discount (20% Off)',
+          vouchers: 'Unlimited',
+          vouchersNote: 'No cap on claims',
+          claimLimit: '1 Per Customer',
+          claimLimitNote: 'Fair-share rule',
+          giftingTitle: 'Gifting Off',
+          giftingBody: '',
+          branches: [],
+          duration: 'Until Paused',
+          durationNote: 'No end date set',
+          claimSteps: [],
+          terms: [],
+          blocker: step4.noItemBlocker,
+        }}
+      />,
+    );
+    expect(view.getByText(step4.noItemBlocker)).toBeTruthy();
+    await act(async () => {
+      fireEvent.press(view.getByText(step4.publishLabel));
+      fireEvent.press(view.getByText(step4.saveDraft));
+    });
+    expect(onLaunch).not.toHaveBeenCalled();
+    expect(onSaveDraft).not.toHaveBeenCalled();
+  });
+
+  it('reviews an edit with a Save Changes action and no draft option', async () => {
+    const view = await render(
+      <CreateDealStep4ReviewLaunchScreen onBack={jest.fn()} mode="edit" />,
+    );
+    expect(view.getByText(step4.saveChanges)).toBeTruthy();
+    expect(view.queryByText(step4.saveDraft)).toBeNull();
   });
 
   it('saves a draft without launching', async () => {
