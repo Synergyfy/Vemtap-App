@@ -85,7 +85,7 @@ function PersonalHomeRoute() {
       navigation.navigate('PersonalClaimedDealPass', { dealId: deepLink.dealId });
     } else {
       navigation.navigate('PersonalBookingDetail', {
-        bookingNumber: deepLink.bookingNumber,
+        bookingId: deepLink.bookingId,
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -193,8 +193,8 @@ function PersonalOrdersRoute() {
     <OrdersBookingsHubScreen
       onBack={goBack}
       onOpenOrder={orderId => navigation.navigate('PersonalOrderDetail', { orderId })}
-      onOpenBooking={bookingNumber =>
-        navigation.navigate('PersonalBookingDetail', { bookingNumber })
+      onOpenBooking={bookingId =>
+        navigation.navigate('PersonalBookingDetail', { bookingId })
       }
     />
   );
@@ -209,8 +209,9 @@ function PersonalOrderDetailRoute() {
 
 function PersonalBookingDetailRoute() {
   const goBack = useHistoryBack();
+  const route = useRoute<RouteProp<PersonalHubParamList, 'PersonalBookingDetail'>>();
 
-  return <BookingDetailScreen onBack={goBack} />;
+  return <BookingDetailScreen onBack={goBack} bookingId={route.params?.bookingId} />;
 }
 
 function PersonalMoreRoute() {
@@ -273,7 +274,7 @@ function PersonalSavedRoute() {
           params: { code },
         })
       }
-      onOpenService={serviceId => navigation.navigate('ServiceDetail', { serviceId })}
+      onOpenService={target => navigation.navigate('ServiceDetail', target)}
     />
   );
 }

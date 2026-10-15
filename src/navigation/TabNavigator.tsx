@@ -359,14 +359,21 @@ function BusinessProfileTabScreen() {
   // Two sources for one screen: the bundled Discover businesses pass a
   // `business` summary, while a real offer passes the merchant's code and the
   // profile is fetched from `GET /public/businesses/code/:code`.
+  //
+  // Both are forwarded, never one-or-the-other. The feed hands over its summary
+  // as a fallback while that fetch is in flight, but dropping `code` here used
+  // to disable the request outright — the summary was then the only thing the
+  // screen could render, and it carries no `branches[]`, so the booking flow
+  // downstream had no branch to key off.
+  const navigation = useNavigation<DiscoverStackNavigation>();
   const openMessages = useOpenPersonalMessages();
   return (
     <BusinessProfileScreen
-      {...('business' in route.params
-        ? { business: route.params.business }
-        : { code: route.params.code })}
+      code={'code' in route.params ? route.params.code : undefined}
+      business={'business' in route.params ? route.params.business : undefined}
       onBack={goBack}
       onOpenInApp={openMessages}
+      onOpenService={target => navigation.navigate('ServiceDetail', target)}
     />
   );
 }
@@ -596,10 +603,15 @@ function AccountDashboardRoute() {
           params: { deepLink: { screen: 'PersonalClaimedDealPass', dealId: id } },
         });
       } else if (id === 'glow-booking') {
+        // The dashboard row carries a seed id, not a booking UUID, and
+        // `GET /bookings/:id` only resolves UUIDs. Navigate without an id so the
+        // detail screen renders its "not found" state instead of firing a
+        // request that is guaranteed to 400. The real path in is the bookings
+        // list, which passes the id from `GET /me/bookings`.
         navigation.navigate('PersonalHub', {
           screen: 'PersonalHome',
           params: {
-            deepLink: { screen: 'PersonalBookingDetail', bookingNumber: id },
+            deepLink: { screen: 'PersonalBookingDetail' },
           },
         });
       } else {
@@ -646,9 +658,7 @@ function OrdersBookingsRoute() {
     <OrdersBookingsHubScreen
       onBack={goBack}
       onOpenOrder={orderId => navigation.navigate('OrderDetail', { orderId })}
-      onOpenBooking={bookingNumber =>
-        navigation.navigate('BookingDetail', { bookingNumber })
-      }
+      onOpenBooking={bookingId => navigation.navigate('BookingDetail', { bookingId })}
       onNavigate={action => {
         if (action === 'support') navigation.navigate('AccountSettings');
       }}
@@ -792,11 +802,13 @@ function OrderDetailRoute() {
 
 function BookingDetailRoute() {
   const goBack = useHistoryBack();
+  const route = useRoute<RouteProp<AccountStackParamList, 'BookingDetail'>>();
 
   const navigation = useNavigation<AccountStackNavigation>();
   return (
     <BookingDetailScreen
       onBack={goBack}
+      bookingId={route.params?.bookingId}
       onChat={() => navigation.navigate('Conversation', {})}
     />
   );

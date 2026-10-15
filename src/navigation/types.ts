@@ -21,7 +21,7 @@ export type PersonalHubParamList = {
     | {
         deepLink?:
           | { screen: 'PersonalClaimedDealPass'; dealId?: string }
-          | { screen: 'PersonalBookingDetail'; bookingNumber?: string };
+          | { screen: 'PersonalBookingDetail'; bookingId?: string };
       }
     | undefined;
   PersonalMyDeals: undefined;
@@ -38,7 +38,7 @@ export type PersonalHubParamList = {
   PersonalHelpCentre: undefined;
   PersonalClaimedDealPass: { claimId?: string; dealId?: string } | undefined;
   PersonalOrderDetail: { orderId?: string } | undefined;
-  PersonalBookingDetail: { bookingNumber?: string } | undefined;
+  PersonalBookingDetail: { bookingId?: string } | undefined;
   PersonalConversation: { threadId?: string; claimId?: string } | undefined;
 };
 
@@ -352,12 +352,29 @@ export type AuthStackParamList = {
   DiscoveringNearbyDeals: undefined;
 };
 
+/**
+ * One customer booking, carried across the schedule → checkout → confirmed
+ * screens.
+ *
+ * Only `branchId`/`itemId`/`date`/`time`/`notes` are what `POST /bookings`
+ * accepts, so those are the fields that actually reach the server. The
+ * remaining three are display context the entry point already had (a saved
+ * row's merchant, a profile's branch name) and that nothing else can fetch —
+ * `GET /public/catalogue/items/:id` returns the item alone, with no branch or
+ * business attached. They are never used to compute a price or a slot.
+ */
 export type BookingDraft = {
-  addons: string[];
-  therapistId: string;
+  /** Catalogue item uuid — `CreateBookingDto.itemId`. */
+  itemId?: string;
+  /** Branch uuid the slot belongs to; required to book. */
+  branchId?: string;
+  /** `YYYY-MM-DD`; empty until the date strip picks one. */
   date: string;
+  /** `HH:mm` on the server's 30-minute grid; empty until a slot is picked. */
   time: string;
   notes: string;
+  businessName?: string;
+  branchName?: string;
 };
 
 export type AppStackParamList = {
@@ -414,10 +431,26 @@ export type AppStackParamList = {
         orderNumber: string;
       }
     | undefined;
-  ServiceDetail: { serviceId: string };
+  /**
+   * One catalogue service.
+   *
+   * `serviceId` is the item uuid (`GET /public/catalogue/items/:id` runs it
+   * through ParseUUIDPipe, so the bundled Glow & Serenity mock ids resolve to
+   * a 400 rather than a profile). `branchId` is what makes the screen bookable
+   * — availability and `POST /bookings` are both branch-scoped — and the two
+   * names are display context carried from the list that opened it, since the
+   * item payload has neither.
+   */
+  ServiceDetail: {
+    serviceId: string;
+    branchId?: string;
+    businessName?: string;
+    branchName?: string;
+  };
   ScheduleAppointment: { draft?: BookingDraft } | undefined;
   BookingCheckout: { draft?: BookingDraft } | undefined;
-  BookingConfirmed: { draft?: BookingDraft } | undefined;
+  /** `bookingId` is the uuid of the booking the checkout just created. */
+  BookingConfirmed: { draft?: BookingDraft; bookingId?: string } | undefined;
 };
 
 export type HomeStackParamList = {
@@ -471,7 +504,7 @@ export type AccountStackParamList = {
   EditProfile: undefined;
   ClaimedDealPass: { claimId?: string; dealId?: string } | undefined;
   OrderDetail: { orderId?: string } | undefined;
-  BookingDetail: { bookingNumber?: string } | undefined;
+  BookingDetail: { bookingId?: string } | undefined;
   Conversation: { threadId?: string; claimId?: string } | undefined;
 };
 

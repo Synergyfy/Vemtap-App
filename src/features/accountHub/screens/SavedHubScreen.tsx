@@ -371,7 +371,17 @@ export interface SavedHubScreenProps {
   onOpenDeal?: (offerId: string) => void;
   /** Receives the business 9-character code for the public profile route. */
   onOpenBusiness?: (businessCode: string) => void;
-  onOpenService?: (serviceId: string) => void;
+  /**
+   * Opens a saved service. Branch context rides along because availability and
+   * `POST /bookings` are branch-scoped; the names are display context the list
+   * already has.
+   */
+  onOpenService?: (target: {
+    serviceId: string;
+    branchId?: string;
+    businessName?: string;
+    branchName?: string;
+  }) => void;
 }
 
 export function SavedHubScreen({
@@ -515,7 +525,14 @@ export function SavedHubScreen({
                     key={row.id}
                     item={row.item}
                     onToggleSave={() => toggleSave(row)}
-                    onOpen={() => onOpenService?.(row.item.id)}
+                    onOpen={() =>
+                      onOpenService?.({
+                        serviceId: row.item.id,
+                        branchId: row.item.branchId ?? undefined,
+                        businessName: row.item.businessName,
+                        branchName: row.item.branchName ?? undefined,
+                      })
+                    }
                   />
                 );
               default:

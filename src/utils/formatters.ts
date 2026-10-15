@@ -82,3 +82,58 @@ export function truncate(text: string, maxLength: number): string {
   }
   return `${text.slice(0, maxLength - 1)}…`;
 }
+
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+/**
+ * Booking slots arrive as separate `date` (`2026-10-20`) and `time` (`14:30`)
+ * fields, so they need their own pair of formatters.
+ *
+ * All four below are hand-built like `formatWhen`, never `toLocale*`: an
+ * `en-NG` device locale renders day-first on a 24h clock ("Tue, 20 Oct •
+ * 14:30"), which drifts from the slot copy everywhere it is shown and makes
+ * the output untestable. Unparseable input is returned as sent — a malformed
+ * server value should read as itself, not as "Invalid Date".
+ */
+function parseSlotDate(date: string): Date {
+  return new Date(`${date}T00:00:00`);
+}
+
+function parseSlotTime(time: string): Date {
+  return new Date(`2000-01-01T${time.length === 5 ? `${time}:00` : time}`);
+}
+
+/** `14:30` → "2:30 PM". */
+export function formatSlotClock(time: string): string {
+  const parsed = parseSlotTime(time);
+  if (Number.isNaN(parsed.getTime())) return time;
+  const hour = parsed.getHours();
+  return `${((hour + 11) % 12) + 1}:${String(parsed.getMinutes()).padStart(2, '0')} ${
+    hour < 12 ? 'AM' : 'PM'
+  }`;
+}
+
+/** `2026-10-20` → "Tue, Oct 20". */
+export function formatSlotDay(date: string): string {
+  const parsed = parseSlotDate(date);
+  if (Number.isNaN(parsed.getTime())) return date;
+  return `${WEEKDAYS[parsed.getDay()]}, ${MONTHS[parsed.getMonth()]} ${parsed.getDate()}`;
+}
+
+/** `2026-10-20` → "Tue, Oct 20, 2026". */
+export function formatSlotDate(date: string): string {
+  const parsed = parseSlotDate(date);
+  if (Number.isNaN(parsed.getTime())) return date;
+  return `${formatSlotDay(date)}, ${parsed.getFullYear()}`;
+}
+
+/** `2026-10-20` + `14:30` → "Tue, Oct 20 • 2:30 PM". */
+export function formatBookingSlot(date: string, time: string): string {
+  if (
+    Number.isNaN(parseSlotDate(date).getTime()) ||
+    Number.isNaN(parseSlotTime(time).getTime())
+  ) {
+    return `${date} ${time}`;
+  }
+  return `${formatSlotDay(date)} • ${formatSlotClock(time)}`;
+}

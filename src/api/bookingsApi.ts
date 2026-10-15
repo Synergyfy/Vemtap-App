@@ -201,6 +201,22 @@ export const bookingsApi = {
   },
 
   /**
+   * One booking by id.
+   *
+   * Accessible to the booking customer or staff of the owning business (403
+   * otherwise). `id` must be the booking **UUID** — the human-facing
+   * `reference` (e.g. `BK-4F2A9C`) is not routable, because the route runs
+   * through `ParseUUIDPipe` and a non-UUID returns 400. `GET /me/bookings`
+   * hands out both, so always pass `.id` through to here.
+   */
+  async getBookingById(id: string, options: ApiRequestOptions = {}): Promise<Booking> {
+    return requestValidated<Booking>(
+      { method: 'GET', url: `/bookings/${id}`, ...options },
+      bookingSchema,
+    );
+  },
+
+  /**
    * Cancel a booking the customer made. Only `booked`/`confirmed` bookings can
    * be cancelled; a completed one returns 400.
    */

@@ -35,6 +35,15 @@ export type LiveBusinessProfile = BusinessProfileSummary & {
   whatsappNumber?: string;
   openingHours?: PublicBusinessDetail['openingHours'];
   isVerified?: boolean;
+  /**
+   * The merchant's branches, in the payload's order. Carried through rather
+   * than dropped because every catalogue and booking endpoint is keyed by a
+   * branch **uuid**, which nothing else on the profile exposes: without this,
+   * a profile that had just resolved its own branch list had no way to hand
+   * one to the flow that books into it. Absent on the Discover feed summaries,
+   * which are built from the list endpoint and do not include branches.
+   */
+  branches?: PublicBusinessDetail['branches'];
 };
 
 export function mapPublicBusinessToProfile(
@@ -74,6 +83,9 @@ export function mapPublicBusinessToProfile(
     website: business.website ?? undefined,
     whatsappNumber: business.whatsappNumber ?? undefined,
     openingHours: business.openingHours ?? undefined,
+    // Already an array after zod (`.default([])`), so the nullish shape only
+    // matters for the bundled summaries, which never set the field at all.
+    branches: business.branches,
     isVerified: business.isVerified,
     branchCode: business.uniqueCode ?? '',
   };

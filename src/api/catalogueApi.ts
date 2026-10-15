@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import { nullableFlag, nullableNumber } from '@api/schemaHelpers';
 import { requestValidated } from '@api/client';
+import { ApiError } from '@api/ApiError';
+import { isPlanError } from '@api/planErrors';
 import type { ApiRequestOptions } from '@app-types/api';
 
 /**
@@ -160,6 +162,18 @@ export const businessCatalogueFeedSchema = z.union([
 export type BusinessCatalogueFeed = z.infer<typeof businessCatalogueFeedSchema>;
 
 /**
+ * `PATCH /catalogue/items/:id` echoes the saved entity, but deployed builds
+ * drop every column the request did not send (the DTO's own `undefined`
+ * fields are assigned over the entity), so a name/price edit comes back
+ * without `status` or `itemType`. The write itself succeeded, so only `id` is
+ * required here; callers refetch the list for the full row.
+ */
+export const updatedCatalogueItemSchema = businessCatalogueItemSchema
+  .partial()
+  .required({ id: true });
+export type UpdatedCatalogueItem = z.infer<typeof updatedCatalogueItemSchema>;
+
+/**
  * `GET /branches` is bearer-secured and has no documented response DTO. The
  * read fields below are taken from the branch entity as exposed by
  * `UpdateBranchDto`, with only id and name required, so an added or renamed
@@ -279,13 +293,42 @@ export const createCatalogueItemInputSchema = z.object({
 });
 export type CreateCatalogueItemInput = z.input<typeof createCatalogueItemInputSchema>;
 
-export const updateCatalogueItemInputSchema = createCatalogueItemInputSchema
-  .partial()
-  .extend({
-    status: catalogueItemStatusSchema.optional(),
-    branchId: z.string().uuid().optional(),
-    applyGlobally: z.boolean().optional(),
-  });
+export const updateCatalogueItemInputSchema = z.object({
+  name: z.string().min(1).optional(),
+  price: z.number().optional(),
+  shortDescription: z.string().optional(),
+  description: z.string().min(1).optional(),
+  mainImage: z.string().optional(),
+  galleryImages: z.array(z.string()).optional(),
+  categoryId: z.string().uuid().optional(),
+  sku: z.string().optional(),
+  itemType: z.enum(['product', 'service']).optional(),
+  discountType: z.enum(['percentage', 'fixed', 'none']).optional(),
+  discountValue: z.number().optional(),
+  stockQuantity: z.number().optional(),
+  barcode: z.string().optional(),
+  costPrice: z.number().optional(),
+  minStock: z.number().optional(),
+  brand: z.string().optional(),
+  weight: z.string().optional(),
+  dimensions: z.string().optional(),
+  variants: z.array(z.object({ type: z.string(), value: z.string() })).optional(),
+  tags: z.array(z.string()).optional(),
+  allowBackOrder: z.boolean().optional(),
+  loyaltyPoints: z.number().optional(),
+  enableLoyaltyPoints: z.boolean().optional(),
+  priceType: z.enum(['fixed', 'starting_from', 'range', 'contact']).optional(),
+  priceRangeMin: z.number().optional(),
+  priceRangeMax: z.number().optional(),
+  duration: z.string().optional(),
+  serviceMode: z.enum(['location', 'customer', 'online', 'flexible']).optional(),
+  isBookable: z.boolean().optional(),
+  bookingMethod: z.enum(['vemtap', 'call', 'whatsapp', 'external']).optional(),
+  externalBookingLink: z.string().optional(),
+  branchId: z.string().uuid().optional(),
+  status: catalogueItemStatusSchema.optional(),
+  applyGlobally: z.boolean().optional(),
+});
 export type UpdateCatalogueItemInput = z.input<typeof updateCatalogueItemInputSchema>;
 
 export const createCatalogueOfferInputSchema = z.object({
@@ -370,9 +413,18 @@ export const catalogueApi = {
     );
   },
 
+  /**
+   * One item, by uuid.
+   *
+   * `branchId` is optional because the endpoint treats it as such — without it
+   * the item comes back at list price rather than branch price, so the booking
+   * flow always sends it. The item payload carries `businessId` but no branch,
+   * which is why the branch uuid travels in the route instead of being
+   * recovered here.
+   */
   async getItem(
     itemId: string,
-    branchId: string,
+    branchId?: string,
     options: ApiRequestOptions = {},
   ): Promise<CatalogueItem> {
     return requestValidated<CatalogueItem>(
@@ -413,11 +465,11 @@ export const catalogueApi = {
   },
 
   /**
-   * The owner's own catalogue: every item at the branch, any status. Requires a
-   * business-owner token.
+   * The owner's own catalogue: every item at the branch (or every branch when
+   * `branchId` is omitted), any status. Requires a business-owner token.
    */
   async listBusinessItems(
-    branchId: string,
+    branchId: string | undefined,
     query: Omit<CatalogueItemQuery, 'categoryId'> & { categoryId?: string } = {},
     options: ApiRequestOptions = {},
   ): Promise<BusinessCatalogueFeed> {
@@ -425,8 +477,9 @@ export const catalogueApi = {
       {
         method: 'GET',
         url: '/catalogue/items',
-        // branchId is a required query parameter here, not part of the path.
-        params: { ...query, branchId },
+        // branchId is a query parameter, not part of the path; omitting it
+        // returns every branch's items for the business.
+        params: branchId ? { ...query, branchId } : { ...query },
         ...options,
       },
       businessCatalogueFeedSchema,
@@ -459,15 +512,24 @@ export const catalogueApi = {
     branchId?: string | null,
     options: ApiRequestOptions = {},
   ): Promise<BusinessOfferAdmin[]> {
-    return requestValidated<BusinessOfferAdmin[]>(
-      {
-        method: 'GET',
-        url: '/catalogue/offers/admin',
-        params: branchId ? { branchId } : {},
-        ...options,
-      },
-      businessOffersAdminSchema,
-    );
+    try {
+      return await requestValidated<BusinessOfferAdmin[]>(
+        {
+          method: 'GET',
+          url: '/catalogue/offers/admin',
+          params: branchId ? { branchId } : {},
+          ...options,
+        },
+        businessOffersAdminSchema,
+      );
+    } catch (error) {
+      if (error instanceof ApiError && isPlanError(error)) {
+        // Plan does not include offers/deals — return empty array so the UI
+        // can show the plan‑limit CTA instead of a schema‑mismatch crash.
+        return [];
+      }
+      throw error;
+    }
   },
 
   /**
@@ -518,15 +580,15 @@ export const catalogueApi = {
     itemId: string,
     input: UpdateCatalogueItemInput,
     options: ApiRequestOptions = {},
-  ): Promise<BusinessCatalogueItem> {
-    return requestValidated<BusinessCatalogueItem>(
+  ): Promise<UpdatedCatalogueItem> {
+    return requestValidated<UpdatedCatalogueItem>(
       {
         method: 'PATCH',
         url: `/catalogue/items/${itemId}`,
         data: updateCatalogueItemInputSchema.parse(input),
         ...options,
       },
-      businessCatalogueItemSchema,
+      updatedCatalogueItemSchema,
     );
   },
 

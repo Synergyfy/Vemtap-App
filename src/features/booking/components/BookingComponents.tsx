@@ -8,15 +8,9 @@ import { strings } from '@constants/strings';
 import { colors } from '@theme/colors';
 import { navbarBottomShadow } from '@theme/shadows';
 import { PriceBreakdown } from '@features/order/components/OrderComponents';
-import {
-  bookingDates,
-  bookingTherapists,
-  bookingTimes,
-  formatBookingNaira,
-  type BookingAddon,
-  type BookingDate,
-  type BookingTherapist,
-} from '@features/booking/bookingData';
+import type { BookingSlot } from '@api/bookingsApi';
+import { formatSlotClock } from '@utils/formatters';
+import { formatBookingNaira } from '@features/booking/bookingData';
 
 cssInterop(Image, { className: 'style' });
 cssInterop(Pressable, { className: 'style' });
@@ -106,81 +100,89 @@ export function BookingProgress({ step }: { step: 1 | 2 }) {
   );
 }
 
-export function MerchantSummary() {
+/**
+ * The merchant a booking is with.
+ *
+ * Takes the names rather than rendering copy: nothing on the booking or the
+ * item payload carries a rating, a review count or an address, and the old
+ * hard-coded "4.9 • 96 reviews" row is exactly the kind of design number this
+ * screen is being cleaned of. The image tile is an icon for the same reason —
+ * the branch logo only arrives on the profile endpoint.
+ */
+export function MerchantSummary({
+  businessName,
+  branchName,
+}: {
+  businessName?: string;
+  branchName?: string;
+}) {
   return (
     <View className="flex-row items-start gap-3 rounded-card bg-surface-container-low p-4 shadow-sm">
       <View className="min-w-0 flex-1 gap-1">
-        <View className="flex-row items-center gap-1">
-          <Icon name="star" size={15} color={colors.badgeDiscountText} />
-          <VemtapText variant="caption" className="font-sans-semibold text-text">
-            {strings.booking.rating}
-          </VemtapText>
-          <VemtapText variant="caption" tone="secondary">
-            {strings.booking.reviews}
-          </VemtapText>
-        </View>
-        <VemtapText variant="bodyLg" className="font-sans-bold text-text">
-          {strings.booking.merchant}
+        <VemtapText variant="caption" tone="secondary" className="uppercase">
+          {strings.bookingFlow.business}
         </VemtapText>
-        <VemtapText variant="caption" tone="secondary" numberOfLines={2}>
-          {strings.booking.merchantLocation}
+        <VemtapText
+          variant="bodyLg"
+          className="font-sans-bold text-text"
+          numberOfLines={2}
+        >
+          {businessName ?? strings.bookingFlow.unnamedBusiness}
         </VemtapText>
-        <View className="mt-1 self-start rounded-field border border-border bg-surface px-2.5 py-1">
-          <VemtapText variant="labelSm" className="font-sans-semibold text-primary">
-            {strings.booking.viewPolicy}
+        {branchName ? (
+          <VemtapText variant="caption" tone="secondary" numberOfLines={2}>
+            {branchName}
           </VemtapText>
-        </View>
+        ) : null}
       </View>
-      <Image
-        source={{ uri: strings.booking.interiorImage }}
-        className="h-20 w-20 shrink-0 rounded-field bg-surface-container"
-        resizeMode="cover"
-      />
+      <View className="h-14 w-14 shrink-0 items-center justify-center rounded-field bg-surface">
+        <Icon name="storefront" size={24} color={colors.primary} />
+      </View>
     </View>
   );
 }
 
 export interface ServiceSummaryProps {
-  count: number;
-  duration: string;
+  /** The one catalogue item being booked. */
+  name: string;
+  /** The item's own duration label, e.g. "1.5 hours"; omit when it has none. */
+  duration?: string | null;
+  /** Branch price of that item. */
   subtotal: number;
 }
 
-export function ServiceSummary({ count, duration, subtotal }: ServiceSummaryProps) {
+export function ServiceSummary({ name, duration, subtotal }: ServiceSummaryProps) {
   return (
     <View className="gap-2.5">
       <View className="flex-row flex-wrap items-center justify-between gap-2">
         <View className="flex-row items-center gap-2">
           <Icon name="spa" size={20} color={colors.primary} />
           <VemtapText variant="labelMd" className="font-sans-bold uppercase text-text">
-            {strings.booking.selectedServices(count)}
+            {strings.bookingFlow.service}
           </VemtapText>
         </View>
-        <View className="rounded-full bg-surface-tint px-2 py-0.5">
-          <VemtapText variant="caption" className="font-sans-semibold text-primary">
-            {duration}
-          </VemtapText>
+        {duration ? (
+          <View className="rounded-full bg-surface-tint px-2 py-0.5">
+            <VemtapText variant="caption" className="font-sans-semibold text-primary">
+              {duration}
+            </VemtapText>
+          </View>
+        ) : null}
+      </View>
+      <View className="flex-row items-center justify-between gap-3 rounded-field border border-border bg-surface-muted p-3">
+        <VemtapText
+          variant="labelMd"
+          className="min-w-0 flex-1 font-sans-semibold text-text"
+        >
+          {name}
+        </VemtapText>
+        <View className="h-6 w-6 shrink-0 items-center justify-center rounded-full bg-success-container">
+          <Icon name="check" size={15} color={colors.badgeDiscountText} />
         </View>
       </View>
-      {[strings.booking.facialLine, strings.booking.manicureLine].map(line => (
-        <View
-          key={line}
-          className="flex-row items-center justify-between gap-3 rounded-field border border-border bg-surface-muted p-3"
-        >
-          <VemtapText
-            variant="labelMd"
-            className="min-w-0 flex-1 font-sans-semibold text-text"
-          >
-            {line}
-          </VemtapText>
-          <View className="h-6 w-6 shrink-0 items-center justify-center rounded-full bg-success-container">
-            <Icon name="check" size={15} color={colors.badgeDiscountText} />
-          </View>
-        </View>
-      ))}
       <View className="flex-row items-center justify-between border-t border-dashed border-border pt-2">
         <VemtapText variant="caption" tone="secondary">
-          {strings.booking.sessionSubtotal}
+          {strings.bookingFlow.sessionSubtotal}
         </VemtapText>
         <VemtapText variant="labelMd" className="font-sans-bold text-text">
           {formatBookingNaira(subtotal)}
@@ -190,146 +192,30 @@ export function ServiceSummary({ count, duration, subtotal }: ServiceSummaryProp
   );
 }
 
-export function AddonSelection({
-  addons,
-  selected,
-  onToggle,
-}: {
-  addons: BookingAddon[];
-  selected: string[];
-  onToggle: (id: string) => void;
-}) {
-  return (
-    <View className="gap-2 rounded-card bg-surface p-4 shadow-sm">
-      <View className="flex-row items-center justify-between gap-3">
-        <VemtapText variant="headingSm" className="text-text">
-          {strings.booking.enhanceSession}
-        </VemtapText>
-        <VemtapText variant="caption" tone="secondary">
-          {strings.common.optional}
-        </VemtapText>
-      </View>
-      <VemtapText variant="caption" tone="secondary">
-        {strings.booking.enhanceBody}
-      </VemtapText>
-      {addons.map(addon => {
-        const isSelected = selected.includes(addon.id);
-        return (
-          <Pressable
-            key={addon.id}
-            accessibilityRole="checkbox"
-            accessibilityState={{ checked: isSelected }}
-            onPress={() => onToggle(addon.id)}
-            className={`flex-row items-start gap-3 rounded-field p-3 ${
-              isSelected ? 'bg-surface-tint' : 'bg-surface-container-low'
-            }`}
-          >
-            <View
-              className={`mt-0.5 h-5 w-5 shrink-0 items-center justify-center rounded ${
-                isSelected ? 'bg-primary' : 'border border-outline-variant'
-              }`}
-            >
-              {isSelected ? <Icon name="check" size={14} color={colors.surface} /> : null}
-            </View>
-            <View className="min-w-0 flex-1">
-              <VemtapText variant="labelMd" className="font-sans-semibold text-text">
-                {addon.name}
-              </VemtapText>
-              <VemtapText variant="caption" tone="secondary" className="mt-0.5">
-                {addon.description}
-              </VemtapText>
-            </View>
-            <VemtapText
-              variant="labelMd"
-              className="shrink-0 font-sans-semibold text-primary"
-            >
-              {`+${formatBookingNaira(addon.price)}`}
-            </VemtapText>
-          </Pressable>
-        );
-      })}
-    </View>
-  );
-}
-
-export function TherapistCards({
-  selected,
-  onSelect,
-}: {
-  selected: string;
-  onSelect: (id: string) => void;
-}) {
-  return (
-    <View className="flex-row gap-3">
-      {bookingTherapists.map(therapist => (
-        <TherapistCard
-          key={therapist.id}
-          therapist={therapist}
-          selected={therapist.id === selected}
-          onPress={() => onSelect(therapist.id)}
-        />
-      ))}
-    </View>
-  );
-}
-
-function TherapistCard({
-  therapist,
-  selected,
-  onPress,
-}: {
-  therapist: BookingTherapist;
-  selected: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      accessibilityRole="radio"
-      accessibilityState={{ checked: selected }}
-      onPress={onPress}
-      className={`min-w-[126px] flex-1 items-center rounded-card p-3 ${
-        selected ? 'bg-surface-tint' : 'bg-surface-muted'
-      }`}
-    >
-      {therapist.image ? (
-        <Image
-          source={{ uri: therapist.image }}
-          className="mb-2 h-12 w-12 rounded-full bg-surface-container-high"
-          resizeMode="cover"
-        />
-      ) : (
-        <View className="mb-2 h-12 w-12 items-center justify-center rounded-full bg-primary shadow-sm">
-          <Icon name="bolt" size={24} color={colors.surface} />
-        </View>
-      )}
-      <VemtapText
-        variant="labelMd"
-        className="w-full text-center font-sans-semibold text-text"
-        numberOfLines={1}
-      >
-        {therapist.name}
-      </VemtapText>
-      <VemtapText
-        variant="caption"
-        className={`w-full text-center ${selected ? 'text-primary' : 'text-text-secondary'}`}
-        numberOfLines={1}
-      >
-        {therapist.role}
-      </VemtapText>
-    </Pressable>
-  );
+/** One day on the strip, generated from today rather than bundled copy. */
+export interface BookingDateOption {
+  /** `YYYY-MM-DD`, the value `GET /bookings/availability` takes. */
+  id: string;
+  /** Weekday, e.g. "Tue". */
+  day: string;
+  /** Day of month, e.g. "20". */
+  date: string;
+  /** Short note under the day, e.g. the month or "Today". */
+  status?: string;
 }
 
 export function BookingDateStrip({
+  dates,
   selected,
   onSelect,
 }: {
+  dates: BookingDateOption[];
   selected: string;
   onSelect: (id: string) => void;
 }) {
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} className="gap-2.5">
-      {bookingDates.map(date => (
+      {dates.map(date => (
         <DateCard
           key={date.id}
           date={date}
@@ -346,7 +232,7 @@ function DateCard({
   selected,
   onPress,
 }: {
-  date: BookingDate;
+  date: BookingDateOption;
   selected: boolean;
   onPress: () => void;
 }) {
@@ -380,31 +266,41 @@ function DateCard({
   );
 }
 
+/**
+ * The server's slots for the day, straight off `GET /bookings/availability`.
+ *
+ * `available: false` renders exactly like the old `status: 'booked'` cells —
+ * struck through and disabled — because that is what the API reports: a slot
+ * someone else already holds, or one the branch cannot fit the service into.
+ */
 export function TimeSlotGrid({
+  slots,
   selected,
   onSelect,
 }: {
+  slots: BookingSlot[];
   selected: string;
   onSelect: (id: string) => void;
 }) {
   return (
     <View className="flex-row flex-wrap gap-2.5">
-      {bookingTimes.map(slot => {
-        const isSelected = slot.id === selected;
+      {slots.map(slot => {
+        const isSelected = slot.time === selected;
+        const isTaken = !slot.available;
         return (
           <Pressable
-            key={slot.id}
+            key={slot.time}
             accessibilityRole="radio"
             accessibilityState={{
               checked: isSelected,
-              disabled: slot.status === 'booked',
+              disabled: isTaken,
             }}
-            disabled={slot.status === 'booked'}
-            onPress={() => onSelect(slot.id)}
+            disabled={isTaken}
+            onPress={() => onSelect(slot.time)}
             className={`min-w-[30%] flex-1 items-center rounded-card border px-2 py-2.5 ${
               isSelected
                 ? 'border-primary bg-primary-container'
-                : slot.status === 'booked'
+                : isTaken
                   ? 'border-border bg-surface-container opacity-60'
                   : 'border-border bg-surface'
             }`}
@@ -412,19 +308,15 @@ export function TimeSlotGrid({
             <VemtapText
               variant="labelMd"
               className={`${isSelected ? 'text-inverse' : 'text-text'} ${
-                slot.status === 'booked' ? 'line-through' : ''
+                isTaken ? 'line-through' : ''
               }`}
             >
-              {slot.time}
+              {formatSlotClock(slot.time)}
             </VemtapText>
             <VemtapText
-              className={`font-sans-semibold text-micro ${isSelected ? 'text-inverse' : 'text-success'}`}
+              className={`font-sans-semibold text-micro ${isSelected ? 'text-inverse' : isTaken ? 'text-text-tertiary' : 'text-success'}`}
             >
-              {slot.status === 'booked'
-                ? strings.booking.booked
-                : slot.status === 'selected'
-                  ? strings.booking.selected
-                  : strings.booking.available}
+              {isTaken ? strings.booking.booked : strings.booking.available}
             </VemtapText>
           </Pressable>
         );
@@ -433,13 +325,33 @@ export function TimeSlotGrid({
   );
 }
 
+/**
+ * Who the booking is for.
+ *
+ * Rows render only when the signed-in account actually has that value, so a
+ * customer with no phone on file sees two rows, not a placeholder. The old
+ * reminder switch is gone with the fabricated client card it sat under: no
+ * endpoint stores a reminder preference, and a toggle that does nothing reads
+ * as a setting.
+ */
 export function ClientInformation({
-  reminders,
-  onRemindersChange,
+  name,
+  phone,
+  email,
 }: {
-  reminders: boolean;
-  onRemindersChange: (value: boolean) => void;
+  name?: string;
+  phone?: string;
+  email?: string;
 }) {
+  const rows: [string, string | undefined][] = [
+    [strings.booking.fullName, name],
+    [strings.booking.phoneNumber, phone],
+    [strings.booking.email, email],
+  ];
+  const present = rows.filter(([, value]) => Boolean(value?.trim()));
+
+  if (present.length === 0) return null;
+
   return (
     <View className="gap-3 rounded-card border border-border bg-surface p-4 shadow-sm">
       <View className="flex-row items-center justify-between border-b border-border pb-2">
@@ -449,15 +361,8 @@ export function ClientInformation({
             {strings.booking.clientInformation}
           </VemtapText>
         </View>
-        <VemtapText variant="caption" className="font-sans-medium text-primary">
-          {strings.booking.edit}
-        </VemtapText>
       </View>
-      {[
-        [strings.booking.fullName, strings.booking.clientName],
-        [strings.booking.phoneNumber, strings.booking.clientPhone],
-        [strings.booking.email, strings.booking.clientEmail],
-      ].map(([label, value]) => (
+      {present.map(([label, value]) => (
         <View key={label} className="flex-row items-start justify-between gap-3">
           <VemtapText variant="caption" tone="secondary">
             {label}
@@ -470,65 +375,58 @@ export function ClientInformation({
           </VemtapText>
         </View>
       ))}
-      <View className="flex-row items-center justify-between gap-3 border-t border-border pt-3">
-        <View className="min-w-0 flex-row items-center gap-2">
-          <Icon name="notifications" size={20} color={colors.textSecondary} />
-          <VemtapText variant="caption" className="font-sans-medium text-text">
-            {strings.booking.reminderLabel}
-          </VemtapText>
-        </View>
-        <Switch
-          accessibilityLabel={strings.booking.reminderLabel}
-          value={reminders}
-          onValueChange={onRemindersChange}
-          trackColor={{
-            false: colors.surfaceContainerHighest,
-            true: colors.primaryFixed,
-          }}
-          thumbColor={reminders ? colors.primary : colors.outline}
-        />
-      </View>
     </View>
   );
 }
 
-export function BookingBreakdown({
-  subtotal,
-  discount,
-  total,
-}: {
-  subtotal: number;
-  discount: number;
-  total: number;
-}) {
+/**
+ * Price rows for a booking.
+ *
+ * No discount row: `POST /bookings` has no price of its own and no deal
+ * attaches to a booking, so a "VEMTAP Deal Discount" line would be a number
+ * nobody charged. The subtotal is the branch's price for the item and the
+ * total is that same figure, which is the honest pair to show.
+ */
+export function BookingBreakdown({ subtotal }: { subtotal: number }) {
   return (
     <PriceBreakdown
       rows={[
         { label: strings.booking.servicesSubtotal, value: formatBookingNaira(subtotal) },
-        {
-          label: strings.booking.dealDiscount,
-          value: `-${formatBookingNaira(discount)}`,
-          tone: 'success',
-        },
-        {
-          label: strings.booking.bookingFee,
-          value: strings.booking.zeroFee,
-          tone: 'success',
-        },
       ]}
-      totalLabel={strings.booking.totalAtSalon}
-      totalCaption={strings.booking.dueAfter}
-      total={formatBookingNaira(total)}
+      totalLabel={strings.bookingFlow.totalPayable}
+      totalCaption={strings.bookingFlow.payAtBranch}
+      total={formatBookingNaira(subtotal)}
     />
   );
 }
 
-export function ArrivalGuide() {
+/**
+ * What to do on arrival.
+ *
+ * Generic steps with the booking's own reference filled in — the previous
+ * copy named a specific street address, a valet service, a voucher code and a
+ * "discounted total", none of which any endpoint reports about a booking.
+ */
+export function ArrivalGuide({ reference }: { reference?: string | null }) {
   const items = [
-    { title: strings.booking.arriveTitle, body: strings.booking.arriveBody },
-    { title: strings.booking.voucherTitle, body: strings.booking.voucherBody },
-    { title: strings.booking.settleTitle, body: strings.booking.settleBody },
-    { title: strings.booking.relaxTitle, body: strings.booking.relaxBody },
+    {
+      title: strings.bookingFlow.arriveTitle,
+      body: strings.bookingFlow.arriveBody,
+    },
+    {
+      title: strings.bookingFlow.referenceTitle,
+      body: reference
+        ? strings.bookingFlow.referenceBody(reference)
+        : strings.bookingFlow.referenceBodyPending,
+    },
+    {
+      title: strings.bookingFlow.settleTitle,
+      body: strings.bookingFlow.settleBody,
+    },
+    {
+      title: strings.bookingFlow.enjoyTitle,
+      body: strings.bookingFlow.enjoyBody,
+    },
   ];
   return (
     <View className="gap-3">
@@ -560,15 +458,23 @@ export function ArrivalGuide() {
   );
 }
 
-export function BookingSuccessState() {
+/**
+ * The success header. Shows the reference the server assigned, so the customer
+ * can quote it at reception; a booking without one (the field is nullable)
+ * shows the status chip instead of an empty "Booking Ref:".
+ */
+export function BookingSuccessState({
+  reference,
+  businessName,
+}: {
+  reference?: string | null;
+  businessName?: string | null;
+}) {
   return (
     <View className="items-center gap-3">
       <View className="h-24 w-24 items-center justify-center rounded-full bg-surface-tint">
         <View className="h-20 w-20 items-center justify-center rounded-full bg-success-container shadow-sm">
           <Icon name="checkCircle" size={36} color={colors.badgeDiscountText} />
-        </View>
-        <View className="absolute right-1 top-0 rounded-full bg-primary px-2 py-0.5">
-          <VemtapText className="text-inverse font-sans-bold text-micro">VIP</VemtapText>
         </View>
       </View>
       <VemtapText
@@ -578,22 +484,23 @@ export function BookingSuccessState() {
       >
         {strings.booking.confirmedTitle}
       </VemtapText>
-      <View className="flex-row items-center gap-1">
-        <VemtapText variant="headingSm" tone="secondary">
-          {strings.booking.merchant}
+      {businessName ? (
+        <VemtapText variant="headingSm" tone="secondary" numberOfLines={1}>
+          {businessName}
         </VemtapText>
-        <Icon name="verified" size={18} color={colors.primary} />
-      </View>
+      ) : null}
       <View className="flex-row flex-wrap justify-center gap-2">
-        <View className="rounded-full bg-surface-container px-3 py-1">
-          <VemtapText variant="labelSm" tone="secondary">
-            {strings.booking.reference}{' '}
-            <VemtapText className="text-text">#GS-44218</VemtapText>
-          </VemtapText>
-        </View>
+        {reference ? (
+          <View className="rounded-full bg-surface-container px-3 py-1">
+            <VemtapText variant="labelSm" tone="secondary">
+              {strings.booking.reference}{' '}
+              <VemtapText className="text-text">{reference}</VemtapText>
+            </VemtapText>
+          </View>
+        ) : null}
         <View className="rounded-full bg-success-container px-3 py-1">
           <VemtapText variant="labelSm" className="font-sans-medium text-success">
-            {strings.booking.bookedNow}
+            {strings.bookingFlow.awaitingConfirmation}
           </VemtapText>
         </View>
       </View>

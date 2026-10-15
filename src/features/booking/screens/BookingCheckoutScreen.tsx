@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback } from 'react';
 import { Image, ScrollView, Share, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -6,15 +6,19 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
+import { EmptyState } from '@components/shared/EmptyState';
+import { ErrorState } from '@components/shared/ErrorState';
+import { LoadingState } from '@components/shared/LoadingState';
 import { strings } from '@constants/strings';
 import { colors } from '@theme/colors';
 import type { AppStackParamList } from '@navigation/types';
 import { OrderLineItem } from '@features/order/components/OrderComponents';
-import {
-  bookingAddons,
-  bookingImages,
-  formatBookingNaira,
-} from '@features/booking/bookingData';
+import { useAuthStore } from '@store/authStore';
+import { toAmount } from '@features/deals/utils/offerMapper';
+import { formatBookingNaira } from '@features/booking/bookingData';
+import { useServiceItem } from '@features/booking/hooks/useServiceItem';
+import { useCreateBooking } from '@features/booking/hooks/useBookings';
+import { formatSlotDate, formatSlotClock } from '@utils/formatters';
 import {
   BookingBreakdown,
   BookingHeader,
@@ -28,44 +32,99 @@ cssInterop(View, { className: 'style' });
 
 type Props = NativeStackScreenProps<AppStackParamList, 'BookingCheckout'>;
 
-const defaultDraft = {
-  addons: ['led-light-therapy'] as string[],
-  therapistId: 'any',
-  date: '2024-10-17',
-  time: '1:15',
-  notes: '',
-};
-
+/**
+ * Review the slot, then `POST /bookings`.
+ *
+ * This is the screen that used to "confirm" a booking without calling
+ * anything: it now owns the mutation, and the confirmation screen is only
+ * reached with the id of a booking the server actually created. A rejected
+ * slot (400 — taken between the availability check and this call) stays on
+ * this screen with the reason, so the customer can go back and pick another
+ * time instead of seeing a success page for a booking that does not exist.
+ */
 export function BookingCheckoutScreen({ route, navigation }: Props) {
   const insets = useSafeAreaInsets();
-  const draft = route.params?.draft ?? defaultDraft;
-  const [reminders, setReminders] = useState(true);
-  const selectedAddons = bookingAddons.filter(addon => draft.addons.includes(addon.id));
-  const subtotal = 25000 + selectedAddons.reduce((sum, addon) => sum + addon.price, 0);
-  const discount = Math.min(5000, subtotal);
-  const total = subtotal - discount;
-  const treatmentCount = 2 + selectedAddons.length;
+  const draft = route.params?.draft;
+  const { branchId, itemId, date, time, notes, businessName, branchName } = draft ?? {};
+
+  const user = useAuthStore(state => state.user);
+  const item = useServiceItem(itemId, branchId);
+  const create = useCreateBooking();
 
   const help = useCallback(() => {
-    Share.share({ message: 'VEMTAP booking support: https://vemtap.com/help' }).catch(
+    Share.share({ message: strings.bookingFlow.shareSlot(item.data?.name) }).catch(
       () => undefined,
     );
-  }, []);
+  }, [item.data?.name]);
 
   const confirm = useCallback(() => {
-    navigation.replace('BookingConfirmed', { draft });
-  }, [draft, navigation]);
+    if (!branchId) return;
+    create.mutate(
+      { branchId, itemId, date: date ?? '', time: time ?? '', notes },
+      {
+        onSuccess: created => {
+          navigation.replace('BookingConfirmed', { draft, bookingId: created.id });
+        },
+      },
+    );
+  }, [branchId, create, date, draft, itemId, navigation, notes, time]);
+
+  const header = (
+    <SafeAreaView edges={['top']} className="bg-surface">
+      <BookingHeader
+        title={strings.booking.checkoutHeader}
+        onBack={navigation.goBack}
+        action="help"
+        onAction={help}
+      />
+    </SafeAreaView>
+  );
+
+  if (!branchId || !date || !time) {
+    return (
+      <View className="flex-1 bg-surface">
+        {header}
+        <EmptyState
+          title={strings.bookingFlow.checkoutIncompleteTitle}
+          description={strings.bookingFlow.checkoutIncompleteBody}
+          onAction={navigation.goBack}
+          actionLabel={strings.bookingFlow.checkoutIncompleteAction}
+        />
+      </View>
+    );
+  }
+
+  if (item.isLoading) {
+    return (
+      <View className="flex-1 bg-surface">
+        {header}
+        <LoadingState label={strings.bookingFlow.loadingService} />
+      </View>
+    );
+  }
+
+  if (item.isError || !item.data) {
+    return (
+      <View className="flex-1 bg-surface">
+        {header}
+        <ErrorState
+          title={strings.bookingFlow.serviceErrorTitle}
+          description={strings.bookingFlow.serviceErrorBody}
+          onRetry={() => item.refetch()}
+        />
+      </View>
+    );
+  }
+
+  const service = item.data;
+  const total = toAmount(service.price) ?? 0;
+  const clientName =
+    [user?.firstName, user?.lastName].filter(Boolean).join(' ') || undefined;
+  const error = create.error as Error | null;
 
   return (
     <View className="flex-1 bg-surface">
-      <SafeAreaView edges={['top']} className="bg-surface">
-        <BookingHeader
-          title={strings.booking.checkoutHeader}
-          onBack={navigation.goBack}
-          action="help"
-          onAction={help}
-        />
-      </SafeAreaView>
+      {header}
       <BookingProgress step={2} />
 
       <View className="gap-4 bg-surface px-4 py-4">
@@ -85,24 +144,19 @@ export function BookingCheckoutScreen({ route, navigation }: Props) {
           showsVerticalScrollIndicator={false}
         >
           <View className="flex-row items-center gap-3 rounded-card border border-border bg-surface-muted p-3.5">
-            <Image
-              source={{ uri: bookingImages.reception }}
-              className="h-16 w-16 shrink-0 rounded-field border border-border bg-surface-container"
-              resizeMode="cover"
-            />
+            <View className="h-16 w-16 shrink-0 items-center justify-center rounded-field border border-border bg-surface-container">
+              <Icon name="storefront" size={26} color={colors.primary} />
+            </View>
             <View className="min-w-0 flex-1">
-              <View className="flex-row items-center gap-1">
-                <VemtapText
-                  variant="labelMd"
-                  className="min-w-0 flex-1 font-sans-semibold text-text"
-                  numberOfLines={1}
-                >
-                  {strings.booking.merchant}
-                </VemtapText>
-                <Icon name="verified" size={18} color={colors.primary} />
-              </View>
+              <VemtapText
+                variant="labelMd"
+                className="min-w-0 flex-1 font-sans-semibold text-text"
+                numberOfLines={1}
+              >
+                {businessName ?? strings.bookingFlow.business}
+              </VemtapText>
               <VemtapText variant="caption" tone="secondary" numberOfLines={2}>
-                {strings.booking.checkoutAddress}
+                {branchName ?? strings.bookingFlow.branch}
               </VemtapText>
             </View>
           </View>
@@ -117,23 +171,23 @@ export function BookingCheckoutScreen({ route, navigation }: Props) {
             <DetailRow
               icon="schedule"
               label={strings.booking.dateTime}
-              value={strings.booking.appointmentDateTime}
-              caption={strings.booking.appointmentDuration}
+              value={`${formatSlotDate(date)} • ${formatSlotClock(time)}`}
             />
-            <DetailRow
-              icon="person"
-              label={strings.booking.specialistAssigned}
-              value={`Amara K. (${strings.booking.amaraRole})`}
-            />
+            {service.duration ? (
+              <DetailRow
+                icon="hourglass"
+                label={strings.bookingFlow.duration}
+                value={service.duration}
+              />
+            ) : null}
             <DetailRow
               icon="storefront"
-              label={strings.booking.bookingType}
-              value={strings.booking.bookingTypeValue}
-              success
+              label={strings.bookingFlow.branch}
+              value={branchName ?? strings.bookingFlow.atTheBranch}
             />
           </View>
 
-          <ClientInformation reminders={reminders} onRemindersChange={setReminders} />
+          <ClientInformation name={clientName} phone={user?.phone} email={user?.email} />
 
           <View className="gap-3 rounded-card border border-border bg-surface p-4 shadow-sm">
             <View className="flex-row items-center justify-between gap-3 border-b border-border pb-2">
@@ -143,71 +197,14 @@ export function BookingCheckoutScreen({ route, navigation }: Props) {
                   {strings.booking.selectedServicesCheckout}
                 </VemtapText>
               </View>
-              <VemtapText variant="caption" tone="secondary">
-                {treatmentCount} Treatments
-              </VemtapText>
             </View>
             <OrderLineItem
-              image={{ uri: bookingImages.hero }}
-              title={strings.booking.facialLine}
-              description="60 mins"
-              price={formatBookingNaira(16000)}
-              quantity={1}
-              badge={strings.booking.voucherEligible}
-            />
-            <View className="h-px bg-surface-container" />
-            <OrderLineItem
-              image={{ uri: bookingImages.interior }}
-              title={strings.booking.manicureLine}
-              description="45 mins"
-              price={formatBookingNaira(9000)}
+              image={service.mainImage ? { uri: service.mainImage } : undefined}
+              title={service.name}
+              description={service.duration ?? ''}
+              price={formatBookingNaira(total)}
               quantity={1}
             />
-            {selectedAddons.map(addon => (
-              <View
-                key={addon.id}
-                className="-mx-4 flex-row items-start justify-between gap-3 border-t border-dashed border-border bg-surface-muted px-4 py-2"
-              >
-                <View className="min-w-0 flex-1">
-                  <VemtapText variant="caption" className="font-sans-semibold text-text">
-                    +{' '}
-                    {addon.id === 'led-light-therapy'
-                      ? strings.booking.ledBooster
-                      : addon.name}
-                  </VemtapText>
-                  <VemtapText variant="caption" tone="secondary">
-                    {addon.id === 'led-light-therapy'
-                      ? strings.booking.ledBoosterMeta
-                      : addon.description}
-                  </VemtapText>
-                </View>
-                <VemtapText
-                  variant="labelMd"
-                  className="shrink-0 font-sans-medium text-text"
-                >
-                  {formatBookingNaira(addon.price)}
-                </VemtapText>
-              </View>
-            ))}
-          </View>
-
-          <View className="flex-row items-center justify-between gap-3 rounded-card border border-success-container bg-success-container p-3.5 shadow-sm">
-            <View className="min-w-0 flex-row items-center gap-3">
-              <View className="h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface shadow-sm">
-                <Icon name="loyalty" size={20} color={colors.badgeDiscountText} />
-              </View>
-              <View className="min-w-0">
-                <VemtapText variant="labelMd" className="font-sans-semibold text-success">
-                  {strings.booking.dealApplied}
-                </VemtapText>
-                <VemtapText variant="caption" tone="secondary">
-                  {strings.booking.voucherCode} • {strings.booking.lifetimeTap}
-                </VemtapText>
-              </View>
-            </View>
-            <VemtapText variant="headingSm" className="shrink-0 text-success">
-              -{formatBookingNaira(discount)}
-            </VemtapText>
           </View>
 
           <View className="gap-3 rounded-card border border-border-active bg-surface-tint p-4">
@@ -215,45 +212,39 @@ export function BookingCheckoutScreen({ route, navigation }: Props) {
               <Icon name="shield" size={22} color={colors.primary} />
               <View className="min-w-0 flex-1">
                 <VemtapText variant="labelMd" className="font-sans-semibold text-text">
-                  {strings.booking.payDirectlyTitle}
+                  {strings.bookingFlow.payTitle}
                 </VemtapText>
                 <VemtapText
                   variant="caption"
                   tone="secondary"
                   className="mt-1 leading-relaxed"
                 >
-                  {strings.booking.payDirectlyBody(formatBookingNaira(total))}
+                  {strings.bookingFlow.payBody(formatBookingNaira(total))}
                 </VemtapText>
               </View>
             </View>
-            <View className="flex-row flex-wrap gap-2">
-              {[
-                strings.booking.posReady,
-                strings.booking.cashAccepted,
-                strings.booking.bankTransfer,
-              ].map(label => (
-                <View
-                  key={label}
-                  className="rounded-full border border-border bg-surface px-2.5 py-1"
-                >
-                  <VemtapText className="text-micro" tone="secondary">
-                    {label}
-                  </VemtapText>
-                </View>
-              ))}
-            </View>
           </View>
 
-          <BookingBreakdown subtotal={subtotal} discount={discount} total={total} />
+          <BookingBreakdown subtotal={total} />
+
           <View className="flex-row items-start gap-2.5 rounded-field border border-border bg-surface-muted p-3">
             <Icon name="info" size={18} color={colors.textSecondary} />
             <VemtapText variant="caption" tone="secondary" className="min-w-0 flex-1">
-              <VemtapText className="font-sans-semibold text-text">
-                {strings.booking.clientInformation}:{' '}
-              </VemtapText>
-              {strings.booking.cancellationCheckout}
+              {strings.bookingFlow.cancelAnytimeBody}
             </VemtapText>
           </View>
+
+          {error ? (
+            <View
+              accessibilityRole="alert"
+              className="flex-row items-start gap-2.5 rounded-field bg-error-container p-3"
+            >
+              <Icon name="info" size={18} color={colors.error} />
+              <VemtapText variant="caption" tone="error" className="min-w-0 flex-1">
+                {strings.bookingFlow.createFailed}
+              </VemtapText>
+            </View>
+          ) : null}
         </ScrollView>
       </View>
 
@@ -264,25 +255,22 @@ export function BookingCheckoutScreen({ route, navigation }: Props) {
         <View className="mb-2 flex-row items-center justify-between gap-3">
           <View>
             <VemtapText variant="caption" tone="secondary">
-              {strings.booking.payAtReception}
+              {strings.bookingFlow.payAtBranch}
             </VemtapText>
             <VemtapText variant="headingSm" className="text-primary-container">
               {formatBookingNaira(total)}
             </VemtapText>
           </View>
-          <View className="rounded-full border border-success-container bg-success-container px-2 py-0.5">
-            <VemtapText variant="caption" className="font-sans-medium text-success">
-              {strings.booking.youSave(formatBookingNaira(discount))}
-            </VemtapText>
-          </View>
         </View>
         <Button
-          label={strings.booking.confirmBooking}
+          label={strings.bookingFlow.confirmBooking}
+          loading={create.isPending}
+          disabled={create.isPending}
           rightIcon={<Icon name="arrowForward" size={20} color={colors.surface} />}
           onPress={confirm}
         />
         <VemtapText tone="tertiary" className="mt-2 text-center text-micro">
-          {strings.booking.bookingTerms}
+          {strings.bookingFlow.terms}
         </VemtapText>
       </View>
     </View>
@@ -293,41 +281,23 @@ function DetailRow({
   icon,
   label,
   value,
-  caption,
-  success = false,
 }: {
-  icon: 'schedule' | 'person' | 'storefront';
+  icon: 'schedule' | 'hourglass' | 'storefront';
   label: string;
   value: string;
-  caption?: string;
-  success?: boolean;
 }) {
   return (
     <View className="flex-row items-start gap-3">
-      <View
-        className={`mt-0.5 h-8 w-8 shrink-0 items-center justify-center rounded-field ${success ? 'bg-success-container' : 'bg-surface-tint'}`}
-      >
-        <Icon
-          name={icon}
-          size={18}
-          color={success ? colors.badgeDiscountText : colors.primary}
-        />
+      <View className="mt-0.5 h-8 w-8 shrink-0 items-center justify-center rounded-field bg-surface-tint">
+        <Icon name={icon} size={18} color={colors.primary} />
       </View>
       <View className="min-w-0 flex-1">
         <VemtapText variant="caption" tone="secondary">
           {label}
         </VemtapText>
-        <VemtapText
-          variant="labelMd"
-          className={success ? 'text-text' : 'font-sans-semibold text-text'}
-        >
+        <VemtapText variant="labelMd" className="font-sans-semibold text-text">
           {value}
         </VemtapText>
-        {caption ? (
-          <VemtapText variant="caption" tone="secondary">
-            {caption}
-          </VemtapText>
-        ) : null}
       </View>
     </View>
   );

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Image,
   Linking,
@@ -19,7 +19,11 @@ import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { LocationMapView } from '@components/shared/LocationMapView';
 import { LoadingState } from '@components/shared/LoadingState';
+import { ErrorState } from '@components/shared/ErrorState';
 import { EmptyState } from '@components/shared/EmptyState';
+import { useBranchCatalogue } from '@features/business/hooks/useBranchCatalogue';
+import { toAmount } from '@features/deals/utils/offerMapper';
+import { formatCurrency } from '@utils/formatters';
 import { usePublicBusinessProfile } from '@features/discover/hooks/usePublicBusinessProfile';
 import {
   useBusinessSaveStatus,
@@ -50,6 +54,19 @@ export interface BusinessProfileScreenProps {
   onBack: () => void;
   onOpenDeal?: (dealId: string) => void;
   onOpenInApp?: () => void;
+  /**
+   * Opens a branch's service. Carries the branch uuid because availability and
+   * `POST /bookings` are branch-scoped, and the two names because the service
+   * payload has neither — they come from this profile, which already resolved
+   * them. Only offered when the profile has branches; a bundled summary has
+   * none, and there is nothing to book into.
+   */
+  onOpenService?: (target: {
+    serviceId: string;
+    branchId?: string;
+    businessName?: string;
+    branchName?: string;
+  }) => void;
 }
 
 const mapRegion = {
@@ -65,15 +82,24 @@ export function BusinessProfileScreen({
   onBack,
   onOpenDeal = () => undefined,
   onOpenInApp = () => undefined,
+  onOpenService,
 }: BusinessProfileScreenProps) {
   const [bundledBookmarked, setBundledBookmarked] = useState(false);
   const [following, setFollowing] = useState(false);
   const [aboutExpanded, setAboutExpanded] = useState(false);
 
   const live = usePublicBusinessProfile(code);
-  const business = (bundledBusiness ??
-    (live.status === 'resolved' ? live.business : undefined)) as
-    LiveBusinessProfile | undefined;
+  /**
+   * The resolved profile wins whenever a code is present: `GET
+   * /public/businesses/code/:code` is the only source carrying `branches[]`,
+   * and the branch uuid is what the catalogue and booking endpoints key off.
+   * The feed summary stays as the fallback while that request is in flight or
+   * has failed, so a flaky response never blanks a profile the feed already
+   * rendered.
+   */
+  const business = (
+    code && live.status === 'resolved' ? live.business : bundledBusiness
+  ) as LiveBusinessProfile | undefined;
 
   /**
    * A real merchant saves to the account (`POST /businesses/:id/save`); the
@@ -89,6 +115,34 @@ export function BusinessProfileScreen({
     if (liveBusinessId) toggleBusinessSave.mutate(liveBusinessId);
     else setBundledBookmarked(value => !value);
   };
+
+  /**
+   * The branch this profile books into.
+   *
+   * Only a live profile has `branches[]` — the feed summary comes from the list
+   * endpoint, which does not include them — so a bundled business has no
+   * services section at all rather than a list with nowhere to book it. When
+   * there is more than one, the strip lets the customer pick, defaulting to the
+   * branch the merchant marked as main.
+   */
+  const branchOptions = useMemo(
+    () => (business?.branches ?? []).filter(branch => branch.isActive !== false),
+    [business],
+  );
+  const [pinnedBranchId, setPinnedBranchId] = useState<string | null>(null);
+  const defaultBranch =
+    branchOptions.find(branch => branch.isMainBranch) ?? branchOptions[0];
+  const activeBranchId = branchOptions.some(branch => branch.id === pinnedBranchId)
+    ? pinnedBranchId
+    : defaultBranch?.id;
+  const activeBranchName =
+    branchOptions.find(branch => branch.id === activeBranchId)?.name ?? undefined;
+  const services = useBranchCatalogue(activeBranchId ?? null, {
+    itemType: 'service',
+    limit: 50,
+  });
+  const serviceItems = services.data?.data ?? [];
+  const bookableServices = serviceItems.filter(service => service.isBookable !== false);
 
   // Loading and failure come before the page so a merchant with no data yet
   // shows an honest state rather than a blank profile.
@@ -288,6 +342,113 @@ export function BusinessProfileScreen({
             }}
           />
         </View>
+
+        {/* Services a customer can book. The list is the branch's own active
+            catalogue (`GET /public/catalogue/items/branch/:branchId`, filtered
+            to `service`), and each row opens the service with the branch uuid
+            availability and `POST /bookings` need. Hidden entirely when the
+            profile has no branches: without one there is no slot to reserve. */}
+        {branchOptions.length > 0 ? (
+          <View className="mt-7 gap-3 px-6">
+            <View className="flex-row items-center justify-between gap-2">
+              <VemtapText variant="headingSm" className="text-text">
+                {strings.bookingFlow.services}
+              </VemtapText>
+              <VemtapText variant="caption" tone="tertiary" numberOfLines={1}>
+                {activeBranchName}
+              </VemtapText>
+            </View>
+
+            {branchOptions.length > 1 ? (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                className="gap-2"
+              >
+                {branchOptions.map(branch => {
+                  const isSelected = branch.id === activeBranchId;
+                  return (
+                    <Pressable
+                      key={branch.id}
+                      accessibilityRole="radio"
+                      accessibilityState={{ checked: isSelected }}
+                      onPress={() => setPinnedBranchId(branch.id)}
+                      className={`rounded-full px-3 py-1.5 ${isSelected ? 'bg-primary shadow-sm' : 'border border-border bg-surface'}`}
+                    >
+                      <VemtapText
+                        variant="caption"
+                        className={isSelected ? 'text-inverse' : 'text-text-secondary'}
+                      >
+                        {branch.name}
+                      </VemtapText>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            ) : null}
+
+            {services.isLoading ? (
+              <LoadingState label={strings.bookingFlow.loadingServices} />
+            ) : services.isError ? (
+              <ErrorState
+                title={strings.bookingFlow.servicesErrorTitle}
+                description={strings.bookingFlow.servicesErrorBody}
+                onRetry={() => services.refetch()}
+                className="rounded-2xl border border-border bg-surface-canvas p-4"
+              />
+            ) : bookableServices.length === 0 ? (
+              <EmptyState
+                variant="contained"
+                icon="spa"
+                title={strings.bookingFlow.noServicesTitle}
+                description={strings.bookingFlow.noServicesBody}
+              />
+            ) : (
+              <View className="gap-2">
+                {bookableServices.map(service => (
+                  <Pressable
+                    key={service.id}
+                    accessibilityRole="button"
+                    accessibilityLabel={service.name}
+                    onPress={() =>
+                      onOpenService?.({
+                        serviceId: service.id,
+                        branchId: activeBranchId ?? undefined,
+                        businessName: business.name,
+                        branchName: activeBranchName,
+                      })
+                    }
+                    className="flex-row items-center justify-between gap-3 rounded-2xl border border-border bg-surface-canvas p-3.5 shadow-md active:opacity-80"
+                  >
+                    <View className="min-w-0 flex-1">
+                      <VemtapText
+                        variant="labelMd"
+                        className="font-sans-semibold text-text"
+                        numberOfLines={1}
+                      >
+                        {service.name}
+                      </VemtapText>
+                      <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
+                        {[service.duration, service.category?.name]
+                          .filter(Boolean)
+                          .join(' • ')}
+                      </VemtapText>
+                    </View>
+                    <View className="shrink-0 flex-row items-center gap-2">
+                      <VemtapText
+                        variant="labelMd"
+                        className="font-sans-bold text-primary"
+                      >
+                        {formatCurrency(toAmount(service.price) ?? 0)}
+                      </VemtapText>
+                      <Icon name="arrowForward" size={18} color={colors.textSecondary} />
+                    </View>
+                  </Pressable>
+                ))}
+              </View>
+            )}
+          </View>
+        ) : null}
 
         <View className="mt-6 px-6">
           <View className="rounded-2xl border border-border bg-surface-canvas p-4 shadow-md">

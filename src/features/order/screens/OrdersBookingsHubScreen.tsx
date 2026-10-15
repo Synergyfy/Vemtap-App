@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EmptyState } from '@components/shared/EmptyState';
@@ -15,10 +15,17 @@ import { useMyBookings } from '@features/booking/hooks/useBookings';
 import type { Booking } from '@api/bookingsApi';
 import { isActiveStatus, statusLabel, statusToneFor } from '@features/order/orderStatus';
 import { orderImages } from '@features/order/orderData';
-import { formatCurrency, formatWhen } from '@utils/formatters';
+import { formatBookingSlot, formatCurrency, formatWhen } from '@utils/formatters';
 import { colors } from '@theme/colors';
 import { navbarBottomShadow } from '@theme/shadows';
 
+/**
+ * `formatBookingSlot` renders a booking's `YYYY-MM-DD` + `HH:mm` pair as
+ * "Thu, Oct 17 • 1:15 PM". It lives in `formatters` — where the booking flow
+ * screens share it — and is re-exported here because this screen was its
+ * first caller.
+ */
+export { formatBookingSlot };
 /**
  * Booking statuses behind each Bookings filter chip, in chip order. The API's
  * `booked`/`confirmed` are both still upcoming; `completed` and `cancelled` are
@@ -64,7 +71,8 @@ export interface OrdersBookingsHubScreenProps {
   /** Optional portrait; absent, the navbar falls back to customer initials. */
   avatarUri?: string | null;
   onOpenOrder?: (orderId: string) => void;
-  onOpenBooking?: (bookingNumber: string) => void;
+  /** Receives the booking **UUID** — `GET /bookings/:id` rejects the `reference` code. */
+  onOpenBooking?: (bookingId: string) => void;
   onContactKitchen?: () => void;
   onTrackOrder?: () => void;
   onNavigate?: (action: string) => void;
@@ -89,7 +97,7 @@ export function OrdersBookingsHubScreen({
     mode === 'orders' ? strings.ordersHub.orderFilters : strings.ordersHub.bookingFilters;
 
   const bookings = useMyBookings();
-  const bookingList = bookings.data ?? [];
+  const bookingList = useMemo(() => bookings.data ?? [], [bookings.data]);
   const bookingFilterCounts = BOOKING_STATUS_GROUPS.map(
     group => bookingList.filter(booking => group.includes(booking.status ?? '')).length,
   );
@@ -97,6 +105,23 @@ export function OrdersBookingsHubScreen({
     BOOKING_STATUS_GROUPS[filter]?.includes(booking.status ?? ''),
   );
   const showBookingCounts = bookings.data !== undefined;
+
+  /**
+   * The next booking to tease on the Orders tab: the earliest still-active
+   * one. `/me/bookings` is newest first, so the list is re-sorted by date/time
+   * rather than trusting the response order. Renders nothing when the customer
+   * has no active booking, instead of a fabricated merchant and time.
+   */
+  const upcomingBooking = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    return bookingList
+      .filter(
+        booking =>
+          BOOKING_STATUS_GROUPS[0].includes(booking.status ?? '') &&
+          (booking.date ?? '') >= today,
+      )
+      .sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`))[0];
+  }, [bookingList]);
 
   const orders = useCustomerOrders();
   const orderList = orders.data ?? [];
@@ -208,10 +233,10 @@ export function OrdersBookingsHubScreen({
           </Pressable>
         </View>
 
-        {mode === 'orders' ? (
+        {mode === 'orders' && upcomingBooking ? (
           <Pressable
             accessibilityRole="button"
-            onPress={() => onOpenBooking?.('VT-BK-5019')}
+            onPress={() => onOpenBooking?.(upcomingBooking.id)}
             className="flex-row items-center gap-3 rounded-xl bg-surface-tint p-3 shadow-sm"
           >
             <View className="h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface shadow-sm">
@@ -231,11 +256,13 @@ export function OrdersBookingsHubScreen({
                   numberOfLines={1}
                   className="flex-1"
                 >
-                  {strings.ordersHub.nextBookingMerchant}
+                  {strings.ordersHub.nextBookingMerchant ||
+                    upcomingBooking.itemName ||
+                    upcomingBooking.branchName}
                 </VemtapText>
               </View>
               <VemtapText variant="labelMd" className="mt-0.5 font-sans-semibold">
-                {strings.ordersHub.nextBookingDate}
+                {formatBookingSlot(upcomingBooking.date, upcomingBooking.time)}
               </VemtapText>
             </View>
             <View className="flex-row items-center">
@@ -407,7 +434,9 @@ export function OrdersBookingsHubScreen({
                       ? 'warning'
                       : 'brand'
                 }
-                onPress={() => onOpenBooking?.(booking.reference ?? booking.id)}
+                // The UUID, never `reference`: `GET /bookings/:id` runs through
+                // ParseUUIDPipe, so the human-facing code (BK-4F2A9C) 400s.
+                onPress={() => onOpenBooking?.(booking.id)}
               >
                 <View className="gap-1 py-1">
                   <VemtapText variant="bodyMd" className="font-sans-semibold">

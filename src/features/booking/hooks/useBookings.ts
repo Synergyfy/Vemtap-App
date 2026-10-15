@@ -5,6 +5,7 @@ export const bookingKeys = {
   availability: (branchId: string, itemId: string | undefined, date: string) =>
     ['bookings', 'availability', branchId, itemId ?? 'branch', date] as const,
   mine: (status?: string) => ['bookings', 'mine', status ?? 'all'] as const,
+  detail: (id: string) => ['bookings', 'detail', id] as const,
 };
 
 /**
@@ -44,6 +45,21 @@ export function useMyBookings(status?: string, options: { enabled?: boolean } = 
       return page.data ?? [];
     },
     enabled: options.enabled ?? true,
+    staleTime: 30_000,
+  });
+}
+
+/**
+ * One booking by id, for the detail screen.
+ *
+ * Disabled until an id is known. Pass the booking **UUID** — the `reference`
+ * code is display-only and `GET /bookings/:id` rejects it (ParseUUIDPipe).
+ */
+export function useBooking(id?: string, options: { enabled?: boolean } = {}) {
+  return useQuery<Booking>({
+    queryKey: bookingKeys.detail(id ?? ''),
+    queryFn: () => bookingsApi.getBookingById(id as string),
+    enabled: (options.enabled ?? true) && Boolean(id),
     staleTime: 30_000,
   });
 }
