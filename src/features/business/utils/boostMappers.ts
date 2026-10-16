@@ -48,6 +48,18 @@ export function boostAssetBadge(asset: BoostDraftAsset): string {
   return strings.campaignsHub.live.assetTypes[asset.type].badge;
 }
 
+/** The areas and audience a boost is limited to, for its reach forecast. */
+export function boostForecastTargeting(
+  draft: Pick<BoostDraft, 'audienceScope' | 'areas' | 'audienceType'>,
+): { clusterIds?: string[]; audienceType?: string } {
+  return {
+    ...(draft.audienceScope !== 'nearby' && draft.areas.length
+      ? { clusterIds: draft.areas.map(area => area.id) }
+      : {}),
+    ...(draft.audienceType ? { audienceType: draft.audienceType } : {}),
+  };
+}
+
 /** The whole boost draft as a `SaveCampaignDto`. */
 export function boostDraftToSaveInput(
   draft: BoostDraft,
@@ -61,10 +73,7 @@ export function boostDraftToSaveInput(
       strategy: draft.audienceScope,
       radiusKm: draft.radiusKm,
       ...(branchId ? { branchIds: [branchId] } : {}),
-      ...(draft.audienceScope !== 'nearby' && draft.areas.length
-        ? { clusterIds: draft.areas.map(area => area.id) }
-        : {}),
-      ...(draft.audienceType ? { audienceType: draft.audienceType } : {}),
+      ...boostForecastTargeting(draft),
     },
     placements: draft.placements,
     schedule: {

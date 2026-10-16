@@ -50,6 +50,13 @@ export function campaignName(
   return lead ? `${objective}: ${lead}` : objective;
 }
 
+/** The districts a campaign is limited to, for its reach forecast. */
+export function campaignForecastTargeting(draft: Pick<CampaignDraft, 'districtIds'>): {
+  clusterIds?: string[];
+} {
+  return draft.districtIds.length ? { clusterIds: draft.districtIds } : {};
+}
+
 /** The whole draft as a `SaveCampaignDto` (create, or patch every step). */
 export function draftToSaveInput(draft: CampaignDraft): SavePromotionInput {
   const segments = draft.strategy === 'segments';
@@ -64,7 +71,7 @@ export function draftToSaveInput(draft: CampaignDraft): SavePromotionInput {
       branchIds: draft.branchIds,
       radiusKm: draft.radiusKm,
       // Districts replace the radius; none = the radius around the branches.
-      ...(draft.districtIds.length ? { clusterIds: draft.districtIds } : {}),
+      ...campaignForecastTargeting(draft),
     },
     schedule: {
       durationDays: draft.durationDays,

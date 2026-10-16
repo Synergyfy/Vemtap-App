@@ -9,6 +9,7 @@ import {
 } from '@features/business/utils/segmentMappers';
 import {
   campaignName,
+  campaignForecastTargeting,
   draftToSaveInput,
   eligibleAssetToContentItem,
   estimateRange,
@@ -21,6 +22,7 @@ import {
 import {
   boostDraftToPreviewView,
   boostDraftToSaveInput,
+  boostForecastTargeting,
   prepackToCard,
   transactionToRow,
 } from '@features/business/utils/boostMappers';
@@ -216,6 +218,13 @@ const draft: CampaignDraft = {
 };
 
 describe('campaign draft mapping', () => {
+  it('forecasts a campaign within its districts', () => {
+    expect(campaignForecastTargeting({ districtIds: ['d-wuse'] })).toEqual({
+      clusterIds: ['d-wuse'],
+    });
+    expect(campaignForecastTargeting({ districtIds: [] })).toEqual({});
+  });
+
   it('sends chosen districts in place of the radius', () => {
     expect(
       draftToSaveInput({ ...draft, districtIds: ['d-wuse'] }).audience,
@@ -548,6 +557,18 @@ describe('boost mapping', () => {
       budgetMode: 'total',
       budget: 35_000,
     });
+  });
+
+  it('forecasts with the same areas and audience the boost is saved with', () => {
+    const areas = [{ id: 'd-wuse', name: 'Wuse 2' }];
+    expect(
+      boostForecastTargeting({
+        audienceScope: 'districts',
+        areas,
+        audienceType: 'regulars',
+      }),
+    ).toEqual({ clusterIds: ['d-wuse'], audienceType: 'regulars' });
+    expect(boostForecastTargeting({ audienceScope: 'nearby', areas })).toEqual({});
   });
 
   it('sends district areas and the audience type, never areas for nearby', () => {

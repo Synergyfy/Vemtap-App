@@ -77,6 +77,7 @@ import { WalletActivityFilterSheet } from '@features/business/components/WalletA
 import type { AdWalletTransactionType } from '@api/adWalletApi';
 import {
   BOOST_AUDIENCE_SCOPE_IDS,
+  boostForecastTargeting,
   boostAssetBadge,
   boostDraftToPreviewView,
   eligibleAssetToBoostAsset,
@@ -89,6 +90,7 @@ import {
 } from '@features/business/utils/boostMappers';
 import { useBoostDraftStore } from '@store/boostDraftStore';
 import {
+  campaignForecastTargeting,
   eligibleAssetToContentItem,
   estimateRange,
   formatNaira as formatCampaignNaira,
@@ -691,6 +693,7 @@ export function CampaignCreateBudgetRoute() {
       budget: CAMPAIGN_BUDGET_TIERS[id],
       durationDays: draft.durationDays,
       radiusKm: draft.radiusKm,
+      ...campaignForecastTargeting(draft),
     })),
   );
 
@@ -749,7 +752,12 @@ export function CampaignReviewLaunchRoute() {
   const wallet = useAdWallet();
   const launch = useLaunchCampaign();
   const [forecast] = usePromotionForecasts([
-    { budget: draft.total, durationDays: draft.durationDays, radiusKm: draft.radiusKm },
+    {
+      budget: draft.total,
+      durationDays: draft.durationDays,
+      radiusKm: draft.radiusKm,
+      ...campaignForecastTargeting(draft),
+    },
   ]);
 
   const { step3 } = wizardCopy;
@@ -1011,17 +1019,27 @@ export function BoostEngineRoute() {
   const days = selection?.days ?? 7;
   const total = selection?.total ?? 35_000;
   const radiusKm = selection?.radiusKm ?? 3;
+  // The chosen audience narrows every estimate on the engine.
+  const audience = selection?.audience ? { audienceType: selection.audience } : {};
   const radiusForecasts = useBoostForecasts(
-    ENGINE_RADII.map(([, km]) => ({ budget: total, durationDays: days, radiusKm: km })),
+    ENGINE_RADII.map(([, km]) => ({
+      budget: total,
+      durationDays: days,
+      radiusKm: km,
+      ...audience,
+    })),
   );
   const tierForecasts = useBoostForecasts(
     Object.entries(BOOST_ENGINE_TIER_DAILY).map(([, daily]) => ({
       budget: daily * days,
       durationDays: days,
       radiusKm,
+      ...audience,
     })),
   );
-  const [current] = useBoostForecasts([{ budget: total, durationDays: days, radiusKm }]);
+  const [current] = useBoostForecasts([
+    { budget: total, durationDays: days, radiusKm, ...audience },
+  ]);
 
   const totals = summary.data;
   const running = active.data;
@@ -1150,7 +1168,13 @@ export function BoostGoalAudienceRoute() {
   const clusters = options.data?.clusters ?? [];
   const [pickedAreas, setPickedAreas] = useState(draft.areas);
   const [forecast] = useBoostForecasts([
-    { budget: draft.budget, durationDays: draft.durationDays, radiusKm },
+    {
+      budget: draft.budget,
+      durationDays: draft.durationDays,
+      radiusKm,
+      ...(pickedAreas.length ? { clusterIds: pickedAreas.map(area => area.id) } : {}),
+      ...(draft.audienceType ? { audienceType: draft.audienceType } : {}),
+    },
   ]);
   const reach = range(forecast?.data);
   const scopeIndex = Math.max(
@@ -1263,10 +1287,16 @@ export function BoostBudgetScheduleRoute() {
       budget: tier.amount,
       durationDays: selection.days,
       radiusKm: draft.radiusKm,
+      ...boostForecastTargeting(draft),
     })),
   );
   const [current] = useBoostForecasts([
-    { budget: selection.budget, durationDays: selection.days, radiusKm: draft.radiusKm },
+    {
+      budget: selection.budget,
+      durationDays: selection.days,
+      radiusKm: draft.radiusKm,
+      ...boostForecastTargeting(draft),
+    },
   ]);
   const estimate = current?.data;
   const price = draft.asset?.price ?? undefined;

@@ -173,6 +173,10 @@ export const promotionForecastInputSchema = z.object({
   dailyBudget: z.number().min(0).optional(),
   durationDays: z.number().int().min(1).optional(),
   radiusKm: z.number().optional(),
+  /** Districts or clusters: their populations replace the radius. */
+  clusterIds: z.array(z.string()).optional(),
+  /** Boost audience (`regulars` | `walkins`), which narrows who can be reached. */
+  audienceType: z.string().optional(),
 });
 export type PromotionForecastInput = z.input<typeof promotionForecastInputSchema>;
 
