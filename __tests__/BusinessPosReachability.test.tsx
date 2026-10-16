@@ -3,6 +3,12 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react-
 import { NavigationContainer } from '@react-navigation/native';
 import { strings } from '@constants/strings';
 import { BusinessTabNavigator } from '@navigation/BusinessTabNavigator';
+import { usePosTicketStore } from '@store/posTicketStore';
+import {
+  catalogueApiFixtures,
+  fixtureMyBusiness,
+  posApiFixtures,
+} from './helpers/posApiFixtures';
 
 /**
  * Reachability guard for the POS surfaces.
@@ -10,20 +16,71 @@ import { BusinessTabNavigator } from '@navigation/BusinessTabNavigator';
  * Registering a route is not the same as being able to get to it: a screen that
  * nothing navigates *to* is dead code wearing a route name. Every destination
  * asserted below is pressed from the app shell — a real entry point a cashier
- * can find — so a future refactor that drops a hand-off fails here rather than
- * shipping an unreachable screen.
- *
- * Note on the offline chain: while a till is offline, "New Sale" must open the
- * encrypted checkout terminal rather than the networked customer display, so
- * that path is asserted explicitly.
+ * can find — with the POS API answering from fixtures, so the data-driven
+ * controls that carry the hand-offs actually render.
  */
-afterEach(cleanup);
+jest.mock('@api/posApi', () => {
+  const actual = jest.requireActual('@api/posApi');
+  const { posApiFixtures: fixtures } = jest.requireActual('./helpers/posApiFixtures');
+  return { ...actual, posApi: { ...actual.posApi, ...fixtures } };
+});
+
+jest.mock('@api/catalogueApi', () => {
+  const actual = jest.requireActual('@api/catalogueApi');
+  const { catalogueApiFixtures: fixtures } = jest.requireActual(
+    './helpers/posApiFixtures',
+  );
+  return { ...actual, catalogueApi: { ...actual.catalogueApi, ...fixtures } };
+});
+
+jest.mock('@api/businessDashboardApi', () => {
+  const actual = jest.requireActual('@api/businessDashboardApi');
+  const { fixtureMyBusiness: business } = jest.requireActual('./helpers/posApiFixtures');
+  return {
+    ...actual,
+    businessDashboardApi: {
+      ...actual.businessDashboardApi,
+      getMyBusiness: async () => actual.myBusinessSchema.parse(business),
+      getPosDashboard: async () => ({
+        revenue: 1075,
+        transactionCount: 1,
+        averageSaleValue: 1075,
+        heldSalesCount: 0,
+      }),
+    },
+  };
+});
+
+afterEach(() => {
+  cleanup();
+  usePosTicketStore.getState().clear();
+});
+
+// Keep the imported fixtures referenced so the mocks above stay in sync with them.
+void posApiFixtures;
+void catalogueApiFixtures;
+void fixtureMyBusiness;
 
 const shell = strings.businessShell;
 const more = strings.businessMore;
 const ops = strings.businessMoreHubOperations;
-const settings = strings.posGeneralSettings;
 const posHome = strings.posHomeSalesOperations;
+
+async function press(label: string, index = 0) {
+  await act(async () => {
+    fireEvent.press((await screen.findAllByLabelText(label))[index]);
+  });
+}
+
+async function pressText(text: string) {
+  await act(async () => {
+    fireEvent.press(await screen.findByText(text));
+  });
+}
+
+async function expectText(text: string) {
+  expect((await screen.findAllByText(text)).length).toBeGreaterThan(0);
+}
 
 async function openBusinessShell() {
   await render(
@@ -41,12 +98,8 @@ async function openOperationsHub() {
   });
   const posRow = rows.find(item => item.id === 'pos-launch');
   if (!posRow) throw new Error('No More-hub row with id "pos-launch"');
-  await act(async () => {
-    fireEvent.press(screen.getByLabelText(shell.tabs.more));
-  });
-  await act(async () => {
-    fireEvent.press(screen.getByLabelText(posRow.label));
-  });
+  await press(shell.tabs.more);
+  await press(posRow.label);
 }
 
 /** ... then the POS register home. */
@@ -54,211 +107,126 @@ async function openRegisterHome() {
   await openOperationsHub();
   const tile = ops.posTiles.find(item => item.id === 'pos-home');
   if (!tile) throw new Error('No operations-hub tile with id "pos-home"');
-  await act(async () => {
-    fireEvent.press(screen.getByLabelText(tile.label));
-  });
+  await press(tile.label);
+  await expectText('Test Kitchen');
 }
 
 async function openSettingsHub() {
   await openRegisterHome();
-  await act(async () => {
-    fireEvent.press(screen.getByLabelText(posHome.settingsActionLabel));
-  });
+  await press(posHome.settingsActionLabel);
+  await expectText(strings.posGeneralSettings.headerTitle);
 }
 
-/** Pop one screen off the Orders stack. */
 async function goBack() {
-  await act(async () => {
-    fireEvent.press(screen.getByLabelText('Go back'));
-  });
+  await press('Go back');
 }
 
 describe('pos surface reachability', () => {
   it('reaches the receipt ledger, and the transaction detail behind it', async () => {
     await openBusinessShell();
     await openOperationsHub();
-
-    await act(async () => {
-      fireEvent.press(screen.getByLabelText('Transactions'));
-    });
-    expect(
-      screen.getAllByText(strings.posTransactionsLedgerReceipts.grossTitle).length,
-    ).toBeGreaterThan(0);
-
-    await act(async () => {
-      fireEvent.press(screen.getByLabelText('#RC-94021 ₦27,251'));
-    });
-    expect(
-      screen.getAllByText(strings.posTransactionDetails.headerTitle).length,
-    ).toBeGreaterThan(0);
+    await press('Transactions');
+    await expectText(strings.posTransactionsLedgerReceipts.grossTitle);
+    await press('RCT-20261016-001 ₦1,075');
+    await expectText(strings.posTransactionDetails.headerTitle);
   });
 
-  it('reaches the active-checkout customer match from the running ticket', async () => {
+  it('rings up a sale: catalog -> cart -> customer match -> tender -> split', async () => {
     await openBusinessShell();
     await openRegisterHome();
+    await press(posHome.quickActions.newSale.label);
+    await expectText(strings.posNewSaleCatalog.headerTitle);
+    await press(`Rice ${strings.posNewSaleCatalog.addItemCta}`);
+    await pressText(strings.posNewSaleCatalog.chargeCta);
+    await expectText(strings.posCurrentSaleCart.headerTitle);
 
-    await act(async () => {
-      fireEvent.press(screen.getAllByLabelText('New Sale')[0]);
-    });
-    expect(
-      screen.getAllByText(strings.posNewSaleCatalog.headerTitle).length,
-    ).toBeGreaterThan(0);
+    await press(strings.posCurrentSaleCart.changeCta);
+    await expectText(strings.posCustomerLookupActive.prompt.title);
+    await goBack();
 
-    await act(async () => {
-      fireEvent.press(screen.getByLabelText(strings.posNewSaleCatalog.chargeCta));
-    });
-    expect(
-      screen.getAllByText(strings.posCurrentSaleCart.headerTitle).length,
-    ).toBeGreaterThan(0);
-
-    // Changing the customer on an open ticket is the match/attach flow.
-    await act(async () => {
-      fireEvent.press(screen.getByLabelText(strings.posCurrentSaleCart.changeCta));
-    });
-    expect(
-      screen.getAllByText(strings.posCustomerLookupActive.matchedLabel).length,
-    ).toBeGreaterThan(0);
-
-    // ... and that flow hands forward to rewards, then to tender.
-    await act(async () => {
-      fireEvent.press(screen.getByLabelText(strings.posCustomerLookupActive.scanCta));
-    });
-    expect(
-      screen.getAllByText(strings.posCustomerLookupLoyalty.headerTitle).length,
-    ).toBeGreaterThan(0);
-
-    await act(async () => {
-      fireEvent.press(screen.getByLabelText(strings.posCustomerLookupLoyalty.attachCta));
-    });
-    expect(
-      screen.getAllByText(strings.posTenderCheckout.headerTitle).length,
-    ).toBeGreaterThan(0);
+    await pressText(strings.posCurrentSaleCart.chargeCta);
+    await expectText(strings.posTenderCheckout.headerTitle);
+    await press(strings.posTenderCheckout.methods.split.label);
+    await expectText(strings.splitTheBill.headerTitle);
   });
 
-  it('reaches the offline checkout terminal, then the encrypted buffer queue', async () => {
+  it('reaches the offline home, its queue and back to the register', async () => {
     await openBusinessShell();
     await openOperationsHub();
-
-    // The operations-hub "Offline Mode" tile is the till's offline section.
-    await act(async () => {
-      fireEvent.press(screen.getByLabelText('Offline Mode'));
-    });
-    expect(
-      screen.getAllByText(strings.posHomeOfflineMode.headerTitle).length,
-    ).toBeGreaterThan(0);
-
-    // A new sale while offline stays on the encrypted local register.
-    await act(async () => {
-      fireEvent.press(screen.getByLabelText('New Sale'));
-    });
-    expect(
-      screen.getAllByText(strings.posOfflineCheckoutTerminal.headerTitle).length,
-    ).toBeGreaterThan(0);
-
-    await act(async () => {
-      fireEvent.press(screen.getByLabelText(strings.posOfflineCheckoutTerminal.queueCta));
-    });
-    expect(
-      screen.getAllByText(strings.posOfflineBufferQueue.headerTitle).length,
-    ).toBeGreaterThan(0);
-
-    // The queue returns the cashier to the offline register.
-    await act(async () => {
-      fireEvent.press(screen.getByLabelText(strings.posOfflineBufferQueue.returnCta));
-    });
-    expect(
-      screen.getAllByText(strings.posOfflineCheckoutTerminal.headerTitle).length,
-    ).toBeGreaterThan(0);
+    await press('Offline Mode');
+    await expectText(strings.posHomeOfflineMode.headerTitle);
+    await press(strings.posHomeOfflineMode.actions.queue.title);
+    await expectText(strings.posOfflineBufferQueue.headerTitle);
+    await pressText(strings.posOfflineBufferQueue.returnCta);
+    await expectText(strings.posNewSaleCatalog.headerTitle);
   });
 
-  it('reaches offline mode from the settings hub and back out to the register', async () => {
+  it('reaches every settings area from the settings hub', async () => {
+    const { links } = strings.posGeneralSettings;
     await openBusinessShell();
     await openSettingsHub();
-    expect(screen.getAllByText(settings.venueLabel).length).toBeGreaterThan(0);
 
-    await act(async () => {
-      fireEvent.press(screen.getByLabelText('Offline Storage & Cloud Sync'));
-    });
-    expect(
-      screen.getAllByText(strings.posSyncReconciliation.headerTitle).length,
-    ).toBeGreaterThan(0);
-
-    // Sync now is a real action, not decoration.
-    await act(async () => {
-      fireEvent.press(screen.getByLabelText(strings.posSyncReconciliation.syncNowCta));
-    });
-    expect(
-      screen.getAllByText(strings.posSyncReconciliation.syncTitle).length,
-    ).toBeGreaterThan(0);
-  });
-
-  it('reaches the shift journal, the z-report and the kiosk flow from the register', async () => {
-    await openBusinessShell();
-    await openRegisterHome();
-
-    await act(async () => {
-      fireEvent.press(screen.getAllByLabelText('Transactions')[0]);
-    });
-    expect(
-      screen.getAllByText(strings.posTransactionsLedgerShift.title).length,
-    ).toBeGreaterThan(0);
-
-    await act(async () => {
-      fireEvent.press(
-        screen.getByLabelText(strings.posTransactionsLedgerShift.zReportCta),
-      );
-    });
-    expect(
-      screen.getAllByText(strings.posSyncReconciliation.headerTitle).length,
-    ).toBeGreaterThan(0);
-
+    await press(links.offline.title);
+    await expectText(strings.posSyncReconciliation.headerTitle);
     await goBack();
-    // A parked ticket resumes into the running sale it was holding.
-    await act(async () => {
-      fireEvent.press(
-        screen.getByLabelText(`${strings.posTransactionsLedgerShift.resumeCta} #TK-105`),
-      );
-    });
-    expect(
-      screen.getAllByText(strings.posCurrentSaleCart.headerTitle).length,
-    ).toBeGreaterThan(0);
+    await press(links.taxes.title);
+    await expectText(strings.taxesSurcharges.title);
+    await goBack();
+    await press(links.security.title);
+    await expectText(strings.staffPermissionsPasscodes.guardsTitle);
+    await goBack();
+    await press(links.hardware.title);
+    await expectText(strings.paymentHardwareSetup.methodsTitle);
+    await goBack();
+    await press(links.receipt.title);
+    await expectText(strings.posReceiptCustomization.settingsTitle);
+    await goBack();
+    await press(links.kitchen.title);
+    await expectText(strings.merchantPosKitchenStream.headerTitle);
+    await goBack();
+    await press(links.tills.title);
+    await expectText(strings.posBranchTillSwitcher.headerSubtitle);
   });
 
-  it('reaches till controls, the till catalogue and the customer list from the register', async () => {
+  it('reaches the shift journal, the guest kiosk and the customer list from the register', async () => {
     await openBusinessShell();
     await openRegisterHome();
 
-    await act(async () => {
-      fireEvent.press(screen.getByLabelText('Customer Public Mode'));
-    });
-    expect(screen.getAllByText(strings.publicPosMenu.venueName).length).toBeGreaterThan(
-      0,
+    await press(posHome.controls.drawer.title);
+    await expectText(strings.posTransactionsLedgerShift.title);
+    await goBack();
+
+    await press(posHome.controls.publicMode.title);
+    await expectText(strings.publicPosMenu.addCta);
+    await goBack();
+
+    await press(posHome.quickActions.customers.label);
+    await expectText(strings.posCustomerLookupList.title);
+    await press(`${strings.posCustomerLookupList.dossierCta} Tolu Ade`);
+    await expectText(strings.posCustomerDossier.headerTitle);
+  });
+
+  it('reaches stock: inventory -> one item', async () => {
+    await openBusinessShell();
+    await openRegisterHome();
+    await press(posHome.quickActions.products.label);
+    await expectText(strings.posProductsInventory.headerTitle);
+    await press('Rice');
+    await expectText(strings.posProductShiftStockStatus.auditTitle);
+  });
+
+  it('walks the customer display from the POS orders view to payment', async () => {
+    await openBusinessShell();
+    await press(shell.tabs.orders);
+    await press(
+      screen.queryByLabelText(strings.businessOrders.alertTitle)
+        ? strings.businessOrders.alertTitle
+        : strings.businessOrders.alertTitleFor(0),
     );
-
-    await goBack();
-    // The drawer's own control reports shift status on the POS order view.
-    await act(async () => {
-      fireEvent.press(screen.getByLabelText('Cash Drawer & Shift Status'));
-    });
-    expect(screen.getAllByText(strings.businessPos.title).length).toBeGreaterThan(0);
-  });
-
-  it('reaches the security policy and the hardware profile from the settings hub', async () => {
-    await openBusinessShell();
-    await openSettingsHub();
-
-    await act(async () => {
-      fireEvent.press(screen.getByLabelText('Printers & Kitchen Displays'));
-    });
-    expect(
-      screen.getAllByText(strings.paymentHardwareSetup.headerCardTitle).length,
-    ).toBeGreaterThan(0);
-
-    await act(async () => {
-      fireEvent.press(screen.getByLabelText('Test Drawer Kick'));
-    });
-    expect(
-      screen.getAllByText(strings.posBranchTillSwitcher.headerTitle).length,
-    ).toBeGreaterThan(0);
+    await expectText(strings.businessPos.title);
+    await press(strings.businessPos.orders[0].reference);
+    await expectText(strings.customerDisplayOrderTotal.orderLabel);
+    await pressText(strings.customerDisplayOrderTotal.payCta);
+    await expectText(strings.customerDisplayTapQrPay.totalDueLabel);
   });
 });

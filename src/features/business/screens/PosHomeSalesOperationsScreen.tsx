@@ -13,19 +13,64 @@ import {
   BusinessPanel,
 } from '@features/business/components/BusinessOpsPrimitives';
 import { BusinessMetricGrid } from '@features/business/components/BusinessAnalyticsPrimitives';
-import {
-  posBranchChoices,
-  posDrawerBalance,
-  posDrawerSummary,
-  posOperationalSummary,
-  posQuickActions,
-  posRegisterControls,
-  posShift,
-} from '@features/business/data/businessPosFlowData';
+import { ErrorState } from '@components/shared/ErrorState';
+import { LoadingState } from '@components/shared/LoadingState';
+import type { IconName } from '@components/ui/Icon';
 
 const copy = strings.posHomeSalesOperations;
 
+const quickActions: readonly {
+  id: string;
+  label: string;
+  hint: string;
+  icon: IconName;
+}[] = [
+  { id: 'new-sale', icon: 'addCircle', ...copy.quickActions.newSale },
+  { id: 'transactions', icon: 'receiptLong', ...copy.quickActions.transactions },
+  { id: 'customers', icon: 'accountSearch', ...copy.quickActions.customers },
+  { id: 'products', icon: 'inventory', ...copy.quickActions.products },
+];
+
+const registerControls: readonly {
+  id: string;
+  title: string;
+  subtitle: string;
+  icon: IconName;
+}[] = [
+  { id: 'public-mode', icon: 'touchApp', ...copy.controls.publicMode },
+  { id: 'drawer', icon: 'pointOfSale', ...copy.controls.drawer },
+  { id: 'sync', icon: 'sync', ...copy.controls.sync },
+];
+
+/** Display-ready figures for the operations hub. */
+export interface PosHomeView {
+  storeName: string;
+  branches: { id: string; name: string; current: boolean }[];
+  activeBranchName: string;
+  online: boolean;
+  /** Sales waiting on this device to sync. */
+  queuedCount: number;
+  /** e.g. `Shift opened 08:30 AM`; null with no open register. */
+  shiftLabel: string | null;
+  summary: {
+    sales: string;
+    salesNote: string;
+    transactions: string;
+    transactionsNote: string;
+    pending: string;
+    pendingNote: string;
+    refunds: string;
+    refundsNote: string;
+  };
+  /** Null when no register is open. */
+  drawer: { openingFloat: string; cashInTill: string; balanceLabel: string } | null;
+}
+
 export interface PosHomeSalesOperationsScreenProps {
+  view?: PosHomeView;
+  isLoading?: boolean;
+  isError?: boolean;
+  onRetry?: () => void;
   onBack?: () => void;
   onOpenProfile?: () => void;
   onOpenSettings?: () => void;
@@ -43,6 +88,10 @@ export interface PosHomeSalesOperationsScreenProps {
  * The design's own bottom tab bar is not rendered — the app shell owns it.
  */
 export function PosHomeSalesOperationsScreen({
+  view,
+  isLoading,
+  isError,
+  onRetry,
   onBack,
   onOpenProfile,
   onOpenSettings,
@@ -68,19 +117,83 @@ export function PosHomeSalesOperationsScreen({
       }}
       contentContainerClassName="pb-8"
     >
+      {!view ? (
+        isError ? (
+          <ErrorState
+            title={copy.error.title}
+            description={copy.error.body}
+            onRetry={onRetry}
+          />
+        ) : (
+          <LoadingState label={isLoading ? copy.loading : undefined} />
+        )
+      ) : (
+        <PosHomeBody
+          view={view}
+          onSelectBranch={onSelectBranch}
+          onSyncCheck={onSyncCheck}
+          onQuickAction={onQuickAction}
+          onOpenDrawer={onOpenDrawer}
+          onOpenControl={onOpenControl}
+        />
+      )}
+    </BusinessScreenLayout>
+  );
+}
+
+function PosHomeBody({
+  view,
+  onSelectBranch,
+  onSyncCheck,
+  onQuickAction,
+  onOpenDrawer,
+  onOpenControl,
+}: Pick<
+  PosHomeSalesOperationsScreenProps,
+  'onSelectBranch' | 'onSyncCheck' | 'onQuickAction' | 'onOpenDrawer' | 'onOpenControl'
+> & { view: PosHomeView }) {
+  const current = view.branches.find(branch => branch.current);
+  const summaryCells = [
+    {
+      label: copy.summary.sales,
+      value: view.summary.sales,
+      note: view.summary.salesNote,
+      icon: 'payments' as IconName,
+    },
+    {
+      label: copy.summary.transactions,
+      value: view.summary.transactions,
+      note: view.summary.transactionsNote,
+      icon: 'doneAll' as IconName,
+    },
+    {
+      label: copy.summary.pending,
+      value: view.summary.pending,
+      note: view.summary.pendingNote,
+      icon: 'roomService' as IconName,
+    },
+    {
+      label: copy.summary.refunds,
+      value: view.summary.refunds,
+      note: view.summary.refundsNote,
+      icon: 'closeCircleOutline' as IconName,
+    },
+  ];
+  return (
+    <>
       <View className="gap-1">
         <VemtapText variant="labelMd" className="font-sans-semibold" numberOfLines={1}>
           {copy.storeTitle}
         </VemtapText>
         <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-          {strings.businessMore.name}
+          {view.storeName}
         </VemtapText>
       </View>
 
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={copy.branchLabel}
-        onPress={() => onSelectBranch?.(posBranchChoices[0].id)}
+        onPress={() => current && onSelectBranch?.(current.id)}
         className="mt-3 flex-row items-center gap-2.5 rounded-card bg-surface p-3 shadow-sm active:bg-surface-subtle"
       >
         <BusinessIconWell icon="storefront" tone="brand" />
@@ -89,17 +202,22 @@ export function PosHomeSalesOperationsScreen({
             {copy.branchLabel}
           </VemtapText>
           <VemtapText variant="labelMd" className="font-sans-semibold" numberOfLines={1}>
-            {posBranchChoices[0].name}
+            {view.activeBranchName}
           </VemtapText>
-          <VemtapText variant="micro" tone="tertiary" numberOfLines={1}>
-            {posBranchChoices[0].id === 'wuse' ? 'Tap to switch location' : ''}
-          </VemtapText>
+          {view.branches.length > 1 ? (
+            <VemtapText variant="micro" tone="tertiary" numberOfLines={1}>
+              {copy.switchHint}
+            </VemtapText>
+          ) : null}
         </View>
-        <BusinessStatusPill label="Online" tone="success" />
+        <BusinessStatusPill
+          label={view.online ? copy.online : copy.offline}
+          tone={view.online ? 'success' : 'warning'}
+        />
       </Pressable>
 
       <View className="mt-2 gap-1.5 rounded-card bg-surface-subtle p-3">
-        {posBranchChoices.map(branch => (
+        {view.branches.map(branch => (
           <Pressable
             key={branch.id}
             accessibilityRole="button"
@@ -116,16 +234,6 @@ export function PosHomeSalesOperationsScreen({
               >
                 {branch.name}
               </VemtapText>
-              {branch.distance ? (
-                <VemtapText
-                  variant="micro"
-                  tone="tertiary"
-                  className="shrink-0"
-                  numberOfLines={1}
-                >
-                  {branch.distance}
-                </VemtapText>
-              ) : null}
             </View>
             {branch.current ? (
               <Icon name="checkCircle" size={16} color={colors.badgeDiscountText} />
@@ -141,7 +249,7 @@ export function PosHomeSalesOperationsScreen({
           className="min-w-0 flex-1 font-sans-semibold"
           numberOfLines={1}
         >
-          {copy.syncLabel}
+          {view.queuedCount > 0 ? copy.queuedLabel(view.queuedCount) : copy.syncLabel}
         </VemtapText>
         <Pressable
           accessibilityRole="button"
@@ -164,7 +272,7 @@ export function PosHomeSalesOperationsScreen({
             >
               {copy.offlineTitle}
             </VemtapText>
-            <BusinessStatusPill label="Active" tone="success" />
+            <BusinessStatusPill label={copy.offlineActive} tone="success" />
           </View>
           <VemtapText
             variant="micro"
@@ -188,7 +296,7 @@ export function PosHomeSalesOperationsScreen({
             {copy.storageTitle}
           </VemtapText>
           <VemtapText variant="micro" tone="tertiary" numberOfLines={1}>
-            {copy.storageMeta}
+            {copy.storageMeta(view.queuedCount)}
           </VemtapText>
         </View>
       </View>
@@ -202,7 +310,7 @@ export function PosHomeSalesOperationsScreen({
           {copy.quickActionsTitle}
         </VemtapText>
         <View className="flex-row flex-wrap gap-2">
-          {posQuickActions.map(action => (
+          {quickActions.map(action => (
             <Pressable
               key={action.id}
               accessibilityRole="button"
@@ -212,13 +320,6 @@ export function PosHomeSalesOperationsScreen({
             >
               <View className="flex-row items-center justify-between gap-2">
                 <Icon name={action.icon} size={19} color={colors.primary} />
-                {action.shortcut ? (
-                  <View className="rounded bg-surface-container px-1.5 py-0.5">
-                    <VemtapText variant="micro" tone="tertiary" numberOfLines={1}>
-                      {action.shortcut}
-                    </VemtapText>
-                  </View>
-                ) : null}
               </View>
               <VemtapText
                 variant="labelSm"
@@ -239,19 +340,12 @@ export function PosHomeSalesOperationsScreen({
         className="mt-3"
         title={copy.summaryTitle}
         icon="insights"
-        badge={`${copy.summarySub} • Shift #${posShift.id}`}
+        badge={
+          view.shiftLabel ? `${copy.summarySub} • ${view.shiftLabel}` : copy.summarySub
+        }
         badgeTone="neutral"
       >
-        <BusinessMetricGrid
-          cells={posOperationalSummary.map(tallied => ({
-            label: tallied.label,
-            value: tallied.value,
-            note: tallied.note,
-            icon: tallied.icon,
-          }))}
-          columns={2}
-          variant="bare"
-        />
+        <BusinessMetricGrid cells={summaryCells} columns={2} variant="bare" />
       </BusinessPanel>
 
       <View className="mt-3">
@@ -262,58 +356,89 @@ export function PosHomeSalesOperationsScreen({
         >
           {copy.drawerTitle}
         </VemtapText>
-        <View className="overflow-hidden rounded-card bg-surface shadow-sm">
-          {posDrawerSummary.map((row, index) => (
-            <View key={row.id}>
-              {index > 0 ? <View className="h-px bg-surface-container-low" /> : null}
-              <View className="flex-row items-center justify-between gap-3 px-3 py-2.5">
+        {view.drawer ? (
+          <View className="overflow-hidden rounded-card bg-surface shadow-sm">
+            {[
+              {
+                id: 'float',
+                label: copy.drawer.openingFloat,
+                value: view.drawer.openingFloat,
+              },
+              {
+                id: 'cash',
+                label: copy.drawer.cashInTill,
+                value: view.drawer.cashInTill,
+              },
+            ].map((row, index) => (
+              <View key={row.id}>
+                {index > 0 ? <View className="h-px bg-surface-container-low" /> : null}
+                <View className="flex-row items-center justify-between gap-3 px-3 py-2.5">
+                  <VemtapText
+                    variant="labelMd"
+                    className="min-w-0 flex-1"
+                    numberOfLines={1}
+                  >
+                    {row.label}
+                  </VemtapText>
+                  <VemtapText
+                    variant="labelMd"
+                    className="shrink-0 font-sans-semibold"
+                    numberOfLines={1}
+                  >
+                    {row.value}
+                  </VemtapText>
+                </View>
+              </View>
+            ))}
+            <View className="h-px bg-surface-container-low" />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={copy.drawer.balance}
+              onPress={onOpenDrawer}
+              className="flex-row items-center justify-between gap-3 bg-surface-tint px-3 py-2.5"
+            >
+              <View className="min-w-0 flex-1 flex-row items-center gap-2">
+                <Icon name="checkCircle" size={15} color={colors.badgeDiscountText} />
                 <VemtapText
                   variant="labelMd"
-                  className="min-w-0 flex-1"
+                  className="min-w-0 flex-1 font-sans-semibold text-primary"
                   numberOfLines={1}
                 >
-                  {row.label}
-                </VemtapText>
-                <VemtapText
-                  variant="labelMd"
-                  className="shrink-0 font-sans-semibold"
-                  numberOfLines={1}
-                >
-                  {row.value}
+                  {copy.drawer.balance}
                 </VemtapText>
               </View>
-            </View>
-          ))}
-          <View className="h-px bg-surface-container-low" />
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={posDrawerBalance.label}
-            onPress={onOpenDrawer}
-            className="flex-row items-center justify-between gap-3 bg-surface-tint px-3 py-2.5"
-          >
-            <View className="min-w-0 flex-1 flex-row items-center gap-2">
-              <Icon name="checkCircle" size={15} color={colors.badgeDiscountText} />
               <VemtapText
-                variant="labelMd"
-                className="min-w-0 flex-1 font-sans-semibold text-primary"
+                variant="labelSm"
+                className="shrink-0 font-sans-semibold text-primary"
                 numberOfLines={1}
               >
-                {posDrawerBalance.label}
+                {view.drawer.balanceLabel}
               </VemtapText>
-            </View>
+            </Pressable>
+          </View>
+        ) : (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={copy.drawer.openAction}
+            onPress={onOpenDrawer}
+            className="rounded-card bg-surface p-3 shadow-sm active:bg-surface-subtle"
+          >
             <VemtapText
-              variant="labelSm"
-              className="shrink-0 font-sans-semibold text-primary"
+              variant="labelMd"
+              className="font-sans-semibold"
               numberOfLines={1}
             >
-              {posDrawerBalance.value}
+              {copy.drawer.closedTitle}
+            </VemtapText>
+            <VemtapText variant="caption" tone="secondary" numberOfLines={2}>
+              {copy.drawer.closedBody}
             </VemtapText>
           </Pressable>
-        </View>
+        )}
       </View>
 
       <View className="mt-3 gap-2">
-        {posRegisterControls.map(control => (
+        {registerControls.map(control => (
           <Pressable
             key={control.id}
             accessibilityRole="button"
@@ -340,6 +465,6 @@ export function PosHomeSalesOperationsScreen({
           </Pressable>
         ))}
       </View>
-    </BusinessScreenLayout>
+    </>
   );
 }

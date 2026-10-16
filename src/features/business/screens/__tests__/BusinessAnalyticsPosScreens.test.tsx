@@ -1,5 +1,5 @@
 import React from 'react';
-import { cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
+import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
 import { strings } from '@constants/strings';
 import { BusinessAnalyticsPerformanceScreen } from '@features/business/screens/BusinessAnalyticsPerformanceScreen';
 import { CustomerIntelligenceAnalyticsScreen } from '@features/business/screens/CustomerIntelligenceAnalyticsScreen';
@@ -12,9 +12,6 @@ import { DigitalEReceiptScreen } from '@features/business/screens/DigitalEReceip
 import {
   branchComparison,
   customerValueSegments,
-  receiptOrder,
-  splitLines,
-  splitModes,
   topCustomers,
 } from '@features/business/data/businessAnalyticsData';
 
@@ -159,205 +156,170 @@ describe('locations branch comparison', () => {
   });
 });
 
-describe('customer display order total', () => {
-  const copy = strings.customerDisplayOrderTotal;
+describe('customer display', () => {
+  const press = (element: Parameters<typeof fireEvent.press>[0]) =>
+    act(async () => {
+      fireEvent.press(element);
+    });
 
-  it('renders every line, the totals stack and the grand total', async () => {
-    const view = await render(<CustomerDisplayOrderTotalScreen />);
-
-    expect(view.getByText('Woodfire Ribeye')).toBeTruthy();
-    expect(view.getByText('Truffle Parmesan Fries')).toBeTruthy();
-    expect(view.getByText('#66,938')).toBeTruthy();
-    expect(view.getByText(copy.thanksTitle)).toBeTruthy();
+  it('welcomes the guest until the till pushes a ticket', async () => {
+    const copy = strings.customerDisplayOrderTotal;
+    const view = await render(
+      <CustomerDisplayOrderTotalScreen venue="Test Kitchen" ticket={null} />,
+    );
+    expect(view.getByText(copy.welcomeTitle('Test Kitchen'))).toBeTruthy();
   });
 
-  it('routes split bill, ask staff and add more items', async () => {
-    const onSplitBill = jest.fn();
-    const onAskStaff = jest.fn();
-    const onAddMoreItems = jest.fn();
+  it('shows the live ticket and opens the ways to pay', async () => {
+    const copy = strings.customerDisplayOrderTotal;
+    const onPay = jest.fn();
     const view = await render(
       <CustomerDisplayOrderTotalScreen
-        onSplitBill={onSplitBill}
-        onAskStaff={onAskStaff}
-        onAddMoreItems={onAddMoreItems}
+        onPay={onPay}
+        ticket={{
+          venue: 'Test Kitchen',
+          tableLabel: copy.tableLabel('4'),
+          lines: [{ id: 'l1', label: '2× Rice', value: '₦1,000' }],
+          totals: [{ id: 'subtotal', label: 'Subtotal', value: '₦1,000' }],
+          total: '₦1,075',
+        }}
       />,
     );
-
-    await pressAndSettle(view, copy.paySplitCta);
-    await pressAndSettle(view, copy.payAskStaffCta);
-    await pressAndSettle(view, copy.moreItemsCta);
-
-    expect(onSplitBill).toHaveBeenCalledTimes(1);
-    expect(onAskStaff).toHaveBeenCalledTimes(1);
-    expect(onAddMoreItems).toHaveBeenCalledTimes(1);
-  });
-});
-
-describe('customer display tap and qr pay', () => {
-  const copy = strings.customerDisplayTapQrPay;
-
-  it('renders the amount due, tap panel, QR frame and accepted methods', async () => {
-    const view = await render(<CustomerDisplayTapQrPayScreen />);
-
-    expect(view.getByText(copy.headerTitle)).toBeTruthy();
-    expect(view.getByText('#66,938')).toBeTruthy();
-    expect(view.getAllByText(copy.tapTitle).length).toBeGreaterThan(0);
-    expect(view.getByText(copy.qrCaption)).toBeTruthy();
-    copy.methods.forEach(method => {
-      expect(view.getByText(method)).toBeTruthy();
-    });
+    expect(view.getByText('₦1,075')).toBeTruthy();
+    await press(view.getByText(copy.payCta));
+    expect(onPay).toHaveBeenCalled();
   });
 
-  it('starts contactless, confirms the scan and changes method', async () => {
-    const onContactlessStarted = jest.fn();
-    const onQrScanned = jest.fn();
-    const onChangeMethod = jest.fn();
+  it('lists only the enabled payment methods and the transfer account', async () => {
+    const copy = strings.customerDisplayTapQrPay;
     const view = await render(
       <CustomerDisplayTapQrPayScreen
-        onContactlessStarted={onContactlessStarted}
-        onQrScanned={onQrScanned}
-        onChangeMethod={onChangeMethod}
+        view={{
+          total: '₦1,075',
+          tableLabel: null,
+          methods: [
+            { id: 'cash', enabled: true },
+            { id: 'oneTap', enabled: false },
+          ],
+          transfer: {
+            bankName: 'Wema',
+            accountNumber: '0123456789',
+            accountName: 'Test Kitchen',
+          },
+        }}
       />,
     );
-
-    await pressAndSettle(view, copy.tapTitle);
-    await pressAndSettle(view, copy.onScanLabel);
-    await pressAndSettle(view, copy.backCta);
-
-    expect(onContactlessStarted).toHaveBeenCalledTimes(1);
-    expect(onQrScanned).toHaveBeenCalledTimes(1);
-    expect(onChangeMethod).toHaveBeenCalledTimes(1);
-  });
-});
-
-describe('customer display tip and rating', () => {
-  const copy = strings.customerDisplayTipRating;
-
-  it('starts on the rating step and blocks submit until a star is chosen', async () => {
-    const onSubmitRating = jest.fn();
-    const view = await render(
-      <CustomerDisplayTipRatingScreen onSubmitRating={onSubmitRating} />,
-    );
-
-    expect(view.getByText(copy.thanksTitle)).toBeTruthy();
-    expect(view.getByText(copy.commentLabel)).toBeTruthy();
+    expect(view.getByText('0123456789')).toBeTruthy();
+    expect(view.getByText(copy.methods.cash)).toBeTruthy();
+    expect(view.queryByText(copy.methods.oneTap)).toBeNull();
   });
 
-  it('advances to the tip step after rating and updates the total', async () => {
-    const onSubmitRating = jest.fn();
-    const onSubmitTip = jest.fn();
+  it('sends the rating and a percentage tip', async () => {
+    const copy = strings.customerDisplayTipRating;
+    const onSubmit = jest.fn();
     const view = await render(
-      <CustomerDisplayTipRatingScreen
-        onSubmitRating={onSubmitRating}
-        onSubmitTip={onSubmitTip}
-      />,
+      <CustomerDisplayTipRatingScreen billTotal={10000} onSubmit={onSubmit} />,
     );
-
-    fireEvent.press(view.getByLabelText('5'));
-    await waitFor(() => expect(view.getByLabelText('5')).toBeTruthy());
-    await pressAndSettle(view, copy.ratingSubmitCta);
-
-    expect(onSubmitRating).toHaveBeenCalledWith(5);
-    await waitFor(() => expect(view.getByText(copy.tipTitle)).toBeTruthy());
-
-    await pressAndSettle(view, copy.tipSubmitCta);
-    expect(onSubmitTip).toHaveBeenCalledWith('ten');
-    await waitFor(() => expect(view.getByText(copy.doneTitle)).toBeTruthy());
-  });
-
-  it('skips rating without submitting a value', async () => {
-    const onSubmitRating = jest.fn();
-    const onSkip = jest.fn();
-    const view = await render(
-      <CustomerDisplayTipRatingScreen onSubmitRating={onSubmitRating} onSkip={onSkip} />,
-    );
-
-    await pressAndSettle(view, copy.ratingSkipCta);
-
-    expect(onSubmitRating).not.toHaveBeenCalled();
-    expect(onSkip).toHaveBeenCalledTimes(1);
+    await press(view.getByLabelText(copy.starLabel(5)));
+    await press(view.getByLabelText('10%'));
+    await press(view.getByText(copy.submitCta));
+    expect(onSubmit).toHaveBeenCalledWith({ rating: 5, tipAmount: 1000 });
   });
 });
 
 describe('split the bill', () => {
   const copy = strings.splitTheBill;
-
-  it('renders the mode picker, items, totals and per-person shares', async () => {
-    const view = await render(<SplitTheBillScreen />);
-
-    expect(view.getByText(copy.headerTitle)).toBeTruthy();
-    splitModes.forEach(mode => {
-      expect(view.getByText(mode.title)).toBeTruthy();
+  const press = (element: Parameters<typeof fireEvent.press>[0]) =>
+    act(async () => {
+      fireEvent.press(element);
     });
-    splitLines.forEach(line => {
-      expect(view.getByText(line.name)).toBeTruthy();
-    });
-    expect(view.getByText('#58,163')).toBeTruthy();
-  });
 
-  it('changes the split mode, assigns an item and pays the share', async () => {
+  it('shows each share, switches mode and settles', async () => {
     const onChangeMode = jest.fn();
-    const onAssignItem = jest.fn();
-    const onPayShare = jest.fn();
+    const onSettle = jest.fn();
     const view = await render(
       <SplitTheBillScreen
+        lines={[{ id: 'i1', name: 'Rice', qty: 2, price: '₦1,000' }]}
+        mode="equal"
+        people={[
+          { key: 'a', name: 'Tolu', lineIds: [], amount: '', tender: 'cash' },
+          { key: 'b', name: 'Ada', lineIds: [], amount: '', tender: 'card' },
+        ]}
+        shares={[
+          { amount: '₦538', detail: 'Tax ₦38' },
+          { amount: '₦537', detail: 'Tax ₦37' },
+        ]}
+        totals={[]}
+        grandTotal="₦1,075"
+        error={null}
+        tenders={['cash', 'card']}
         onChangeMode={onChangeMode}
-        onAssignItem={onAssignItem}
-        onPayShare={onPayShare}
+        onSettle={onSettle}
       />,
     );
+    expect(view.getByText('₦538')).toBeTruthy();
+    await press(view.getByText(copy.modes.by_item));
+    expect(onChangeMode).toHaveBeenCalledWith('by_item');
+    await press(view.getByText(copy.settleCta('₦1,075')));
+    expect(onSettle).toHaveBeenCalled();
+  });
 
-    fireEvent.press(view.getByLabelText(`${copy.modesTitle}: ${splitModes[1].title}`));
-    await waitFor(() =>
-      expect(
-        view.getByLabelText(`${copy.modesTitle}: ${splitModes[1].title}`),
-      ).toBeTruthy(),
+  it('blocks settling while the split does not add up', async () => {
+    const onSettle = jest.fn();
+    const view = await render(
+      <SplitTheBillScreen
+        lines={[{ id: 'i1', name: 'Rice', qty: 2, price: '₦1,000' }]}
+        mode="custom"
+        people={[
+          { key: 'a', name: 'Tolu', lineIds: [], amount: '100', tender: 'cash' },
+          { key: 'b', name: 'Ada', lineIds: [], amount: '100', tender: 'cash' },
+        ]}
+        shares={null}
+        totals={[]}
+        grandTotal="₦1,075"
+        error="Custom amounts add up to 200 but the bill is 1075"
+        tenders={['cash']}
+        onSettle={onSettle}
+      />,
     );
-    await pressAndSettle(view, splitLines[0].name);
-    await pressAndSettle(view, copy.payShareCta);
-
-    expect(onChangeMode).toHaveBeenCalledWith(splitModes[1].id);
-    expect(onAssignItem).toHaveBeenCalledWith(splitLines[0].id);
-    expect(onPayShare).toHaveBeenCalledWith('#19,388');
+    expect(
+      view.getByText('Custom amounts add up to 200 but the bill is 1075'),
+    ).toBeTruthy();
+    await press(view.getByText(copy.settleCta('₦1,075')));
+    expect(onSettle).not.toHaveBeenCalled();
   });
 });
 
 describe('digital e-receipt', () => {
-  const copy = strings.digitalEReceipt;
-
-  it('renders receipt identity, every line and the paid total', async () => {
-    const view = await render(<DigitalEReceiptScreen />);
-
-    expect(view.getByText(copy.headerTitle)).toBeTruthy();
-    expect(view.getByText(receiptOrder.id)).toBeTruthy();
-    receiptOrder.items.forEach(item => {
-      expect(view.getByText(item.name)).toBeTruthy();
-    });
-    expect(view.getByText(receiptOrder.grandTotal)).toBeTruthy();
-  });
-
-  it('routes share, save, rate and order again', async () => {
-    const onShare = jest.fn();
-    const onSave = jest.fn();
-    const onRateAndTip = jest.fn();
-    const onOrderAgain = jest.fn();
+  it('renders the receipt and offers rating only when a till display is linked', async () => {
+    const copy = strings.digitalEReceipt;
+    const receipt = {
+      id: 's1',
+      receiptNumber: 'RCT-1',
+      when: 'Today',
+      status: 'completed' as const,
+      tender: 'Cash',
+      amount: '₦1,075',
+      cashier: 'Ada',
+      storeName: 'Test Kitchen',
+      branchName: 'Branch One',
+      address: '1 Road',
+      phone: '',
+      tin: '123',
+      header: '',
+      footer: 'Come again',
+      logo: null,
+      customer: null,
+      pointsEarned: 0,
+      lines: [{ id: 'l1', name: 'Rice', qty: 2, price: '₦1,000', refunded: 0 }],
+      totals: [],
+      payments: [],
+    };
     const view = await render(
-      <DigitalEReceiptScreen
-        onShare={onShare}
-        onSave={onSave}
-        onRateAndTip={onRateAndTip}
-        onOrderAgain={onOrderAgain}
-      />,
+      <DigitalEReceiptScreen receipt={receipt} canRate={false} />,
     );
-
-    await pressAndSettle(view, copy.shareCta);
-    await pressAndSettle(view, copy.printCta);
-    await pressAndSettle(view, copy.rateCta);
-    await pressAndSettle(view, copy.reorderCta);
-
-    expect(onShare).toHaveBeenCalledTimes(1);
-    expect(onSave).toHaveBeenCalledTimes(1);
-    expect(onRateAndTip).toHaveBeenCalledTimes(1);
-    expect(onOrderAgain).toHaveBeenCalledTimes(1);
+    expect(view.getByText('Come again')).toBeTruthy();
+    expect(view.getByText(copy.tinLabel('123'))).toBeTruthy();
+    expect(view.queryByText(copy.rateCta)).toBeNull();
   });
 });

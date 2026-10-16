@@ -3,370 +3,265 @@ import { Pressable, View } from 'react-native';
 import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
-import type { IconName } from '@components/ui/Icon';
 import { strings } from '@constants/strings';
 import { colors } from '@theme/colors';
-import {
-  BusinessIconWell,
-  BusinessLinkRow,
-  BusinessPanel,
-} from '@features/business/components/BusinessOpsPrimitives';
-import { BusinessInitialsAvatar } from '@features/business/components/BusinessPosPrimitives';
+import { EmptyState } from '@components/shared/EmptyState';
+import { ErrorState } from '@components/shared/ErrorState';
+import { LoadingState } from '@components/shared/LoadingState';
 import {
   BusinessActionDock,
+  BusinessInlineAction,
   BusinessScreenLayout,
   BusinessStatusPill,
 } from '@features/business/components/BusinessPrimitives';
-import { cartCustomer } from '@features/business/data/businessPosFlowData';
 import {
-  posDossierPerks,
-  posDossierVisits,
-} from '@features/business/data/businessPosCustomerData';
+  BusinessPanel,
+  BusinessStatTile,
+} from '@features/business/components/BusinessOpsPrimitives';
+import { BusinessInitialsAvatar } from '@features/business/components/BusinessPosPrimitives';
 
 const copy = strings.posCustomerDossier;
 
+export interface PosDossierView {
+  name: string;
+  initials: string;
+  phone: string;
+  email: string;
+  tier: string;
+  since: string;
+  stats: { id: string; label: string; value: string; note: string }[];
+  rewards: { id: string; title: string; body: string; affordable: boolean }[];
+  visits: {
+    id: string;
+    reference: string;
+    when: string;
+    total: string;
+    items: string;
+    tender: string;
+  }[];
+}
+
 export interface PosCustomerDossierScreenProps {
+  view?: PosDossierView;
+  isLoading?: boolean;
+  isError?: boolean;
+  onRetry?: () => void;
   onBack?: () => void;
-  onOpenProfile?: () => void;
   onAttachToSale?: () => void;
-  onApplyPerk?: (perkId: string) => void;
-  onOpenNotes?: () => void;
-  onOpenVisit?: (visitId: string) => void;
+  onOpenRewards?: () => void;
+  onOpenVisit?: (saleId: string) => void;
   onOpenCrm?: () => void;
 }
 
-/**
- * `pos_customer_dossier` - the register quick dossier: identity, the three
- * standing figures, redeemable perks, the kitchen note, recent Wuse tickets and
- * the hand-off to full CRM analytics.
- */
+/** A patron's quick dossier at the till: standing, redeemable rewards and recent visits. */
 export function PosCustomerDossierScreen({
+  view,
+  isLoading,
+  isError,
+  onRetry,
   onBack,
-  onOpenProfile,
   onAttachToSale,
-  onApplyPerk,
-  onOpenNotes,
+  onOpenRewards,
   onOpenVisit,
   onOpenCrm,
 }: PosCustomerDossierScreenProps) {
-  const statTiles: { label: string; caption: string; note: string; icon: IconName }[] = [
-    {
-      label: copy.pointsValue,
-      caption: copy.pointsLabel,
-      note: copy.pointsNote,
-      icon: 'star',
-    },
-    {
-      label: copy.spendValue,
-      caption: copy.spendLabel,
-      note: copy.spendNote,
-      icon: 'payments',
-    },
-    {
-      label: copy.avgValue,
-      caption: copy.avgLabel,
-      note: copy.avgNote,
-      icon: 'receiptLong',
-    },
-  ];
-
   return (
     <BusinessScreenLayout
-      header={{
-        title: copy.headerTitle,
-        onBack,
-        titleVariant: 'labelMd',
-        actions: [
-          {
-            icon: 'accountCircle',
-            label: copy.profileActionLabel,
-            onPress: onOpenProfile,
-          },
-        ],
-      }}
+      header={{ title: copy.headerTitle, onBack }}
       contentContainerClassName="pb-8"
       footer={
-        <BusinessActionDock>
-          <Button
-            label={copy.attachCta}
-            labelVariant="labelMd"
-            onPress={onAttachToSale}
-            leftIcon={<Icon name="cartPlus" size={17} color={colors.surface} />}
-          />
-        </BusinessActionDock>
+        view ? (
+          <BusinessActionDock>
+            <Button
+              label={copy.attachCta(view.name)}
+              labelVariant="labelMd"
+              onPress={onAttachToSale}
+              leftIcon={<Icon name="link" size={17} color={colors.surface} />}
+            />
+          </BusinessActionDock>
+        ) : undefined
       }
     >
-      <BusinessPanel>
-        <View className="flex-row items-start gap-3">
-          <BusinessInitialsAvatar
-            initials={copy.customerInitials}
-            size="lg"
-            badgeIcon="verified"
+      {!view ? (
+        isError ? (
+          <ErrorState
+            title={copy.error.title}
+            description={copy.error.body}
+            onRetry={onRetry}
           />
-          <View className="min-w-0 flex-1">
-            <VemtapText
-              variant="headingSm"
-              className="font-sans-semibold"
-              numberOfLines={1}
-            >
-              {cartCustomer.name}
-            </VemtapText>
-            <BusinessStatusPill
-              label={copy.memberRef}
-              tone="neutral"
-              className="mt-1 self-start"
+        ) : (
+          <LoadingState label={isLoading ? copy.loading : undefined} />
+        )
+      ) : (
+        <>
+          <View className="flex-row items-center gap-3">
+            <BusinessInitialsAvatar
+              initials={view.initials}
+              size="lg"
+              tone="brand"
+              badgeIcon="verified"
             />
-          </View>
-        </View>
-        <BusinessStatusPill
-          label={copy.verifiedLabel}
-          tone="success"
-          icon="checkCircle"
-          className="mt-2 self-start"
-        />
-        <View className="mt-3 gap-2">
-          <View className="flex-row items-center gap-2">
-            <Icon name="phone" size={16} color={colors.textSecondary} />
-            <VemtapText variant="bodyMd" numberOfLines={1}>
-              {cartCustomer.phone}
-            </VemtapText>
-          </View>
-          <View className="flex-row items-center gap-2">
-            <Icon name="email" size={16} color={colors.textSecondary} />
-            <VemtapText variant="bodyMd" numberOfLines={1}>
-              {copy.email}
-            </VemtapText>
-          </View>
-        </View>
-      </BusinessPanel>
-
-      <View className="mt-3 flex-row flex-wrap items-center justify-between gap-2">
-        <View className="min-w-0 flex-1 flex-row items-center gap-1.5">
-          <View className="h-2 w-2 shrink-0 rounded-full bg-success" />
-          <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-            {copy.registerLinkLabel}
-          </VemtapText>
-        </View>
-        <VemtapText variant="micro" tone="tertiary" numberOfLines={1}>
-          {copy.registerLinkMeta}
-        </VemtapText>
-      </View>
-
-      <View className="mt-2 flex-row gap-2">
-        {statTiles.map(stat => (
-          <View
-            key={stat.caption}
-            className="min-w-0 flex-1 gap-1 rounded-card bg-surface p-2.5 shadow-sm"
-          >
-            <View className="flex-row items-center gap-1.5">
-              <Icon name={stat.icon} size={15} color={colors.primary} />
-              <VemtapText variant="micro" tone="tertiary" numberOfLines={1}>
-                {stat.caption}
-              </VemtapText>
-            </View>
-            <VemtapText variant="headingSm" className="font-sans-bold" numberOfLines={1}>
-              {stat.label}
-            </VemtapText>
-            <VemtapText variant="micro" tone="secondary" numberOfLines={2}>
-              {stat.note}
-            </VemtapText>
-          </View>
-        ))}
-      </View>
-
-      <View className="mt-4 flex-row items-center justify-between gap-2">
-        <View className="min-w-0 flex-1 flex-row items-center gap-1.5">
-          <Icon name="localOffer" size={17} color={colors.primary} />
-          <VemtapText variant="labelMd" className="font-sans-semibold" numberOfLines={1}>
-            {copy.perksTitle}
-          </VemtapText>
-        </View>
-        <VemtapText variant="caption" tone="success" numberOfLines={1}>
-          {copy.perksBadge}
-        </VemtapText>
-      </View>
-
-      <View className="mt-2 gap-2">
-        {posDossierPerks.map(perk => (
-          <View
-            key={perk.id}
-            className="flex-row items-center gap-3 rounded-card bg-surface p-3 shadow-sm"
-          >
-            <BusinessIconWell icon={perk.icon} tone={perk.tone} />
             <View className="min-w-0 flex-1">
-              <View className="flex-row flex-wrap items-center gap-1.5">
-                <VemtapText
-                  variant="labelSm"
-                  className="font-sans-semibold"
-                  numberOfLines={1}
-                >
-                  {perk.title}
-                </VemtapText>
-                {perk.badge ? (
-                  <BusinessStatusPill label={perk.badge} tone="brand" />
-                ) : null}
-              </View>
               <VemtapText
-                variant="caption"
-                tone="secondary"
-                className="mt-0.5"
-                numberOfLines={2}
-              >
-                {perk.body}
-              </VemtapText>
-            </View>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`${perk.cta} ${perk.title}`}
-              onPress={() => onApplyPerk?.(perk.id)}
-              className="min-h-9 shrink-0 justify-center rounded-field bg-surface-tint px-3 active:scale-95"
-            >
-              <VemtapText
-                variant="labelSm"
-                className="font-sans-semibold text-primary"
+                variant="headingSm"
+                className="font-sans-semibold"
                 numberOfLines={1}
               >
-                {perk.cta}
+                {view.name}
               </VemtapText>
-            </Pressable>
-          </View>
-        ))}
-      </View>
-
-      <View className="mt-3 rounded-card bg-surface-tint p-3">
-        <View className="flex-row items-start justify-between gap-2">
-          <View className="min-w-0 flex-1 flex-row items-center gap-1.5">
-            <Icon name="notificationsActive" size={17} color={colors.tertiary} />
-            <VemtapText
-              variant="labelSm"
-              className="font-sans-semibold"
-              numberOfLines={1}
-            >
-              {copy.notesTitle}
-            </VemtapText>
-          </View>
-          <VemtapText variant="micro" tone="tertiary" numberOfLines={1}>
-            {copy.notesBadge}
-          </VemtapText>
-        </View>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={copy.notesTitle}
-          onPress={onOpenNotes}
-          className="mt-2 rounded-field bg-surface p-3 active:scale-[0.99]"
-        >
-          <VemtapText variant="bodyMd" className="leading-relaxed">
-            {copy.notesBody}
-          </VemtapText>
-        </Pressable>
-      </View>
-
-      <View className="mt-4 flex-row items-center justify-between gap-2">
-        <View className="min-w-0 flex-1 flex-row items-center gap-1.5">
-          <Icon name="history" size={17} color={colors.text} />
-          <VemtapText variant="labelMd" className="font-sans-semibold" numberOfLines={1}>
-            {copy.visitsTitle}
-          </VemtapText>
-        </View>
-        <VemtapText variant="micro" tone="tertiary" numberOfLines={1}>
-          {copy.visitsBadge}
-        </VemtapText>
-      </View>
-
-      <View className="mt-2 overflow-hidden rounded-card bg-surface shadow-sm">
-        {posDossierVisits.map((visit, index) => (
-          <View key={visit.id}>
-            {index > 0 ? <View className="h-px bg-surface-container-low" /> : null}
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`${visit.reference} ${visit.total}`}
-              onPress={() => onOpenVisit?.(visit.id)}
-              className="flex-row items-center gap-2 px-3 py-2.5 active:bg-surface-container-low"
-            >
-              <View className="min-w-0 flex-1">
-                <View className="flex-row items-center gap-1.5">
-                  <VemtapText
-                    variant="labelSm"
-                    className="font-sans-semibold"
-                    numberOfLines={1}
-                  >
-                    {visit.when}
-                  </VemtapText>
-                  <VemtapText variant="micro" tone="tertiary" numberOfLines={1}>
-                    {visit.reference}
-                  </VemtapText>
-                </View>
-                <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-                  {visit.items}
-                </VemtapText>
-              </View>
-              <View className="shrink-0 items-end">
+              <BusinessStatusPill
+                label={view.tier}
+                tone="brand"
+                className="mt-1 self-start"
+              />
+              {view.phone ? (
                 <VemtapText
-                  variant="labelSm"
-                  className="font-sans-semibold"
+                  variant="caption"
+                  tone="secondary"
+                  className="mt-1"
                   numberOfLines={1}
                 >
-                  {visit.total}
+                  {view.phone}
                 </VemtapText>
-                <View className="mt-0.5 flex-row items-center gap-1">
-                  <BusinessStatusPill label={visit.tender} tone="neutral" />
-                  <Icon name="checkCircle" size={14} color={colors.success} />
-                </View>
-              </View>
-            </Pressable>
+              ) : null}
+              {view.email ? (
+                <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
+                  {view.email}
+                </VemtapText>
+              ) : null}
+            </View>
           </View>
-        ))}
-      </View>
+          <VemtapText variant="micro" tone="tertiary" className="mt-2" numberOfLines={1}>
+            {view.since}
+          </VemtapText>
 
-      <View className="bg-neutral-dark mt-3 flex-row items-center gap-3 rounded-card p-3">
-        <View className="h-12 w-12 shrink-0 items-center justify-center rounded-field bg-white/10">
-          <Icon name="restaurant" size={22} color={colors.surface} />
-        </View>
-        <View className="min-w-0 flex-1">
-          <VemtapText
-            variant="labelSm"
-            className="font-sans-semibold text-surface"
-            numberOfLines={1}
+          <View className="mt-3 flex-row gap-2">
+            {view.stats.map(stat => (
+              <BusinessStatTile
+                key={stat.id}
+                label={stat.label}
+                value={stat.value}
+                className="p-2.5"
+              />
+            ))}
+          </View>
+
+          <BusinessPanel
+            className="mt-3"
+            title={copy.perksTitle}
+            icon="loyalty"
+            badge={copy.perksBadge(
+              view.rewards.filter(reward => reward.affordable).length,
+            )}
+            badgeTone="success"
           >
-            {copy.storeFooter}
-          </VemtapText>
-          <VemtapText variant="caption" className="text-surface" numberOfLines={1}>
-            {copy.storeMeta}
-          </VemtapText>
-        </View>
-        <BusinessStatusPill label={copy.storeBadge} tone="success" />
-      </View>
+            {view.rewards.length ? (
+              <View className="gap-2">
+                {view.rewards.map(reward => (
+                  <View
+                    key={reward.id}
+                    className="flex-row items-center gap-2 rounded-field bg-surface-subtle p-2.5"
+                  >
+                    <View className="min-w-0 flex-1">
+                      <VemtapText
+                        variant="labelSm"
+                        className="font-sans-semibold"
+                        numberOfLines={1}
+                      >
+                        {reward.title}
+                      </VemtapText>
+                      <VemtapText variant="micro" tone="tertiary" numberOfLines={2}>
+                        {reward.body}
+                      </VemtapText>
+                    </View>
+                    {reward.affordable ? (
+                      <BusinessStatusPill label={copy.readyBadge} tone="success" />
+                    ) : null}
+                  </View>
+                ))}
+                <BusinessInlineAction
+                  label={copy.rewardsCta}
+                  icon="arrowForward"
+                  onPress={onOpenRewards}
+                />
+              </View>
+            ) : (
+              <VemtapText variant="caption" tone="secondary">
+                {copy.noRewards}
+              </VemtapText>
+            )}
+          </BusinessPanel>
 
-      <View className="mt-3 rounded-card bg-surface-tint p-3">
-        <View className="flex-row items-start gap-2.5">
-          <View className="mt-0.5 shrink-0">
-            <Icon name="hub" size={19} color={colors.primary} />
-          </View>
-          <View className="min-w-0 flex-1">
+          <BusinessPanel
+            className="mt-3"
+            title={copy.visitsTitle}
+            icon="history"
+            badge={copy.visitsBadge(view.visits.length)}
+            badgeTone="neutral"
+          >
+            {view.visits.length ? (
+              <View className="gap-2">
+                {view.visits.map(visit => (
+                  <Pressable
+                    key={visit.id}
+                    accessibilityRole="button"
+                    accessibilityLabel={visit.reference}
+                    onPress={() => onOpenVisit?.(visit.id)}
+                    className="gap-0.5 rounded-field bg-surface-subtle p-2.5 active:bg-surface-container"
+                  >
+                    <View className="flex-row items-center justify-between gap-2">
+                      <VemtapText
+                        variant="labelSm"
+                        className="font-sans-semibold"
+                        numberOfLines={1}
+                      >
+                        {visit.reference}
+                      </VemtapText>
+                      <VemtapText
+                        variant="labelSm"
+                        className="font-sans-bold"
+                        numberOfLines={1}
+                      >
+                        {visit.total}
+                      </VemtapText>
+                    </View>
+                    <VemtapText variant="micro" tone="tertiary" numberOfLines={1}>
+                      {`${visit.when} • ${visit.tender}`}
+                    </VemtapText>
+                    <VemtapText variant="caption" tone="secondary" numberOfLines={2}>
+                      {visit.items}
+                    </VemtapText>
+                  </Pressable>
+                ))}
+              </View>
+            ) : (
+              <EmptyState
+                variant="contained"
+                title={copy.empty.title}
+                description={copy.empty.body}
+              />
+            )}
+          </BusinessPanel>
+
+          <View className="mt-3 gap-2 rounded-card bg-surface-tint p-3">
             <VemtapText
-              variant="labelSm"
+              variant="labelMd"
               className="font-sans-semibold"
               numberOfLines={2}
             >
               {copy.crmTitle}
             </VemtapText>
-            <VemtapText
-              variant="caption"
-              tone="secondary"
-              className="mt-0.5"
-              numberOfLines={3}
-            >
+            <VemtapText variant="caption" tone="secondary" numberOfLines={3}>
               {copy.crmBody}
             </VemtapText>
-            <BusinessLinkRow
+            <BusinessInlineAction
               label={copy.crmCta}
+              icon="arrowForward"
               onPress={onOpenCrm}
-              icon="openInNew"
-              className="mt-1"
             />
           </View>
-        </View>
-      </View>
+        </>
+      )}
     </BusinessScreenLayout>
   );
 }

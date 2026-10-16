@@ -1,257 +1,275 @@
 import React from 'react';
 import { Pressable, View } from 'react-native';
 import { Button } from '@components/ui/Button';
-import { Icon } from '@components/ui/Icon';
+import { Input } from '@components/ui/Input';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
-import { colors } from '@theme/colors';
-import {
-  BusinessActionDock,
-  BusinessScreenLayout,
-  BusinessStatusPill,
-} from '@features/business/components/BusinessPrimitives';
+import { ErrorState } from '@components/shared/ErrorState';
+import { LoadingState } from '@components/shared/LoadingState';
 import { BusinessPanel } from '@features/business/components/BusinessOpsPrimitives';
 import {
-  BusinessGrandTotalRow,
   BusinessSettingRow,
   BusinessTotalsRow,
 } from '@features/business/components/BusinessPosPrimitives';
 import {
-  receiptPreview,
-  receiptPreviewLines,
-} from '@features/business/data/businessPosFlowData';
+  BusinessScreenLayout,
+  BusinessStatusPill,
+} from '@features/business/components/BusinessPrimitives';
+import type { PosSettings, PosSettingsUpdate } from '@api/posApi';
+import { usePosSettingsDraft } from '@features/business/hooks/usePosSettingsDraft';
+import type { ReceiptView } from '@features/business/utils/posMappers';
 
 const copy = strings.posReceiptCustomization;
 
+const TRIGGERS = ['sale', 'refund', 'kitchen'] as const;
+
 export interface PosReceiptCustomizationScreenProps {
+  settings?: PosSettings;
+  businessName: string;
+  /** The latest real sale, used for the preview lines; null before the first sale. */
+  sample: ReceiptView | null;
+  isLoading?: boolean;
+  isError?: boolean;
+  onRetry?: () => void;
+  isSaving?: boolean;
+  canEdit?: boolean;
   onBack?: () => void;
-  onOpenProfile?: () => void;
-  onToggleSetting?: (settingId: string, value: boolean) => void;
-  onEditReceipt?: () => void;
-  onPrintTest?: () => void;
+  onSave?: (update: PosSettingsUpdate) => void;
 }
 
-/**
- * Receipt & order customisation: the thermal typography settings, and a live
- * 80mm slip simulation rendered through the shared line/total primitives so the
- * preview cannot drift from the real receipt layout.
- */
+/** Receipt header, footer and print triggers, with a preview of the next receipt. */
 export function PosReceiptCustomizationScreen({
+  settings,
+  isLoading,
+  isError,
+  onRetry,
   onBack,
-  onOpenProfile,
-  onToggleSetting,
-  onEditReceipt,
-  onPrintTest,
+  ...formProps
 }: PosReceiptCustomizationScreenProps) {
   return (
     <BusinessScreenLayout
-      header={{
-        title: copy.headerTitle,
-        onBack,
-        actions: [
-          { icon: 'accountCircle', label: copy.headerTitle, onPress: onOpenProfile },
-        ],
-      }}
+      header={{ title: copy.headerTitle, onBack }}
       contentContainerClassName="pb-8"
-      footer={
-        <BusinessActionDock>
-          <Button
-            label={copy.printCta}
-            labelVariant="labelMd"
-            onPress={onPrintTest}
-            leftIcon={<Icon name="printReceipt" size={18} color={colors.surface} />}
-          />
-          <Button
-            label={copy.editCta}
-            labelVariant="labelSm"
-            variant="secondary"
-            onPress={onEditReceipt}
-          />
-        </BusinessActionDock>
-      }
     >
-      <View className="flex-row flex-wrap items-center gap-1.5">
-        <BusinessStatusPill label={copy.accessBadge} tone="success" />
-        <BusinessStatusPill label={copy.modeBadge} tone="brand" />
-      </View>
+      {!settings ? (
+        isError ? (
+          <ErrorState
+            title={copy.error.title}
+            description={copy.error.body}
+            onRetry={onRetry}
+          />
+        ) : (
+          <LoadingState label={isLoading ? copy.loading : undefined} />
+        )
+      ) : (
+        <ReceiptForm {...formProps} settings={settings} />
+      )}
+    </BusinessScreenLayout>
+  );
+}
 
-      <BusinessPanel
-        className="mt-3"
-        title={copy.settingsTitle}
-        icon="tune"
-        badge={copy.settingsSub}
-        badgeTone="neutral"
-      >
-        <VemtapText
-          variant="caption"
-          tone="secondary"
-          className="leading-relaxed"
-          numberOfLines={3}
-        >
-          {copy.settingsBody}
+function ReceiptForm({
+  settings,
+  businessName,
+  sample,
+  isSaving,
+  canEdit = true,
+  onSave,
+}: Omit<
+  PosReceiptCustomizationScreenProps,
+  'isLoading' | 'isError' | 'onRetry' | 'onBack'
+> & { settings: PosSettings }) {
+  const { draft, dirty, value, set } = usePosSettingsDraft(settings);
+  const triggers = value('autoPrintOn');
+  const width = value('receiptWidth');
+
+  return (
+    <>
+      <BusinessPanel title={copy.settingsTitle} icon="receiptLong">
+        <Input
+          label={copy.headerLabel}
+          value={value('receiptHeader')}
+          editable={canEdit}
+          onChangeText={text => set('receiptHeader', text)}
+        />
+        <Input
+          label={copy.addressLabel}
+          value={value('receiptAddress')}
+          editable={canEdit}
+          onChangeText={text => set('receiptAddress', text)}
+        />
+        <Input
+          label={copy.phoneLabel}
+          value={value('receiptPhone')}
+          keyboardType="phone-pad"
+          editable={canEdit}
+          onChangeText={text => set('receiptPhone', text)}
+        />
+        <Input
+          label={copy.footerLabel}
+          value={value('receiptFooter')}
+          editable={canEdit}
+          onChangeText={text => set('receiptFooter', text)}
+          multiline
+        />
+        <BusinessSettingRow
+          title={copy.logoTitle}
+          trailing="switch"
+          switchValue={value('showLogo')}
+          onSwitchChange={next => set('showLogo', next)}
+        />
+        <VemtapText variant="labelSm" className="font-sans-semibold">
+          {copy.widthTitle}
         </VemtapText>
-        <View className="overflow-hidden rounded-field bg-surface-subtle">
-          {[
-            { id: 'bold', title: 'Bold headings', on: true },
-            { id: 'logo', title: 'Print store logo', on: true },
-            { id: 'tax', title: 'Print tax breakdown', on: true },
-            { id: 'loyalty', title: 'Loyalty handshake block', on: true },
-            { id: 'sms', title: 'Auto-send SMS receipt', on: false },
-          ].map((setting, index) => (
-            <View key={setting.id}>
-              {index > 0 ? <View className="h-px bg-surface-container-low" /> : null}
-              <BusinessSettingRow
-                title={setting.title}
-                trailing="switch"
-                switchValue={setting.on}
-                onSwitchChange={value => onToggleSetting?.(setting.id, value)}
-                className="px-3 py-2"
-              />
-            </View>
+        <View className="flex-row gap-2">
+          {([58, 80] as const).map(option => (
+            <Pressable
+              key={option}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: width === option }}
+              accessibilityLabel={copy.widthOption(option)}
+              onPress={() => set('receiptWidth', option)}
+              className={`min-h-10 flex-1 items-center justify-center rounded-field ${width === option ? 'bg-primary' : 'bg-surface-container'}`}
+            >
+              <VemtapText
+                variant="labelSm"
+                className={`font-sans-semibold ${width === option ? 'text-surface' : ''}`}
+              >
+                {copy.widthOption(option)}
+              </VemtapText>
+            </Pressable>
           ))}
         </View>
+      </BusinessPanel>
+
+      <BusinessPanel className="mt-3" title={copy.printTitle} icon="printReceipt">
+        <BusinessSettingRow
+          title={copy.autoPrintTitle}
+          trailing="switch"
+          switchValue={value('autoPrintReceipt')}
+          onSwitchChange={next => set('autoPrintReceipt', next)}
+        />
+        {TRIGGERS.map(trigger => (
+          <BusinessSettingRow
+            key={trigger}
+            title={copy.triggers[trigger]}
+            trailing="switch"
+            switchValue={triggers.includes(trigger)}
+            onSwitchChange={on =>
+              set(
+                'autoPrintOn',
+                on ? [...triggers, trigger] : triggers.filter(item => item !== trigger),
+              )
+            }
+          />
+        ))}
+        <BusinessSettingRow
+          title={copy.kitchenChitsTitle}
+          trailing="switch"
+          switchValue={value('printKitchenChits')}
+          onSwitchChange={next => set('printKitchenChits', next)}
+        />
       </BusinessPanel>
 
       <BusinessPanel
         className="mt-3"
         title={copy.previewTitle}
-        icon="printerPos"
-        badge={copy.previewBadge}
+        icon="visibility"
+        badge={copy.widthOption(width)}
         badgeTone="neutral"
       >
-        <View className="items-center rounded-field bg-surface-container-lowest p-3">
-          <View className="w-full rounded-field bg-surface p-3">
-            <View className="items-center gap-1">
-              <VemtapText
-                variant="labelMd"
-                className="text-center font-sans-bold"
-                numberOfLines={1}
-              >
-                {strings.businessMore.name}
-              </VemtapText>
-              <VemtapText variant="micro" className="text-center" numberOfLines={1}>
-                {receiptPreview.txn}
-              </VemtapText>
-            </View>
-
-            <View className="mt-2 gap-1.5">
-              <VemtapText variant="micro" className="text-center" numberOfLines={2}>
-                {receiptPreview.address}
-              </VemtapText>
-              <VemtapText variant="micro" className="text-center" numberOfLines={1}>
-                {receiptPreview.tel}
-              </VemtapText>
-              <VemtapText variant="micro" className="text-center" numberOfLines={1}>
-                {`TIN: ${receiptPreview.tin}`}
-              </VemtapText>
-              <VemtapText variant="micro" className="text-center" numberOfLines={1}>
-                {receiptPreview.stamp}
-              </VemtapText>
-              <VemtapText variant="micro" className="text-center" numberOfLines={1}>
-                {receiptPreview.server}
-              </VemtapText>
-              <VemtapText variant="micro" className="text-center" numberOfLines={1}>
-                {receiptPreview.phone}
-              </VemtapText>
-            </View>
-
-            <View className="my-2 h-px bg-surface-container-highest" />
-
-            <View className="gap-2">
-              {receiptPreviewLines.map(line => (
-                <View key={line.id} className="gap-0.5">
-                  <View className="flex-row items-start justify-between gap-2">
-                    <VemtapText
-                      variant="caption"
-                      className="min-w-0 flex-1 font-sans-semibold"
-                      numberOfLines={2}
-                    >
-                      {`${line.qty} ${line.name}`}
-                    </VemtapText>
-                    <VemtapText
-                      variant="caption"
-                      className="shrink-0 font-sans-semibold"
-                      numberOfLines={1}
-                    >
-                      {line.price}
-                    </VemtapText>
-                  </View>
-                  <VemtapText variant="micro" tone="tertiary" numberOfLines={1}>
-                    {line.note}
-                  </VemtapText>
-                </View>
-              ))}
-            </View>
-
-            <View className="my-2 h-px bg-surface-container-highest" />
-
-            <View className="gap-1.5">
-              <BusinessTotalsRow label="Subtotal" value={receiptPreview.subtotal} />
-              <BusinessTotalsRow label={copy.vatLabel} value={receiptPreview.vat} />
-              <BusinessTotalsRow
-                label={copy.consumptionTaxLabel}
-                value={receiptPreview.consumptionTax}
-              />
-            </View>
-            <BusinessGrandTotalRow
-              label={copy.totalDueLabel}
-              value={receiptPreview.total}
-              divided={false}
-            />
+        <View className="gap-1.5 rounded-field border border-border bg-surface p-3">
+          <VemtapText
+            variant="labelMd"
+            className="text-center font-sans-bold"
+            numberOfLines={2}
+          >
+            {businessName}
+          </VemtapText>
+          {value('receiptHeader') ? (
             <VemtapText
               variant="caption"
-              className="mt-1 text-center font-sans-semibold"
-              numberOfLines={1}
+              tone="secondary"
+              className="text-center"
+              numberOfLines={2}
             >
-              {`${copy.paidLabel}: VEMTAP Smart Tap`}
+              {value('receiptHeader')}
             </VemtapText>
-            <VemtapText variant="micro" className="text-center" numberOfLines={1}>
-              {`${copy.authLabel} ${receiptPreview.auth}`}
-            </VemtapText>
-
-            <View className="my-2 h-px bg-surface-container-highest" />
-
-            <View className="items-center gap-1">
-              <View className="flex-row items-center gap-1.5">
-                <Icon name="starFilled" size={14} color={colors.tertiary} />
-                <VemtapText
-                  variant="caption"
-                  className="font-sans-semibold"
-                  numberOfLines={1}
-                >
-                  {copy.pointsLabel.replace('{count}', String(receiptPreview.points))}
-                </VemtapText>
-              </View>
-              <VemtapText variant="micro" className="text-center" numberOfLines={1}>
-                {copy.scanLabel}
-              </VemtapText>
-              <VemtapText variant="micro" className="text-center" numberOfLines={2}>
-                {copy.thanksLabel}
-              </VemtapText>
+          ) : null}
+          {[
+            value('receiptAddress'),
+            value('receiptPhone'),
+            settings.tin ? `TIN ${settings.tin}` : '',
+          ]
+            .filter(Boolean)
+            .map(line => (
               <VemtapText
+                key={line}
                 variant="micro"
                 tone="tertiary"
                 className="text-center"
-                numberOfLines={1}
+                numberOfLines={2}
               >
-                {copy.poweredLabel}
+                {line}
               </VemtapText>
+            ))}
+          {sample ? (
+            <View className="mt-2 gap-1 border-t border-dashed border-border pt-2">
+              <VemtapText variant="micro" tone="tertiary">
+                {`${sample.receiptNumber} • ${sample.when}`}
+              </VemtapText>
+              {sample.lines.map(line => (
+                <BusinessTotalsRow
+                  key={line.id}
+                  label={`${line.qty}× ${line.name}`}
+                  value={line.price}
+                />
+              ))}
+              {sample.totals.map(row => (
+                <BusinessTotalsRow
+                  key={row.id}
+                  label={row.label}
+                  value={row.value}
+                  tone={row.tone}
+                />
+              ))}
+              <BusinessTotalsRow
+                label={copy.totalDueLabel}
+                value={sample.amount}
+                tone="strong"
+              />
             </View>
-          </View>
-        </View>
-
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={copy.editCta}
-          onPress={onEditReceipt}
-          className="min-h-10 flex-row items-center justify-center gap-1.5 rounded-field bg-surface-container active:scale-95"
-        >
-          <Icon name="edit" size={16} color={colors.text} />
-          <VemtapText variant="labelSm" className="font-sans-semibold" numberOfLines={1}>
-            {copy.editCta}
+          ) : (
+            <VemtapText variant="micro" tone="tertiary" className="mt-2 text-center">
+              {copy.noSample}
+            </VemtapText>
+          )}
+          {value('receiptFooter') ? (
+            <VemtapText
+              variant="caption"
+              tone="secondary"
+              className="mt-2 text-center"
+              numberOfLines={3}
+            >
+              {value('receiptFooter')}
+            </VemtapText>
+          ) : null}
+          <VemtapText variant="micro" tone="tertiary" className="text-center">
+            {copy.poweredLabel}
           </VemtapText>
-        </Pressable>
+        </View>
+        {!canEdit ? <BusinessStatusPill label={copy.readOnly} tone="neutral" /> : null}
       </BusinessPanel>
-    </BusinessScreenLayout>
+
+      <View className="mt-4">
+        <Button
+          label={copy.saveCta}
+          labelVariant="labelMd"
+          disabled={!dirty || !canEdit}
+          loading={isSaving}
+          onPress={() => onSave?.(draft)}
+        />
+      </View>
+    </>
   );
 }

@@ -1,318 +1,209 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Pressable, View } from 'react-native';
 import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
+import { Input } from '@components/ui/Input';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
 import { colors } from '@theme/colors';
+import { ErrorState } from '@components/shared/ErrorState';
+import { LoadingState } from '@components/shared/LoadingState';
 import {
   BusinessInfoStrip,
   BusinessPanel,
 } from '@features/business/components/BusinessOpsPrimitives';
 import { BusinessSettingRow } from '@features/business/components/BusinessPosPrimitives';
+import { BusinessScreenLayout } from '@features/business/components/BusinessPrimitives';
+import type { PosSettings, PosSettingsUpdate } from '@api/posApi';
 import {
-  BusinessActionDock,
-  BusinessScreenLayout,
-  BusinessStatusPill,
-} from '@features/business/components/BusinessPrimitives';
+  toNumber,
+  usePosSettingsDraft,
+} from '@features/business/hooks/usePosSettingsDraft';
 
 const copy = strings.taxesSurcharges;
 
-/** A numeric rule field: a read-only figure with its unit, per the design. */
-function TaxRuleField({
-  accessibilityLabel,
-  label,
-  value,
-  unit,
-}: {
-  accessibilityLabel: string;
-  label: string;
-  value: string;
-  unit: string;
-}) {
+export interface TaxesSurchargesScreenProps {
+  settings?: PosSettings;
+  isLoading?: boolean;
+  isError?: boolean;
+  onRetry?: () => void;
+  isSaving?: boolean;
+  canEdit?: boolean;
+  onBack?: () => void;
+  onApply?: (update: PosSettingsUpdate) => void;
+}
+
+/** VAT, service and packaging surcharges, and the public QR ordering rules. */
+export function TaxesSurchargesScreen({
+  settings,
+  isLoading,
+  isError,
+  onRetry,
+  onBack,
+  ...formProps
+}: TaxesSurchargesScreenProps) {
   return (
-    <View className="flex-row items-center justify-between gap-3">
-      <View className="min-w-0 flex-1">
-        <VemtapText variant="labelSm" className="font-sans-semibold" numberOfLines={1}>
-          {label}
-        </VemtapText>
-        <VemtapText variant="micro" tone="secondary" numberOfLines={2}>
-          {accessibilityLabel}
-        </VemtapText>
-      </View>
-      <View
-        accessibilityRole="text"
-        accessibilityLabel={`${label} ${value}${unit}`}
-        className="min-w-[86px] shrink-0 flex-row items-center justify-center gap-0.5 rounded-field bg-surface-container py-2"
-      >
-        <VemtapText variant="headingSm" className="font-sans-bold" numberOfLines={1}>
-          {value}
-        </VemtapText>
-        <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-          {unit}
-        </VemtapText>
-      </View>
-    </View>
+    <BusinessScreenLayout
+      header={{ title: copy.headerTitle, onBack, titleVariant: 'labelMd' }}
+      contentContainerClassName="pb-8"
+    >
+      {!settings ? (
+        isError ? (
+          <ErrorState
+            title={copy.error.title}
+            description={copy.error.body}
+            onRetry={onRetry}
+          />
+        ) : (
+          <LoadingState label={isLoading ? copy.loading : undefined} />
+        )
+      ) : (
+        <TaxesForm {...formProps} settings={settings} />
+      )}
+    </BusinessScreenLayout>
   );
 }
 
-export interface TaxesSurchargesScreenProps {
-  onBack?: () => void;
-  onOpenProfile?: () => void;
-  onSelectPriceApplication?: (modeId: string) => void;
-  onToggleExemption?: (value: boolean) => void;
-  onCopyTin?: () => void;
-  onToggleServiceWaiver?: (value: boolean) => void;
-  onTogglePackagingAuto?: (value: boolean) => void;
-  onToggleSelfOrdering?: (value: boolean) => void;
-  onToggleRushPause?: (value: boolean) => void;
-  onApply?: () => void;
-}
-
-/**
- * `taxes_surcharges` - statutory VAT, dine-in/packaging surcharges and the
- * public-POS QR rules. Statutory values are shown as read-only fields with their
- * unit because they come from the national schedule, not from the cashier.
- */
-export function TaxesSurchargesScreen({
-  onBack,
-  onOpenProfile,
-  onSelectPriceApplication,
-  onToggleExemption,
-  onCopyTin,
-  onToggleServiceWaiver,
-  onTogglePackagingAuto,
-  onToggleSelfOrdering,
-  onToggleRushPause,
+function TaxesForm({
+  settings,
+  isSaving,
+  canEdit = true,
   onApply,
-}: TaxesSurchargesScreenProps) {
-  const [priceMode, setPriceMode] = useState<'inclusive' | 'exclusive'>('exclusive');
-  const [exempt, setExempt] = useState(true);
-  const [serviceWaiver, setServiceWaiver] = useState(true);
-  const [packagingAuto, setPackagingAuto] = useState(true);
-  const [selfOrdering, setSelfOrdering] = useState(true);
-  const [rushPause, setRushPause] = useState(false);
+}: Omit<TaxesSurchargesScreenProps, 'isLoading' | 'isError' | 'onRetry' | 'onBack'> & {
+  settings: PosSettings;
+}) {
+  const { draft, dirty, value, set } = usePosSettingsDraft(settings);
+  const inclusive = value('pricesIncludeTax');
 
   return (
-    <BusinessScreenLayout
-      header={{
-        title: copy.headerTitle,
-        onBack,
-        titleVariant: 'labelMd',
-        titleAccessory: (
-          <View className="mt-1 flex-row flex-wrap items-center gap-1.5">
-            <BusinessStatusPill
-              label={copy.accessBadge}
-              tone="neutral"
-              icon="verifiedUser"
-            />
-            <BusinessStatusPill label={copy.modeBadge} tone="brand" />
-          </View>
-        ),
-        actions: [
-          {
-            icon: 'accountCircle',
-            label: copy.profileActionLabel,
-            onPress: onOpenProfile,
-          },
-        ],
-      }}
-      contentContainerClassName="pb-8"
-      footer={
-        <BusinessActionDock>
-          <Button
-            label={copy.applyCta}
-            labelVariant="labelMd"
-            onPress={onApply}
-            leftIcon={<Icon name="save" size={17} color={colors.surface} />}
-          />
-          <View className="mt-2 flex-row items-center justify-center gap-1.5">
-            <Icon name="clockLock" size={13} color={colors.textTertiary} />
-            <VemtapText
-              variant="micro"
-              tone="tertiary"
-              className="text-center"
-              numberOfLines={1}
-            >
-              {copy.applyNote}
-            </VemtapText>
-          </View>
-        </BusinessActionDock>
-      }
-    >
-      <View className="flex-row items-start justify-between gap-2">
-        <View className="min-w-0 flex-1">
-          <VemtapText
-            variant="headingLg"
-            className="font-sans-semibold"
-            numberOfLines={1}
-          >
-            {copy.title}
-          </VemtapText>
-          <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-            {copy.subtitle}
-          </VemtapText>
-          <View className="mt-1 flex-row items-center gap-1.5">
-            <Icon name="lock" size={13} color={colors.textSecondary} />
-            <VemtapText variant="micro" tone="secondary" numberOfLines={1}>
-              {copy.sessionLabel}
-            </VemtapText>
-          </View>
-        </View>
-        <BusinessStatusPill
-          label={copy.pinBadge}
-          tone="success"
-          icon="verifiedUser"
-          className="shrink-0"
-        />
+    <>
+      <View className="gap-1">
+        <VemtapText variant="headingLg" className="text-heading-lg" numberOfLines={1}>
+          {copy.title}
+        </VemtapText>
+        <VemtapText variant="caption" tone="secondary" numberOfLines={2}>
+          {copy.subtitle}
+        </VemtapText>
       </View>
 
-      <BusinessPanel
-        className="mt-3"
-        title={copy.statutoryTitle}
-        icon="percent"
-        badge={copy.statutoryBadge}
-        badgeTone="brand"
-      >
-        <TaxRuleField
-          accessibilityLabel={copy.vatBody}
-          label={copy.vatTitle}
-          value={copy.vatValue}
-          unit="%"
+      <BusinessPanel className="mt-3" title={copy.statutoryTitle} icon="accountBalance">
+        <BusinessSettingRow
+          title={copy.vatEnabledTitle}
+          subtitle={copy.vatEnabledBody}
+          trailing="switch"
+          switchValue={value('taxEnabled')}
+          onSwitchChange={next => set('taxEnabled', next)}
         />
-
-        <VemtapText
-          variant="micro"
-          tone="tertiary"
-          className="font-sans-semibold uppercase tracking-wider"
-          numberOfLines={1}
-        >
+        <Input
+          label={copy.vatTitle}
+          keyboardType="decimal-pad"
+          value={String(value('taxRate'))}
+          editable={canEdit}
+          onChangeText={text => set('taxRate', toNumber(text))}
+        />
+        <Input
+          label={copy.taxLabelTitle}
+          value={value('taxLabel')}
+          editable={canEdit}
+          onChangeText={text => set('taxLabel', text)}
+        />
+        <VemtapText variant="labelSm" className="mt-1 font-sans-semibold">
           {copy.applicationTitle}
         </VemtapText>
-        {[
-          { id: 'inclusive', title: copy.inclusiveTitle, body: copy.inclusiveBody },
-          { id: 'exclusive', title: copy.exclusiveTitle, body: copy.exclusiveBody },
-        ].map(mode => {
-          const selected = priceMode === mode.id;
-          return (
-            <Pressable
-              key={mode.id}
-              accessibilityRole="radio"
-              accessibilityState={{ selected }}
-              accessibilityLabel={mode.title}
-              onPress={() => {
-                setPriceMode(mode.id as 'inclusive' | 'exclusive');
-                onSelectPriceApplication?.(mode.id);
-              }}
-              className={`flex-row items-center gap-2.5 rounded-field p-2.5 ${
-                selected ? 'bg-surface-tint' : 'bg-surface-container-low'
-              }`}
-            >
-              <View
-                className={`h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${
-                  selected ? 'border-primary' : 'border-surface-container-highest'
-                }`}
+        <View className="gap-2">
+          {[
+            {
+              id: 'exclusive',
+              included: false,
+              title: copy.exclusiveTitle,
+              body: copy.exclusiveBody,
+            },
+            {
+              id: 'inclusive',
+              included: true,
+              title: copy.inclusiveTitle,
+              body: copy.inclusiveBody,
+            },
+          ].map(option => {
+            const selected = inclusive === option.included;
+            return (
+              <Pressable
+                key={option.id}
+                accessibilityRole="radio"
+                accessibilityState={{ selected }}
+                accessibilityLabel={option.title}
+                onPress={() => set('pricesIncludeTax', option.included)}
+                className={`flex-row items-center gap-2.5 rounded-field p-2.5 ${selected ? 'bg-surface-tint' : 'bg-surface-subtle'}`}
               >
-                {selected ? (
-                  <View className="h-2.5 w-2.5 rounded-full bg-primary" />
-                ) : null}
-              </View>
-              <View className="min-w-0 flex-1">
-                <VemtapText
-                  variant="caption"
-                  className={
-                    selected ? 'font-sans-semibold text-primary' : 'font-sans-semibold'
-                  }
-                  numberOfLines={2}
-                >
-                  {mode.title}
-                </VemtapText>
-                <VemtapText variant="micro" tone="secondary" numberOfLines={2}>
-                  {mode.body}
-                </VemtapText>
-              </View>
-              {selected ? <Icon name="check" size={16} color={colors.primary} /> : null}
-            </Pressable>
-          );
-        })}
-
-        <View className="mt-1">
-          <BusinessSettingRow
-            title={copy.exemptionTitle}
-            subtitle={copy.exemptionBody}
-            trailing="switch"
-            switchValue={exempt}
-            accessibilityLabel={copy.exemptionTitle}
-            onSwitchChange={value => {
-              setExempt(value);
-              onToggleExemption?.(value);
-            }}
-            className="rounded-field bg-surface-container-low px-3 py-2.5"
-          />
+                <Icon
+                  name={selected ? 'checkCircle' : 'radioButtonUnchecked'}
+                  size={18}
+                  color={selected ? colors.primary : colors.textTertiary}
+                />
+                <View className="min-w-0 flex-1">
+                  <VemtapText
+                    variant="labelSm"
+                    className="font-sans-semibold"
+                    numberOfLines={1}
+                  >
+                    {option.title}
+                  </VemtapText>
+                  <VemtapText variant="micro" tone="secondary" numberOfLines={2}>
+                    {option.body}
+                  </VemtapText>
+                </View>
+              </Pressable>
+            );
+          })}
         </View>
-
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={copy.tinValue}
-          onPress={onCopyTin}
-          className="mt-1 flex-row items-center gap-2 rounded-field bg-surface-container px-3 py-2.5 active:scale-[0.99]"
-        >
-          <View className="mt-0.5 shrink-0">
-            <Icon name="badge" size={16} color={colors.textSecondary} />
-          </View>
-          <View className="min-w-0 flex-1">
-            <VemtapText variant="micro" tone="secondary" numberOfLines={1}>
-              {copy.tinLabel}
-            </VemtapText>
-            <VemtapText
-              variant="labelSm"
-              className="font-sans-semibold"
-              numberOfLines={1}
-            >
-              {copy.tinValue}
-            </VemtapText>
-          </View>
-          <Icon name="checkCircle" size={17} color={colors.success} />
-        </Pressable>
+        <BusinessSettingRow
+          title={copy.exemptionTitle}
+          subtitle={copy.exemptionBody}
+          trailing="switch"
+          switchValue={value('takeawayVatExempt')}
+          onSwitchChange={next => set('takeawayVatExempt', next)}
+        />
+        <Input
+          label={copy.tinLabel}
+          value={value('tin')}
+          editable={canEdit}
+          onChangeText={text => set('tin', text)}
+        />
       </BusinessPanel>
 
-      <BusinessPanel className="mt-3" title={copy.serviceTitle} icon="receiptLong">
-        <TaxRuleField
-          accessibilityLabel={copy.serviceChargeBody}
-          label={copy.serviceChargeTitle}
-          value={copy.serviceChargeValue}
-          unit="%"
+      <BusinessPanel className="mt-3" title={copy.serviceTitle} icon="roomService">
+        <BusinessSettingRow
+          title={copy.serviceChargeTitle}
+          subtitle={copy.serviceChargeBody}
+          trailing="switch"
+          switchValue={value('serviceChargeEnabled')}
+          onSwitchChange={next => set('serviceChargeEnabled', next)}
+        />
+        <Input
+          label={copy.serviceRateLabel}
+          keyboardType="decimal-pad"
+          value={String(value('serviceChargeRate'))}
+          editable={canEdit}
+          onChangeText={text => set('serviceChargeRate', toNumber(text))}
         />
         <BusinessSettingRow
           title={copy.serviceWaiverTitle}
           trailing="switch"
-          switchValue={serviceWaiver}
-          accessibilityLabel={copy.serviceWaiverTitle}
-          onSwitchChange={value => {
-            setServiceWaiver(value);
-            onToggleServiceWaiver?.(value);
-          }}
-          className="mt-1 rounded-field bg-surface-container-low px-3 py-2.5"
+          switchValue={value('serviceChargeWaivable')}
+          onSwitchChange={next => set('serviceChargeWaivable', next)}
         />
-
-        <View className="mt-2 h-px bg-surface-container-low" />
-
-        <TaxRuleField
-          accessibilityLabel={copy.packagingBody}
+        <Input
           label={copy.packagingTitle}
-          value={copy.packagingValue}
-          unit={'\u20a6'}
+          keyboardType="numeric"
+          value={String(value('packagingFee'))}
+          editable={canEdit}
+          onChangeText={text => set('packagingFee', toNumber(text))}
         />
         <BusinessSettingRow
           title={copy.packagingAutoTitle}
           trailing="switch"
-          switchValue={packagingAuto}
-          accessibilityLabel={copy.packagingAutoTitle}
-          onSwitchChange={value => {
-            setPackagingAuto(value);
-            onTogglePackagingAuto?.(value);
-          }}
-          className="mt-1 rounded-field bg-surface-container-low px-3 py-2.5"
+          switchValue={value('packagingAutoApply')}
+          onSwitchChange={next => set('packagingAutoApply', next)}
         />
       </BusinessPanel>
 
@@ -321,68 +212,48 @@ export function TaxesSurchargesScreen({
           title={copy.selfOrderTitle}
           subtitle={copy.selfOrderBody}
           trailing="switch"
-          switchValue={selfOrdering}
-          accessibilityLabel={copy.selfOrderTitle}
-          onSwitchChange={value => {
-            setSelfOrdering(value);
-            onToggleSelfOrdering?.(value);
-          }}
-          className="rounded-field bg-surface-container-low px-3 py-2.5"
+          switchValue={value('selfOrderingEnabled')}
+          onSwitchChange={next => set('selfOrderingEnabled', next)}
         />
-
-        <View className="mt-2 flex-row items-start gap-2.5 rounded-field bg-surface-tint px-3 py-2.5">
-          <View className="mt-0.5 shrink-0">
-            <Icon name="roomService" size={17} color={colors.primary} />
-          </View>
-          <View className="min-w-0 flex-1">
-            <VemtapText
-              variant="labelSm"
-              className="font-sans-semibold"
-              numberOfLines={1}
-            >
-              {copy.qrScopeTitle}
-            </VemtapText>
-            <VemtapText
-              variant="caption"
-              tone="secondary"
-              className="mt-0.5"
-              numberOfLines={3}
-            >
-              {copy.qrScopeBody}
-            </VemtapText>
-          </View>
-        </View>
-
-        <View className="mt-2">
-          <TaxRuleField
-            accessibilityLabel={copy.maxOrderBody}
-            label={copy.maxOrderTitle}
-            value={copy.maxOrderValue}
-            unit={'\u20a6'}
-          />
-        </View>
-
+        <Input
+          label={copy.maxOrderTitle}
+          keyboardType="numeric"
+          value={value('maxQrOrderValue') ? String(value('maxQrOrderValue')) : ''}
+          placeholder={copy.noLimit}
+          editable={canEdit}
+          onChangeText={text => set('maxQrOrderValue', toNumber(text))}
+        />
         <BusinessSettingRow
           title={copy.rushTitle}
           subtitle={copy.rushBody}
           trailing="switch"
-          switchValue={rushPause}
-          accessibilityLabel={copy.rushTitle}
-          onSwitchChange={value => {
-            setRushPause(value);
-            onToggleRushPause?.(value);
-          }}
-          className="mt-1 rounded-field bg-surface-container-low px-3 py-2.5"
+          switchValue={value('rushPause')}
+          onSwitchChange={next => set('rushPause', next)}
         />
       </BusinessPanel>
 
       <BusinessInfoStrip
         className="mt-3"
-        icon="policy"
-        title={copy.auditTitle.replace(':', '')}
+        icon="info"
+        title={copy.auditTitle}
         body={copy.auditBody}
         tone="subtle"
       />
-    </BusinessScreenLayout>
+
+      <View className="mt-4 gap-2">
+        <Button
+          label={copy.applyCta}
+          labelVariant="labelMd"
+          disabled={!dirty || !canEdit}
+          loading={isSaving}
+          onPress={() => onApply?.(draft)}
+        />
+        {!canEdit ? (
+          <VemtapText variant="micro" tone="tertiary" className="text-center">
+            {copy.applyNote}
+          </VemtapText>
+        ) : null}
+      </View>
+    </>
   );
 }

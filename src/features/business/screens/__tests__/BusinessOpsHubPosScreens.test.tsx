@@ -10,15 +10,12 @@ import {
 import { NavigationContainer } from '@react-navigation/native';
 import { strings } from '@constants/strings';
 import { BusinessMoreHubOperationsScreen } from '@features/business/screens/BusinessMoreHubOperationsScreen';
-import { PosHomeOfflineModeScreen } from '@features/business/screens/PosHomeOfflineModeScreen';
 import { BusinessTabNavigator } from '@navigation/BusinessTabNavigator';
 import {
   hubAnalyticsRows,
   hubMarketingRows,
   hubPosTiles,
   hubQrRows,
-  offlineQueuedCount,
-  offlineTally,
 } from '@features/business/data/businessOpsHubData';
 
 afterEach(cleanup);
@@ -94,63 +91,6 @@ describe('business more hub (operations variant)', () => {
   });
 });
 
-describe('pos home offline mode active', () => {
-  const copy = strings.posHomeOfflineMode;
-
-  it('renders the offline banner, buffer, sync panel, actions and local tally', async () => {
-    const view = await render(<PosHomeOfflineModeScreen />);
-
-    expect(view.getByText(copy.headerTitle)).toBeTruthy();
-    expect(view.getByText(copy.offlineTitle)).toBeTruthy();
-    expect(view.getByText(copy.offlineSubtitle)).toBeTruthy();
-    expect(view.getByText(copy.encryptedLabel)).toBeTruthy();
-    expect(view.getByText(copy.encryptedBody)).toBeTruthy();
-    expect(view.getByText(copy.bufferTitle)).toBeTruthy();
-    expect(view.getByText(copy.syncTitle)).toBeTruthy();
-    expect(
-      view.getByText(copy.syncCount.replace('{count}', String(offlineQueuedCount))),
-    ).toBeTruthy();
-    expect(view.getByText(copy.tallyTitle)).toBeTruthy();
-    offlineTally.forEach(tallied => {
-      expect(view.getAllByText(tallied.value).length).toBeGreaterThan(0);
-    });
-    copy.offlineActions.forEach(action => {
-      expect(view.getAllByLabelText(action.title).length).toBeGreaterThan(0);
-    });
-  });
-
-  it('retries sync, opens an offline action, drawer and customer display', async () => {
-    const onRetrySync = jest.fn();
-    const onOpenAction = jest.fn();
-    const onOpenDrawer = jest.fn();
-    const onOpenCustomerDisplay = jest.fn();
-    const view = await render(
-      <PosHomeOfflineModeScreen
-        onRetrySync={onRetrySync}
-        onOpenAction={onOpenAction}
-        onOpenDrawer={onOpenDrawer}
-        onOpenCustomerDisplay={onOpenCustomerDisplay}
-      />,
-    );
-
-    // The CTA is docked and repeated in the sync panel; the first is the dock.
-    fireEvent.press(view.getAllByLabelText(copy.retrySyncCta)[0]);
-    await waitFor(() =>
-      expect(view.getAllByLabelText(copy.retrySyncCta).length).toBeGreaterThan(0),
-    );
-    expect(onRetrySync).toHaveBeenCalled();
-
-    await pressAndSettle(view, copy.offlineActions[0].title);
-    expect(onOpenAction).toHaveBeenCalledWith(copy.offlineActions[0].id);
-
-    await pressAndSettle(view, copy.drawerLabel);
-    expect(onOpenDrawer).toHaveBeenCalledTimes(1);
-
-    await pressAndSettle(view, copy.displayModeLabel);
-    expect(onOpenCustomerDisplay).toHaveBeenCalledTimes(1);
-  });
-});
-
 describe('operations hub + offline pos navigation', () => {
   const shell = strings.businessShell;
   const more = strings.businessMore;
@@ -197,6 +137,6 @@ describe('operations hub + offline pos navigation', () => {
     await act(async () => {
       fireEvent.press(screen.getByLabelText('Offline Mode'));
     });
-    expect(screen.getAllByText(offline.offlineTitle).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(offline.headerTitle).length).toBeGreaterThan(0);
   });
 });

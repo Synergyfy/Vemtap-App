@@ -1,434 +1,205 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Pressable, View } from 'react-native';
-import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
+import { Input } from '@components/ui/Input';
 import { VemtapText } from '@components/ui/Text';
-import { BottomSheet } from '@components/shared/BottomSheet';
 import { strings } from '@constants/strings';
 import { colors } from '@theme/colors';
+import { EmptyState } from '@components/shared/EmptyState';
+import { ErrorState } from '@components/shared/ErrorState';
+import { LoadingState } from '@components/shared/LoadingState';
 import {
   BusinessChipScroller,
   BusinessCountChip,
-  BusinessSearchTrigger,
 } from '@features/business/components/BusinessOpsPrimitives';
 import {
-  BusinessActionDock,
-  BusinessNumberInput,
   BusinessScreenLayout,
   BusinessStatusPill,
-  type BusinessPillTone,
 } from '@features/business/components/BusinessPrimitives';
-import {
-  posInventoryItems,
-  type PosInventoryItem,
-} from '@features/business/data/businessPosCustomerData';
 
 const copy = strings.posProductsInventory;
 
-/** Stock pill tone per inventory state. */
-const stockTone: Record<PosInventoryItem['state'], BusinessPillTone> = {
-  active: 'success',
-  low: 'warning',
-  inactive: 'tertiary',
-};
+export type InventoryFilter = 'all' | 'low' | 'out';
+export type InventoryState = 'ok' | 'low' | 'out' | 'untracked';
 
-const stateLabel: Record<PosInventoryItem['state'], string> = {
-  active: 'Active',
-  low: 'Active',
-  inactive: 'Inactive',
-};
+const stateTone: Record<InventoryState, 'success' | 'warning' | 'tertiary' | 'neutral'> =
+  {
+    ok: 'success',
+    low: 'warning',
+    out: 'tertiary',
+    untracked: 'neutral',
+  };
 
-export interface PosProductsInventoryScreenProps {
-  onBack?: () => void;
-  onOpenProfile?: () => void;
-  onOpenNotifications?: () => void;
-  onSearch?: () => void;
-  onScan?: () => void;
-  onSelectFilter?: (filterId: string) => void;
-  onAdjustStock?: (itemId: string, delta: number) => void;
-  onOpenOverride?: (itemId: string) => void;
-  onOpenDeal?: () => void;
-  onOpenDealTerms?: () => void;
-  onAddCustomItem?: () => void;
-  onAuthorize?: (pin: string) => void;
+export interface InventoryItemView {
+  id: string;
+  name: string;
+  sku: string;
+  category: string;
+  price: string;
+  /** Null for items without stock tracking. */
+  stock: number | null;
+  state: InventoryState;
 }
 
-/**
- * `pos_products_inventory` - the till catalogue. Branches price overrides need a
- * manager PIN, so that confirmation is the shared bottom sheet rather than an
- * inline dialog; the design's own tab bar is not rendered.
- */
+export interface PosProductsInventoryView {
+  branchName: string;
+  counts: Record<InventoryFilter, number>;
+  items: InventoryItemView[];
+}
+
+export interface PosProductsInventoryScreenProps {
+  view?: PosProductsInventoryView;
+  isLoading?: boolean;
+  isError?: boolean;
+  onRetry?: () => void;
+  search: string;
+  filter: InventoryFilter;
+  /** Item whose stock write is in flight. */
+  savingItemId?: string | null;
+  onBack?: () => void;
+  onSearchChange?: (text: string) => void;
+  onSelectFilter?: (filter: InventoryFilter) => void;
+  onAdjustStock?: (itemId: string, next: number) => void;
+  onOpenItem?: (itemId: string) => void;
+}
+
+/** Branch catalogue with live stock: filter low/out, nudge counts, open an item's stock history. */
 export function PosProductsInventoryScreen({
+  view,
+  isLoading,
+  isError,
+  onRetry,
+  search,
+  filter,
+  savingItemId,
   onBack,
-  onOpenProfile,
-  onOpenNotifications,
-  onSearch,
-  onScan,
+  onSearchChange,
   onSelectFilter,
   onAdjustStock,
-  onOpenOverride,
-  onOpenDeal,
-  onOpenDealTerms,
-  onAddCustomItem,
-  onAuthorize,
+  onOpenItem,
 }: PosProductsInventoryScreenProps) {
-  const [pendingOverride, setPendingOverride] = useState<PosInventoryItem | null>(null);
-  const [pin, setPin] = useState('');
-
   return (
-    <>
-      {/* The design nests a second bar under the app header; the shared header
-          renders the same identity, so only the catalogue bar is drawn. */}
-      <BusinessScreenLayout
-        header={{
-          title: copy.headerTitleLabel,
-          subtitle: copy.headerSubtitleLabel,
-          onBack,
-          titleVariant: 'labelMd',
-          showAvatar: false,
-          leading: (
-            <View className="h-9 w-9 items-center justify-center rounded-xl bg-primary">
-              <Icon name="pointOfSale" size={18} color={colors.surface} />
-            </View>
-          ),
-          actions: [
-            {
-              icon: 'notifications',
-              label: copy.bellActionLabel,
-              onPress: onOpenNotifications,
-            },
-            {
-              icon: 'accountCircle',
-              label: copy.profileActionLabel,
-              onPress: onOpenProfile,
-            },
-          ],
-        }}
-        contentContainerClassName="pb-8"
-        footer={
-          <BusinessActionDock>
-            <Button
-              label={copy.addCustomCta}
-              labelVariant="labelMd"
-              onPress={onAddCustomItem}
-              leftIcon={<Icon name="plusCircle" size={17} color={colors.surface} />}
-            />
-            <VemtapText
-              variant="micro"
-              tone="tertiary"
-              className="mt-2 text-center"
-              numberOfLines={2}
-            >
-              {copy.addCustomBody}
-            </VemtapText>
-          </BusinessActionDock>
-        }
-      >
-        {/* The design stacks a second bar under the app header. A screen may not
-            own two navbars, so the catalogue title lives in the content flow. */}
-        <View className="flex-row items-center justify-between gap-2">
-          <View className="min-w-0 flex-1">
-            <VemtapText
-              variant="headingLg"
-              className="font-sans-semibold"
-              numberOfLines={1}
-            >
-              {copy.headerTitle}
-            </VemtapText>
-            <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-              {copy.headerSubtitle}
-            </VemtapText>
-          </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={copy.scanCta}
-            onPress={onScan}
-            className="min-h-10 shrink-0 flex-row items-center gap-1.5 rounded-field bg-surface-container-low px-3 active:scale-95"
-          >
-            <Icon name="barcodeScan" size={17} color={colors.primary} />
-            <VemtapText
-              variant="labelSm"
-              className="font-sans-semibold text-primary"
-              numberOfLines={1}
-            >
-              {copy.scanCta}
-            </VemtapText>
-          </Pressable>
-        </View>
-
-        <View className="mt-3">
-          <BusinessSearchTrigger
-            placeholder={copy.searchPlaceholder}
-            onPress={onSearch}
-            surface="bordered"
+    <BusinessScreenLayout
+      header={{ title: copy.headerTitle, subtitle: view?.branchName, onBack }}
+      contentContainerClassName="pb-8"
+    >
+      {!view ? (
+        isError ? (
+          <ErrorState
+            title={copy.error.title}
+            description={copy.error.body}
+            onRetry={onRetry}
           />
-        </View>
+        ) : (
+          <LoadingState label={isLoading ? copy.loading : undefined} />
+        )
+      ) : (
+        <>
+          <Input
+            placeholder={copy.searchPlaceholder}
+            accessibilityLabel={copy.searchPlaceholder}
+            value={search}
+            onChangeText={onSearchChange}
+            leadingIcon={<Icon name="search" size={18} color={colors.textTertiary} />}
+          />
 
-        <View className="mt-3 flex-row flex-wrap items-center justify-between gap-2">
-          <View className="min-w-0 flex-1 flex-row items-center gap-1.5">
-            <Icon name="store" size={16} color={colors.primary} />
-            <VemtapText
-              variant="caption"
-              className="font-sans-semibold"
-              numberOfLines={1}
-            >
-              {copy.branchAvailable}
-            </VemtapText>
-          </View>
-          <View className="shrink-0 flex-row items-center gap-1.5">
-            <View className="h-2 w-2 rounded-full bg-success" />
-            <VemtapText variant="micro" tone="secondary" numberOfLines={1}>
-              {copy.syncedLabel}
-            </VemtapText>
-          </View>
-        </View>
-
-        <View className="mt-3">
-          <BusinessChipScroller>
-            <BusinessCountChip
-              label={copy.filterAll}
-              count="142"
-              selected
-              onPress={() => onSelectFilter?.('all')}
-            />
-            <BusinessCountChip
-              label={copy.filterLow}
-              icon="alert"
-              count="4"
-              selected={false}
-              onPress={() => onSelectFilter?.('low')}
-            />
-            <BusinessCountChip
-              label={copy.filterOut}
-              icon="block"
-              count="1"
-              selected={false}
-              onPress={() => onSelectFilter?.('out')}
-            />
-            <BusinessCountChip
-              label={copy.filterDeals}
-              icon="localOffer"
-              count="6"
-              selected={false}
-              onPress={() => onSelectFilter?.('deals')}
-            />
-            <BusinessCountChip
-              label={copy.filterCategories}
-              icon="expandMore"
-              selected={false}
-              onPress={() => onSelectFilter?.('categories')}
-            />
+          <BusinessChipScroller className="mt-3">
+            {(['all', 'low', 'out'] as const).map(id => (
+              <BusinessCountChip
+                key={id}
+                label={copy.filters[id]}
+                count={String(view.counts[id])}
+                selected={filter === id}
+                onPress={() => onSelectFilter?.(id)}
+              />
+            ))}
           </BusinessChipScroller>
-        </View>
 
-        <View className="mt-3 gap-2.5">
-          {posInventoryItems.map(item => (
-            <View key={item.id} className="rounded-card bg-surface p-3 shadow-sm">
-              <View className="flex-row items-start gap-3">
-                <View className="h-14 w-14 shrink-0 items-center justify-center rounded-field bg-surface-container">
-                  <Icon name="food" size={22} color={colors.textSecondary} />
-                </View>
-                <View className="min-w-0 flex-1">
-                  <VemtapText variant="micro" tone="tertiary" numberOfLines={1}>
-                    {`${item.sku} \u00b7 ${item.station}`}
-                  </VemtapText>
+          <View className="mt-3 gap-2">
+            {view.items.map(item => (
+              <Pressable
+                key={item.id}
+                accessibilityRole="button"
+                accessibilityLabel={item.name}
+                onPress={() => onOpenItem?.(item.id)}
+                className="gap-2 rounded-card bg-surface p-3 shadow-sm active:scale-[0.99]"
+              >
+                <View className="flex-row items-start justify-between gap-2">
+                  <View className="min-w-0 flex-1">
+                    <VemtapText
+                      variant="labelMd"
+                      className="font-sans-semibold"
+                      numberOfLines={2}
+                    >
+                      {item.name}
+                    </VemtapText>
+                    <VemtapText variant="micro" tone="tertiary" numberOfLines={1}>
+                      {[item.sku, item.category].filter(Boolean).join(' • ')}
+                    </VemtapText>
+                  </View>
                   <VemtapText
                     variant="labelMd"
-                    className="font-sans-semibold"
-                    numberOfLines={1}
-                  >
-                    {item.name}
-                  </VemtapText>
-                  <VemtapText
-                    variant="bodyMd"
-                    className="font-sans-bold text-primary"
+                    className="shrink-0 font-sans-bold"
                     numberOfLines={1}
                   >
                     {item.price}
                   </VemtapText>
                 </View>
-                <View className="shrink-0 items-end gap-1">
+                <View className="flex-row items-center justify-between gap-2">
                   <BusinessStatusPill
-                    label={item.stockLabel}
-                    tone={stockTone[item.state]}
+                    label={
+                      item.stock == null
+                        ? copy.untracked
+                        : copy.stateLabel[item.state](item.stock)
+                    }
+                    tone={stateTone[item.state]}
                   />
-                  <BusinessStatusPill
-                    label={stateLabel[item.state]}
-                    tone={item.state === 'inactive' ? 'neutral' : 'success'}
-                    icon={item.state === 'inactive' ? 'block' : 'checkCircle'}
-                  />
+                  {item.stock != null ? (
+                    <View className="flex-row items-center gap-2">
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={`${item.name} ${copy.decreaseLabel}`}
+                        disabled={item.stock <= 0 || savingItemId === item.id}
+                        onPress={() =>
+                          onAdjustStock?.(item.id, Math.max(0, (item.stock ?? 0) - 1))
+                        }
+                        className="h-8 w-8 items-center justify-center rounded-lg bg-surface-container"
+                      >
+                        <Icon name="remove" size={16} color={colors.text} />
+                      </Pressable>
+                      <VemtapText
+                        variant="labelMd"
+                        className="w-8 text-center font-sans-semibold"
+                        numberOfLines={1}
+                      >
+                        {String(item.stock)}
+                      </VemtapText>
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={`${item.name} ${copy.increaseLabel}`}
+                        disabled={savingItemId === item.id}
+                        onPress={() => onAdjustStock?.(item.id, (item.stock ?? 0) + 1)}
+                        className="h-8 w-8 items-center justify-center rounded-lg bg-surface-container"
+                      >
+                        <Icon name="plus" size={16} color={colors.text} />
+                      </Pressable>
+                    </View>
+                  ) : null}
                 </View>
-              </View>
-
-              <View className="mt-2.5 flex-row items-center gap-2 rounded-field bg-surface-tint px-2 py-1.5">
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={`${item.name} decrease`}
-                  onPress={() => onAdjustStock?.(item.id, -1)}
-                  className="h-9 w-9 items-center justify-center rounded-field bg-surface active:scale-95"
-                >
-                  <VemtapText
-                    variant="labelMd"
-                    className="font-sans-semibold"
-                    numberOfLines={1}
-                  >
-                    {'\u2212'}
-                  </VemtapText>
-                </Pressable>
-                <View className="min-w-0 flex-1 items-center">
-                  <VemtapText
-                    variant="labelSm"
-                    className={`font-sans-semibold ${item.note ? 'text-error' : ''}`}
-                    numberOfLines={1}
-                  >
-                    {item.note || item.stockValue}
-                  </VemtapText>
-                </View>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={`${item.name} increase`}
-                  onPress={() => onAdjustStock?.(item.id, 1)}
-                  className="h-9 w-9 items-center justify-center rounded-field bg-surface active:scale-95"
-                >
-                  <VemtapText
-                    variant="labelMd"
-                    className="font-sans-semibold"
-                    numberOfLines={1}
-                  >
-                    +
-                  </VemtapText>
-                </Pressable>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={`${copy.overrideCta} ${item.name}`}
-                  onPress={() => {
-                    setPin('');
-                    onOpenOverride?.(item.id);
-                    setPendingOverride(item);
-                  }}
-                  className="min-h-9 shrink-0 flex-row items-center gap-1 rounded-field bg-surface px-2.5 active:scale-95"
-                >
-                  <Icon name="lock" size={14} color={colors.textSecondary} />
-                  <VemtapText variant="caption" numberOfLines={1}>
-                    {copy.overrideCta}
-                  </VemtapText>
-                </Pressable>
-              </View>
-            </View>
-          ))}
-        </View>
-
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={copy.dealTag}
-          onPress={onOpenDeal}
-          className="mt-3 rounded-card bg-surface p-3 shadow-sm active:scale-[0.99]"
-        >
-          <View className="flex-row items-start gap-3">
-            <View className="h-14 w-14 shrink-0 items-center justify-center rounded-field bg-primary">
-              <Icon name="star" size={24} color={colors.surface} />
-            </View>
-            <View className="min-w-0 flex-1">
-              <View className="flex-row flex-wrap items-center gap-1.5">
-                <BusinessStatusPill label={copy.dealBadge} tone="brand" />
-                <VemtapText variant="micro" tone="tertiary" numberOfLines={1}>
-                  {copy.dealTag}
-                </VemtapText>
-              </View>
-              <VemtapText
-                variant="labelMd"
-                className="mt-1 font-sans-semibold"
-                numberOfLines={1}
-              >
-                Prime Lunch Combo Deal
-              </VemtapText>
-              <View className="mt-0.5 flex-row items-center gap-1.5">
-                <VemtapText
-                  variant="bodyMd"
-                  className="font-sans-bold text-primary"
-                  numberOfLines={1}
-                >
-                  {'\u20a69,600'}
-                </VemtapText>
-                <VemtapText variant="caption" tone="tertiary" numberOfLines={1}>
-                  {'\u20a612,500'}
-                </VemtapText>
-              </View>
-              <View className="mt-1 flex-row flex-wrap items-center gap-1.5">
-                <VemtapText variant="caption" tone="success" numberOfLines={1}>
-                  21 / 30 left today
-                </VemtapText>
-                <BusinessStatusPill
-                  label={copy.dealLiveBadge}
-                  tone="success"
-                  icon="checkCircle"
-                />
-              </View>
-            </View>
+              </Pressable>
+            ))}
           </View>
-          <View className="mt-2 flex-row items-center justify-between gap-2 rounded-field bg-surface-tint px-2.5 py-2">
-            <View className="min-w-0 flex-1 flex-row items-center gap-1.5">
-              <Icon name="verified" size={15} color={colors.primary} />
-              <VemtapText variant="caption" className="min-w-0 flex-1" numberOfLines={2}>
-                {copy.dealBody}
-              </VemtapText>
-            </View>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={copy.dealTermsCta}
-              onPress={onOpenDealTerms}
-              className="min-h-9 shrink-0 flex-row items-center gap-1 rounded-field bg-surface px-2.5 active:scale-95"
-            >
-              <Icon name="lock" size={14} color={colors.textSecondary} />
-              <VemtapText variant="caption" numberOfLines={1}>
-                {copy.dealTermsCta}
-              </VemtapText>
-            </Pressable>
-          </View>
-        </Pressable>
-      </BusinessScreenLayout>
 
-      <BottomSheet
-        visible={pendingOverride !== null}
-        onClose={() => setPendingOverride(null)}
-        title={copy.authTitle}
-        titleVariant="headingXl"
-        titleClassName="text-heading-xl"
-      >
-        <View className="gap-3">
-          <VemtapText variant="bodyMd" tone="secondary" numberOfLines={3}>
-            {copy.authBody}
-          </VemtapText>
-          <BusinessNumberInput
-            label={copy.authTitle}
-            value={pin}
-            onChangeText={setPin}
-            placeholder="0000"
-            keyboardType="number-pad"
-            maxLength={4}
-          />
-          <View className="flex-row gap-2">
-            <View className="min-w-0 flex-1">
-              <Button
-                label={copy.authCancelCta}
-                labelVariant="labelMd"
-                variant="secondary"
-                onPress={() => setPendingOverride(null)}
-              />
-            </View>
-            <View className="min-w-0 flex-1">
-              <Button
-                label={copy.authCta}
-                labelVariant="labelMd"
-                onPress={() => {
-                  onAuthorize?.(pin);
-                  setPendingOverride(null);
-                }}
-              />
-            </View>
-          </View>
-        </View>
-      </BottomSheet>
-    </>
+          {view.items.length === 0 ? (
+            <EmptyState
+              icon="inventory"
+              variant="contained"
+              title={copy.empty.title}
+              description={copy.empty.body}
+            />
+          ) : null}
+        </>
+      )}
+    </BusinessScreenLayout>
   );
 }

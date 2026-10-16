@@ -1,294 +1,154 @@
 import React from 'react';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
+import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
 import { colors } from '@theme/colors';
-import { BusinessPanel } from '@features/business/components/BusinessOpsPrimitives';
+import { ErrorState } from '@components/shared/ErrorState';
+import { LoadingState } from '@components/shared/LoadingState';
 import {
   BusinessActionDock,
   BusinessScreenLayout,
   BusinessStatusPill,
 } from '@features/business/components/BusinessPrimitives';
+import { BusinessPanel } from '@features/business/components/BusinessOpsPrimitives';
 import {
-  publicPosOrderLines,
-  publicPosPrepSteps,
-  type PosPrepState,
-} from '@features/business/data/businessPublicPosData';
+  BusinessGrandTotalRow,
+  BusinessTotalsRow,
+} from '@features/business/components/BusinessPosPrimitives';
 
 const copy = strings.publicPosOrderTracking;
 
-const stepWell: Record<PosPrepState, string> = {
-  done: 'bg-success-container',
-  active: 'bg-primary',
-  pending: 'bg-surface-container',
-};
+export interface OrderTrackingView {
+  headline: string;
+  body: string;
+  readyBy: string;
+  cancelled: boolean;
+  steps: { status: string; label: string; at: string; reached: boolean }[];
+  reference: string;
+  tableLabel: string | null;
+  server: string | null;
+  lines: { id: string; label: string; value: string }[];
+  total: string;
+}
 
 export interface PublicPosOrderTrackingScreenProps {
+  view?: OrderTrackingView;
+  isLoading?: boolean;
+  isError?: boolean;
+  onRetry?: () => void;
   onBack?: () => void;
-  onOpenProfile?: () => void;
-  onOpenOrderSummary?: () => void;
-  onCallWaiter?: () => void;
   onReopenMenu?: () => void;
 }
 
-/**
- * `public_pos_live_order_tracking` - the guest's live prep timeline. It is a
- * read-only status surface: the only actions are asking for help and adding
- * more food, both of which the design owns.
- */
+/** Guest order tracking: live preparation steps, the order and the total to pay. */
 export function PublicPosOrderTrackingScreen({
+  view,
+  isLoading,
+  isError,
+  onRetry,
   onBack,
-  onOpenProfile,
-  onOpenOrderSummary,
-  onCallWaiter,
   onReopenMenu,
 }: PublicPosOrderTrackingScreenProps) {
   return (
     <BusinessScreenLayout
-      header={{
-        title: copy.headerTitle,
-        onBack,
-        titleVariant: 'labelMd',
-        actions: [
-          {
-            icon: 'accountCircle',
-            label: copy.profileActionLabel,
-            onPress: onOpenProfile,
-          },
-        ],
-      }}
+      header={{ title: copy.headerTitle, onBack }}
       contentContainerClassName="pb-8"
       footer={
-        <BusinessActionDock>
-          <View className="flex-row items-center justify-center gap-1.5">
-            <Icon name="info" size={14} color={colors.textTertiary} />
-            <VemtapText
-              variant="caption"
-              tone="tertiary"
-              className="text-center"
-              numberOfLines={2}
-            >
-              {copy.footNote}
-            </VemtapText>
-          </View>
-        </BusinessActionDock>
+        view ? (
+          <BusinessActionDock>
+            <Button
+              label={copy.addItemsCta}
+              labelVariant="labelSm"
+              variant="secondary"
+              onPress={onReopenMenu}
+            />
+          </BusinessActionDock>
+        ) : undefined
       }
     >
-      <View className="items-center gap-2 rounded-card bg-success-container px-4 py-5">
-        <View className="h-16 w-16 items-center justify-center rounded-full bg-surface">
-          <Icon name="restaurant" size={30} color={colors.success} />
-        </View>
-        <VemtapText
-          variant="headingLg"
-          className="text-center font-sans-semibold"
-          numberOfLines={2}
-        >
-          {copy.headline}
-        </VemtapText>
-        <VemtapText
-          variant="bodyMd"
-          tone="secondary"
-          className="text-center"
-          numberOfLines={2}
-        >
-          {copy.body}
-        </VemtapText>
-        <View className="mt-1 flex-row items-center gap-1.5 rounded-full bg-surface px-3 py-1.5">
-          <Icon name="schedule" size={15} color={colors.success} />
-          <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-            {copy.prepLabel}
-          </VemtapText>
-          <VemtapText
-            variant="labelSm"
-            tone="success"
-            className="font-sans-bold"
-            numberOfLines={1}
-          >
-            {copy.prepValue}
-          </VemtapText>
-        </View>
-      </View>
-
-      <BusinessPanel
-        className="mt-3"
-        title={copy.timelineTitle}
-        icon="sync"
-        badge={copy.timelineBadge}
-        badgeTone="brand"
-      >
-        <View className="flex-row flex-wrap items-center justify-between gap-2">
-          <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-            {copy.timelineMeta}
-          </VemtapText>
-        </View>
-        <View className="mt-1">
-          {publicPosPrepSteps.map((step, index) => (
-            <View key={step.id} className="flex-row gap-3">
-              <View className="items-center">
-                <View
-                  className={`h-9 w-9 items-center justify-center rounded-full ${stepWell[step.state]}`}
-                >
-                  <Icon
-                    name={step.state === 'done' ? 'check' : step.icon}
-                    size={16}
-                    color={
-                      step.state === 'done'
-                        ? colors.success
-                        : step.state === 'active'
-                          ? colors.surface
-                          : colors.textSecondary
-                    }
-                  />
-                </View>
-                {index < publicPosPrepSteps.length - 1 ? (
-                  <View className="h-10 w-0.5 flex-1 bg-surface-container-highest" />
-                ) : null}
-              </View>
-              <View className="min-w-0 flex-1 pb-4">
-                <View className="flex-row items-center justify-between gap-2">
-                  <VemtapText
-                    variant="labelMd"
-                    className={`min-w-0 flex-1 ${step.state === 'active' ? 'font-sans-bold text-primary' : step.state === 'done' ? 'font-sans-semibold' : ''}`}
-                    numberOfLines={1}
-                  >
-                    {step.title}
-                  </VemtapText>
-                  {step.time ? (
-                    <VemtapText
-                      variant="caption"
-                      tone="secondary"
-                      className="shrink-0"
-                      numberOfLines={1}
-                    >
-                      {step.time}
-                    </VemtapText>
-                  ) : null}
-                </View>
-                <VemtapText variant="caption" tone="secondary" numberOfLines={2}>
-                  {step.body}
-                </VemtapText>
-              </View>
-            </View>
-          ))}
-        </View>
-      </BusinessPanel>
-
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={copy.summaryTitle}
-        onPress={onOpenOrderSummary}
-        className="mt-3 rounded-card bg-surface p-3 shadow-sm active:scale-[0.99]"
-      >
-        <View className="flex-row items-center justify-between gap-2">
-          <View className="min-w-0 flex-1">
-            <VemtapText
-              variant="labelMd"
-              className="font-sans-semibold"
-              numberOfLines={1}
-            >
-              {copy.summaryTitle}
-            </VemtapText>
-            <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-              {copy.summaryMeta}
-            </VemtapText>
-          </View>
-          <BusinessStatusPill
-            label={copy.serverBadge}
-            tone="neutral"
-            className="shrink-0"
+      {!view ? (
+        isError ? (
+          <ErrorState
+            title={copy.error.title}
+            description={copy.error.body}
+            onRetry={onRetry}
           />
-        </View>
+        ) : (
+          <LoadingState label={isLoading ? copy.loading : undefined} />
+        )
+      ) : (
+        <>
+          <View className="items-center gap-2">
+            <Icon
+              name={view.cancelled ? 'close' : 'checkCircle'}
+              size={44}
+              color={view.cancelled ? colors.error : colors.badgeDiscountText}
+            />
+            <VemtapText variant="headingLg" className="text-center text-heading-lg">
+              {view.headline}
+            </VemtapText>
+            <VemtapText variant="bodyMd" tone="secondary" className="text-center">
+              {view.body}
+            </VemtapText>
+            {!view.cancelled ? (
+              <BusinessStatusPill label={view.readyBy} tone="brand" icon="schedule" />
+            ) : null}
+          </View>
 
-        <View className="mt-2.5 gap-2">
-          {publicPosOrderLines.map(line => (
-            <View
-              key={line.id}
-              className="flex-row items-start gap-2 rounded-field bg-surface-container-low p-2.5"
-            >
-              <View className="h-10 w-10 shrink-0 items-center justify-center rounded-field bg-surface-container">
-                <Icon name="food" size={17} color={colors.textSecondary} />
-              </View>
-              <View className="min-w-0 flex-1">
-                <View className="flex-row items-center gap-2">
+          <BusinessPanel
+            className="mt-3"
+            title={copy.timelineTitle}
+            icon="timeline"
+            badge={copy.timelineBadge}
+            badgeTone="success"
+          >
+            <View className="gap-2.5">
+              {view.steps.map(step => (
+                <View key={step.status} className="flex-row items-center gap-2.5">
+                  <View
+                    className={`h-6 w-6 items-center justify-center rounded-full ${step.reached ? 'bg-primary' : 'bg-surface-container'}`}
+                  >
+                    {step.reached ? (
+                      <Icon name="check" size={14} color={colors.surface} />
+                    ) : null}
+                  </View>
                   <VemtapText
-                    variant="caption"
-                    className="font-sans-semibold"
+                    variant="labelSm"
+                    className={`min-w-0 flex-1 font-sans-semibold ${step.reached ? '' : 'text-text-tertiary'}`}
                     numberOfLines={1}
                   >
-                    {`${line.qty} ${line.name}`}
+                    {step.label}
                   </VemtapText>
-                  <VemtapText
-                    variant="caption"
-                    className="shrink-0 font-sans-bold"
-                    numberOfLines={1}
-                  >
-                    {line.price}
+                  <VemtapText variant="micro" tone="tertiary" numberOfLines={1}>
+                    {step.at}
                   </VemtapText>
                 </View>
-                <VemtapText variant="micro" tone="secondary" numberOfLines={1}>
-                  {line.modifier}
-                </VemtapText>
-              </View>
+              ))}
             </View>
-          ))}
-        </View>
+          </BusinessPanel>
 
-        <View className="mt-2.5 flex-row items-center justify-between gap-2 rounded-field bg-surface-tint px-2.5 py-2">
-          <View className="min-w-0 flex-1">
-            <VemtapText
-              variant="labelSm"
-              className="font-sans-semibold"
-              numberOfLines={1}
-            >
-              {copy.totalLabel}
+          <BusinessPanel className="mt-3" title={copy.summaryTitle} icon="receiptLong">
+            <VemtapText variant="micro" tone="tertiary">
+              {[view.reference, view.tableLabel, view.server].filter(Boolean).join(' • ')}
             </VemtapText>
-            <VemtapText variant="micro" tone="secondary" numberOfLines={2}>
+            <View className="gap-1.5">
+              {view.lines.map(line => (
+                <BusinessTotalsRow key={line.id} label={line.label} value={line.value} />
+              ))}
+            </View>
+            <BusinessGrandTotalRow label={copy.totalLabel} value={view.total} />
+            <VemtapText variant="micro" tone="tertiary">
               {copy.totalNote}
             </VemtapText>
-          </View>
-          <VemtapText
-            variant="headingSm"
-            className="shrink-0 font-sans-bold"
-            numberOfLines={1}
-          >
-            {'\u20a627,950'}
-          </VemtapText>
-        </View>
-      </Pressable>
+          </BusinessPanel>
 
-      <View className="mt-3 gap-2">
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={copy.callWaiterCta}
-          onPress={onCallWaiter}
-          className="min-h-12 flex-row items-center justify-center gap-2 rounded-field bg-surface-tint active:scale-[0.99]"
-        >
-          <Icon name="notificationsActive" size={18} color={colors.primary} />
-          <VemtapText
-            variant="labelMd"
-            className="font-sans-semibold text-primary"
-            numberOfLines={1}
-          >
-            {copy.callWaiterCta}
+          <VemtapText variant="micro" tone="tertiary" className="mt-3 text-center">
+            {copy.footNote}
           </VemtapText>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={copy.addItemsCta}
-          onPress={onReopenMenu}
-          className="min-h-12 flex-row items-center justify-center gap-2 rounded-field bg-surface-tint active:scale-[0.99]"
-        >
-          <Icon name="plusCircle" size={18} color={colors.primary} />
-          <VemtapText
-            variant="labelMd"
-            className="font-sans-semibold text-primary"
-            numberOfLines={1}
-          >
-            {copy.addItemsCta}
-          </VemtapText>
-        </Pressable>
-      </View>
+        </>
+      )}
     </BusinessScreenLayout>
   );
 }

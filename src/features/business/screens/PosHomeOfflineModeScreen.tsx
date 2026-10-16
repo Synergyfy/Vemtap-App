@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, View } from 'react-native';
 import { Button } from '@components/ui/Button';
-import { Icon } from '@components/ui/Icon';
+import { Icon, type IconName } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
 import { colors } from '@theme/colors';
@@ -15,259 +15,132 @@ import {
   BusinessPanel,
 } from '@features/business/components/BusinessOpsPrimitives';
 import { BusinessMetricGrid } from '@features/business/components/BusinessAnalyticsPrimitives';
-import {
-  offlineQueuedAmount,
-  offlineQueuedCount,
-  offlineShift,
-  offlineTally,
-} from '@features/business/data/businessOpsHubData';
 
 const copy = strings.posHomeOfflineMode;
 
-const offlineActionIcon: Record<string, import('@components/ui/Icon').IconName> = {
-  'new-sale': 'pointOfSale',
-  transactions: 'receiptLong',
-  customers: 'groupNetwork',
-  products: 'menuBook',
-};
+const actions: readonly { id: string; icon: IconName; title: string; body: string }[] = [
+  { id: 'new-sale', icon: 'pointOfSale', ...copy.actions.newSale },
+  { id: 'queue', icon: 'cloudQueue', ...copy.actions.queue },
+  { id: 'products', icon: 'menuBook', ...copy.actions.products },
+];
 
-export interface PosHomeOfflineModeScreenProps {
-  onBack?: () => void;
-  onChangeBranch?: () => void;
-  onOpenProfile?: () => void;
-  onOpenSettings?: () => void;
-  onRetrySync?: () => void;
-  onOpenAction?: (actionId: string) => void;
-  onOpenCustomerDisplay?: () => void;
-  onOpenDrawer?: () => void;
+export interface PosOfflineHomeView {
+  online: boolean;
+  branchName: string;
+  /** `Ada Obi • Till 01`; empty when no shift is cached. */
+  shiftLine: string;
+  queuedCount: number;
+  queuedAmount: string;
+  lastSync: string | null;
+  menuCount: number;
+  /** Last figures fetched before going offline; null if never loaded. */
+  tally: { sales: string; transactions: string; held: string } | null;
 }
 
-/**
- * POS home while the terminal is offline: the offline banner and encrypted
- * buffer state, the pending-sync panel, the offline-capable actions, and
- * today's local SQLite tally.
- *
- * The design's own bottom tab bar is not rendered — the app shell owns bottom
- * navigation.
- */
+export interface PosHomeOfflineModeScreenProps {
+  view: PosOfflineHomeView;
+  isSyncing?: boolean;
+  onBack?: () => void;
+  onRetrySync?: () => void;
+  onOpenAction?: (actionId: string) => void;
+}
+
+/** The till when the connection drops: what is queued on the device and what still works. */
 export function PosHomeOfflineModeScreen({
+  view,
+  isSyncing,
   onBack,
-  onChangeBranch,
-  onOpenProfile,
-  onOpenSettings,
   onRetrySync,
   onOpenAction,
-  onOpenCustomerDisplay,
-  onOpenDrawer,
 }: PosHomeOfflineModeScreenProps) {
-  const queueLabel = copy.syncCount.replace('{count}', String(offlineQueuedCount));
-  const queueBody = copy.syncBody.replace('{count}', String(offlineQueuedCount));
-  const bufferBody = copy.bufferBody.replace('{count}', String(offlineQueuedCount));
-
   return (
     <BusinessScreenLayout
-      header={{
-        title: copy.headerTitle,
-        onBack,
-        actions: [
-          { icon: 'tune', label: copy.headerTitle, onPress: onOpenSettings },
-          { icon: 'accountCircle', label: copy.headerTitle, onPress: onOpenProfile },
-        ],
-      }}
+      header={{ title: copy.headerTitle, onBack }}
       contentContainerClassName="pb-8"
       footer={
         <BusinessActionDock>
           <Button
             label={copy.retrySyncCta}
             labelVariant="labelMd"
+            disabled={!view.online || view.queuedCount === 0}
+            loading={isSyncing}
             onPress={onRetrySync}
-            leftIcon={<Icon name="sync" size={18} color={colors.surface} />}
+            leftIcon={<Icon name="sync" size={17} color={colors.surface} />}
           />
-          <View className="flex-row items-center justify-center gap-1.5">
-            <Icon name="wifiAlert" size={13} color={colors.textTertiary} />
-            <VemtapText
-              variant="micro"
-              tone="tertiary"
-              className="text-center"
-              numberOfLines={2}
-            >
-              {copy.syncAutoBody}
-            </VemtapText>
-          </View>
+          <VemtapText
+            variant="micro"
+            tone="tertiary"
+            className="text-center"
+            numberOfLines={2}
+          >
+            {copy.syncAutoBody}
+          </VemtapText>
         </BusinessActionDock>
       }
     >
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={copy.locationLabel}
-        onPress={onChangeBranch}
-        className="flex-row items-center justify-between gap-2"
-      >
-        <View className="min-w-0 flex-row items-center gap-1.5">
-          <VemtapText
-            variant="labelMd"
-            className="min-w-0 font-sans-semibold"
-            numberOfLines={1}
-          >
-            {copy.locationLabel}
-          </VemtapText>
-          <Icon name="expandMore" size={18} color={colors.textTertiary} />
-        </View>
-        <View className="flex-row items-center gap-1.5">
-          <View className="h-2 w-2 rounded-full bg-error" />
-          <VemtapText
-            variant="labelSm"
-            className="font-sans-semibold text-error"
-            numberOfLines={1}
-          >
-            {copy.onlineLabel}
-          </VemtapText>
-        </View>
-      </Pressable>
-
-      <View className="mt-1 flex-row items-center gap-1.5">
-        <View className="h-1.5 w-1.5 rounded-full bg-outline" />
+      <View className="flex-row items-center gap-2">
+        <Icon name="store" size={16} color={colors.textSecondary} />
         <VemtapText
-          variant="caption"
-          tone="secondary"
-          className="min-w-0 flex-1"
+          variant="labelMd"
+          className="min-w-0 flex-1 font-sans-semibold"
           numberOfLines={1}
         >
-          {`${offlineShift.cashier} (${offlineShift.till})`}
+          {view.branchName}
         </VemtapText>
-        <View className="h-1.5 w-1.5 rounded-full bg-outline" />
-        <VemtapText
-          variant="caption"
-          tone="tertiary"
-          className="shrink-0"
-          numberOfLines={1}
-        >
-          {offlineShift.mode}
-        </VemtapText>
+        <BusinessStatusPill
+          label={view.online ? copy.onlineLabel : copy.offlineLabel}
+          tone={view.online ? 'success' : 'neutral'}
+        />
       </View>
+      {view.shiftLine ? (
+        <VemtapText variant="caption" tone="secondary" className="mt-1" numberOfLines={1}>
+          {view.shiftLine}
+        </VemtapText>
+      ) : null}
 
-      <View className="mt-3 gap-2 rounded-card border border-border bg-surface p-4 shadow-sm">
+      <View className="mt-3 gap-2 rounded-card bg-surface p-3 shadow-sm">
         <View className="flex-row items-center gap-2.5">
-          <View className="h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-error-container">
-            <Icon name="cloudOff" size={20} color={colors.error} />
-          </View>
+          <BusinessIconWell
+            icon={view.online ? 'cloudDone' : 'cloudOff'}
+            tone={view.online ? 'success' : 'neutral'}
+          />
           <View className="min-w-0 flex-1">
             <VemtapText
               variant="labelMd"
               className="font-sans-semibold"
               numberOfLines={1}
             >
-              {copy.offlineTitle}
+              {view.online ? copy.onlineTitle : copy.offlineTitle}
             </VemtapText>
-            <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-              {copy.offlineSubtitle}
-            </VemtapText>
-          </View>
-        </View>
-
-        <View className="flex-row items-start gap-2 rounded-field bg-surface-subtle p-2.5">
-          <Icon name="lock" size={14} color={colors.badgeDiscountText} />
-          <View className="min-w-0 flex-1">
-            <VemtapText
-              variant="caption"
-              className="font-sans-semibold text-badge-discount-text"
-              numberOfLines={1}
-            >
-              {copy.encryptedLabel}
-            </VemtapText>
-            <VemtapText
-              variant="micro"
-              tone="tertiary"
-              className="mt-0.5"
-              numberOfLines={3}
-            >
+            <VemtapText variant="caption" tone="secondary" numberOfLines={3}>
               {copy.encryptedBody}
             </VemtapText>
           </View>
         </View>
-
-        <View className="flex-row items-start gap-2 rounded-field bg-surface-subtle p-2.5">
-          <BusinessIconWell icon="databaseLocal" tone="brand" size="sm" />
+        <View className="flex-row items-center justify-between gap-2 rounded-field bg-surface-subtle p-2.5">
           <View className="min-w-0 flex-1">
             <VemtapText
-              variant="caption"
+              variant="labelSm"
               className="font-sans-semibold"
               numberOfLines={1}
             >
               {copy.bufferTitle}
             </VemtapText>
             <VemtapText variant="micro" tone="tertiary" numberOfLines={1}>
-              {bufferBody}
-            </VemtapText>
-            <VemtapText
-              variant="caption"
-              className="mt-0.5 font-sans-semibold text-primary"
-              numberOfLines={1}
-            >
-              {offlineQueuedAmount}
-            </VemtapText>
-          </View>
-        </View>
-      </View>
-
-      <View className="mt-3 flex-row items-center gap-2.5 rounded-card bg-surface p-3 shadow-sm">
-        <BusinessIconWell icon="restaurant" tone="brand" size="lg" />
-        <View className="min-w-0 flex-1">
-          <VemtapText variant="labelMd" className="font-sans-semibold" numberOfLines={1}>
-            {copy.storeLabel}
-          </VemtapText>
-          <View className="flex-row items-center gap-1.5">
-            <VemtapText
-              variant="micro"
-              tone="tertiary"
-              className="min-w-0 flex-1"
-              numberOfLines={1}
-            >
-              {`${copy.branchLabel} · ${offlineShift.till} · ${offlineShift.cashier}`}
+              {copy.bufferBody(view.queuedCount)}
             </VemtapText>
           </View>
           <VemtapText
-            variant="micro"
-            className="font-sans-semibold text-error"
+            variant="labelMd"
+            className="shrink-0 font-sans-bold"
             numberOfLines={1}
           >
-            {copy.cacheLabel}
+            {view.queuedAmount}
           </VemtapText>
         </View>
-      </View>
-
-      <View className="mt-3 gap-2 rounded-card border border-border bg-surface-tint p-3">
-        <View className="flex-row items-center gap-2.5">
-          <BusinessIconWell icon="sync" tone="brand" size="sm" />
-          <View className="min-w-0 flex-1">
-            <VemtapText
-              variant="labelMd"
-              className="font-sans-semibold"
-              numberOfLines={1}
-            >
-              {copy.syncTitle}
-            </VemtapText>
-            <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-              {queueBody}
-            </VemtapText>
-          </View>
-          <BusinessStatusPill label={queueLabel} tone="warning" />
-        </View>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={copy.retrySyncCta}
-          onPress={onRetrySync}
-          className="min-h-10 flex-row items-center justify-center gap-1.5 rounded-field bg-primary active:scale-95"
-        >
-          <Icon name="bolt" size={16} color={colors.surface} />
-          <VemtapText
-            variant="labelSm"
-            className="font-sans-semibold text-surface"
-            numberOfLines={1}
-          >
-            {copy.retrySyncCta}
-          </VemtapText>
-        </Pressable>
+        <VemtapText variant="micro" tone="tertiary" numberOfLines={1}>
+          {view.lastSync ? copy.lastSync(view.lastSync) : copy.neverSynced}
+        </VemtapText>
       </View>
 
       <BusinessPanel
@@ -278,7 +151,7 @@ export function PosHomeOfflineModeScreen({
         badgeTone="success"
       >
         <View className="gap-2">
-          {copy.offlineActions.map(action => (
+          {actions.map(action => (
             <Pressable
               key={action.id}
               accessibilityRole="button"
@@ -286,92 +159,58 @@ export function PosHomeOfflineModeScreen({
               onPress={() => onOpenAction?.(action.id)}
               className="flex-row items-center gap-2.5 rounded-field bg-surface-subtle p-2.5 active:bg-surface-container"
             >
-              <BusinessIconWell
-                icon={offlineActionIcon[action.id]}
-                tone="brand"
-                size="sm"
-              />
+              <BusinessIconWell icon={action.icon} tone="brand" size="sm" />
               <View className="min-w-0 flex-1">
                 <VemtapText
-                  variant="labelMd"
+                  variant="labelSm"
                   className="font-sans-semibold"
                   numberOfLines={1}
                 >
                   {action.title}
                 </VemtapText>
-                <VemtapText variant="caption" tone="secondary" numberOfLines={2}>
-                  {action.body}
+                <VemtapText variant="micro" tone="tertiary" numberOfLines={2}>
+                  {action.id === 'products'
+                    ? copy.menuCached(view.menuCount)
+                    : action.body}
                 </VemtapText>
               </View>
-              <View className="shrink-0">
-                <Icon name="arrowForward" size={18} color={colors.textTertiary} />
-              </View>
+              <Icon name="arrowForward" size={16} color={colors.textTertiary} />
             </Pressable>
           ))}
         </View>
       </BusinessPanel>
 
-      <BusinessPanel
-        className="mt-3"
-        title={copy.tallyTitle}
-        icon="clipboardText"
-        badge={copy.tallyBadge}
-        badgeTone="brand"
-      >
-        <BusinessMetricGrid
-          cells={offlineTally.map(tallied => ({
-            label: tallied.label,
-            value: tallied.value,
-            note: tallied.note,
-            icon: tallied.icon,
-          }))}
-          columns={2}
-          variant="bare"
-        />
-        <View className="flex-row items-center gap-1.5">
-          <Icon name="checkCircle" size={14} color={colors.badgeDiscountText} />
-          <VemtapText
-            variant="caption"
-            className="min-w-0 flex-1 text-badge-discount-text"
-            numberOfLines={1}
-          >
-            {copy.printerValue}
-          </VemtapText>
-        </View>
-      </BusinessPanel>
-
-      <View className="mt-3 flex-row gap-2">
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={copy.drawerLabel}
-          onPress={onOpenDrawer}
-          className="min-h-11 min-w-0 flex-1 flex-row items-center justify-center gap-1.5 rounded-field bg-surface px-3 shadow-sm active:scale-95"
+      {view.tally ? (
+        <BusinessPanel
+          className="mt-3"
+          title={copy.tallyTitle}
+          icon="insights"
+          badge={copy.tallyBadge}
+          badgeTone="neutral"
         >
-          <Icon name="pointOfSale" size={17} color={colors.text} />
-          <VemtapText
-            variant="labelSm"
-            className="min-w-0 font-sans-semibold"
-            numberOfLines={1}
-          >
-            {copy.drawerLabel}
-          </VemtapText>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={copy.displayModeLabel}
-          onPress={onOpenCustomerDisplay}
-          className="min-h-11 min-w-0 flex-1 flex-row items-center justify-center gap-1.5 rounded-field bg-surface px-3 shadow-sm active:scale-95"
-        >
-          <Icon name="television" size={17} color={colors.text} />
-          <VemtapText
-            variant="labelSm"
-            className="min-w-0 font-sans-semibold"
-            numberOfLines={1}
-          >
-            {copy.displayModeLabel}
-          </VemtapText>
-        </Pressable>
-      </View>
+          <BusinessMetricGrid
+            cells={[
+              {
+                label: copy.salesLabel,
+                value: view.tally.sales,
+                icon: 'payments' as IconName,
+              },
+              {
+                label: copy.transactionsLabel,
+                value: view.tally.transactions,
+                icon: 'doneAll' as IconName,
+              },
+              {
+                label: copy.heldLabel,
+                value: view.tally.held,
+                icon: 'pauseCircle' as IconName,
+              },
+            ]}
+            columns={2}
+            variant="bare"
+          />
+        </BusinessPanel>
+      ) : null}
     </BusinessScreenLayout>
   );
 }

@@ -1,466 +1,390 @@
 import React from 'react';
-import {
-  act,
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from '@testing-library/react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
 import { strings } from '@constants/strings';
 import { PosBranchTillSwitcherScreen } from '@features/business/screens/PosBranchTillSwitcherScreen';
-import { PosHomeSalesOperationsScreen } from '@features/business/screens/PosHomeSalesOperationsScreen';
+import {
+  PosHomeSalesOperationsScreen,
+  type PosHomeView,
+} from '@features/business/screens/PosHomeSalesOperationsScreen';
 import { PosNewSaleCatalogScreen } from '@features/business/screens/PosNewSaleCatalogScreen';
 import { PosCurrentSaleCartScreen } from '@features/business/screens/PosCurrentSaleCartScreen';
-import { PosTenderCheckoutScreen } from '@features/business/screens/PosTenderCheckoutScreen';
+import {
+  cashPresets,
+  PosTenderCheckoutScreen,
+  type PosTenderCheckoutView,
+} from '@features/business/screens/PosTenderCheckoutScreen';
 import { PosSaleCompletedScreen } from '@features/business/screens/PosSaleCompletedScreen';
 import { PosReceiptCustomizationScreen } from '@features/business/screens/PosReceiptCustomizationScreen';
-import { BusinessTabNavigator } from '@navigation/BusinessTabNavigator';
-import {
-  cartGrandTotal,
-  cartLines,
-  catalogItems,
-  completedSale,
-  posBranchChoices,
-  posBranches,
-  posQuickActions,
-  posTills,
-  receiptPreview,
-  tenderOrder,
-} from '@features/business/data/businessPosFlowData';
+import type { ReceiptView } from '@features/business/utils/posMappers';
+import { posSettingsSchema } from '@api/posApi';
 
 afterEach(cleanup);
 
-/**
- * Press a control and let its resulting render settle before the next
- * interaction. Two back-to-back presses with no flush in between leave React's
- * act queue unbalanced, which poisons every later test in the run — so
- * consecutive interactions go through here.
- */
-/** Press the first match, for labels that repeat across sibling controls. */
-async function pressFirst(view: Awaited<ReturnType<typeof render>>, label: string) {
-  fireEvent.press(view.getAllByLabelText(label)[0]);
-  await waitFor(() => expect(view.getAllByLabelText(label).length).toBeGreaterThan(0));
-}
+const settings = posSettingsSchema.parse({ taxEnabled: true, taxRate: 7.5 });
 
-async function pressAndSettle(view: Awaited<ReturnType<typeof render>>, label: string) {
-  fireEvent.press(view.getByLabelText(label));
-  await waitFor(() => expect(view.getByLabelText(label)).toBeTruthy());
-}
+const homeView: PosHomeView = {
+  storeName: 'Test Kitchen',
+  branches: [
+    { id: 'b1', name: 'Branch One', current: true },
+    { id: 'b2', name: 'Branch Two', current: false },
+  ],
+  activeBranchName: 'Branch One',
+  online: true,
+  queuedCount: 0,
+  shiftLabel: 'Shift opened 8:00 AM',
+  summary: {
+    sales: '₦1,000',
+    salesNote: 'Average ticket ₦500',
+    transactions: '2',
+    transactionsNote: 'Completed sales today',
+    pending: '1',
+    pendingNote: 'Parked tickets to resume',
+    refunds: '0',
+    refundsNote: 'Full and partial',
+  },
+  drawer: { openingFloat: '₦100', cashInTill: '₦600', balanceLabel: 'Balanced (±0)' },
+};
+
+const receipt: ReceiptView = {
+  id: 'sale-1',
+  receiptNumber: 'RCT-1',
+  when: 'Today, 10:00 AM',
+  status: 'completed',
+  tender: 'Cash',
+  amount: '₦1,075',
+  cashier: 'Ada Obi',
+  storeName: 'Test Kitchen',
+  branchName: 'Branch One',
+  address: '',
+  phone: '',
+  tin: '',
+  header: '',
+  footer: 'Come again',
+  logo: null,
+  customer: { name: 'Tolu A', phone: '0800', initials: 'TA' },
+  pointsEarned: 20,
+  lines: [{ id: 'l1', name: 'Rice', qty: 2, price: '₦1,000', refunded: 0 }],
+  totals: [
+    { id: 'subtotal', label: 'Subtotal', value: '₦1,000' },
+    { id: 'tax', label: 'VAT (7.5%)', value: '₦75' },
+  ],
+  payments: [{ id: 'tendered', label: 'Paid (Cash)', value: '₦2,000' }],
+};
+
+describe('pos home', () => {
+  const copy = strings.posHomeSalesOperations;
+
+  it('shows an error with retry until the view arrives', async () => {
+    const onRetry = jest.fn();
+    const view = await render(<PosHomeSalesOperationsScreen isError onRetry={onRetry} />);
+    await act(async () => {
+      fireEvent.press(view.getByText(strings.common.retry));
+    });
+    expect(onRetry).toHaveBeenCalled();
+  });
+
+  it('renders live figures and routes quick actions', async () => {
+    const onQuickAction = jest.fn();
+    const view = await render(
+      <PosHomeSalesOperationsScreen view={homeView} onQuickAction={onQuickAction} />,
+    );
+    expect(view.getByText('Test Kitchen')).toBeTruthy();
+    expect(view.getByText('₦1,000')).toBeTruthy();
+    expect(view.getByText('Balanced (±0)')).toBeTruthy();
+    await act(async () => {
+      fireEvent.press(view.getByLabelText(copy.quickActions.newSale.label));
+    });
+    expect(onQuickAction).toHaveBeenCalledWith('new-sale');
+  });
+
+  it('offers to open the register when no shift is open', async () => {
+    const view = await render(
+      <PosHomeSalesOperationsScreen view={{ ...homeView, drawer: null }} />,
+    );
+    expect(view.getByText(copy.drawer.closedTitle)).toBeTruthy();
+  });
+});
 
 describe('pos branch & till switcher', () => {
   const copy = strings.posBranchTillSwitcher;
 
-  it('renders the current context, every till and every branch', async () => {
-    const view = await render(<PosBranchTillSwitcherScreen />);
-
-    expect(view.getByText(copy.headerSubtitle)).toBeTruthy();
-    expect(view.getAllByText(copy.currentBranch).length).toBeGreaterThan(0);
-    expect(view.getByText(copy.loggedStaff)).toBeTruthy();
-    expect(view.getByText(copy.register)).toBeTruthy();
-    posTills.forEach(till => {
-      expect(view.getAllByText(till.name).length).toBeGreaterThan(0);
-    });
-    posBranches.forEach(branch => {
-      // The current branch also names the tills panel and the context card.
-      expect(view.getAllByText(branch.name).length).toBeGreaterThan(0);
-    });
-    expect(view.getByText(copy.securityTitle)).toBeTruthy();
-  });
-
-  it('selects a till, a branch, then confirms or cancels', async () => {
-    const onSelectTill = jest.fn();
-    const onSwitchBranch = jest.fn();
-    const onConfirmSwitch = jest.fn();
-    const onCancel = jest.fn();
+  it('needs an opening float to open a free till and sends the selection', async () => {
+    const onConfirm = jest.fn();
     const view = await render(
       <PosBranchTillSwitcherScreen
-        onSelectTill={onSelectTill}
-        onSwitchBranch={onSwitchBranch}
-        onConfirmSwitch={onConfirmSwitch}
-        onCancel={onCancel}
+        view={{
+          businessName: 'Test Kitchen',
+          currentBranchName: 'Branch One',
+          registerStatus: copy.registerClosed,
+          staffName: 'Ada Obi',
+          activeTillId: null,
+          hasOpenSession: false,
+          tills: [
+            {
+              id: 't1',
+              name: 'Front',
+              meta: copy.tillAvailable,
+              status: 'idle',
+              amount: '₦0',
+              occupiedByOther: false,
+            },
+            {
+              id: 't2',
+              name: 'Bar',
+              meta: 'Musa since 9:00',
+              status: 'active',
+              amount: '₦0',
+              occupiedByOther: true,
+            },
+          ],
+          tillsBadge: copy.tillsBadge(2, 3),
+          branches: [],
+        }}
+        onConfirm={onConfirm}
       />,
     );
-
-    await pressAndSettle(view, posTills[1].name);
-    expect(onSelectTill).toHaveBeenCalledWith(posTills[1].id);
-
-    await pressAndSettle(view, posBranches[1].name);
-    expect(onSwitchBranch).toHaveBeenCalledWith(posBranches[1].id);
-
-    await pressAndSettle(view, copy.confirmCta);
-    expect(onConfirmSwitch).toHaveBeenCalledTimes(1);
-
-    await pressAndSettle(view, copy.cancelCta);
-    expect(onCancel).toHaveBeenCalledTimes(1);
-  });
-});
-
-describe('pos home sales & operations hub', () => {
-  const copy = strings.posHomeSalesOperations;
-
-  it('renders branches, sync, offline protection, quick actions and the summary', async () => {
-    const view = await render(<PosHomeSalesOperationsScreen />);
-
-    expect(view.getByText(copy.storeTitle)).toBeTruthy();
-    expect(view.getByText(copy.syncLabel)).toBeTruthy();
-    expect(view.getByText(copy.offlineTitle)).toBeTruthy();
-    expect(view.getByText(copy.storageTitle)).toBeTruthy();
-    posQuickActions.forEach(action => {
-      expect(view.getAllByLabelText(action.label).length).toBeGreaterThan(0);
+    await act(async () => {
+      fireEvent.press(view.getByLabelText('Front'));
     });
-    expect(view.getByText(copy.summaryTitle)).toBeTruthy();
-    expect(view.getByText(copy.drawerTitle)).toBeTruthy();
-  });
-
-  it('runs quick actions, a sync check, the drawer and a register control', async () => {
-    const onQuickAction = jest.fn();
-    const onSyncCheck = jest.fn();
-    const onOpenDrawer = jest.fn();
-    const onOpenControl = jest.fn();
-    const onSelectBranch = jest.fn();
-    const view = await render(
-      <PosHomeSalesOperationsScreen
-        onQuickAction={onQuickAction}
-        onSyncCheck={onSyncCheck}
-        onOpenDrawer={onOpenDrawer}
-        onOpenControl={onOpenControl}
-        onSelectBranch={onSelectBranch}
-      />,
-    );
-
-    await pressAndSettle(view, posQuickActions[0].label);
-    expect(onQuickAction).toHaveBeenCalledWith('new-sale');
-
-    await pressAndSettle(view, 'Check');
-    expect(onSyncCheck).toHaveBeenCalledTimes(1);
-
-    await pressAndSettle(view, 'Drawer Balance');
-    expect(onOpenDrawer).toHaveBeenCalledTimes(1);
-
-    await pressAndSettle(view, 'Customer Public Mode');
-    expect(onOpenControl).toHaveBeenCalledWith('public-mode');
+    const float = await view.findByLabelText(copy.openingFloatLabel);
+    await act(async () => {
+      fireEvent.changeText(float, '5000');
+    });
+    await waitFor(() => expect(view.getByDisplayValue('5000')).toBeTruthy());
+    await act(async () => {
+      fireEvent.press(view.getByText(copy.confirmCta));
+    });
+    expect(onConfirm).toHaveBeenCalledWith({
+      branchId: null,
+      tillId: 't1',
+      openingCash: 5000,
+    });
   });
 });
 
-describe('pos new sale register catalog', () => {
+describe('pos new sale catalog', () => {
   const copy = strings.posNewSaleCatalog;
 
-  it('renders the search, categories, every item and the running order', async () => {
-    const view = await render(<PosNewSaleCatalogScreen />);
-
-    expect(view.getByText(copy.headerTitle)).toBeTruthy();
-    expect(view.getByText(copy.registerLabel)).toBeTruthy();
-    expect(view.getByText(copy.catalogTitle)).toBeTruthy();
-    copy.categories.forEach(category => {
-      expect(view.getAllByLabelText(category.label).length).toBeGreaterThan(0);
-    });
-    catalogItems.forEach(item => {
-      expect(view.getAllByText(item.name).length).toBeGreaterThan(0);
-    });
-    expect(view.getByText(copy.customTitle)).toBeTruthy();
-    expect(view.getByText(copy.guestLabel)).toBeTruthy();
-  });
-
-  it('adds an item, filters a category, scans and charges', async () => {
+  it('adds in-stock items and blocks sold-out ones', async () => {
     const onAddItem = jest.fn();
-    const onFilterCategory = jest.fn();
-    const onScan = jest.fn();
-    const onCharge = jest.fn();
     const view = await render(
       <PosNewSaleCatalogScreen
+        search=""
+        category="all"
         onAddItem={onAddItem}
-        onFilterCategory={onFilterCategory}
-        onScan={onScan}
-        onCharge={onCharge}
+        view={{
+          registerLabel: 'Branch One',
+          categories: [{ id: 'c1', label: 'Mains' }],
+          totalItems: 2,
+          items: [
+            {
+              id: 'i1',
+              name: 'Rice',
+              detail: '',
+              price: '₦500',
+              stockLabel: copy.stockLeft(8),
+              stockTone: 'ready',
+              inTicket: 0,
+            },
+            {
+              id: 'i2',
+              name: 'Soup',
+              detail: '',
+              price: '₦900',
+              stockLabel: copy.stockOut,
+              stockTone: 'out',
+              inTicket: 0,
+            },
+          ],
+          ticket: { itemCount: 0, total: '₦0', customerName: null, taxLabel: copy.noTax },
+        }}
       />,
     );
-
-    await pressAndSettle(view, `${catalogItems[0].name} ${copy.addItemCta}`);
-    expect(onAddItem).toHaveBeenCalledWith(catalogItems[0].id);
-
-    await pressAndSettle(view, copy.categories[0].label);
-    expect(onFilterCategory).toHaveBeenCalledWith(copy.categories[0].id);
-
-    await pressAndSettle(view, 'Scan');
-    expect(onScan).toHaveBeenCalledTimes(1);
-
-    await pressAndSettle(view, copy.chargeCta);
-    expect(onCharge).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      fireEvent.press(view.getByLabelText(`Rice ${copy.addItemCta}`));
+    });
+    await act(async () => {
+      fireEvent.press(view.getByLabelText(`Soup ${copy.addItemCta}`));
+    });
+    expect(onAddItem).toHaveBeenCalledTimes(1);
+    expect(onAddItem).toHaveBeenCalledWith('i1');
   });
 });
 
-describe('pos current sale & cart review', () => {
+describe('pos current sale cart', () => {
   const copy = strings.posCurrentSaleCart;
+  const cartView = {
+    storeLabel: 'Test Kitchen • Branch One',
+    tableLabel: copy.tableLabel('4'),
+    customer: null,
+    lines: [
+      {
+        id: 'i1',
+        name: 'Rice',
+        qty: 2,
+        unit: '₦500',
+        lineTotal: '₦1,000',
+        atStockLimit: false,
+      },
+    ],
+    totals: [{ id: 'subtotal', label: 'Subtotal', value: '₦1,000' }],
+    grandTotal: '₦1,000',
+    note: '',
+    cartDiscount: '',
+    takeaway: false,
+  };
 
-  it('renders the customer, every line, the totals and the total due', async () => {
-    const view = await render(<PosCurrentSaleCartScreen />);
-
-    expect(view.getByText(copy.headerTitle)).toBeTruthy();
-    expect(view.getByText('Michael James')).toBeTruthy();
-    cartLines.forEach(line => {
-      expect(view.getAllByText(line.name).length).toBeGreaterThan(0);
-    });
-    expect(view.getAllByText(cartGrandTotal).length).toBeGreaterThan(0);
-    expect(view.getByText(copy.noteCta)).toBeTruthy();
-    expect(view.getByText(copy.discountCta)).toBeTruthy();
-  });
-
-  it('changes quantity, removes a line, holds and charges', async () => {
+  it('changes quantities and toggles takeaway', async () => {
     const onChangeQty = jest.fn();
-    const onRemoveLine = jest.fn();
-    const onHold = jest.fn();
-    const onCharge = jest.fn();
+    const onToggleTakeaway = jest.fn();
     const view = await render(
       <PosCurrentSaleCartScreen
+        view={cartView}
         onChangeQty={onChangeQty}
-        onRemoveLine={onRemoveLine}
-        onHold={onHold}
-        onCharge={onCharge}
+        onToggleTakeaway={onToggleTakeaway}
       />,
     );
+    await act(async () => {
+      fireEvent.press(view.getByLabelText('Rice increase'));
+    });
+    expect(onChangeQty).toHaveBeenCalledWith('i1', 3);
+    await act(async () => {
+      fireEvent.press(view.getByLabelText(copy.takeawayCta));
+    });
+    expect(onToggleTakeaway).toHaveBeenCalledWith(true);
+  });
 
-    await pressAndSettle(view, `${cartLines[0].name} increase`);
-    expect(onChangeQty).toHaveBeenCalledWith(cartLines[0].id, cartLines[0].qty + 1);
-
-    await pressAndSettle(view, `${cartLines[0].name} delete`);
-    expect(onRemoveLine).toHaveBeenCalledWith(cartLines[0].id);
-
-    await pressAndSettle(view, copy.holdTicketCta);
-    expect(onHold).toHaveBeenCalledTimes(1);
-
-    await pressAndSettle(view, copy.chargeCta);
-    expect(onCharge).toHaveBeenCalledTimes(1);
+  it('cannot charge an empty ticket', async () => {
+    const onCharge = jest.fn();
+    const view = await render(
+      <PosCurrentSaleCartScreen view={{ ...cartView, lines: [] }} onCharge={onCharge} />,
+    );
+    await act(async () => {
+      fireEvent.press(view.getByText(copy.chargeCta));
+    });
+    expect(onCharge).not.toHaveBeenCalled();
+    expect(view.getByText(copy.empty.title)).toBeTruthy();
   });
 });
 
-describe('pos payment tender checkout', () => {
+describe('pos tender checkout', () => {
   const copy = strings.posTenderCheckout;
+  const tenderView: PosTenderCheckoutView = {
+    orderLabel: 'Branch One',
+    orderTypeLabel: copy.dineInLabel,
+    totalAmount: 1075,
+    lines: [{ id: 'i1', qty: '2×', name: 'Rice', price: '₦1,000' }],
+    itemCount: 2,
+    totals: [],
+    customer: null,
+    methods: ['cash', 'card', 'split'],
+    cardTerminal: null,
+    transfer: null,
+    offline: false,
+  };
 
-  it('renders the amount due, the order, points and every tender method', async () => {
-    const view = await render(<PosTenderCheckoutScreen />);
-
-    expect(view.getByText(copy.headerTitle)).toBeTruthy();
-    // The amount due heads the panel and repeats in the receipt-dispatch total.
-    expect(view.getAllByText(tenderOrder.due).length).toBeGreaterThan(0);
-    copy.tenderMethods.forEach(method => {
-      expect(view.getAllByLabelText(method.label).length).toBeGreaterThan(0);
-    });
-    expect(view.getByText(copy.tenderTitle)).toBeTruthy();
-    expect(view.getByText(copy.receiptTitle)).toBeTruthy();
+  it('suggests whole-note cash presets at or above the total', () => {
+    expect(cashPresets(1075)).toEqual([1075, 2000, 5000, 10000]);
   });
 
-  it('switches tender, applies points, picks a cash preset and completes', async () => {
-    const onSelectTender = jest.fn();
-    const onApplyPoints = jest.fn();
-    const onCashPreset = jest.fn();
+  it('refuses short cash and completes with the tendered amount', async () => {
     const onCompleteSale = jest.fn();
     const view = await render(
+      <PosTenderCheckoutScreen view={tenderView} onCompleteSale={onCompleteSale} />,
+    );
+    await act(async () => {
+      fireEvent.changeText(view.getByLabelText(copy.tenderedLabel), '1000');
+    });
+    await act(async () => {
+      fireEvent.press(view.getByText(`${copy.completeCta} (₦1,075)`));
+    });
+    expect(onCompleteSale).not.toHaveBeenCalled();
+
+    await act(async () => {
+      fireEvent.changeText(view.getByLabelText(copy.tenderedLabel), '2000');
+    });
+    await act(async () => {
+      fireEvent.press(view.getByText(`${copy.completeCta} (₦1,075)`));
+    });
+    expect(onCompleteSale).toHaveBeenCalledWith({ method: 'cash', amountPaid: 2000 });
+  });
+
+  it('labels the offline save and hands split off to the split screen', async () => {
+    const onSplit = jest.fn();
+    const view = await render(
       <PosTenderCheckoutScreen
-        onSelectTender={onSelectTender}
-        onApplyPoints={onApplyPoints}
-        onCashPreset={onCashPreset}
-        onCompleteSale={onCompleteSale}
+        view={{ ...tenderView, offline: true }}
+        onSplit={onSplit}
       />,
     );
-
-    await pressAndSettle(view, copy.tenderMethods[1].label);
-    expect(onSelectTender).toHaveBeenCalledWith(copy.tenderMethods[1].id);
-    // Transfer panel replaces the cash calculator.
-    expect(view.getByText(copy.bankLabel)).toBeTruthy();
-
-    await pressAndSettle(view, copy.applyPointsCta);
-    expect(onApplyPoints).toHaveBeenCalledTimes(1);
-
-    await pressAndSettle(view, copy.tenderMethods[0].label);
-    await pressAndSettle(view, '₦28,000');
-    expect(onCashPreset).toHaveBeenCalledWith('₦28,000');
-
-    await pressAndSettle(view, `${copy.completeCta} (${tenderOrder.due})`);
-    expect(onCompleteSale).toHaveBeenCalledTimes(1);
+    expect(view.getByText(`${copy.completeOfflineCta} (₦1,075)`)).toBeTruthy();
+    await act(async () => {
+      fireEvent.press(view.getByLabelText(copy.methods.split.label));
+    });
+    expect(onSplit).toHaveBeenCalled();
   });
 });
 
-describe('pos sale completed & receipt', () => {
+describe('pos sale completed', () => {
   const copy = strings.posSaleCompleted;
 
-  it('renders the confirmation, receipt identity, lines and tender breakdown', async () => {
-    const view = await render(<PosSaleCompletedScreen />);
-
+  it('renders the receipt with points earned', async () => {
+    const view = await render(<PosSaleCompletedScreen receipt={receipt} />);
     expect(view.getByText(copy.headline)).toBeTruthy();
-    // The receipt id shares a line with the sale timestamp.
-    expect(
-      view.getByText(new RegExp(completedSale.receiptId.replace('#', '\\#'))),
-    ).toBeTruthy();
-    expect(view.getByText(completedSale.cashier)).toBeTruthy();
-    expect(view.getByText(completedSale.customer)).toBeTruthy();
-    // "Total Paid" heads the payment summary and labels the cash tender row.
-    expect(view.getAllByText(copy.totalPaidLabel).length).toBeGreaterThan(0);
-    expect(view.getAllByText(copy.cashLabel).length).toBeGreaterThan(0);
+    expect(view.getByText(copy.pointsEarned(20))).toBeTruthy();
+    expect(view.getByText('2× Rice')).toBeTruthy();
   });
 
-  it('prints, sends and starts a new sale', async () => {
-    const onPrint = jest.fn();
-    const onSendToMobile = jest.fn();
-    const onNewSale = jest.fn();
+  it('explains an offline sale that is waiting to sync', async () => {
     const view = await render(
       <PosSaleCompletedScreen
-        onPrint={onPrint}
-        onSendToMobile={onSendToMobile}
-        onNewSale={onNewSale}
+        offlineSale={{
+          clientRef: 'ref',
+          amount: '₦500',
+          tender: 'Cash',
+          itemNames: ['Rice'],
+          when: '10:00 AM',
+        }}
       />,
     );
-
-    // "Print Thermal Receipt" labels both the footer CTA and the printer row.
-    await pressFirst(view, copy.printCta);
-    expect(onPrint).toHaveBeenCalledTimes(1);
-
-    await pressAndSettle(view, copy.sendCta);
-    expect(onSendToMobile).toHaveBeenCalledTimes(1);
-
-    await pressAndSettle(view, copy.newSaleCta);
-    expect(onNewSale).toHaveBeenCalledTimes(1);
+    expect(view.getByText(copy.offlineHeadline)).toBeTruthy();
+    expect(view.getByText(copy.offlineBody)).toBeTruthy();
   });
 });
 
-describe('receipt & order customization', () => {
+describe('pos receipt customization', () => {
   const copy = strings.posReceiptCustomization;
 
-  it('renders the settings and the live thermal simulation', async () => {
-    const view = await render(<PosReceiptCustomizationScreen />);
-
-    expect(view.getByText(copy.headerTitle)).toBeTruthy();
-    expect(view.getByText(copy.settingsTitle)).toBeTruthy();
-    expect(view.getByText(copy.previewTitle)).toBeTruthy();
-    expect(view.getByText(copy.totalDueLabel)).toBeTruthy();
-    expect(view.getByText(receiptPreview.total)).toBeTruthy();
-    expect(view.getByText(copy.thanksLabel)).toBeTruthy();
-  });
-
-  it('toggles a setting, edits and prints a test slip', async () => {
-    const onToggleSetting = jest.fn();
-    const onEditReceipt = jest.fn();
-    const onPrintTest = jest.fn();
+  it('previews the footer and saves only changed fields', async () => {
+    const onSave = jest.fn();
     const view = await render(
       <PosReceiptCustomizationScreen
-        onToggleSetting={onToggleSetting}
-        onEditReceipt={onEditReceipt}
-        onPrintTest={onPrintTest}
+        settings={settings}
+        businessName="Test Kitchen"
+        sample={receipt}
+        onSave={onSave}
       />,
     );
-
-    await pressAndSettle(view, 'Bold headings');
-    expect(onToggleSetting).toHaveBeenCalledWith('bold', false);
-
-    // "Customize Receipt" labels both the footer CTA and the preview action.
-    await pressFirst(view, copy.editCta);
-    expect(onEditReceipt).toHaveBeenCalledTimes(1);
-
-    await pressAndSettle(view, copy.printCta);
-    expect(onPrintTest).toHaveBeenCalledTimes(1);
-  });
-});
-
-describe('pos sale flow navigation', () => {
-  const shell = strings.businessShell;
-  const catalog = strings.posNewSaleCatalog;
-  const cart = strings.posCurrentSaleCart;
-  const tender = strings.posTenderCheckout;
-  const more = strings.businessMore;
-
-  /** More tab -> More hub "POS" row -> the operations-dense hub. */
-  async function openOperationsHub() {
-    const rows: { id: string; label: string }[] = [];
-    more.sections.forEach(section => {
-      section.items.forEach(item => rows.push({ id: item.id, label: item.label }));
-    });
-    const posRow = rows.find(item => item.id === 'pos-launch');
-    if (!posRow) throw new Error('No More-hub row with id "pos-launch"');
     await act(async () => {
-      fireEvent.press(screen.getByLabelText(shell.tabs.more));
+      fireEvent.changeText(view.getByLabelText(copy.footerLabel), 'Thanks!');
     });
+    await waitFor(() => expect(view.getAllByText('Thanks!').length).toBeGreaterThan(0));
     await act(async () => {
-      fireEvent.press(screen.getByLabelText(posRow.label));
+      fireEvent.press(view.getByText(copy.saveCta));
     });
-    await act(async () => {
-      fireEvent.press(screen.getAllByLabelText(posHomeTile.label)[0]);
-    });
-  }
-
-  const posHomeTile = strings.businessMoreHubOperations.posTiles.find(
-    tile => tile.id === 'pos-home',
-  )!;
-
-  afterEach(cleanup);
-
-  it('walks catalog -> cart -> tender from the POS register', async () => {
-    await render(
-      <NavigationContainer>
-        <BusinessTabNavigator />
-      </NavigationContainer>,
-    );
-    // More tab -> More hub POS row -> operations hub -> POS register home tile.
-    await openOperationsHub();
-    expect(
-      screen.getAllByText(strings.posHomeSalesOperations.storeTitle).length,
-    ).toBeGreaterThan(0);
-
-    await act(async () => {
-      fireEvent.press(screen.getAllByLabelText('New Sale')[0]);
-    });
-    expect(screen.getAllByText(catalog.headerTitle).length).toBeGreaterThan(0);
-
-    await act(async () => {
-      fireEvent.press(screen.getByLabelText(catalog.chargeCta));
-    });
-    expect(screen.getAllByText(cart.headerTitle).length).toBeGreaterThan(0);
-
-    await act(async () => {
-      fireEvent.press(screen.getByLabelText(cart.chargeCta));
-    });
-    expect(screen.getAllByText(tender.headerTitle).length).toBeGreaterThan(0);
-
-    await act(async () => {
-      fireEvent.press(screen.getByLabelText(tender.tenderMethods[0].label));
-    });
-    await act(async () => {
-      fireEvent.press(screen.getByLabelText('₦28,000'));
-    });
-    await act(async () => {
-      fireEvent.press(
-        screen.getByLabelText(`${tender.completeCta} (${tenderOrder.due})`),
-      );
-    });
-    expect(screen.getAllByText(strings.posSaleCompleted.headline).length).toBeGreaterThan(
-      0,
-    );
-
-    // The completed-sale printer action hands off to receipt customisation.
-    await act(async () => {
-      fireEvent.press(screen.getAllByLabelText(strings.posSaleCompleted.printCta)[0]);
-    });
-    expect(
-      screen.getAllByText(strings.posReceiptCustomization.headerTitle).length,
-    ).toBeGreaterThan(0);
+    expect(onSave).toHaveBeenCalledWith({ receiptFooter: 'Thanks!' });
   });
 
-  it('reaches till switching from the register home', async () => {
-    await render(
-      <NavigationContainer>
-        <BusinessTabNavigator />
-      </NavigationContainer>,
+  it('is read-only for staff', async () => {
+    const view = await render(
+      <PosReceiptCustomizationScreen
+        settings={settings}
+        businessName="Test Kitchen"
+        sample={null}
+        canEdit={false}
+      />,
     );
-    await openOperationsHub();
-    expect(
-      screen.getAllByText(strings.posHomeSalesOperations.storeTitle).length,
-    ).toBeGreaterThan(0);
-
-    await act(async () => {
-      fireEvent.press(screen.getByLabelText(posBranchChoices[0].name));
-    });
-    expect(
-      screen.getAllByText(strings.posBranchTillSwitcher.headerTitle).length,
-    ).toBeGreaterThan(0);
+    expect(view.getByText(copy.readOnly)).toBeTruthy();
+    expect(view.getByText(copy.noSample)).toBeTruthy();
   });
 });

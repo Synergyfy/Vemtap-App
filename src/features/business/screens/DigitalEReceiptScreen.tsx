@@ -1,10 +1,12 @@
 import React from 'react';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
 import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
 import { colors } from '@theme/colors';
+import { ErrorState } from '@components/shared/ErrorState';
+import { LoadingState } from '@components/shared/LoadingState';
 import {
   BusinessActionDock,
   BusinessScreenLayout,
@@ -15,234 +17,224 @@ import {
   BusinessGrandTotalRow,
   BusinessLineItem,
   BusinessQrFrame,
-  BusinessRatingStars,
   BusinessTotalsRow,
 } from '@features/business/components/BusinessPosPrimitives';
-import { businessOpsImageById } from '@features/business/data/businessOpsImages';
-import { receiptOrder } from '@features/business/data/businessAnalyticsData';
+import type { ReceiptView } from '@features/business/utils/posMappers';
 
 const copy = strings.digitalEReceipt;
 
+const statusTone = {
+  completed: 'success',
+  partial_refund: 'warning',
+  refunded: 'neutral',
+} as const;
+
 export interface DigitalEReceiptScreenProps {
+  receipt?: ReceiptView;
+  isLoading?: boolean;
+  isError?: boolean;
+  onRetry?: () => void;
+  canRate?: boolean;
   onBack?: () => void;
   onShare?: () => void;
-  onSave?: () => void;
   onRateAndTip?: () => void;
-  onOrderAgain?: () => void;
 }
 
 /**
- * Digital e-receipt: receipt identity, line items, totals with the deal
- * discount, the amount actually paid, and a shareable receipt QR.
+ * Digital e-receipt: receipt identity, line items, totals, how it was paid,
+ * and a receipt reference block to share.
  */
 export function DigitalEReceiptScreen({
+  receipt,
+  isLoading,
+  isError,
+  onRetry,
+  canRate,
   onBack,
   onShare,
-  onSave,
   onRateAndTip,
-  onOrderAgain,
 }: DigitalEReceiptScreenProps) {
   return (
     <BusinessScreenLayout
       header={{ title: copy.headerTitle, onBack }}
       contentContainerClassName="pb-8"
       footer={
-        <BusinessActionDock>
-          <Button
-            label={copy.rateCta}
-            labelVariant="labelMd"
-            onPress={onRateAndTip}
-            leftIcon={<Icon name="rateReview" size={18} color={colors.surface} />}
-          />
-          <View className="flex-row gap-2">
-            <View className="min-w-0 flex-1">
+        receipt ? (
+          <BusinessActionDock>
+            {canRate ? (
               <Button
-                label={copy.shareCta}
-                labelVariant="labelSm"
-                variant="secondary"
-                onPress={onShare}
+                label={copy.rateCta}
+                labelVariant="labelMd"
+                onPress={onRateAndTip}
+                leftIcon={<Icon name="rateReview" size={18} color={colors.surface} />}
               />
-            </View>
-            <View className="min-w-0 flex-1">
-              <Button
-                label={copy.reorderCta}
-                labelVariant="labelSm"
-                variant="secondary"
-                onPress={onOrderAgain}
-              />
-            </View>
-          </View>
-        </BusinessActionDock>
+            ) : null}
+            <Button
+              label={copy.shareCta}
+              labelVariant="labelSm"
+              variant="secondary"
+              onPress={onShare}
+            />
+          </BusinessActionDock>
+        ) : undefined
       }
     >
-      <View className="items-center gap-2">
-        <View className="h-11 w-11 items-center justify-center rounded-full bg-badge-discount-bg">
-          <Icon name="checkBold" size={22} color={colors.badgeDiscountText} />
-        </View>
-        <VemtapText variant="headingLg" className="text-heading-lg" numberOfLines={1}>
-          {copy.doneTitle}
-        </VemtapText>
-        <VemtapText
-          variant="bodyMd"
-          tone="secondary"
-          className="text-center"
-          numberOfLines={2}
-        >
-          {copy.doneBody}
-        </VemtapText>
-      </View>
-
-      <BusinessPanel className="mt-3" icon="receipt">
-        <View className="flex-row items-center justify-between gap-2">
-          <VemtapText
-            variant="micro"
-            tone="secondary"
-            className="font-sans-semibold uppercase tracking-wider"
-            numberOfLines={1}
-          >
-            {copy.receiptLabel}
-          </VemtapText>
-          <BusinessStatusPill label={copy.paidLabel} tone="success" />
-        </View>
-        <View className="gap-1.5">
-          <VemtapText variant="labelMd" className="font-sans-semibold" numberOfLines={1}>
-            {receiptOrder.store}
-          </VemtapText>
-          <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-            {`${receiptOrder.id} · ${receiptOrder.date}`}
-          </VemtapText>
-          <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-            {`${copy.tableLabel} ${receiptOrder.table}`}
-          </VemtapText>
-        </View>
-        <View className="mt-1 flex-row items-center gap-1.5">
-          <Icon name="mail" size={14} color={colors.textTertiary} />
-          <VemtapText
-            variant="caption"
-            tone="tertiary"
-            className="min-w-0 flex-1"
-            numberOfLines={1}
-          >
-            {`${copy.sentLabel} ${receiptOrder.sentTo}`}
-          </VemtapText>
-        </View>
-      </BusinessPanel>
-
-      <BusinessPanel
-        className="mt-3"
-        title={copy.itemsTitle}
-        icon="list"
-        badge={String(receiptOrder.items.length)}
-        badgeTone="neutral"
-      >
-        <View className="gap-3">
-          {receiptOrder.items.map((item, index) => {
-            const image = businessOpsImageById[receiptOrder.itemImageIds[index]];
-            return (
-              <BusinessLineItem
-                key={item.id}
-                name={item.name}
-                modifier={item.modifier}
-                quantity={item.qty}
-                price={item.price}
-                imageUri={image?.uri}
-                imageAlt={image?.alt}
-              />
-            );
-          })}
-        </View>
-      </BusinessPanel>
-
-      <BusinessPanel className="mt-3" title={copy.totalsTitle} icon="payments">
-        <View className="gap-1.5">
-          {receiptOrder.totals.map(row => (
-            <BusinessTotalsRow
-              key={row.id}
-              label={row.label}
-              value={row.value}
-              tone={row.tone}
-              badge={row.badge}
-            />
-          ))}
-        </View>
-        <BusinessGrandTotalRow label={copy.paidLabel} value={receiptOrder.grandTotal} />
-        <View className="mt-1 flex-row items-center gap-1.5">
-          <Icon name="accountBalance" size={14} color={colors.textTertiary} />
-          <VemtapText
-            variant="caption"
-            tone="tertiary"
-            className="min-w-0 flex-1"
-            numberOfLines={1}
-          >
-            {`${copy.paidVia} ${receiptOrder.method}`}
-          </VemtapText>
-        </View>
-      </BusinessPanel>
-
-      <BusinessPanel className="mt-3" title={copy.ratingTitle} icon="starFilled">
-        <VemtapText variant="caption" tone="secondary" numberOfLines={2}>
-          {copy.ratingSubtitle}
-        </VemtapText>
-        <View className="mt-1 flex-row items-center gap-2">
-          <BusinessRatingStars
-            rating={receiptOrder.rating}
-            size={18}
-            accessibilityLabel={copy.ratingTitle}
+      {!receipt ? (
+        isError ? (
+          <ErrorState
+            title={copy.error.title}
+            description={copy.error.body}
+            onRetry={onRetry}
           />
-          <VemtapText
-            variant="labelSm"
-            className="font-sans-semibold text-primary"
-            numberOfLines={1}
-          >
-            {copy.rateCta}
-          </VemtapText>
-        </View>
-      </BusinessPanel>
-
-      <View className="mt-3 items-center">
-        <BusinessQrFrame
-          size="sm"
-          glyph="receiptLong"
-          caption={`${receiptOrder.id}`}
-          label={copy.receiptLabel}
-          className="w-full"
-        >
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={copy.printCta}
-            onPress={onSave}
-            className="mt-2 min-h-9 flex-row items-center gap-1.5 px-2"
-          >
-            <Icon name="download" size={16} color={colors.primary} />
-            <VemtapText
-              variant="labelSm"
-              className="font-sans-semibold text-primary"
-              numberOfLines={1}
-            >
-              {copy.printCta}
+        ) : (
+          <LoadingState label={isLoading ? copy.loading : undefined} />
+        )
+      ) : (
+        <>
+          <View className="items-center gap-2">
+            <View className="h-11 w-11 items-center justify-center rounded-full bg-badge-discount-bg">
+              <Icon name="checkBold" size={22} color={colors.badgeDiscountText} />
+            </View>
+            <VemtapText variant="headingLg" className="text-heading-lg" numberOfLines={1}>
+              {copy.doneTitle}
             </VemtapText>
-          </Pressable>
-        </BusinessQrFrame>
-      </View>
+            {receipt.header ? (
+              <VemtapText
+                variant="bodyMd"
+                tone="secondary"
+                className="text-center"
+                numberOfLines={2}
+              >
+                {receipt.header}
+              </VemtapText>
+            ) : null}
+          </View>
 
-      <View className="mt-3 items-center gap-1">
-        <VemtapText
-          variant="caption"
-          tone="tertiary"
-          className="text-center"
-          numberOfLines={2}
-        >
-          {copy.vatNote}
-        </VemtapText>
-        <VemtapText
-          variant="caption"
-          tone="tertiary"
-          className="text-center"
-          numberOfLines={2}
-        >
-          {copy.legal}
-        </VemtapText>
-      </View>
+          <BusinessPanel className="mt-3" icon="receipt">
+            <View className="flex-row items-center justify-between gap-2">
+              <VemtapText
+                variant="micro"
+                tone="secondary"
+                className="font-sans-semibold uppercase tracking-wider"
+                numberOfLines={1}
+              >
+                {copy.receiptLabel}
+              </VemtapText>
+              <BusinessStatusPill
+                label={copy.status[receipt.status]}
+                tone={statusTone[receipt.status]}
+              />
+            </View>
+            <View className="gap-1.5">
+              <VemtapText
+                variant="labelMd"
+                className="font-sans-semibold"
+                numberOfLines={1}
+              >
+                {[receipt.storeName, receipt.branchName].filter(Boolean).join(' • ')}
+              </VemtapText>
+              <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
+                {`${receipt.receiptNumber} · ${receipt.when}`}
+              </VemtapText>
+              {receipt.address ? (
+                <VemtapText variant="caption" tone="secondary" numberOfLines={2}>
+                  {receipt.address}
+                </VemtapText>
+              ) : null}
+              {receipt.phone || receipt.tin ? (
+                <VemtapText variant="caption" tone="tertiary" numberOfLines={1}>
+                  {[receipt.phone, receipt.tin ? copy.tinLabel(receipt.tin) : '']
+                    .filter(Boolean)
+                    .join(' · ')}
+                </VemtapText>
+              ) : null}
+            </View>
+            {receipt.customer ? (
+              <View className="mt-1 flex-row items-center gap-1.5">
+                <Icon name="accountCircle" size={14} color={colors.textTertiary} />
+                <VemtapText
+                  variant="caption"
+                  tone="tertiary"
+                  className="min-w-0 flex-1"
+                  numberOfLines={1}
+                >
+                  {copy.customerLabel(receipt.customer.name)}
+                </VemtapText>
+              </View>
+            ) : null}
+          </BusinessPanel>
+
+          <BusinessPanel
+            className="mt-3"
+            title={copy.itemsTitle}
+            icon="list"
+            badge={String(receipt.lines.length)}
+            badgeTone="neutral"
+          >
+            <View className="gap-3">
+              {receipt.lines.map(line => (
+                <BusinessLineItem
+                  key={line.id}
+                  name={line.name}
+                  modifier={line.note}
+                  quantity={`${line.qty}×`}
+                  price={line.price}
+                />
+              ))}
+            </View>
+          </BusinessPanel>
+
+          <BusinessPanel className="mt-3" title={copy.totalsTitle} icon="payments">
+            <View className="gap-1.5">
+              {receipt.totals.map(row => (
+                <BusinessTotalsRow
+                  key={row.id}
+                  label={row.label}
+                  value={row.value}
+                  tone={row.tone}
+                />
+              ))}
+            </View>
+            <BusinessGrandTotalRow label={copy.paidLabel} value={receipt.amount} />
+            <View className="gap-1.5">
+              {receipt.payments.map(row => (
+                <BusinessTotalsRow key={row.id} label={row.label} value={row.value} />
+              ))}
+            </View>
+          </BusinessPanel>
+
+          <View className="mt-3 items-center">
+            <BusinessQrFrame
+              size="sm"
+              glyph="receiptLong"
+              caption={receipt.receiptNumber}
+              label={copy.receiptLabel}
+              className="w-full"
+            />
+          </View>
+
+          <View className="mt-3 items-center gap-1">
+            {receipt.footer ? (
+              <VemtapText
+                variant="caption"
+                tone="tertiary"
+                className="text-center"
+                numberOfLines={3}
+              >
+                {receipt.footer}
+              </VemtapText>
+            ) : null}
+            <VemtapText
+              variant="caption"
+              tone="tertiary"
+              className="text-center"
+              numberOfLines={2}
+            >
+              {copy.legal}
+            </VemtapText>
+          </View>
+        </>
+      )}
     </BusinessScreenLayout>
   );
 }

@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
+import { Input } from '@components/ui/Input';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
 import { colors } from '@theme/colors';
@@ -18,50 +19,69 @@ import {
   BusinessGrandTotalRow,
   BusinessTotalsRow,
 } from '@features/business/components/BusinessPosPrimitives';
-import {
-  cartCustomer,
-  cartGrandTotal,
-  cartLines,
-  cartTotals,
-} from '@features/business/data/businessPosFlowData';
+import type { TotalsRow } from '@features/business/utils/posMappers';
 
 const copy = strings.posCurrentSaleCart;
 
+export interface CartLineView {
+  id: string;
+  name: string;
+  qty: number;
+  unit: string;
+  lineTotal: string;
+  discountNote?: string;
+  /** At or above the stock on hand. */
+  atStockLimit: boolean;
+}
+
+export interface PosCurrentSaleCartView {
+  storeLabel: string;
+  tableLabel: string | null;
+  customer: { name: string; tier: string; phone: string; points: string } | null;
+  lines: CartLineView[];
+  totals: TotalsRow[];
+  grandTotal: string;
+  note: string;
+  cartDiscount: string;
+  takeaway: boolean;
+}
+
 export interface PosCurrentSaleCartScreenProps {
+  view: PosCurrentSaleCartView;
+  isHolding?: boolean;
   onBack?: () => void;
-  onOpenProfile?: () => void;
   onChangeCustomer?: () => void;
-  onReorder?: () => void;
+  onAddMore?: () => void;
   onChangeQty?: (lineId: string, qty: number) => void;
   onRemoveLine?: (lineId: string) => void;
-  onAddKitchenNote?: () => void;
-  onAddDiscount?: () => void;
+  onNoteChange?: (note: string) => void;
+  onCartDiscountChange?: (amount: number) => void;
+  onToggleTakeaway?: (takeaway: boolean) => void;
   onHold?: () => void;
   onCharge?: () => void;
 }
 
 /** Current ticket: customer context, editable line items, totals and hold/charge actions. */
 export function PosCurrentSaleCartScreen({
+  view,
+  isHolding,
   onBack,
-  onOpenProfile,
   onChangeCustomer,
-  onReorder,
+  onAddMore,
   onChangeQty,
   onRemoveLine,
-  onAddKitchenNote,
-  onAddDiscount,
+  onNoteChange,
+  onCartDiscountChange,
+  onToggleTakeaway,
   onHold,
   onCharge,
 }: PosCurrentSaleCartScreenProps) {
+  const [editor, setEditor] = useState<'note' | 'discount' | null>(null);
+  const empty = view.lines.length === 0;
+
   return (
     <BusinessScreenLayout
-      header={{
-        title: copy.headerTitle,
-        onBack,
-        actions: [
-          { icon: 'accountCircle', label: copy.headerTitle, onPress: onOpenProfile },
-        ],
-      }}
+      header={{ title: copy.headerTitle, onBack }}
       contentContainerClassName="pb-8"
       footer={
         <BusinessActionDock>
@@ -71,6 +91,8 @@ export function PosCurrentSaleCartScreen({
                 label={copy.holdTicketCta}
                 labelVariant="labelMd"
                 variant="secondary"
+                disabled={empty}
+                loading={isHolding}
                 onPress={onHold}
                 leftIcon={<Icon name="pauseCircle" size={17} color={colors.text} />}
               />
@@ -79,6 +101,7 @@ export function PosCurrentSaleCartScreen({
               <Button
                 label={copy.chargeCta}
                 labelVariant="labelMd"
+                disabled={empty}
                 onPress={onCharge}
                 rightIcon={<Icon name="arrowForward" size={17} color={colors.surface} />}
               />
@@ -87,83 +110,61 @@ export function PosCurrentSaleCartScreen({
         </BusinessActionDock>
       }
     >
-      <View className="flex-row items-center justify-between gap-2">
-        <View className="min-w-0 flex-1">
-          <VemtapText variant="caption" tone="tertiary" numberOfLines={1}>
-            {copy.storeLabel}
-          </VemtapText>
-          <View className="flex-row items-center gap-1.5">
-            <VemtapText
-              variant="labelMd"
-              className="font-sans-semibold"
-              numberOfLines={1}
-            >
-              {`${copy.ticketLabel} #TK-108`}
-            </VemtapText>
-            <View className="h-1 w-1 rounded-full bg-outline" />
-            <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-              {copy.tableLabel}
-            </VemtapText>
-          </View>
-        </View>
+      <View className="min-w-0">
+        <VemtapText variant="caption" tone="tertiary" numberOfLines={1}>
+          {view.storeLabel}
+        </VemtapText>
         <View className="flex-row items-center gap-1.5">
-          <Icon name="schedule" size={14} color={colors.textTertiary} />
-          <VemtapText
-            variant="caption"
-            tone="tertiary"
-            className="shrink-0"
-            numberOfLines={1}
-          >
-            14:32
+          <VemtapText variant="labelMd" className="font-sans-semibold" numberOfLines={1}>
+            {copy.ticketLabel}
           </VemtapText>
+          {view.tableLabel ? (
+            <>
+              <View className="h-1 w-1 rounded-full bg-outline" />
+              <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
+                {view.tableLabel}
+              </VemtapText>
+            </>
+          ) : null}
         </View>
       </View>
 
-      <View className="mt-3 flex-row items-center gap-2.5 rounded-card bg-surface-tint p-3">
-        <BusinessIconWell icon="starFilled" tone="brand" size="sm" />
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={copy.changeCta}
+        onPress={onChangeCustomer}
+        className="mt-3 flex-row items-center gap-2.5 rounded-card bg-surface-tint p-3"
+      >
+        <BusinessIconWell
+          icon={view.customer ? 'starFilled' : 'accountCircle'}
+          tone="brand"
+          size="sm"
+        />
         <View className="min-w-0 flex-1">
           <VemtapText
             variant="labelMd"
             className="font-sans-semibold text-primary"
             numberOfLines={1}
           >
-            {cartCustomer.name}
+            {view.customer?.name ?? copy.walkInLabel}
           </VemtapText>
           <VemtapText variant="caption" className="text-primary" numberOfLines={1}>
-            {cartCustomer.tier}
-          </VemtapText>
-          <VemtapText variant="micro" className="text-primary" numberOfLines={1}>
-            {cartCustomer.phone}
+            {view.customer
+              ? `${view.customer.tier} • ${view.customer.phone}`
+              : copy.attachHint}
           </VemtapText>
         </View>
-        <View className="shrink-0 items-end">
+        {view.customer ? (
           <VemtapText
             variant="labelSm"
-            className="font-sans-semibold text-primary"
+            className="shrink-0 font-sans-semibold text-primary"
             numberOfLines={1}
           >
-            {`${cartCustomer.points} ${copy.pointsLabel}`}
+            {view.customer.points}
           </VemtapText>
-          <VemtapText variant="micro" className="text-primary" numberOfLines={1}>
-            {copy.pointsAvailable}
-          </VemtapText>
-          <VemtapText
-            variant="micro"
-            className="font-sans-semibold text-primary"
-            numberOfLines={1}
-          >
-            {`${copy.pointsEarns}`}
-          </VemtapText>
-        </View>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={copy.changeCta}
-          onPress={onChangeCustomer}
-          className="shrink-0"
-        >
-          <Icon name="edit" size={17} color={colors.primary} />
-        </Pressable>
-      </View>
+        ) : null}
+        <Icon name="edit" size={17} color={colors.primary} />
+      </Pressable>
 
       <View className="mt-3 flex-row items-center justify-between gap-2">
         <View className="min-w-0 flex-1 flex-row items-center gap-1.5">
@@ -173,25 +174,25 @@ export function PosCurrentSaleCartScreen({
           </VemtapText>
           <View className="rounded-full bg-surface-container px-1.5 py-0.5">
             <VemtapText variant="micro" className="font-sans-bold" numberOfLines={1}>
-              {String(cartLines.length)}
+              {String(view.lines.length)}
             </VemtapText>
           </View>
         </View>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={copy.reorderCta}
-          onPress={onReorder}
+          accessibilityLabel={copy.addMoreCta}
+          onPress={onAddMore}
           className="min-h-9 shrink-0 flex-row items-center gap-1.5 rounded-full bg-surface-container px-3 active:scale-95"
         >
-          <Icon name="history" size={14} color={colors.text} />
+          <Icon name="plus" size={14} color={colors.text} />
           <VemtapText variant="labelSm" className="font-sans-semibold" numberOfLines={1}>
-            {copy.reorderCta}
+            {copy.addMoreCta}
           </VemtapText>
         </Pressable>
       </View>
 
       <View className="mt-2 gap-2">
-        {cartLines.map(line => (
+        {view.lines.map(line => (
           <View key={line.id} className="gap-2 rounded-card bg-surface p-3 shadow-sm">
             <View className="flex-row items-start justify-between gap-2">
               <VemtapText
@@ -213,11 +214,6 @@ export function PosCurrentSaleCartScreen({
             <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
               {`${copy.unitLabel}: ${line.unit}`}
             </VemtapText>
-            {line.note ? (
-              <VemtapText variant="caption" tone="tertiary" numberOfLines={2}>
-                {line.note}
-              </VemtapText>
-            ) : null}
             {line.discountNote ? (
               <View className="flex-row items-center gap-1.5">
                 <Icon name="localOffer" size={13} color={colors.badgeDiscountText} />
@@ -227,19 +223,6 @@ export function PosCurrentSaleCartScreen({
                   numberOfLines={2}
                 >
                   {line.discountNote}
-                </VemtapText>
-              </View>
-            ) : null}
-            {line.station ? (
-              <View className="flex-row items-center gap-1.5">
-                <Icon name="glassCocktail" size={13} color={colors.textTertiary} />
-                <VemtapText
-                  variant="micro"
-                  tone="tertiary"
-                  className="min-w-0 flex-1"
-                  numberOfLines={1}
-                >
-                  {line.station}
                 </VemtapText>
               </View>
             ) : null}
@@ -263,10 +246,16 @@ export function PosCurrentSaleCartScreen({
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={`${line.name} increase`}
+                  accessibilityState={{ disabled: line.atStockLimit }}
+                  disabled={line.atStockLimit}
                   onPress={() => onChangeQty?.(line.id, line.qty + 1)}
                   className="h-8 w-8 items-center justify-center rounded-lg bg-surface-container"
                 >
-                  <Icon name="plus" size={16} color={colors.text} />
+                  <Icon
+                    name="plus"
+                    size={16}
+                    color={line.atStockLimit ? colors.textTertiary : colors.text}
+                  />
                 </Pressable>
               </View>
               <View className="items-end">
@@ -286,12 +275,14 @@ export function PosCurrentSaleCartScreen({
         ))}
       </View>
 
-      {cartLines.length === 0 ? (
+      {empty ? (
         <EmptyState
           icon="list"
           variant="contained"
           title={copy.empty.title}
           description={copy.empty.body}
+          actionLabel={copy.addMoreCta}
+          onAction={onAddMore}
         />
       ) : null}
 
@@ -301,19 +292,19 @@ export function PosCurrentSaleCartScreen({
             id: 'note',
             label: copy.noteCta,
             icon: 'editNote' as const,
-            onPress: onAddKitchenNote,
+            onPress: () => setEditor(editor === 'note' ? null : 'note'),
           },
           {
             id: 'discount',
             label: copy.discountCta,
             icon: 'percentBadge' as const,
-            onPress: onAddDiscount,
+            onPress: () => setEditor(editor === 'discount' ? null : 'discount'),
           },
           {
-            id: 'hold',
-            label: copy.holdCta,
-            icon: 'pauseCircle' as const,
-            onPress: onHold,
+            id: 'takeaway',
+            label: view.takeaway ? copy.dineInCta : copy.takeawayCta,
+            icon: 'shoppingBag' as const,
+            onPress: () => onToggleTakeaway?.(!view.takeaway),
           },
         ].map(action => (
           <Pressable
@@ -335,9 +326,30 @@ export function PosCurrentSaleCartScreen({
         ))}
       </View>
 
+      {editor === 'note' ? (
+        <Input
+          containerClassName="mt-3"
+          label={copy.noteCta}
+          value={view.note}
+          onChangeText={onNoteChange}
+          multiline
+        />
+      ) : null}
+      {editor === 'discount' ? (
+        <Input
+          containerClassName="mt-3"
+          label={copy.discountInputLabel}
+          keyboardType="numeric"
+          value={view.cartDiscount}
+          onChangeText={text =>
+            onCartDiscountChange?.(Number(text.replace(/[^\d.]/g, '')) || 0)
+          }
+        />
+      ) : null}
+
       <BusinessPanel className="mt-3" title={copy.totalDueLabel} icon="receipt">
         <View className="gap-1.5">
-          {cartTotals.map(row => (
+          {view.totals.map(row => (
             <BusinessTotalsRow
               key={row.id}
               label={row.label}
@@ -346,7 +358,7 @@ export function PosCurrentSaleCartScreen({
             />
           ))}
         </View>
-        <BusinessGrandTotalRow label={copy.totalDueLabel} value={cartGrandTotal} />
+        <BusinessGrandTotalRow label={copy.totalDueLabel} value={view.grandTotal} />
         <VemtapText variant="micro" tone="tertiary" numberOfLines={2}>
           {copy.totalDueNote}
         </VemtapText>

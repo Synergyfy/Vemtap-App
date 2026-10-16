@@ -2,231 +2,152 @@ import React, { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
-import { Input } from '@components/ui/Input';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
 import { colors } from '@theme/colors';
-import { BusinessScreenLayout } from '@features/business/components/BusinessPrimitives';
+import {
+  BusinessActionDock,
+  BusinessScreenLayout,
+} from '@features/business/components/BusinessPrimitives';
 import { BusinessPanel } from '@features/business/components/BusinessOpsPrimitives';
-import {
-  BusinessGrandTotalRow,
-  BusinessOptionGrid,
-  BusinessRatingStars,
-  BusinessTotalsRow,
-} from '@features/business/components/BusinessPosPrimitives';
-import {
-  displayOrder,
-  ratingScale,
-  tipPresets,
-  tipTotal,
-} from '@features/business/data/businessAnalyticsData';
+import { BusinessTotalsRow } from '@features/business/components/BusinessPosPrimitives';
+import { naira } from '@features/business/utils/posMappers';
 
 const copy = strings.customerDisplayTipRating;
 
 export interface CustomerDisplayTipRatingScreenProps {
-  onBack?: () => void;
-  onSubmitRating?: (rating: number) => void;
-  onSubmitTip?: (tipId: string) => void;
-  onFinish?: () => void;
+  billTotal: number | null;
+  tipPercents?: number[];
+  isSubmitting?: boolean;
+  done?: boolean;
+  onSubmit?: (feedback: { rating?: number; tipAmount: number }) => void;
   onSkip?: () => void;
+  onFinish?: () => void;
 }
 
-/**
- * Post-visit feedback in two steps: star rating with an optional comment, then
- * a tip picker. Both steps live on one screen so the guest never loses context
- * between them.
- */
+/** Customer-facing after payment: star rating and an optional tip on the bill. */
 export function CustomerDisplayTipRatingScreen({
-  onBack,
-  onSubmitRating,
-  onSubmitTip,
-  onFinish,
+  billTotal,
+  tipPercents = [0, 5, 10, 15],
+  isSubmitting,
+  done,
+  onSubmit,
   onSkip,
+  onFinish,
 }: CustomerDisplayTipRatingScreenProps) {
   const [rating, setRating] = useState(0);
-  const [tip, setTip] = useState<string>('ten');
-  const [step, setStep] = useState<'rate' | 'tip' | 'done'>('rate');
+  const [percent, setPercent] = useState(0);
+  const tip = billTotal ? Math.round((billTotal * percent) / 100) : 0;
 
-  const submitRating = () => {
-    if (rating > 0) onSubmitRating?.(rating);
-    setStep('tip');
-  };
+  if (done) {
+    return (
+      <BusinessScreenLayout
+        header={{ title: copy.headerTitle }}
+        contentContainerClassName="pb-8"
+      >
+        <View className="items-center gap-2 py-16">
+          <Icon name="checkCircle" size={44} color={colors.badgeDiscountText} />
+          <VemtapText variant="headingLg" className="text-center text-heading-lg">
+            {copy.doneTitle}
+          </VemtapText>
+          <VemtapText variant="bodyMd" tone="secondary" className="text-center">
+            {copy.doneBody}
+          </VemtapText>
+          <Button label={copy.doneCta} onPress={onFinish} fullWidth={false} />
+        </View>
+      </BusinessScreenLayout>
+    );
+  }
 
   return (
     <BusinessScreenLayout
-      header={{ title: copy.headerTitle, onBack }}
+      header={{ title: copy.headerTitle }}
       contentContainerClassName="pb-8"
       footer={
-        step === 'rate' ? (
-          <View className="gap-2">
-            <Button
-              label={copy.ratingSubmitCta}
-              labelVariant="labelMd"
-              onPress={submitRating}
-              disabled={rating === 0}
-            />
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={copy.ratingSkipCta}
-              onPress={onSkip}
-              className="min-h-10 flex-row items-center justify-center"
-            >
-              <VemtapText
-                variant="labelSm"
-                className="font-sans-semibold text-primary"
-                numberOfLines={1}
-              >
-                {copy.ratingSkipCta}
-              </VemtapText>
-            </Pressable>
-          </View>
-        ) : step === 'tip' ? (
+        <BusinessActionDock>
           <Button
-            label={copy.tipSubmitCta}
+            label={copy.submitCta}
             labelVariant="labelMd"
-            onPress={() => {
-              onSubmitTip?.(tip);
-              setStep('done');
-            }}
-            leftIcon={<Icon name="payments" size={18} color={colors.surface} />}
+            disabled={!rating && !tip}
+            loading={isSubmitting}
+            onPress={() => onSubmit?.({ rating: rating || undefined, tipAmount: tip })}
           />
-        ) : (
-          <Button label={copy.doneCta} labelVariant="labelMd" onPress={onFinish} />
-        )
+          <Button
+            label={copy.ratingSkipCta}
+            labelVariant="labelSm"
+            variant="secondary"
+            onPress={onSkip}
+          />
+        </BusinessActionDock>
       }
     >
-      <View className="flex-row items-center justify-between gap-2">
-        <View className="rounded-full bg-surface-container px-3 py-1.5">
-          <VemtapText variant="labelSm" className="font-sans-semibold" numberOfLines={1}>
-            {`${copy.tableLabel} ${displayOrder.table}`}
-          </VemtapText>
+      <View className="items-center gap-2">
+        <VemtapText variant="headingLg" className="text-center text-heading-lg">
+          {copy.thanksTitle}
+        </VemtapText>
+        <VemtapText variant="caption" tone="secondary" className="text-center">
+          {copy.ratingBody}
+        </VemtapText>
+        <View className="mt-2 flex-row gap-2">
+          {[1, 2, 3, 4, 5].map(star => (
+            <Pressable
+              key={star}
+              accessibilityRole="button"
+              accessibilityLabel={copy.starLabel(star)}
+              accessibilityState={{ selected: rating >= star }}
+              onPress={() => setRating(star)}
+              className="h-12 w-12 items-center justify-center"
+            >
+              <Icon
+                name={rating >= star ? 'starFilled' : 'star'}
+                size={34}
+                color={colors.primary}
+              />
+            </Pressable>
+          ))}
         </View>
-        <View className="h-2 w-2 shrink-0 rounded-full bg-badge-discount-text" />
       </View>
 
-      {step === 'rate' ? (
-        <>
-          <View className="mt-3 gap-1">
-            <VemtapText variant="headingLg" className="text-heading-lg" numberOfLines={2}>
-              {copy.thanksTitle}
-            </VemtapText>
-            <VemtapText variant="bodyMd" tone="secondary" numberOfLines={2}>
-              {copy.ratingBody}
-            </VemtapText>
-          </View>
-
-          <BusinessPanel className="mt-3" icon="rateReview">
-            <VemtapText
-              variant="labelMd"
-              className="font-sans-semibold"
-              numberOfLines={1}
-            >
-              {copy.ratingLabel}
-            </VemtapText>
-            <View className="items-center py-2">
-              <BusinessRatingStars
-                rating={rating}
-                size={36}
-                onRate={setRating}
-                accessibilityLabel={copy.ratingLabel}
-              />
-            </View>
-            <View className="flex-row items-center justify-between gap-1.5">
-              {ratingScale.map(scale => {
-                const active = scale.value === rating;
-                return (
-                  <View key={scale.value} className="flex-1 items-center gap-1">
-                    <Icon
-                      name={scale.icon}
-                      size={20}
-                      color={active ? colors.tertiary : colors.outline}
-                    />
-                    <VemtapText
-                      variant="micro"
-                      className={
-                        active ? 'font-sans-semibold text-text' : 'text-text-tertiary'
-                      }
-                      numberOfLines={1}
-                    >
-                      {scale.title}
-                    </VemtapText>
-                  </View>
-                );
-              })}
-            </View>
-          </BusinessPanel>
-
-          <BusinessPanel className="mt-3" icon="comment">
-            <VemtapText
-              variant="labelMd"
-              className="font-sans-semibold"
-              numberOfLines={2}
-            >
-              {copy.commentLabel}
-            </VemtapText>
-            <Input
-              multiline
-              placeholder={copy.commentPlaceholder}
-              accessibilityLabel={copy.commentLabel}
-              containerClassName="mt-2"
-              fieldClassName="min-h-[84px] items-start bg-surface-subtle"
-            />
-          </BusinessPanel>
-        </>
-      ) : step === 'tip' ? (
-        <>
-          <View className="mt-3 gap-1">
-            <VemtapText variant="headingLg" className="text-heading-lg" numberOfLines={1}>
-              {copy.tipTitle}
-            </VemtapText>
-            <VemtapText variant="bodyMd" tone="secondary" numberOfLines={2}>
-              {copy.tipBody}
-            </VemtapText>
-          </View>
-
-          <BusinessPanel className="mt-3" icon="wallet">
-            <BusinessOptionGrid
-              options={tipPresets}
-              value={tip}
-              onChange={setTip}
-              columns={3}
-              accessibilityLabel={copy.tipTitle}
-            />
-            <View className="mt-3 gap-1.5 border-t border-border pt-3">
-              <BusinessTotalsRow
-                label={copy.totalLabel}
-                value={displayOrder.grandTotal}
-              />
-              <BusinessTotalsRow
-                label={copy.tipLabel}
-                value={tipTotal[tip] ?? displayOrder.grandTotal}
-                tone="discount"
-                badge={copy.tipIncluded}
-              />
-              <BusinessGrandTotalRow
-                label={copy.grandLabel}
-                value={tipTotal[tip] ?? displayOrder.grandTotal}
-              />
-            </View>
-          </BusinessPanel>
-        </>
-      ) : (
-        <BusinessPanel className="mt-6" icon="autoAwesome" title={copy.doneTitle}>
-          <VemtapText variant="bodyMd" tone="secondary" numberOfLines={3}>
-            {copy.doneBody}
+      {billTotal ? (
+        <BusinessPanel className="mt-4" title={copy.tipTitle} icon="favorite">
+          <VemtapText variant="caption" tone="secondary">
+            {copy.tipBody}
           </VemtapText>
-          <View className="mt-3 items-center gap-1.5">
-            <Icon name="checkCircle" size={30} color={colors.badgeDiscountText} />
-            <VemtapText
-              variant="labelMd"
-              className="font-sans-semibold"
-              numberOfLines={1}
-            >
-              {displayOrder.grandTotal}
-            </VemtapText>
+          <View className="flex-row gap-2">
+            {tipPercents.map(option => (
+              <Pressable
+                key={option}
+                accessibilityRole="button"
+                accessibilityState={{ selected: percent === option }}
+                accessibilityLabel={option ? `${option}%` : copy.noTip}
+                onPress={() => setPercent(option)}
+                className={`min-h-12 flex-1 items-center justify-center rounded-field ${percent === option ? 'bg-primary' : 'bg-surface-container'}`}
+              >
+                <VemtapText
+                  variant="labelMd"
+                  className={`font-sans-semibold ${percent === option ? 'text-surface' : ''}`}
+                >
+                  {option ? `${option}%` : copy.noTip}
+                </VemtapText>
+                {option ? (
+                  <VemtapText
+                    variant="micro"
+                    className={percent === option ? 'text-surface' : 'text-text-tertiary'}
+                  >
+                    {naira(Math.round((billTotal * option) / 100))}
+                  </VemtapText>
+                ) : null}
+              </Pressable>
+            ))}
           </View>
+          <BusinessTotalsRow label={copy.totalLabel} value={naira(billTotal)} />
+          <BusinessTotalsRow
+            label={copy.tipLabel}
+            value={naira(tip)}
+            hint={copy.tipIncluded}
+          />
         </BusinessPanel>
-      )}
+      ) : null}
     </BusinessScreenLayout>
   );
 }

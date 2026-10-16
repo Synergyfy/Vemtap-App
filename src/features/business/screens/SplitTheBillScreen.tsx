@@ -1,54 +1,85 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Pressable, View } from 'react-native';
 import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
+import { Input } from '@components/ui/Input';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
 import { colors } from '@theme/colors';
+import { EmptyState } from '@components/shared/EmptyState';
 import {
   BusinessActionDock,
   BusinessScreenLayout,
 } from '@features/business/components/BusinessPrimitives';
-import { BusinessPanel } from '@features/business/components/BusinessOpsPrimitives';
 import {
-  BusinessInitialsAvatar,
+  BusinessChipScroller,
+  BusinessCountChip,
+  BusinessPanel,
+} from '@features/business/components/BusinessOpsPrimitives';
+import {
   BusinessGrandTotalRow,
-  BusinessLineItem,
-  BusinessOptionGrid,
+  BusinessInitialsAvatar,
   BusinessTotalsRow,
 } from '@features/business/components/BusinessPosPrimitives';
-import { businessOpsImageById } from '@features/business/data/businessOpsImages';
-import {
-  splitGrandTotal,
-  splitLines,
-  splitModes,
-  splitPeople,
-  splitTotals,
-} from '@features/business/data/businessAnalyticsData';
+import type { SplitMode } from '@api/posApi';
+import type { TotalsRow } from '@features/business/utils/posMappers';
 
 const copy = strings.splitTheBill;
 
-export interface SplitTheBillScreenProps {
-  onBack?: () => void;
-  onChangeMode?: (mode: string) => void;
-  onAssignItem?: (itemId: string) => void;
-  onPayShare?: (amount: string) => void;
+export type SplitTender = 'cash' | 'card' | 'transfer';
+
+export interface SplitPersonDraft {
+  key: string;
+  name: string;
+  lineIds: string[];
+  amount: string;
+  tender: SplitTender;
 }
 
-/**
- * Split-this-bill flow: pick how to split, review the items, see who pays what,
- * then settle your own share. Item assignment is a follow-up flow; this screen
- * owns the mode picker, the totals and the per-person breakdown.
- */
+export interface SplitTheBillScreenProps {
+  lines: { id: string; name: string; qty: number; price: string }[];
+  mode: SplitMode;
+  people: SplitPersonDraft[];
+  /** Server-computed share per person, aligned with `people`; null while pricing. */
+  shares: { amount: string; detail: string }[] | null;
+  totals: TotalsRow[];
+  grandTotal: string;
+  error: string | null;
+  tenders: SplitTender[];
+  isSubmitting?: boolean;
+  onBack?: () => void;
+  onChangeMode?: (mode: SplitMode) => void;
+  onChangePerson?: (key: string, patch: Partial<SplitPersonDraft>) => void;
+  onAddPerson?: () => void;
+  onRemovePerson?: (key: string) => void;
+  onSettle?: () => void;
+}
+
+/** Split one ticket across people: equally, by item or by custom amounts, then settle in one sale. */
 export function SplitTheBillScreen({
+  lines,
+  mode,
+  people,
+  shares,
+  totals,
+  grandTotal,
+  error,
+  tenders,
+  isSubmitting,
   onBack,
   onChangeMode,
-  onAssignItem,
-  onPayShare,
+  onChangePerson,
+  onAddPerson,
+  onRemovePerson,
+  onSettle,
 }: SplitTheBillScreenProps) {
-  const [mode, setMode] = useState<string>('even');
-  const me = splitPeople[0];
-
+  if (!lines.length) {
+    return (
+      <BusinessScreenLayout header={{ title: copy.headerTitle, onBack }}>
+        <EmptyState icon="list" title={copy.empty.title} description={copy.empty.body} />
+      </BusinessScreenLayout>
+    );
+  }
   return (
     <BusinessScreenLayout
       header={{ title: copy.headerTitle, onBack }}
@@ -56,89 +87,144 @@ export function SplitTheBillScreen({
       footer={
         <BusinessActionDock>
           <Button
-            label={copy.payShareCta}
+            label={copy.settleCta(grandTotal)}
             labelVariant="labelMd"
-            onPress={() => onPayShare?.(me.amount)}
-            leftIcon={<Icon name="walletPay" size={18} color={colors.surface} />}
+            disabled={!shares || Boolean(error)}
+            loading={isSubmitting}
+            onPress={onSettle}
+            leftIcon={<Icon name="checkCircle" size={18} color={colors.surface} />}
           />
-          <VemtapText variant="caption" tone="secondary" className="text-center">
-            {copy.tipNote}
-          </VemtapText>
         </BusinessActionDock>
       }
     >
-      <View className="flex-row items-center justify-between gap-2">
-        <View className="rounded-full bg-surface-container px-3 py-1.5">
-          <VemtapText variant="labelSm" className="font-sans-semibold" numberOfLines={1}>
-            {`${copy.tableLabel} ${splitPeople.length}`}
-          </VemtapText>
-        </View>
-        <VemtapText
-          variant="caption"
-          tone="secondary"
-          className="shrink-0"
-          numberOfLines={1}
-        >
-          {copy.billTitle}
-        </VemtapText>
-      </View>
-
-      <View className="mt-1">
-        <VemtapText variant="bodyMd" tone="secondary" numberOfLines={2}>
-          {copy.billSubtitle}
-        </VemtapText>
-      </View>
-
-      <BusinessPanel className="mt-3" title={copy.modesTitle} icon="splitBill">
-        <BusinessOptionGrid
-          options={splitModes}
-          value={mode}
-          onChange={next => {
-            setMode(next);
-            onChangeMode?.(next);
-          }}
-          columns={3}
-          accessibilityLabel={copy.modesTitle}
-        />
+      <BusinessPanel title={copy.modesTitle} icon="callSplitIcon">
+        <BusinessChipScroller>
+          {(['equal', 'by_item', 'custom'] as const).map(id => (
+            <BusinessCountChip
+              key={id}
+              label={copy.modes[id]}
+              selected={mode === id}
+              onPress={() => onChangeMode?.(id)}
+            />
+          ))}
+        </BusinessChipScroller>
       </BusinessPanel>
 
-      <BusinessPanel
-        className="mt-3"
-        title={copy.itemsTitle}
-        icon="list"
-        badge={String(splitLines.length)}
-        badgeTone="neutral"
-      >
-        <VemtapText variant="caption" tone="secondary" numberOfLines={2}>
-          {copy.itemsSubtitle}
-        </VemtapText>
-        <View className="gap-3">
-          {splitLines.map(item => {
-            const image = businessOpsImageById[item.imageId];
-            return (
-              <Pressable
-                key={item.id}
-                accessibilityRole="button"
-                accessibilityLabel={item.name}
-                onPress={() => onAssignItem?.(item.id)}
-                className="active:opacity-70"
-              >
-                <BusinessLineItem
-                  name={item.name}
-                  price={item.price}
-                  modifier={item.shares}
-                  imageUri={image?.uri}
-                  imageAlt={image?.alt}
+      <BusinessPanel className="mt-3" title={copy.peopleTitle} icon="group">
+        <View className="gap-2.5">
+          {people.map((person, index) => (
+            <View
+              key={person.key}
+              className="gap-2 rounded-field bg-surface-subtle p-2.5"
+            >
+              <View className="flex-row items-center gap-2">
+                <BusinessInitialsAvatar
+                  initials={(person.name || String(index + 1)).slice(0, 2).toUpperCase()}
+                  size="sm"
+                  tone="brand"
                 />
-              </Pressable>
-            );
-          })}
+                <View className="min-w-0 flex-1">
+                  <Input
+                    value={person.name}
+                    placeholder={copy.personPlaceholder(index + 1)}
+                    onChangeText={text => onChangePerson?.(person.key, { name: text })}
+                  />
+                </View>
+                {people.length > 2 ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={copy.removePerson}
+                    onPress={() => onRemovePerson?.(person.key)}
+                    className="h-8 w-8 items-center justify-center rounded-lg bg-surface-container"
+                  >
+                    <Icon name="close" size={15} color={colors.textSecondary} />
+                  </Pressable>
+                ) : null}
+              </View>
+
+              {mode === 'by_item' ? (
+                <View className="flex-row flex-wrap gap-1.5">
+                  {lines.map(line => {
+                    const selected = person.lineIds.includes(line.id);
+                    return (
+                      <BusinessCountChip
+                        key={line.id}
+                        label={`${line.qty}× ${line.name}`}
+                        selected={selected}
+                        onPress={() =>
+                          onChangePerson?.(person.key, {
+                            lineIds: selected
+                              ? person.lineIds.filter(id => id !== line.id)
+                              : [...person.lineIds, line.id],
+                          })
+                        }
+                      />
+                    );
+                  })}
+                </View>
+              ) : null}
+
+              {mode === 'custom' ? (
+                <Input
+                  label={copy.amountLabel}
+                  keyboardType="numeric"
+                  value={person.amount}
+                  onChangeText={text => onChangePerson?.(person.key, { amount: text })}
+                />
+              ) : null}
+
+              <BusinessChipScroller>
+                {tenders.map(tender => (
+                  <BusinessCountChip
+                    key={tender}
+                    label={copy.tenders[tender]}
+                    selected={person.tender === tender}
+                    onPress={() => onChangePerson?.(person.key, { tender })}
+                  />
+                ))}
+              </BusinessChipScroller>
+
+              {shares?.[index] ? (
+                <View className="flex-row items-center justify-between gap-2">
+                  <VemtapText
+                    variant="micro"
+                    tone="tertiary"
+                    className="min-w-0 flex-1"
+                    numberOfLines={2}
+                  >
+                    {shares[index].detail}
+                  </VemtapText>
+                  <VemtapText
+                    variant="labelMd"
+                    className="font-sans-bold text-primary"
+                    numberOfLines={1}
+                  >
+                    {shares[index].amount}
+                  </VemtapText>
+                </View>
+              ) : null}
+            </View>
+          ))}
         </View>
+        {people.length < 20 ? (
+          <Button
+            label={copy.addPerson}
+            labelVariant="labelSm"
+            variant="secondary"
+            size="sm"
+            onPress={onAddPerson}
+          />
+        ) : null}
+        {error ? (
+          <VemtapText variant="caption" tone="error">
+            {error}
+          </VemtapText>
+        ) : null}
       </BusinessPanel>
 
       <BusinessPanel className="mt-3" title={copy.totalsTitle} icon="receipt">
         <View className="gap-1.5">
-          {splitTotals.map(row => (
+          {totals.map(row => (
             <BusinessTotalsRow
               key={row.id}
               label={row.label}
@@ -147,54 +233,7 @@ export function SplitTheBillScreen({
             />
           ))}
         </View>
-        <BusinessGrandTotalRow label={copy.totalsTitle} value={splitGrandTotal} />
-      </BusinessPanel>
-
-      <BusinessPanel
-        className="mt-3"
-        title={copy.peopleTitle}
-        icon="group"
-        badge={String(splitPeople.length)}
-        badgeTone="neutral"
-      >
-        <VemtapText variant="caption" tone="secondary" numberOfLines={2}>
-          {copy.peopleSubtitle}
-        </VemtapText>
-        <View className="gap-2">
-          {splitPeople.map(person => (
-            <View
-              key={person.id}
-              className="flex-row items-center gap-3 rounded-field bg-surface-subtle p-2.5"
-            >
-              <BusinessInitialsAvatar
-                initials={person.initials}
-                size="sm"
-                tone={person.id === splitPeople[0].id ? 'brand' : 'neutral'}
-              />
-              <VemtapText variant="labelMd" className="min-w-0 flex-1" numberOfLines={1}>
-                {person.name}
-              </VemtapText>
-              <VemtapText
-                variant="labelMd"
-                className="shrink-0 font-sans-semibold"
-                numberOfLines={1}
-              >
-                {person.amount}
-              </VemtapText>
-            </View>
-          ))}
-        </View>
-        <View className="mt-1 flex-row items-center gap-1.5">
-          <Icon name="info" size={14} color={colors.textTertiary} />
-          <VemtapText
-            variant="caption"
-            tone="tertiary"
-            className="min-w-0 flex-1"
-            numberOfLines={2}
-          >
-            {copy.tipNote}
-          </VemtapText>
-        </View>
+        <BusinessGrandTotalRow label={copy.totalLabel} value={grandTotal} />
       </BusinessPanel>
     </BusinessScreenLayout>
   );

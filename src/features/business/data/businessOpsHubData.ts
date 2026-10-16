@@ -1,16 +1,9 @@
 /**
- * Fixture data for the operations-dense More hub variant (`business_more_hub_3`)
- * and the offline POS home (`pos_home_offline_mode_active`). Screens read from
- * here so POS tiles, analytics rows and the local till tally are never inlined
+ * Fixture data for the operations-dense More hub variant (`business_more_hub_3`).
+ * Screens read from here so POS tiles and analytics rows are never inlined
  * twice.
  */
 import type { IconName } from '@components/ui/Icon';
-import { strings } from '@constants/strings';
-
-const copy = {
-  hub: strings.businessMoreHubOperations,
-  offline: strings.posHomeOfflineMode,
-} as const;
 
 /* -------------------------------------------------------------------------- */
 /* Operations hub: POS tiles                                                  */
@@ -124,49 +117,3 @@ export const hubQrRows: readonly HubLinkRow[] = [
     icon: 'travelExplore',
   },
 ] as const;
-
-/* -------------------------------------------------------------------------- */
-/* Offline POS home                                                           */
-/* -------------------------------------------------------------------------- */
-
-export const offlineTally = [
-  {
-    id: 'sales',
-    label: copy.offline.salesLabel,
-    value: copy.offline.salesValue,
-    note: copy.offline.salesNote,
-    icon: 'payments' as IconName,
-  },
-  {
-    id: 'transactions',
-    label: copy.offline.transactionsLabel,
-    value: copy.offline.transactionsValue,
-    note: copy.offline.transactionsNote,
-    icon: 'receipt' as IconName,
-  },
-  {
-    id: 'pending',
-    label: copy.offline.pendingLabel,
-    value: copy.offline.pendingValue,
-    note: copy.offline.pendingNote,
-    icon: 'tableBar' as IconName,
-  },
-  {
-    id: 'refunds',
-    label: copy.offline.refundsLabel,
-    value: copy.offline.refundsValue,
-    note: copy.offline.refundsNote,
-    icon: 'assignment' as IconName,
-  },
-] as const;
-
-/** Queued transaction count drives the sync panel and the buffer copy. */
-export const offlineQueuedCount = 4;
-export const offlineQueuedAmount = '₦28,400';
-
-/** `Shift Active` bar so the design's header context is stated once. */
-export const offlineShift = {
-  cashier: 'Emeka O.',
-  till: 'Till 01',
-  mode: 'Standalone',
-} as const;

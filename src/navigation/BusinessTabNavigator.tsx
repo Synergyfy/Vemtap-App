@@ -60,11 +60,6 @@ import { CustomerIntelligenceAnalyticsScreen } from '@features/business/screens/
 import { BusinessAnalyticsPerformanceScreen } from '@features/business/screens/BusinessAnalyticsPerformanceScreen';
 import { LocationsBranchComparisonScreen } from '@features/business/screens/LocationsBranchComparisonScreen';
 import { BusinessReviewsReputationScreen } from '@features/business/screens/BusinessReviewsReputationScreen';
-import { CustomerDisplayOrderTotalScreen } from '@features/business/screens/CustomerDisplayOrderTotalScreen';
-import { CustomerDisplayTapQrPayScreen } from '@features/business/screens/CustomerDisplayTapQrPayScreen';
-import { CustomerDisplayTipRatingScreen } from '@features/business/screens/CustomerDisplayTipRatingScreen';
-import { SplitTheBillScreen } from '@features/business/screens/SplitTheBillScreen';
-import { DigitalEReceiptScreen } from '@features/business/screens/DigitalEReceiptScreen';
 import { BusinessNotificationsCenterScreen } from '@features/business/screens/BusinessNotificationsCenterScreen';
 import { BusinessSubscriptionBillingScreen } from '@features/business/screens/BusinessSubscriptionBillingScreen';
 import { BusinessVerificationTrustScreen } from '@features/business/screens/BusinessVerificationTrustScreen';
@@ -171,34 +166,6 @@ import { BusinessQrScreen } from '@features/business/screens/BusinessQrScreen';
 import { LocationQrScreen } from '@features/business/screens/LocationQrScreen';
 import { BusinessDiscoveryFeedScreen } from '@features/business/screens/BusinessDiscoveryFeedScreen';
 import { BusinessMoreHubOperationsScreen } from '@features/business/screens/BusinessMoreHubOperationsScreen';
-import { PosHomeOfflineModeScreen } from '@features/business/screens/PosHomeOfflineModeScreen';
-import { PosBranchTillSwitcherScreen } from '@features/business/screens/PosBranchTillSwitcherScreen';
-import { PosHomeSalesOperationsScreen } from '@features/business/screens/PosHomeSalesOperationsScreen';
-import { PosNewSaleCatalogScreen } from '@features/business/screens/PosNewSaleCatalogScreen';
-import { PosCurrentSaleCartScreen } from '@features/business/screens/PosCurrentSaleCartScreen';
-import { PosTenderCheckoutScreen } from '@features/business/screens/PosTenderCheckoutScreen';
-import { PosSaleCompletedScreen } from '@features/business/screens/PosSaleCompletedScreen';
-import { PosReceiptCustomizationScreen } from '@features/business/screens/PosReceiptCustomizationScreen';
-import { PosCustomerLookupActiveScreen } from '@features/business/screens/PosCustomerLookupActiveScreen';
-import { PosCustomerLookupListScreen } from '@features/business/screens/PosCustomerLookupListScreen';
-import { PosCustomerLookupLoyaltyScreen } from '@features/business/screens/PosCustomerLookupLoyaltyScreen';
-import { PosCustomerDossierScreen } from '@features/business/screens/PosCustomerDossierScreen';
-import { PosProductsInventoryScreen } from '@features/business/screens/PosProductsInventoryScreen';
-import { PosProductShiftStockStatusScreen } from '@features/business/screens/PosProductShiftStockStatusScreen';
-import { PosTransactionsLedgerShiftScreen } from '@features/business/screens/PosTransactionsLedgerShiftScreen';
-import { PosTransactionsLedgerReceiptsScreen } from '@features/business/screens/PosTransactionsLedgerReceiptsScreen';
-import { PosTransactionDetailsScreen } from '@features/business/screens/PosTransactionDetailsScreen';
-import { PosOfflineCheckoutTerminalScreen } from '@features/business/screens/PosOfflineCheckoutTerminalScreen';
-import { PosOfflineBufferQueueScreen } from '@features/business/screens/PosOfflineBufferQueueScreen';
-import { PosSyncReconciliationScreen } from '@features/business/screens/PosSyncReconciliationScreen';
-import { PublicPosOrderMenuScreen } from '@features/business/screens/PublicPosOrderMenuScreen';
-import { PublicPosCartReviewScreen } from '@features/business/screens/PublicPosCartReviewScreen';
-import { PublicPosOrderTrackingScreen } from '@features/business/screens/PublicPosOrderTrackingScreen';
-import { MerchantPosKitchenStreamScreen } from '@features/business/screens/MerchantPosKitchenStreamScreen';
-import { PosGeneralSettingsScreen } from '@features/business/screens/PosGeneralSettingsScreen';
-import { PaymentHardwareSetupScreen } from '@features/business/screens/PaymentHardwareSetupScreen';
-import { TaxesSurchargesScreen } from '@features/business/screens/TaxesSurchargesScreen';
-import { StaffPermissionsPasscodesScreen } from '@features/business/screens/StaffPermissionsPasscodesScreen';
 import { BusinessNetworkIntroHubScreen } from '@features/business/screens/BusinessNetworkIntroHubScreen';
 import { MyBusinessNetworkScreen } from '@features/business/screens/MyBusinessNetworkScreen';
 import { NetworkMilestonesScreen } from '@features/business/screens/NetworkMilestonesScreen';
@@ -250,6 +217,41 @@ import {
   SegmentActionsRoute,
   SegmentAudienceDetailsRoute,
 } from './growthRoutes';
+import {
+  CustomerDisplayOrderRoute,
+  CustomerDisplayPaymentRoute,
+  CustomerDisplayRatingRoute,
+  DigitalEReceiptRoute,
+  MerchantPosKitchenStreamRoute,
+  PaymentHardwareSetupRoute,
+  PosBranchTillSwitcherRoute,
+  PosCurrentSaleCartRoute,
+  PosCustomerDossierRoute,
+  PosCustomerLookupActiveRoute,
+  PosCustomerLookupListRoute,
+  PosCustomerLookupLoyaltyRoute,
+  PosGeneralSettingsRoute,
+  PosHomeOfflineModeRoute,
+  PosHomeSalesOperationsRoute,
+  PosNewSaleCatalogRoute,
+  PosOfflineBufferQueueRoute,
+  PosOfflineCheckoutTerminalRoute,
+  PosProductShiftStockStatusRoute,
+  PosProductsInventoryRoute,
+  PosReceiptCustomizationRoute,
+  PosSaleCompletedRoute,
+  PosSyncReconciliationRoute,
+  PosTenderCheckoutRoute,
+  PosTransactionDetailsRoute,
+  PosTransactionsLedgerReceiptsRoute,
+  PosTransactionsLedgerShiftRoute,
+  PublicPosCartReviewRoute,
+  PublicPosOrderMenuRoute,
+  PublicPosOrderTrackingRoute,
+  SplitTheBillRoute,
+  StaffPermissionsPasscodesRoute,
+  TaxesSurchargesRoute,
+} from './posRoutes';
 import {
   ServiceAvailabilityStep,
   ServiceBasicsStep,
@@ -2018,69 +2020,6 @@ function BusinessReviewsReputationRoute() {
 /* Customer display routes (POS stack)                                        */
 /* -------------------------------------------------------------------------- */
 
-function CustomerDisplayOrderRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <CustomerDisplayOrderTotalScreen
-      onEditOrder={navigation.goBack}
-      onSplitBill={() => navigation.navigate('SplitTheBill')}
-      onAskStaff={() => undefined}
-      onAddMoreItems={() => undefined}
-    />
-  );
-}
-
-function CustomerDisplayPaymentRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <CustomerDisplayTapQrPayScreen
-      onBack={navigation.goBack}
-      onChangeMethod={() => navigation.navigate('CustomerDisplayOrder')}
-      onContactlessStarted={() => undefined}
-      onQrScanned={() => navigation.navigate('CustomerDisplayRating')}
-      onAskStaff={() => undefined}
-    />
-  );
-}
-
-function CustomerDisplayRatingRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <CustomerDisplayTipRatingScreen
-      onBack={navigation.goBack}
-      onSubmitRating={() => undefined}
-      onSubmitTip={() => navigation.navigate('DigitalEReceipt')}
-      onFinish={() => navigation.navigate('BusinessPosOrders')}
-      onSkip={() => navigation.navigate('DigitalEReceipt')}
-    />
-  );
-}
-
-function SplitTheBillRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <SplitTheBillScreen
-      onBack={navigation.goBack}
-      onChangeMode={() => undefined}
-      onAssignItem={() => undefined}
-      onPayShare={() => navigation.navigate('CustomerDisplayPayment')}
-    />
-  );
-}
-
-function DigitalEReceiptRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <DigitalEReceiptScreen
-      onBack={navigation.goBack}
-      onShare={() => undefined}
-      onSave={() => undefined}
-      onRateAndTip={() => navigation.navigate('CustomerDisplayRating')}
-      onOrderAgain={() => navigation.navigate('BusinessPosOrders')}
-    />
-  );
-}
-
 /* -------------------------------------------------------------------------- */
 /* Account, trust & support routes (More stack)                               */
 /* -------------------------------------------------------------------------- */
@@ -2913,562 +2852,10 @@ function BusinessMoreHubOperationsRoute() {
 }
 
 /** `pos_home_offline_mode_active` — the local till running without a network. */
-function PosHomeOfflineModeRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <PosHomeOfflineModeScreen
-      onBack={navigation.goBack}
-      onChangeBranch={() => navigation.navigate('LocationsBranches')}
-      onOpenProfile={() => undefined}
-      onOpenSettings={() => navigation.navigate('BusinessSettings')}
-      onRetrySync={() => undefined}
-      onOpenAction={actionId => {
-        // While offline the register must stay local, so a new sale opens the
-        // encrypted checkout terminal rather than the networked display.
-        if (actionId === 'new-sale') navigation.navigate('PosOfflineCheckoutTerminal');
-        if (actionId === 'transactions')
-          navigation.navigate('PosTransactionsLedgerShift');
-        if (actionId === 'customers') navigation.navigate('CustomerCrmDirectory');
-        if (actionId === 'products') navigation.navigate('CentralCatalogue');
-      }}
-      onOpenCustomerDisplay={() => navigation.navigate('CustomerDisplayOrder')}
-      onOpenDrawer={() => undefined}
-    />
-  );
-}
 
 /* -------------------------------------------------------------------------- */
 /* POS sale-flow routes                                                       */
 /* -------------------------------------------------------------------------- */
-
-function PosBranchTillSwitcherRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <PosBranchTillSwitcherScreen
-      onBack={navigation.goBack}
-      onOpenProfile={() => undefined}
-      onSelectTill={() => undefined}
-      onSwitchBranch={() => undefined}
-      onConfirmSwitch={() => navigation.goBack()}
-      onCancel={() => navigation.goBack()}
-    />
-  );
-}
-
-function PosHomeSalesOperationsRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <PosHomeSalesOperationsScreen
-      onBack={navigation.goBack}
-      onOpenProfile={() => undefined}
-      onOpenSettings={() => navigation.navigate('PosGeneralSettings')}
-      onSelectBranch={() => navigation.navigate('PosBranchTillSwitcher')}
-      onSyncCheck={() => undefined}
-      // The register's quick actions target the same till surfaces the
-      // operations hub exposes, not the central directory/catalogue.
-      onQuickAction={actionId => {
-        if (actionId === 'new-sale') navigation.navigate('PosNewSaleCatalog');
-        if (actionId === 'transactions')
-          navigation.navigate('PosTransactionsLedgerShift');
-        if (actionId === 'customers') navigation.navigate('PosCustomerLookupList');
-        if (actionId === 'products') navigation.navigate('PosProductsInventory');
-      }}
-      onOpenDrawer={() => navigation.navigate('BusinessPosOrders')}
-      onOpenControl={controlId => {
-        if (controlId === 'public-mode') navigation.navigate('PublicPosOrderMenu');
-        if (controlId === 'drawer') navigation.navigate('BusinessPosOrders');
-        if (controlId === 'offline') navigation.navigate('PosHomeOfflineMode');
-        if (controlId === 'offline-sale')
-          navigation.navigate('PosOfflineCheckoutTerminal');
-        if (controlId === 'sync') navigation.navigate('PosSyncReconciliation');
-        if (controlId === 'cash-drawer') navigation.navigate('BusinessPosOrders');
-        if (controlId === 'settings') navigation.navigate('PosReceiptCustomization');
-      }}
-    />
-  );
-}
-
-function PosNewSaleCatalogRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <PosNewSaleCatalogScreen
-      onBack={navigation.goBack}
-      onOpenProfile={() => undefined}
-      onSearch={() => undefined}
-      onScan={() => undefined}
-      onDialpad={() => undefined}
-      onFilterCategory={() => undefined}
-      onAddItem={() => navigation.navigate('PosCurrentSaleCart')}
-      onAddCustomItem={() => navigation.navigate('PosCurrentSaleCart')}
-      onOpenCustomer={() => navigation.navigate('CustomerCrmDirectory')}
-      onCharge={() => navigation.navigate('PosCurrentSaleCart')}
-    />
-  );
-}
-
-function PosCurrentSaleCartRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <PosCurrentSaleCartScreen
-      onBack={navigation.goBack}
-      onOpenProfile={() => undefined}
-      // Changing the customer on a running ticket is the active-checkout match
-      // flow, not the directory browse.
-      onChangeCustomer={() => navigation.navigate('PosCustomerLookupActive')}
-      onReorder={() => navigation.navigate('PosNewSaleCatalog')}
-      onChangeQty={() => undefined}
-      onRemoveLine={() => undefined}
-      onAddKitchenNote={() => undefined}
-      onAddDiscount={() => undefined}
-      onHold={() => undefined}
-      onCharge={() => navigation.navigate('PosTenderCheckout')}
-    />
-  );
-}
-
-function PosTenderCheckoutRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <PosTenderCheckoutScreen
-      onBack={navigation.goBack}
-      onOpenProfile={() => undefined}
-      onApplyPoints={() => undefined}
-      onSelectTender={() => undefined}
-      onCashPreset={() => undefined}
-      onSwitchTerminal={() => undefined}
-      onResendTransfer={() => undefined}
-      onCheckInflow={() => undefined}
-      onCopyAccount={() => undefined}
-      onApplyVoucher={() => undefined}
-      onScanVoucher={() => undefined}
-      onReceiptOption={() => navigation.navigate('PosSaleCompleted')}
-      onCompleteSale={() => navigation.navigate('PosSaleCompleted')}
-    />
-  );
-}
-
-function PosSaleCompletedRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <PosSaleCompletedScreen
-      onOpenProfile={() => undefined}
-      onPrint={() => navigation.navigate('PosReceiptCustomization')}
-      onSendToMobile={() => undefined}
-      onNewSale={() => navigation.navigate('PosNewSaleCatalog')}
-    />
-  );
-}
-
-function PosReceiptCustomizationRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <PosReceiptCustomizationScreen
-      onBack={navigation.goBack}
-      onOpenProfile={() => undefined}
-      onToggleSetting={() => undefined}
-      onEditReceipt={() => undefined}
-      onPrintTest={() => undefined}
-    />
-  );
-}
-
-function PosCustomerLookupActiveRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <PosCustomerLookupActiveScreen
-      onBack={navigation.goBack}
-      onOpenProfile={() => undefined}
-      onSearch={() => undefined}
-      onClearSearch={() => undefined}
-      onScan={() => navigation.navigate('PosCustomerLookupLoyalty')}
-      onLiveScan={() => navigation.navigate('PosCustomerLookupLoyalty')}
-      onNewWalkInProfile={() => navigation.navigate('CustomerCrmDirectory')}
-      onApplyPerk={() => undefined}
-      onAttach={() => navigation.navigate('PosTenderCheckout')}
-      onViewReceipts={() => navigation.navigate('DigitalEReceipt')}
-      onSendWhatsApp={() => navigation.navigate('BusinessMessages')}
-    />
-  );
-}
-
-function PosCustomerLookupListRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <PosCustomerLookupListScreen
-      onBack={navigation.goBack}
-      onOpenProfile={() => undefined}
-      onSelectBranch={() => navigation.navigate('PosBranchTillSwitcher')}
-      onSyncRegister={() => undefined}
-      onOpenCrmHub={() => navigation.navigate('CustomerCrmDirectory')}
-      onSearch={() => undefined}
-      onScan={() => navigation.navigate('PosCustomerLookupLoyalty')}
-      onNewCustomer={() => navigation.navigate('CustomerCrmDirectory')}
-      onSelectSegment={() => undefined}
-      onAttach={customerId =>
-        customerId === 'michael'
-          ? navigation.navigate('PosCustomerLookupLoyalty')
-          : navigation.navigate('PosCustomerDossier', { customerId })
-      }
-      onOpenDossier={customerId =>
-        navigation.navigate('PosCustomerDossier', { customerId })
-      }
-      onOpenOverflow={() => undefined}
-    />
-  );
-}
-
-function PosCustomerLookupLoyaltyRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <PosCustomerLookupLoyaltyScreen
-      onBack={navigation.goBack}
-      onOpenProfile={() => undefined}
-      onSearch={() => undefined}
-      onScan={() => undefined}
-      onChangeCustomer={() => navigation.navigate('PosCustomerLookupList')}
-      onOpenRewards={() => navigation.navigate('LoyaltyProgramme')}
-      onRedeem={() => navigation.navigate('PosTenderCheckout')}
-      onRegisterCustomer={() => navigation.navigate('CustomerCrmDirectory')}
-      onContinueAsGuest={() => navigation.navigate('PosTenderCheckout')}
-      onAttach={() => navigation.navigate('PosTenderCheckout')}
-    />
-  );
-}
-
-function PosCustomerDossierRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <PosCustomerDossierScreen
-      onBack={navigation.goBack}
-      onOpenProfile={() => undefined}
-      onAttachToSale={() => navigation.navigate('PosTenderCheckout')}
-      onApplyPerk={() => undefined}
-      onOpenNotes={() => undefined}
-      onOpenVisit={() => navigation.navigate('BusinessPosOrders')}
-      onOpenCrm={() => navigation.navigate('CustomerCrmDirectory')}
-    />
-  );
-}
-
-function PosProductsInventoryRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <PosProductsInventoryScreen
-      onBack={navigation.goBack}
-      onOpenProfile={() => undefined}
-      onOpenNotifications={() => undefined}
-      onSearch={() => undefined}
-      onScan={() => undefined}
-      onSelectFilter={() => undefined}
-      onAdjustStock={() => undefined}
-      onOpenOverride={() => undefined}
-      onOpenDeal={() =>
-        navigation.navigate('CentralDealsManagement', { layout: 'compact' })
-      }
-      onOpenDealTerms={() =>
-        navigation.navigate('CentralDealsManagement', { layout: 'compact' })
-      }
-      // The full add-product wizard lives in the BusinessSetup root stack, which a
-      // nested Orders screen cannot address; hand off to the catalogue instead.
-      onAddCustomItem={() =>
-        navigation.navigate('CentralCatalogue', { layout: 'directory' })
-      }
-      onAuthorize={() => undefined}
-    />
-  );
-}
-
-function PosProductShiftStockStatusRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <PosProductShiftStockStatusScreen
-      onBack={navigation.goBack}
-      onOpenProfile={() => undefined}
-      onToggleRegisterAvailability={() => undefined}
-      onMarkSoldOut={() => undefined}
-      onAdjustCount={() => undefined}
-      onOpenSetCount={() => undefined}
-      onOpenGovernance={() => navigation.navigate('CentralCatalogue')}
-      onAddToSale={() => navigation.navigate('PosCurrentSaleCart')}
-      onSave={() => undefined}
-    />
-  );
-}
-
-function PosTransactionsLedgerShiftRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <PosTransactionsLedgerShiftScreen
-      onBack={navigation.goBack}
-      onOpenProfile={() => undefined}
-      onOpenNotifications={() => undefined}
-      onOpenScope={() => navigation.navigate('PosBranchTillSwitcher')}
-      onSearch={() => undefined}
-      onSelectFilter={() => undefined}
-      onReprint={() => navigation.navigate('PosReceiptCustomization')}
-      onOpenDetails={() => navigation.navigate('PosTransactionDetails')}
-      onVoid={() => navigation.navigate('PosTransactionDetails')}
-      onOpenReceipt={() => navigation.navigate('PosTransactionDetails')}
-      onOpenSplits={() => navigation.navigate('BusinessPosOrders')}
-      onResumeTicket={() => navigation.navigate('PosCurrentSaleCart')}
-      onExportShift={() => undefined}
-      onOpenZReport={() => navigation.navigate('PosSyncReconciliation')}
-    />
-  );
-}
-
-function PosTransactionsLedgerReceiptsRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <PosTransactionsLedgerReceiptsScreen
-      onBack={navigation.goBack}
-      onOpenProfile={() => undefined}
-      onSelectBranch={() => navigation.navigate('PosBranchTillSwitcher')}
-      onSyncLedger={() => navigation.navigate('PosSyncReconciliation')}
-      onSearch={() => undefined}
-      onSelectDate={() => undefined}
-      onSelectShift={() => navigation.navigate('PosBranchTillSwitcher')}
-      onExport={() => undefined}
-      onSelectFilter={() => undefined}
-      onOpenReceipt={() => navigation.navigate('PosTransactionDetails')}
-      onOpenCustomer={() => navigation.navigate('PosCustomerLookupList')}
-    />
-  );
-}
-
-function PosTransactionDetailsRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <PosTransactionDetailsScreen
-      onBack={navigation.goBack}
-      onOpenProfile={() => undefined}
-      onCopyReference={() => undefined}
-      onOpenPatron={() => navigation.navigate('PosCustomerDossier')}
-      onOpenPoints={() => navigation.navigate('LoyaltyProgramme')}
-      onPrint={() => navigation.navigate('PosReceiptCustomization')}
-      onShare={() => navigation.navigate('BusinessMessages')}
-      onViewEReceipt={() => navigation.navigate('DigitalEReceipt')}
-      onOpenRefund={() => undefined}
-      onConfirmVoid={() => undefined}
-    />
-  );
-}
-
-function PosOfflineCheckoutTerminalRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <PosOfflineCheckoutTerminalScreen
-      onBack={navigation.goBack}
-      onOpenProfile={() => undefined}
-      onSearch={() => undefined}
-      onScan={() => undefined}
-      onReindex={() => undefined}
-      onAttachPatron={() => navigation.navigate('PosCustomerLookupList')}
-      onSelectCashTender={() => undefined}
-      onEnterExternalRef={() => undefined}
-      onOpenHouseTab={() => navigation.navigate('BusinessPosOrders')}
-      onCompleteSale={() => navigation.navigate('PosOfflineBufferQueue')}
-      onOpenQueue={() => navigation.navigate('PosOfflineBufferQueue')}
-    />
-  );
-}
-
-function PosOfflineBufferQueueRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <PosOfflineBufferQueueScreen
-      onBack={navigation.goBack}
-      onOpenProfile={() => undefined}
-      onSelectFilter={() => undefined}
-      onOpenSale={() => navigation.navigate('PosTransactionDetails')}
-      onPrintTape={() => navigation.navigate('PosReceiptCustomization')}
-      onExportBackup={() => undefined}
-      onReturnToRegister={() => navigation.navigate('PosOfflineCheckoutTerminal')}
-    />
-  );
-}
-
-function PosSyncReconciliationRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <PosSyncReconciliationScreen
-      onBack={navigation.goBack}
-      onOpenProfile={() => undefined}
-      onForceSync={() => undefined}
-      onAcceptLocalSale={() => navigation.navigate('PosProductsInventory')}
-      onCustomLineItem={() =>
-        navigation.navigate('CentralCatalogue', { layout: 'directory' })
-      }
-      onOpenDetails={() => navigation.navigate('PosTransactionDetails')}
-      onDownloadCsv={() => undefined}
-    />
-  );
-}
-
-function PublicPosOrderMenuRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <PublicPosOrderMenuScreen
-      onBack={navigation.goBack}
-      onOpenProfile={() => undefined}
-      onOpenCart={() => navigation.navigate('PublicPosCartReview')}
-      onShare={() => navigation.navigate('BusinessMessages')}
-      onChangeTable={() => navigation.navigate('PosBranchTillSwitcher')}
-      onSearch={() => undefined}
-      onOpenFilters={() => undefined}
-      onSelectCategory={() => undefined}
-      onCustomize={() => undefined}
-      onAddItem={() => navigation.navigate('PublicPosCartReview')}
-      onReviewOrder={() => navigation.navigate('PublicPosCartReview')}
-    />
-  );
-}
-
-function PublicPosCartReviewRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <PublicPosCartReviewScreen
-      onBack={navigation.goBack}
-      onOpenProfile={() => undefined}
-      onAddFood={() => navigation.navigate('PublicPosOrderMenu')}
-      onChangeQty={() => undefined}
-      onRemoveLine={() => undefined}
-      onEditName={() => undefined}
-      onEditPhone={() => undefined}
-      onEditInstructions={() => undefined}
-      onSubmitOrder={() => navigation.navigate('PublicPosOrderTracking')}
-    />
-  );
-}
-
-function PublicPosOrderTrackingRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <PublicPosOrderTrackingScreen
-      onBack={navigation.goBack}
-      onOpenProfile={() => undefined}
-      onOpenOrderSummary={() => navigation.navigate('PublicPosCartReview')}
-      onCallWaiter={() => undefined}
-      onReopenMenu={() => navigation.navigate('PublicPosOrderMenu')}
-    />
-  );
-}
-
-function MerchantPosKitchenStreamRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <MerchantPosKitchenStreamScreen
-      onBack={navigation.goBack}
-      onOpenProfile={() => undefined}
-      onSelectTab={() => undefined}
-      onCallGuest={() => navigation.navigate('BusinessMessages')}
-      onAcceptOrder={() => navigation.navigate('PublicPosOrderTracking')}
-      onPrintChit={() => navigation.navigate('PosReceiptCustomization')}
-      onRejectOrder={() => undefined}
-      onMarkReady={() => undefined}
-      onReturnToRegister={() => navigation.navigate('PosNewSaleCatalog')}
-    />
-  );
-}
-
-function PosGeneralSettingsRoute() {
-  const navigation = useBusinessNavigation();
-  // The settings hub is a pure directory: each row owns its own destination.
-  // Written per branch rather than looked up from a map, so TypeScript verifies
-  // every (row, screen) pairing at the call site.
-  const openSetting = (settingId: string) => {
-    switch (settingId) {
-      case 'receipt':
-        navigation.navigate('PosReceiptCustomization');
-        break;
-      case 'printers':
-      case 'scanner':
-      case 'payments':
-        navigation.navigate('PaymentHardwareSetup');
-        break;
-      case 'taxes':
-        navigation.navigate('TaxesSurcharges');
-        break;
-      case 'public-pos':
-        navigation.navigate('PublicPosOrderMenu');
-        break;
-      case 'offline':
-        navigation.navigate('PosSyncReconciliation');
-        break;
-      case 'workflow':
-        navigation.navigate('MerchantPosKitchenStream');
-        break;
-      case 'security':
-        navigation.navigate('StaffPermissionsPasscodes');
-        break;
-      default:
-        break;
-    }
-  };
-  return (
-    <PosGeneralSettingsScreen
-      onBack={navigation.goBack}
-      onOpenProfile={() => undefined}
-      onSyncNow={() => navigation.navigate('PosSyncReconciliation')}
-      onOpenSetting={openSetting}
-      onTestFeed={() => navigation.navigate('PaymentHardwareSetup')}
-      onOpenTill={() => navigation.navigate('PosBranchTillSwitcher')}
-    />
-  );
-}
-
-function PaymentHardwareSetupRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <PaymentHardwareSetupScreen
-      onBack={navigation.goBack}
-      onOpenProfile={() => undefined}
-      onToggleRail={() => undefined}
-      onSelectRailAction={railId =>
-        railId === 'card' ? navigation.navigate('PosTenderCheckout') : undefined
-      }
-      onTestFeed={() => navigation.navigate('PosReceiptCustomization')}
-      onTestDrawer={() => navigation.navigate('PosBranchTillSwitcher')}
-      onPairPrinter={() => undefined}
-      onToggleFallbackScanner={() => undefined}
-      onSave={() => undefined}
-    />
-  );
-}
-
-function TaxesSurchargesRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <TaxesSurchargesScreen
-      onBack={navigation.goBack}
-      onOpenProfile={() => undefined}
-      onSelectPriceApplication={() => undefined}
-      onToggleExemption={() => undefined}
-      onCopyTin={() => undefined}
-      onToggleServiceWaiver={() => undefined}
-      onTogglePackagingAuto={() => undefined}
-      onToggleSelfOrdering={() => undefined}
-      onToggleRushPause={() => undefined}
-      onApply={() => navigation.navigate('PosProductsInventory')}
-    />
-  );
-}
-
-function StaffPermissionsPasscodesRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <StaffPermissionsPasscodesScreen
-      onBack={navigation.goBack}
-      onOpenProfile={() => undefined}
-      onToggleGuard={() => undefined}
-      onAddSupervisorPin={() => undefined}
-      onEditSupervisorPin={() => navigation.navigate('StaffDirectory')}
-      onToggleControl={() => undefined}
-      onOpenAuditLog={() => navigation.navigate('PosTransactionDetails')}
-      onSave={() => undefined}
-    />
-  );
-}
 
 function BusinessMoreRoute() {
   // Direct More-stack navigation for the account/trust/support screens, and a

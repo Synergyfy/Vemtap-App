@@ -117,11 +117,11 @@ export type BusinessStackParamList = {
   BranchComparison: undefined;
   BusinessReviewsReputation: undefined;
   /** Customer-facing table surfaces, reached from the POS register. */
-  CustomerDisplayOrder: undefined;
-  CustomerDisplayPayment: undefined;
-  CustomerDisplayRating: undefined;
+  CustomerDisplayOrder: { tillId?: string } | undefined;
+  CustomerDisplayPayment: { tillId?: string } | undefined;
+  CustomerDisplayRating: { tillId?: string; saleId?: string } | undefined;
   SplitTheBill: undefined;
-  DigitalEReceipt: undefined;
+  DigitalEReceipt: { saleId?: string } | undefined;
   /** Account, trust & support surfaces (More hub). */
   /** One chat surface for every thread on the Messages hub. */
   BusinessConversation: { threadId: string } | undefined;
@@ -202,12 +202,12 @@ export type BusinessStackParamList = {
   PosNewSaleCatalog: undefined;
   PosCurrentSaleCart: { ticketId?: string } | undefined;
   PosTenderCheckout: undefined;
-  PosSaleCompleted: undefined;
+  PosSaleCompleted: { saleId?: string; clientRef?: string } | undefined;
   PosReceiptCustomization: undefined;
   /** Customer lookup + dossier, and the till catalogue / shift stock editors. */
-  PosCustomerLookupActive: undefined;
+  PosCustomerLookupActive: { customerId?: string } | undefined;
   PosCustomerLookupList: undefined;
-  PosCustomerLookupLoyalty: undefined;
+  PosCustomerLookupLoyalty: { customerId?: string } | undefined;
   PosCustomerDossier: { customerId?: string } | undefined;
   PosProductsInventory: undefined;
   PosProductShiftStockStatus: { itemId?: string } | undefined;
@@ -219,9 +219,9 @@ export type BusinessStackParamList = {
   PosOfflineBufferQueue: undefined;
   PosSyncReconciliation: undefined;
   /** Guest-facing public POS menu, cart and live tracking, plus the KDS stream. */
-  PublicPosOrderMenu: { tableId?: string } | undefined;
-  PublicPosCartReview: undefined;
-  PublicPosOrderTracking: undefined;
+  PublicPosOrderMenu: { branchId?: string; tableNumber?: string } | undefined;
+  PublicPosCartReview: { branchId?: string; tableNumber?: string } | undefined;
+  PublicPosOrderTracking: { trackingToken?: string } | undefined;
   MerchantPosKitchenStream: undefined;
   /** Owner-only register configuration: settings hub, hardware, tax, security. */
   PosGeneralSettings: undefined;

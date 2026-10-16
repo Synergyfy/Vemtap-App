@@ -2,363 +2,203 @@ import React from 'react';
 import { Pressable, View } from 'react-native';
 import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
+import { Input } from '@components/ui/Input';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
 import { colors } from '@theme/colors';
-import {
-  BusinessChipScroller,
-  BusinessCountChip,
-  BusinessInfoStrip,
-  BusinessPanel,
-  BusinessSearchTrigger,
-} from '@features/business/components/BusinessOpsPrimitives';
+import { EmptyState } from '@components/shared/EmptyState';
+import { ErrorState } from '@components/shared/ErrorState';
+import { LoadingState } from '@components/shared/LoadingState';
 import {
   BusinessActionDock,
   BusinessScreenLayout,
   BusinessStatusPill,
-  type BusinessPillTone,
 } from '@features/business/components/BusinessPrimitives';
 import {
-  publicPosMenuCategories,
-  publicPosMenuItems,
-  type PublicPosMenuItem,
-} from '@features/business/data/businessPublicPosData';
+  BusinessChipScroller,
+  BusinessCountChip,
+} from '@features/business/components/BusinessOpsPrimitives';
 
 const copy = strings.publicPosMenu;
 
-const badgeTone: Record<PublicPosMenuItem['badgeTone'], BusinessPillTone> = {
-  warning: 'warning',
-  success: 'success',
-  neutral: 'neutral',
-  brand: 'brand',
-};
+export interface PublicMenuItemView {
+  id: string;
+  name: string;
+  detail: string;
+  price: string;
+  inCart: number;
+  soldOut: boolean;
+}
+
+export interface PublicPosOrderMenuView {
+  venue: string;
+  branch: string;
+  tableLabel: string | null;
+  acceptingOrders: boolean;
+  prepLabel: string;
+  categories: { id: string; label: string }[];
+  items: PublicMenuItemView[];
+  cart: { count: number; total: string };
+}
 
 export interface PublicPosOrderMenuScreenProps {
+  view?: PublicPosOrderMenuView;
+  isLoading?: boolean;
+  isError?: boolean;
+  onRetry?: () => void;
+  search: string;
+  category: string;
   onBack?: () => void;
-  onOpenProfile?: () => void;
-  onOpenCart?: () => void;
-  onShare?: () => void;
-  onChangeTable?: () => void;
-  onSearch?: () => void;
-  onOpenFilters?: () => void;
+  onSearchChange?: (text: string) => void;
   onSelectCategory?: (categoryId: string) => void;
-  onCustomize?: (itemId: string) => void;
   onAddItem?: (itemId: string) => void;
   onReviewOrder?: () => void;
 }
 
-/**
- * `public_pos_order_from_urban_grill_bistro` - the guest-facing menu. The hero
- * banner, category rail and dish cards are all one composition surface; the cart
- * hand-off and the sticky review bar are the only navigation this screen owns.
- */
+/** Guest-facing menu for table ordering: categories, items and the running tray. */
 export function PublicPosOrderMenuScreen({
+  view,
+  isLoading,
+  isError,
+  onRetry,
+  search,
+  category,
   onBack,
-  onOpenProfile,
-  onOpenCart,
-  onShare,
-  onChangeTable,
-  onSearch,
-  onOpenFilters,
+  onSearchChange,
   onSelectCategory,
-  onCustomize,
   onAddItem,
   onReviewOrder,
 }: PublicPosOrderMenuScreenProps) {
   return (
     <BusinessScreenLayout
-      header={{
-        title: copy.headerTitle,
-        subtitle: copy.headerSubtitle,
-        onBack,
-        titleVariant: 'labelMd',
-        showAvatar: false,
-        titleAccessory: (
-          <View className="mt-1 flex-row items-center gap-1.5">
-            <View className="h-2 w-2 rounded-full bg-success" />
-            <VemtapText variant="micro" tone="secondary" numberOfLines={1}>
-              {copy.kitchenLiveBadge}
-            </VemtapText>
-          </View>
-        ),
-        actions: [
-          { icon: 'groceries', label: copy.cartActionLabel, onPress: onOpenCart },
-          { icon: 'share', label: copy.shareActionLabel, onPress: onShare },
-          {
-            icon: 'accountCircle',
-            label: copy.profileActionLabel,
-            onPress: onOpenProfile,
-          },
-        ],
-      }}
+      header={{ title: view?.venue || copy.headerTitle, subtitle: view?.branch, onBack }}
       contentContainerClassName="pb-8"
       footer={
-        <BusinessActionDock>
-          <View className="flex-row items-center justify-between gap-2">
-            <View className="min-w-0 flex-1">
-              <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-                {copy.activeTrayLabel}
-              </VemtapText>
-              <VemtapText variant="labelMd" className="font-sans-bold" numberOfLines={1}>
-                {copy.activeTrayMeta}
-              </VemtapText>
-            </View>
-            <View className="min-w-[45%]">
-              <Button
-                label={copy.reviewOrderCta}
-                labelVariant="labelMd"
-                onPress={onReviewOrder}
-                rightIcon={<Icon name="arrowForward" size={16} color={colors.surface} />}
-              />
-            </View>
-          </View>
-        </BusinessActionDock>
+        view && view.cart.count > 0 ? (
+          <BusinessActionDock>
+            <Button
+              label={copy.reviewCta(view.cart.count, view.cart.total)}
+              labelVariant="labelMd"
+              disabled={!view.acceptingOrders}
+              onPress={onReviewOrder}
+              rightIcon={<Icon name="arrowForward" size={17} color={colors.surface} />}
+            />
+          </BusinessActionDock>
+        ) : undefined
       }
     >
-      <BusinessPanel>
-        <View className="flex-row items-start gap-2.5">
-          <View className="h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface-tint">
-            <Icon name="restaurant" size={20} color={colors.primary} />
+      {!view ? (
+        isError ? (
+          <ErrorState
+            title={copy.error.title}
+            description={copy.error.body}
+            onRetry={onRetry}
+          />
+        ) : (
+          <LoadingState label={isLoading ? copy.loading : undefined} />
+        )
+      ) : (
+        <>
+          <View className="flex-row flex-wrap items-center gap-2">
+            {view.tableLabel ? (
+              <BusinessStatusPill
+                label={view.tableLabel}
+                tone="brand"
+                icon="tableRestaurant"
+              />
+            ) : null}
+            <BusinessStatusPill label={view.prepLabel} tone="neutral" icon="schedule" />
           </View>
-          <View className="min-w-0 flex-1">
-            <View className="flex-row items-center gap-1.5">
-              <VemtapText
-                variant="labelMd"
-                className="min-w-0 flex-1 font-sans-semibold"
-                numberOfLines={1}
-              >
-                {copy.venueName}
-              </VemtapText>
-              <Icon name="verified" size={15} color={colors.success} />
+          {!view.acceptingOrders ? (
+            <View className="mt-3 rounded-field bg-warning-container p-2.5">
+              <VemtapText variant="caption">{copy.pausedNote}</VemtapText>
             </View>
-            <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-              {copy.venueMeta}
-            </VemtapText>
-            <View className="mt-1 flex-row flex-wrap items-center gap-2">
-              <View className="flex-row items-center gap-1">
-                <Icon name="star" size={13} color={colors.tertiary} />
-                <VemtapText
-                  variant="caption"
-                  className="font-sans-semibold"
-                  numberOfLines={1}
-                >
-                  {copy.venueRating}
-                </VemtapText>
-                <VemtapText variant="micro" tone="tertiary" numberOfLines={1}>
-                  {copy.venueReviews}
-                </VemtapText>
-              </View>
-              <View className="flex-row items-center gap-1">
-                <Icon name="schedule" size={13} color={colors.textSecondary} />
-                <VemtapText variant="micro" tone="secondary" numberOfLines={1}>
-                  {copy.venuePrep}
-                </VemtapText>
-              </View>
-            </View>
-          </View>
-        </View>
+          ) : null}
 
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={copy.tableTitle}
-          onPress={onChangeTable}
-          className="mt-3 flex-row items-center gap-2.5 rounded-field bg-surface-tint px-3 py-2.5 active:scale-[0.99]"
-        >
-          <View className="h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface">
-            <Icon name="tableRestaurant" size={17} color={colors.primary} />
-          </View>
-          <View className="min-w-0 flex-1">
-            <VemtapText
-              variant="labelSm"
-              className="font-sans-semibold"
-              numberOfLines={1}
-            >
-              {copy.tableTitle}
-            </VemtapText>
-            <VemtapText variant="micro" tone="secondary" numberOfLines={1}>
-              {copy.tableMeta}
-            </VemtapText>
-          </View>
-          <View className="shrink-0 flex-row items-center gap-1">
-            <VemtapText
-              variant="labelSm"
-              className="font-sans-semibold text-primary"
-              numberOfLines={1}
-            >
-              {copy.changeCta}
-            </VemtapText>
-            <Icon name="autorenew" size={15} color={colors.primary} />
-          </View>
-        </Pressable>
-      </BusinessPanel>
+          <Input
+            containerClassName="mt-3"
+            placeholder={copy.searchPlaceholder}
+            accessibilityLabel={copy.searchPlaceholder}
+            value={search}
+            onChangeText={onSearchChange}
+            leadingIcon={<Icon name="search" size={18} color={colors.textTertiary} />}
+          />
 
-      <View className="mt-3">
-        <BusinessSearchTrigger
-          placeholder={copy.searchPlaceholder}
-          onPress={onSearch}
-          onFilterPress={onOpenFilters}
-          filterLabel={copy.filterCta}
-        />
-      </View>
-
-      <View className="mt-3">
-        <BusinessChipScroller>
-          {publicPosMenuCategories.map(category => (
+          <BusinessChipScroller className="mt-3">
             <BusinessCountChip
-              key={category.id}
-              label={category.label}
-              icon={category.icon}
-              selected={category.id === 'combos'}
-              onPress={() => onSelectCategory?.(category.id)}
+              label={copy.allLabel}
+              selected={category === 'all'}
+              onPress={() => onSelectCategory?.('all')}
             />
-          ))}
-        </BusinessChipScroller>
-      </View>
+            {view.categories.map(item => (
+              <BusinessCountChip
+                key={item.id}
+                label={item.label}
+                selected={category === item.id}
+                onPress={() => onSelectCategory?.(item.id)}
+              />
+            ))}
+          </BusinessChipScroller>
 
-      <View className="mt-3 flex-row flex-wrap items-center justify-between gap-2 rounded-field bg-surface-tint px-3 py-2.5">
-        <View className="min-w-0 flex-1 flex-row items-center gap-1.5">
-          <Icon name="tableBar" size={15} color={colors.primary} />
-          <VemtapText variant="caption" className="min-w-0 flex-1" numberOfLines={2}>
-            {copy.orderingFor}
-          </VemtapText>
-        </View>
-        <BusinessStatusPill
-          label={copy.dineFreeBadge}
-          tone="brand"
-          className="shrink-0"
-        />
-      </View>
-
-      <View className="mt-3 gap-2.5">
-        {publicPosMenuItems.map(item => (
-          <View
-            key={item.id}
-            className="overflow-hidden rounded-card bg-surface shadow-sm"
-          >
-            <View className="h-28 items-center justify-center bg-surface-container">
-              <View className="items-center gap-1">
-                <Icon
-                  name={
-                    item.special
-                      ? 'grill'
-                      : item.id === 'mojito'
-                        ? 'glassCocktail'
-                        : 'food'
-                  }
-                  size={26}
-                  color={colors.textSecondary}
-                />
-                {item.badge ? (
-                  <BusinessStatusPill
-                    label={item.badge}
-                    tone={badgeTone[item.badgeTone]}
-                    icon={item.badgeTone === 'success' ? 'localOffer' : undefined}
-                  />
-                ) : null}
-              </View>
-            </View>
-            <View className="p-3">
-              <VemtapText
-                variant="labelMd"
-                className="font-sans-semibold"
-                numberOfLines={2}
+          <View className="mt-3 gap-2">
+            {view.items.map(item => (
+              <View
+                key={item.id}
+                className="flex-row items-center gap-3 rounded-card bg-surface p-3 shadow-sm"
               >
-                {item.name}
-              </VemtapText>
-              <VemtapText
-                variant="caption"
-                tone="secondary"
-                className="mt-0.5"
-                numberOfLines={3}
-              >
-                {item.body}
-              </VemtapText>
-              <View className="mt-2.5 flex-row items-center justify-between gap-2">
-                <View className="min-w-0 flex-1 flex-row flex-wrap items-baseline gap-1.5">
+                <View className="min-w-0 flex-1">
                   <VemtapText
-                    variant="bodyMd"
-                    className="font-sans-bold text-primary"
+                    variant="labelMd"
+                    className="font-sans-semibold"
+                    numberOfLines={2}
+                  >
+                    {item.name}
+                  </VemtapText>
+                  {item.detail ? (
+                    <VemtapText variant="caption" tone="secondary" numberOfLines={2}>
+                      {item.detail}
+                    </VemtapText>
+                  ) : null}
+                  <VemtapText
+                    variant="labelMd"
+                    className="mt-1 font-sans-bold"
                     numberOfLines={1}
                   >
                     {item.price}
                   </VemtapText>
-                  {item.wasPrice ? (
-                    <VemtapText variant="caption" tone="tertiary" numberOfLines={1}>
-                      {`${copy.wasLabel} ${item.wasPrice}`}
-                    </VemtapText>
-                  ) : null}
                 </View>
-                <View className="shrink-0 flex-row items-center gap-2">
-                  {item.special ? (
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel={`${copy.customizeCta} ${item.name}`}
-                      onPress={() => onCustomize?.(item.id)}
-                      className="min-h-9 flex-row items-center gap-1 rounded-field bg-surface-container px-2.5 active:scale-95"
-                    >
-                      <Icon name="tune" size={14} color={colors.text} />
-                      <VemtapText
-                        variant="caption"
-                        className="font-sans-semibold"
-                        numberOfLines={1}
-                      >
-                        {copy.customizeCta}
-                      </VemtapText>
-                    </Pressable>
-                  ) : null}
+                {item.soldOut ? (
+                  <BusinessStatusPill label={copy.soldOut} tone="neutral" />
+                ) : (
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel={`${item.cta} ${item.name}`}
+                    accessibilityLabel={`${copy.addCta} ${item.name}`}
                     onPress={() => onAddItem?.(item.id)}
-                    className="min-h-9 flex-row items-center gap-1 rounded-field bg-primary px-3 active:scale-95"
+                    className="min-h-10 flex-row items-center gap-1 rounded-field bg-primary px-3 active:scale-95"
                   >
-                    <Icon name="plus" size={15} color={colors.surface} />
+                    <Icon name="plus" size={16} color={colors.surface} />
                     <VemtapText
                       variant="labelSm"
                       className="font-sans-semibold text-surface"
-                      numberOfLines={1}
                     >
-                      {item.cta}
+                      {item.inCart ? String(item.inCart) : copy.addCta}
                     </VemtapText>
                   </Pressable>
-                </View>
+                )}
               </View>
-            </View>
+            ))}
           </View>
-        ))}
-      </View>
 
-      <BusinessInfoStrip
-        className="mt-3"
-        icon="info"
-        body={copy.dietaryNote}
-        tone="subtle"
-      />
-
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={copy.viewCartCta}
-        onPress={onOpenCart}
-        className="mt-3 flex-row items-center gap-2.5 rounded-card bg-surface p-3 shadow-sm active:scale-[0.99]"
-      >
-        <View className="h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-tint">
-          <Icon name="groceries" size={18} color={colors.primary} />
-        </View>
-        <View className="min-w-0 flex-1">
-          <VemtapText variant="labelSm" className="font-sans-semibold" numberOfLines={1}>
-            {copy.trayTitle}
-          </VemtapText>
-          <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-            {copy.payNote}
-          </VemtapText>
-        </View>
-        <View className="shrink-0 flex-row items-center gap-2">
-          <VemtapText variant="labelMd" className="font-sans-bold" numberOfLines={1}>
-            {'\u20a625,700'}
-          </VemtapText>
-          <Icon name="arrowForward" size={16} color={colors.text} />
-        </View>
-      </Pressable>
+          {view.items.length === 0 ? (
+            <EmptyState
+              icon="menuBook"
+              variant="contained"
+              title={copy.empty.title}
+              description={copy.empty.body}
+            />
+          ) : null}
+        </>
+      )}
     </BusinessScreenLayout>
   );
 }
