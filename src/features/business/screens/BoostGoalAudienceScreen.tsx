@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
@@ -29,6 +29,16 @@ export interface BoostGoalAudienceScreenProps {
   onHelp?: () => void;
   onChangeAsset?: () => void;
   onContinue?: (selection: BoostGoalAudienceSelection) => void;
+  onSelectionChange?: (selection: BoostGoalAudienceSelection) => void;
+  /** Starting choices; the design's defaults when absent. */
+  initialSelection?: Partial<BoostGoalAudienceSelection>;
+  /** Live boost details; the design's sample asset and reach when absent. */
+  live?: {
+    asset: { badge: string; business: string; name: string; claims: string } | null;
+    geofencePlace: string;
+    /** Reach estimate for the chosen radius (`undefined` while it loads). */
+    reach?: { value: string; percent: number };
+  };
 }
 
 export interface BoostGoalAudienceSelection {
@@ -48,15 +58,32 @@ export function BoostGoalAudienceScreen({
   onHelp,
   onChangeAsset,
   onContinue,
+  onSelectionChange,
+  initialSelection,
+  live,
 }: BoostGoalAudienceScreenProps) {
-  const [goalId, setGoalId] = useState<string>(goal.goals[0].id);
-  const [scope, setScope] = useState<string>(goal.audienceScopes[0]);
-  const [radius, setRadius] = useState<string>('3');
+  const [goalId, setGoalId] = useState<string>(
+    initialSelection?.goalId ?? goal.goals[0].id,
+  );
+  const [scope, setScope] = useState<string>(
+    initialSelection?.audienceScope ?? goal.audienceScopes[0],
+  );
+  const [radius, setRadius] = useState<string>(initialSelection?.radiusKm ?? '3');
   const [placements, setPlacements] = useState<string[]>(
-    goal.placements.map(placement => placement.id),
+    initialSelection?.placements ?? goal.placements.map(placement => placement.id),
   );
 
-  const reach = goal.radiusReach[radius as keyof typeof goal.radiusReach];
+  const sample = goal.radiusReach[radius as keyof typeof goal.radiusReach];
+  const reach = live
+    ? { reach: live.reach?.value ?? '\u2026', percent: live.reach?.percent ?? 0 }
+    : sample;
+  const asset = live?.asset;
+  const canContinue = !live || Boolean(asset);
+
+  useEffect(() => {
+    onSelectionChange?.({ goalId, audienceScope: scope, radiusKm: radius, placements });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- report choice changes only.
+  }, [goalId, scope, radius, placements]);
 
   function togglePlacement(id: string) {
     setPlacements(current =>
@@ -91,9 +118,16 @@ export function BoostGoalAudienceScreen({
             label={goal.cta}
             icon="arrowForward"
             tone="brand"
-            onPress={() =>
-              onContinue?.({ goalId, audienceScope: scope, radiusKm: radius, placements })
-            }
+            onPress={() => {
+              // Live: a boost cannot launch without the listing it features.
+              if (!canContinue) return;
+              onContinue?.({
+                goalId,
+                audienceScope: scope,
+                radiusKm: radius,
+                placements,
+              });
+            }}
           />
           <VemtapText variant="micro" tone="tertiary" className="text-center">
             {goal.stepNote}
@@ -119,12 +153,12 @@ export function BoostGoalAudienceScreen({
                   variant="micro"
                   className="font-sans-semibold text-primary-foreground"
                 >
-                  {goal.assetBadge}
+                  {asset?.badge ?? goal.assetBadge}
                 </VemtapText>
               </View>
               <View className="flex-row items-center gap-1">
                 <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-                  {goal.assetBusiness}
+                  {asset?.business ?? goal.assetBusiness}
                 </VemtapText>
                 <Icon name="verified" size={12} color={colors.badgeDiscountText} />
               </View>
@@ -134,7 +168,8 @@ export function BoostGoalAudienceScreen({
               className="font-sans-semibold"
               numberOfLines={2}
             >
-              {goal.assetName}
+              {asset?.name ??
+                (live ? strings.boostEngine.live.noAssetTitle : goal.assetName)}
             </VemtapText>
           </View>
           <View className="shrink-0">
@@ -148,7 +183,8 @@ export function BoostGoalAudienceScreen({
         <View className="flex-row items-center gap-1.5">
           <Icon name="localOffer" size={14} color={colors.textSecondary} />
           <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-            {goal.assetClaims}
+            {asset?.claims ??
+              (live ? strings.boostEngine.live.noAssetBody : goal.assetClaims)}
           </VemtapText>
         </View>
       </SetupSectionCard>
@@ -206,7 +242,7 @@ export function BoostGoalAudienceScreen({
               </VemtapText>
             </View>
             <VemtapText variant="labelMd" className="font-sans-bold text-primary">
-              {reach.label}
+              {sample.label}
             </VemtapText>
           </View>
           <View className="flex-row gap-2">
@@ -238,7 +274,7 @@ export function BoostGoalAudienceScreen({
                 <Icon name="restaurant" size={20} color={colors.primary} />
               </View>
               <VemtapText variant="caption" className="font-sans-semibold">
-                {goal.geofencePlace}
+                {live?.geofencePlace ?? goal.geofencePlace}
               </VemtapText>
             </View>
             <View className="absolute left-2 top-2 flex-row items-center gap-1 rounded-full bg-inverse-surface/80 px-2 py-0.5">
@@ -248,7 +284,7 @@ export function BoostGoalAudienceScreen({
                 className="text-inverse-on-surface"
                 numberOfLines={1}
               >
-                {goal.geofencePlace}
+                {live?.geofencePlace ?? goal.geofencePlace}
               </VemtapText>
             </View>
             <View className="absolute right-2 top-2 rounded-full bg-primary px-2 py-0.5">
@@ -267,7 +303,7 @@ export function BoostGoalAudienceScreen({
               percent={reach.percent}
             />
             <VemtapText variant="caption" tone="secondary">
-              {goal.reachNote}
+              {live ? copy.live.reachNote : goal.reachNote}
             </VemtapText>
           </View>
         </SetupSectionCard>

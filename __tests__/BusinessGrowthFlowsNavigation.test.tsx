@@ -3,12 +3,46 @@ import { NavigationContainer } from '@react-navigation/native';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react-native';
 import { BusinessTabNavigator } from '@navigation/BusinessTabNavigator';
 import { strings } from '@constants/strings';
+import { boostsApi } from '@api/boostsApi';
+import { adWalletApi } from '@api/adWalletApi';
 
 const copy = strings.campaignWizard;
 const boost = strings.boostWizard;
 const more = strings.businessMore;
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  jest.restoreAllMocks();
+});
+
+/** The live boost screens need something to boost and a wallet to pay from. */
+function mockBoostApis() {
+  jest.spyOn(boostsApi, 'eligibleAssets').mockResolvedValue([
+    {
+      type: 'deal',
+      id: 'deal-1',
+      title: 'Jollof Combo',
+      image: null,
+      price: 4000,
+      wasPrice: 5000,
+      priorClaims: 12,
+    },
+  ]);
+  jest.spyOn(adWalletApi, 'getWallet').mockResolvedValue({
+    walletRef: 'VEM-WAL-ABC123',
+    balance: 12_000,
+    reserved: 0,
+    spendable: 12_000,
+  });
+}
+
+async function settle() {
+  await act(async () => {
+    await new Promise<void>(resolve => {
+      setTimeout(resolve, 50);
+    });
+  });
+}
 
 /** Mount the business shell and land on the More tab. */
 async function openMoreTab() {
@@ -69,17 +103,20 @@ describe('VEMTAP Intelligence navigation', () => {
 
 describe('boost wizard navigation', () => {
   it('reaches step 1 from the growth hub and advances to budget', async () => {
+    mockBoostApis();
     await openMoreTab();
     // More → Marketing & Growth (the growth hub) → Boost sub-tab → Boost engine.
     await pressMoreRow('boost');
     await act(async () => {
       fireEvent.press(screen.getByLabelText('Boost'));
     });
+    await settle();
     await act(async () => {
       fireEvent.press(screen.getByText(/^Launch Boost Campaign/));
     });
 
-    expect(screen.getByText(boost.goalStep.assetName)).toBeTruthy();
+    // The live goal step shows the business's own deal, not the sample.
+    expect(screen.getAllByText('Jollof Combo').length).toBeGreaterThan(0);
     await act(async () => {
       fireEvent.press(screen.getByLabelText(boost.goalStep.cta));
     });
@@ -123,11 +160,13 @@ describe('segment navigation', () => {
 
 describe('boost wallet reachability', () => {
   it('opens Boost Wallet from the payment method card', async () => {
+    mockBoostApis();
     await openMoreTab();
     await pressMoreRow('boost');
     await act(async () => {
       fireEvent.press(screen.getByLabelText('Boost'));
     });
+    await settle();
     await act(async () => {
       fireEvent.press(screen.getByText(/^Launch Boost Campaign/));
     });
@@ -137,10 +176,15 @@ describe('boost wallet reachability', () => {
     await act(async () => {
       fireEvent.press(screen.getByLabelText(boost.budgetStep.cta));
     });
-    expect(screen.getByText(boost.preview.totalValue)).toBeTruthy();
+    // ₦5,000/day (Top Pick) x 7 days, carried from the engine.
+    expect(screen.getByText('₦35,000')).toBeTruthy();
     await act(async () => {
       fireEvent.press(screen.getByLabelText(boost.preview.openWallet));
     });
-    expect(screen.getByText(boost.wallet.balance)).toBeTruthy();
+    await settle();
+    // Balance and spendable (nothing reserved) both read from the live wallet.
+    expect(screen.getByText('Ref: VEM-WAL-ABC123')).toBeTruthy();
+    expect(screen.getAllByText('₦12,000')).toHaveLength(2);
+    expect(screen.queryByText(boost.wallet.balance)).toBeNull();
   });
 });

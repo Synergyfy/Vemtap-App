@@ -16,7 +16,12 @@ import {
   CampaignsHubRoute,
   CreateCustomSegmentRoute,
   CustomerSegmentsRoute,
+  BoostPreviewPaymentRoute,
+  BoostWalletRoute,
 } from '@navigation/growthRoutes';
+import { boostsApi } from '@api/boostsApi';
+import { useBoostDraftStore } from '@store/boostDraftStore';
+import * as WebBrowser from 'expo-web-browser';
 import { useCampaignDraftStore } from '@store/campaignDraftStore';
 import { draftToSaveInput } from '@features/business/utils/campaignMappers';
 
@@ -71,6 +76,10 @@ function moreStack(initialRouteName: string) {
       <More.Screen name="CampaignsHub" component={CampaignsHubRoute} />
       <More.Screen name="CampaignReviewLaunch" component={CampaignReviewLaunchRoute} />
       <More.Screen name="CampaignCreateObjective" component={Blank} />
+      <More.Screen name="BoostPreviewPayment" component={BoostPreviewPaymentRoute} />
+      <More.Screen name="BoostPerformance" component={Blank} />
+      <More.Screen name="BoostWallet" component={BoostWalletRoute} />
+      <More.Screen name="BoostEngine" component={Blank} />
     </More.Navigator>
   );
   return MoreStack;
@@ -128,10 +137,13 @@ beforeEach(() => {
     menuItems: [],
     branches: [],
   });
-  jest
-    .spyOn(adWalletApi, 'getWallet')
-    .mockResolvedValue({ balance: 50_000, spendable: 50_000 });
-  jest.spyOn(promotionsApi, 'forecastPromotion').mockResolvedValue({
+  jest.spyOn(adWalletApi, 'getWallet').mockResolvedValue({
+    walletRef: 'VEM-WAL-ABC123',
+    balance: 50_000,
+    reserved: 0,
+    spendable: 50_000,
+  });
+  jest.spyOn(promotionsApi, 'forecast').mockResolvedValue({
     budget: 35_000,
     durationDays: 7,
     dailyPace: 5_000,
@@ -148,6 +160,7 @@ afterEach(() => {
   cleanup();
   jest.restoreAllMocks();
   useCampaignDraftStore.getState().reset();
+  useBoostDraftStore.getState().reset();
 });
 
 describe('customer segments (live)', () => {
@@ -211,18 +224,16 @@ const savedPromotion: Promotion = {
 
 describe('campaign review (live)', () => {
   it('saves the whole draft, launches it from the wallet and returns to the hub', async () => {
-    jest.spyOn(promotionsApi, 'listPromotions').mockResolvedValue({
+    jest.spyOn(promotionsApi, 'list').mockResolvedValue({
       data: [],
       total: 0,
       page: 1,
       limit: 50,
       hasNextPage: false,
     });
-    const create = jest
-      .spyOn(promotionsApi, 'createPromotion')
-      .mockResolvedValue(savedPromotion);
+    const create = jest.spyOn(promotionsApi, 'create').mockResolvedValue(savedPromotion);
     const launch = jest
-      .spyOn(promotionsApi, 'launchPromotion')
+      .spyOn(promotionsApi, 'launch')
       .mockResolvedValue({ ...savedPromotion, status: 'Active' });
     useCampaignDraftStore.getState().update({
       objectiveId: 'deal',
@@ -262,7 +273,7 @@ describe('campaign review (live)', () => {
 
 describe('campaigns hub (live)', () => {
   it('lists live campaigns and pauses one through the API', async () => {
-    jest.spyOn(promotionsApi, 'listPromotions').mockResolvedValue({
+    jest.spyOn(promotionsApi, 'list').mockResolvedValue({
       data: [
         {
           ...savedPromotion,
@@ -277,7 +288,7 @@ describe('campaigns hub (live)', () => {
       limit: 50,
       hasNextPage: false,
     });
-    jest.spyOn(promotionsApi, 'getPromotionSummary').mockResolvedValue({
+    jest.spyOn(promotionsApi, 'summary').mockResolvedValue({
       live: 1,
       scheduled: 0,
       paused: 0,
@@ -291,7 +302,7 @@ describe('campaigns hub (live)', () => {
       revenue: 42_000,
     });
     const pause = jest
-      .spyOn(promotionsApi, 'pausePromotion')
+      .spyOn(promotionsApi, 'pause')
       .mockResolvedValue({ ...savedPromotion, status: 'Paused' });
     await renderRoutes('CampaignsHub');
 
@@ -303,5 +314,109 @@ describe('campaigns hub (live)', () => {
       fireEvent.press(screen.getByLabelText(strings.campaignsHub.pauseCta));
     });
     expect(pause).toHaveBeenCalledWith(savedPromotion.id);
+  });
+});
+
+describe('boost preview (live)', () => {
+  it('creates the boost with its one asset and goal, launches it, and opens its stats', async () => {
+    const created = { ...savedPromotion, id: '9c1e2f3a-4b5c-4d6e-8f70-112233445566' };
+    const create = jest.spyOn(boostsApi, 'create').mockResolvedValue(created);
+    const launch = jest
+      .spyOn(boostsApi, 'launch')
+      .mockResolvedValue({ ...created, status: 'Active' });
+    useBoostDraftStore.getState().update({
+      asset: {
+        type: 'deal',
+        id: 'd1',
+        title: 'Jollof Combo',
+        price: 4000,
+        wasPrice: 5000,
+      },
+      budget: 10_000,
+    });
+    const { ref } = await renderRoutes('BoostPreviewPayment');
+
+    // Real listing and wallet, not the sample "Prime Lunch Combo".
+    expect(screen.getAllByText('Jollof Combo').length).toBeGreaterThan(0);
+    expect(screen.queryByText(strings.boostWizard.preview.feedName)).toBeNull();
+
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText('Launch Boost Campaign (₦10,000)'));
+      await settle(50);
+    });
+
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'Jollof Combo',
+        goalId: 'claims',
+        assets: [{ type: 'deal', id: 'd1' }],
+        budget: 10_000,
+        audience: expect.objectContaining({ branchIds: [BRANCH_ID] }),
+      }),
+    );
+    expect(launch).toHaveBeenCalledWith(created.id, {
+      fundingSource: 'wallet',
+      callbackUrl: 'vemtap://payments/return',
+    });
+    expect(ref.getCurrentRoute()?.name).toBe('BoostPerformance');
+    expect(ref.getCurrentRoute()?.params).toEqual({ kind: 'boost', id: created.id });
+  });
+});
+
+describe('boost wallet (live)', () => {
+  it('shows the real balance and tops up the chosen pack through Paystack', async () => {
+    jest.spyOn(adWalletApi, 'listPrepacks').mockResolvedValue([
+      { id: '10k', amount: 10_000, bonus: 500, label: '₦10,000 Top-Up', tier: null },
+      {
+        id: '25k',
+        amount: 25_000,
+        bonus: 2_000,
+        label: '₦25,000 Top-Up',
+        tier: 'Popular',
+      },
+    ]);
+    jest.spyOn(adWalletApi, 'listTransactions').mockResolvedValue({
+      data: [],
+      total: 0,
+      page: 1,
+      limit: 20,
+      hasNextPage: false,
+    });
+    const topUp = jest.spyOn(adWalletApi, 'topUpWallet').mockResolvedValue({
+      reference: 'ADW-1',
+      amount: 25_000,
+      bonus: 2_000,
+      authorizationUrl: 'https://checkout.paystack.com/x',
+    });
+    const confirm = jest.spyOn(adWalletApi, 'confirmTopUp').mockResolvedValue({
+      reference: 'ADW-1',
+      status: 'completed',
+      wallet: {
+        walletRef: 'VEM-WAL-ABC123',
+        balance: 77_000,
+        reserved: 0,
+        spendable: 77_000,
+      },
+    });
+    await renderRoutes('BoostWallet');
+
+    expect(screen.getByText('Ref: VEM-WAL-ABC123')).toBeTruthy();
+    // No backend yet for these sample sections.
+    expect(screen.queryByText(strings.boostWizard.wallet.accountNumber)).toBeNull();
+    expect(screen.queryByText(strings.boostWizard.wallet.complianceTitle)).toBeNull();
+
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText('Top Up ₦25,000'));
+      await settle(50);
+    });
+    expect(topUp).toHaveBeenCalledWith({
+      prepackId: '25k',
+      callbackUrl: 'vemtap://payments/return',
+    });
+    expect(WebBrowser.openAuthSessionAsync).toHaveBeenCalledWith(
+      'https://checkout.paystack.com/x',
+      'vemtap://payments/return',
+    );
+    expect(confirm).toHaveBeenCalledWith('ADW-1');
   });
 });

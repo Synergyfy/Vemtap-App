@@ -8528,8 +8528,84 @@ export const strings = {
       title: 'Could not load the boost engine',
       body: 'Pull to refresh or try again in a moment.',
     },
+    /** Labels for boosts read from `/boosts` and the ad wallet. */
+    live: {
+      activeBanner: (name: string, views: number) =>
+        `Boost Active: ${name} (+${views.toLocaleString('en-NG')} Nearby Views)`,
+      roiLabel: 'Spend ROI',
+      roiNone: '\u2014',
+      reachLabel: 'Reach',
+      reachNote: 'Feed impressions',
+      claimsLabel: 'Claims',
+      claimsNote: (redeemed: number) => `${redeemed.toLocaleString('en-NG')} redeemed`,
+      revenueLabel: 'Revenue Driven',
+      revenueNote: (spent: string) => `${spent} spent`,
+      noAssetTitle: 'Nothing to boost yet',
+      noAssetBody: 'Publish a deal, product or service first, then boost it here.',
+      priorClaims: (count: number) =>
+        `\u2022 ${count.toLocaleString('en-NG')} claims so far`,
+      radiusReach: (range: string) => `${range} reach`,
+      tierClaims: (range: string) => `~${range} claims`,
+      perDay: (amount: string) => `${amount}/d`,
+      estimate: (range: string) => `Estimated reach ${range} (not a guarantee)`,
+      investmentNote: (duration: string) => `${duration} \u2022 No commission`,
+      previewDistance: (km: number) => `Within ${km} km`,
+      pickerTitle: 'Choose What to Boost',
+      pickerEmpty: 'No active deals, products or services to boost.',
+    },
   },
   boostWizard: {
+    /** Labels shared by the live Boost wizard steps. */
+    live: {
+      untitled: 'Boost',
+      assetClaims: (count: number) => `${count.toLocaleString('en-NG')} claims so far`,
+      assetGoal: (goal: string) => `Goal: ${goal}`,
+      noClaimsYet: 'New listing',
+      geofencePlace: (branch: string, km: number) => `${branch} \u2022 ${km} km radius`,
+      reachNote: 'Estimated from your budget and radius. Not a guarantee.',
+      forecastNote:
+        'Estimates use your budget, duration and radius. Spend stops at your budget; unspent money returns to your wallet.',
+      revenueMeta: (price: string) => `~${price} / ticket`,
+      startNow: (date: string) => `Today, ${date}`,
+      paramsSchedule: (days: number, start: string, end: string) =>
+        `${days} ${days === 1 ? 'Day' : 'Days'} (${start} \u2013 ${end})`,
+      lunchOnly: 'Lunch Rush (11:30 AM \u2013 3:30 PM)',
+      allDay: 'All day',
+      radiusValue: (km: number, branch: string) => `${km} km around ${branch}`,
+      totalPace: (amount: string) => `${amount}/day`,
+      walletBody: (balance: string, after: string) =>
+        `Balance: ${balance} \u2022 After boost: ${after}`,
+      walletShort: (shortfall: string) => `Short by ${shortfall}; pay the rest by card.`,
+      feedSave: (amount: string) => `Save ${amount}`,
+      feedCta: (price?: string) => (price ? `Claim Deal (${price})` : 'Claim Deal'),
+      spotlightTitle: (name: string, price?: string) =>
+        price ? `${name} \u2022 ${price}` : name,
+      spotlightSub: (business: string, distance: string) =>
+        `${business} \u2022 ${distance}`,
+      pushTitle: (badge: string | undefined, business: string) =>
+        badge ? `${badge} at ${business}!` : business,
+      pushBody: (name: string, price: string | undefined, distance: string) =>
+        price
+          ? `${name} is just ${price}, ${distance.toLowerCase()}.`
+          : `${name}, ${distance.toLowerCase()}.`,
+      walletLoading: 'Checking balance\u2026',
+      cardTitle: 'Debit Card (Paystack)',
+      cardChip: 'Card',
+      cardBody:
+        'Pays any amount your wallet cannot cover through a secure Paystack checkout.',
+      termsSuffix: (amount: string) =>
+        `The boost automatically pauses when the ${amount} budget is used up, with no hidden overages.`,
+      cta: (amount: string) => `Launch Boost Campaign (${amount})`,
+      launched: 'Boost launched!',
+      scheduled: 'Boost scheduled',
+      awaitingPayment: 'Waiting for your card payment\u2026',
+      paymentCancelled:
+        'Payment not completed. The boost is saved and waits for payment.',
+      draftSaved: 'Boost saved as a draft',
+      draftFailed: 'Could not save the draft. Please try again.',
+      launchFailed: 'Could not launch the boost. Please try again.',
+      pickAssetFirst: 'Pick something to boost first.',
+    },
     steps: {
       goal: 'Goal & Audience',
       budget: 'Budget',
@@ -8833,6 +8909,62 @@ export const strings = {
       addBudget: 'Add \u20a610,000 Budget \u2022 Extend 2 Days',
       pauseCta: 'Pause Campaign Pacing',
       endCta: 'End Campaign & Refund Unspent \u20a67,550 to Wallet',
+      /** Labels for a live boost or campaign read from `/{boosts,promotions}/:id/stats`. */
+      live: {
+        backToBoosts: 'Back to Boost Hub',
+        backToCampaigns: 'Back to Campaigns',
+        headerSub: 'Campaign Analytics \u2022 Live',
+        boostBadge: 'Boost',
+        campaignBadge: 'Campaign',
+        idLabel: (id: string) => `ID: #${id.slice(0, 8).toUpperCase()}`,
+        banner: {
+          active: (day: number, days: number, left: number, end: string) =>
+            `Campaign Active \u2022 Day ${day} of ${days} \u2022 Ending in ${left} ${left === 1 ? 'day' : 'days'} (${end})`,
+          activeOpen: 'Campaign Active',
+          pending: (start: string) => `Starts ${start}`,
+          awaitingPayment: 'Waiting for the card payment to launch',
+          paused: 'Paused \u2022 spend is on hold',
+          draft: 'Draft \u2022 not launched yet',
+          ended: (end: string) => `Ended ${end}`,
+        },
+        pulseEyebrow: 'Live',
+        budget: (amount: string) => `Budget: ${amount}`,
+        consumed: (percent: number) => `${percent}% consumed`,
+        left: (amount: string) => `${amount} left`,
+        redemptionsSub: 'Redeemed vouchers',
+        reachSub: 'Feed impressions',
+        costPerClaim: 'Cost / Claim',
+        noClaimsYet: 'No claims yet',
+        returnOnSpend: (ratio: string) => `${ratio}\u00d7 return on spend`,
+        funnelCaption: (percent: string) =>
+          `${percent} of claimed vouchers were redeemed.`,
+        attributionTitle: 'Factual attribution:',
+        attributionBody:
+          'Claims and redemptions are counted from the featured deals while the campaign runs. No simulated projections.',
+        rhythmSubtitle: 'Claims by time of day',
+        rhythmSlots: [
+          '12\u20134am',
+          '4\u20138am',
+          '8am\u201312',
+          '12\u20134pm',
+          '4\u20138pm',
+          '8pm\u201312',
+        ],
+        peakTag: 'PEAK',
+        peakTitle: (slot: string) => `Peak Velocity: ${slot}`,
+        peakBody: (claims: number) =>
+          `${claims} ${claims === 1 ? 'claim' : 'claims'} in this window`,
+        geoTitle: 'Branch Breakdown',
+        geoSubtitle: 'Claims by branch',
+        geoClaims: (claims: number) => `${claims} ${claims === 1 ? 'claim' : 'claims'}`,
+        noActivity: 'No activity recorded yet',
+        resumeCta: 'Resume Campaign',
+        endCta: (amount: string) => `End Campaign & Refund Unspent ${amount} to Wallet`,
+        endedNote: 'This campaign has ended. Unspent budget went back to your ad wallet.',
+        loadFailed: 'Could not load this campaign.',
+        actionFailed: 'Could not update the campaign. Please try again.',
+        ended: 'Campaign ended. Unspent budget is back in your wallet.',
+      },
     },
     preview: {
       title: 'Review & Payment',
@@ -9052,6 +9184,32 @@ export const strings = {
       tinStatus: 'Active NDPR',
       vatCta: 'September VAT',
       vatHistoryCta: 'Historical VAT',
+      /** Labels for the live wallet (`/ad-wallet`). */
+      live: {
+        walletRef: (ref: string) => `Ref: ${ref}`,
+        prepackBadge: 'Bonus credit',
+        bonus: (amount: string) => `+${amount} bonus ad credit`,
+        noBonus: 'No bonus credit',
+        customLabel: 'Top-up amount',
+        customMin: 'Minimum \u20a62,000',
+        topUpCta: (amount: string) => `Top Up ${amount}`,
+        topUpChoose: 'Choose a top-up',
+        historyEmpty: 'No wallet activity yet.',
+        loadMore: 'Load more activity',
+        topUpDone: 'Top-up received. Your wallet is updated.',
+        topUpPending: 'Payment received; your wallet updates in a moment.',
+        topUpCancelled: 'Top-up not completed.',
+        topUpFailed: 'Could not start the top-up. Please try again.',
+        loadFailed: 'Could not load your wallet.',
+        types: {
+          topup: 'Top-up',
+          bonus: 'Bonus credit',
+          reserve: 'Reserved for a boost',
+          spend: 'Ad spend',
+          release: 'Unspent budget returned',
+          adjustment: 'Adjustment',
+        },
+      },
     },
   },
   businessQr: {

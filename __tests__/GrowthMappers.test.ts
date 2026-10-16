@@ -14,6 +14,14 @@ import {
   estimateRange,
   promotionToCampaignCard,
 } from '@features/business/utils/campaignMappers';
+import { statsToPerformanceView } from '@features/business/utils/campaignPerformanceMappers';
+import {
+  boostDraftToPreviewView,
+  boostDraftToSaveInput,
+  prepackToCard,
+  transactionToRow,
+} from '@features/business/utils/boostMappers';
+import type { BoostDraft } from '@store/boostDraftStore';
 import type { CampaignDraft } from '@store/campaignDraftStore';
 import type { Promotion } from '@api/promotionsApi';
 
@@ -251,5 +259,161 @@ describe('campaign hub mapping', () => {
   it('formats forecast bands compactly', () => {
     expect(estimateRange(6000, 9500)).toBe('6k – 9.5k');
     expect(estimateRange(45, 70)).toBe('45 – 70');
+  });
+});
+
+describe('campaign performance mapping', () => {
+  const promotion: Promotion = {
+    id: '0b9a4f1e-1c2d-4e5f-8a9b-0c1d2e3f4a5b',
+    name: 'Promote a Deal: Lunch Combo',
+    status: 'Active',
+    assets: [],
+    budget: 20_000,
+    spent: 12_450,
+    remaining: 7_550,
+    launchedAt: '2026-10-13T08:00:00Z',
+    startDate: '2026-10-13T08:00:00Z',
+    endDate: '2026-10-18T08:00:00Z',
+  };
+  const stats = {
+    id: promotion.id,
+    status: 'Active' as const,
+    kpis: {
+      budget: 20_000,
+      spent: 12_450,
+      left: 7_550,
+      percentConsumed: 62,
+      redemptions: 40,
+      grossRevenue: 614_400,
+      reach: 10_840,
+      returnOnSpend: 49.35,
+    },
+    funnel: [
+      { id: 'impressions', label: 'Impressions', value: 10_000 },
+      { id: 'taps', label: 'Taps & views', value: 4_000 },
+      { id: 'saves', label: 'Saves', value: 1_000 },
+      { id: 'claims', label: 'Claims', value: 100 },
+      { id: 'redeemed', label: 'Redeemed', value: 40 },
+    ],
+    rhythm: [
+      { hour: 9, claims: 10 },
+      { hour: 13, claims: 60 },
+      { hour: 14, claims: 20 },
+      { hour: 19, claims: 10 },
+    ],
+    byBranch: [
+      { branchId: 'b1', name: 'Wuse II', claims: 75 },
+      { branchId: 'b2', name: 'Garki', claims: 25 },
+    ],
+    series: [],
+  };
+
+  it('maps stats onto the executive pulse, funnel, rhythm and branches', () => {
+    const view = statsToPerformanceView(
+      'promotion',
+      promotion,
+      stats,
+      Date.parse('2026-10-15T10:00:00Z'),
+    );
+    expect(view.banner).toBe('Campaign Active • Day 3 of 5 • Ending in 3 days (18 Oct)');
+    expect(view.kpis.spend.value).toBe('₦12,450');
+    expect(view.kpis.cost.value).toBe('₦125');
+    // Redeemed is a share of claims (the walk-in rate), the rest of reach.
+    expect(view.funnel.find(stage => stage.id === 'taps')?.percent).toBe('40%');
+    expect(view.funnel.find(stage => stage.id === 'redeemed')?.percent).toBe('40%');
+    // 12–4pm holds 80 of 100 claims.
+    expect(view.peak?.index).toBe(3);
+    expect(view.peak?.value).toBe('80%');
+    expect(view.geo.map(branch => branch.percent)).toEqual(['75%', '25%']);
+    expect(view.canPause).toBe(true);
+    expect(view.canAddBudget).toBe(false);
+    expect(view.showViews).toBe(false);
+  });
+
+  it('offers resume on a paused campaign and nothing on an ended one', () => {
+    const paused = statsToPerformanceView(
+      'boost',
+      { ...promotion, status: 'Paused' },
+      stats,
+    );
+    expect(paused.canResume).toBe(true);
+    expect(paused.canPause).toBe(false);
+    const ended = statsToPerformanceView(
+      'boost',
+      { ...promotion, status: 'Ended' },
+      stats,
+    );
+    expect(ended.canEnd).toBe(false);
+    expect(ended.endedNote).toBeDefined();
+  });
+});
+
+describe('boost mapping', () => {
+  const boostDraft: BoostDraft = {
+    asset: { type: 'deal', id: 'd1', title: 'Jollof Combo', price: 4000, wasPrice: 5000 },
+    goalId: 'claims',
+    audienceScope: 'nearby',
+    radiusKm: 5,
+    placements: ['feed', 'push'],
+    durationDays: 7,
+    dayparting: true,
+    budget: 35_000,
+    funding: 'wallet',
+  };
+
+  it('builds the SaveCampaignDto a boost launch needs (one asset, a goal)', () => {
+    expect(boostDraftToSaveInput(boostDraft, 'branch-1')).toEqual({
+      name: 'Jollof Combo',
+      goalId: 'claims',
+      assets: [{ type: 'deal', id: 'd1' }],
+      audience: { strategy: 'nearby', radiusKm: 5, branchIds: ['branch-1'] },
+      placements: ['feed', 'push'],
+      schedule: {
+        durationDays: 7,
+        instantLaunch: true,
+        dayparting: true,
+        windows: ['lunch'],
+      },
+      budgetMode: 'total',
+      budget: 35_000,
+    });
+  });
+
+  it('previews the real listing, schedule and wallet shortfall', () => {
+    const view = boostDraftToPreviewView(boostDraft, {
+      businessName: 'Mama Put',
+      branchName: 'Wuse II',
+      walletSpendable: 20_000,
+      now: new Date('2026-10-16T10:00:00Z'),
+    });
+    expect(view.feed.price).toBe('₦4,000');
+    expect(view.feed.save).toBe('Save ₦1,000');
+    expect(view.push.title).toBe('20% OFF at Mama Put!');
+    expect(view.params.find(param => param.id === 'schedule')?.value).toBe(
+      '7 Days (16 Oct – 23 Oct)',
+    );
+    expect(view.methods[0].body).toBe('Short by ₦15,000; pay the rest by card.');
+    expect(view.methods.map(method => method.id)).toEqual(['wallet', 'card']);
+    expect(view.trustNote).toBeUndefined();
+  });
+
+  it('labels wallet activity by direction and type', () => {
+    const row = transactionToRow({
+      id: 't1',
+      type: 'release',
+      amount: 3200,
+      direction: 'credit',
+      description: null,
+      reference: null,
+      balanceAfter: 10_000,
+      reservedAfter: 0,
+      createdAt: '2026-10-12T10:00:00Z',
+    });
+    expect(row.amount).toBe('+₦3,200');
+    expect(row.title).toBe(strings.boostWizard.wallet.live.types.release);
+    expect(
+      prepackToCard({ id: '25k', amount: 25_000, bonus: 2_000, label: '₦25,000 Top-Up' })
+        .bonus,
+    ).toBe('+₦2,000 bonus ad credit');
   });
 });

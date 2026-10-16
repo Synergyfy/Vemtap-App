@@ -6,6 +6,7 @@ import {
   type PromotionForecastInput,
 } from '@api/promotionsApi';
 import { adWalletApi } from '@api/adWalletApi';
+import { boostsApi } from '@api/boostsApi';
 import { PAYMENT_RETURN_URL } from '@features/business/hooks/useSubscriptions';
 import {
   WEEKDAY_NUMBER,
@@ -29,7 +30,7 @@ export const campaignKeys = {
 export function usePromotions() {
   return useQuery({
     queryKey: campaignKeys.list,
-    queryFn: () => promotionsApi.listPromotions({ limit: 50 }),
+    queryFn: () => promotionsApi.list({ limit: 50 }),
     staleTime: 30_000,
   });
 }
@@ -37,7 +38,7 @@ export function usePromotions() {
 export function usePromotionSummary() {
   return useQuery({
     queryKey: campaignKeys.summary,
-    queryFn: () => promotionsApi.getPromotionSummary(),
+    queryFn: () => promotionsApi.summary(),
     staleTime: 30_000,
   });
 }
@@ -45,7 +46,7 @@ export function usePromotionSummary() {
 export function useEligibleAssets() {
   return useQuery({
     queryKey: campaignKeys.assets,
-    queryFn: () => promotionsApi.listEligibleAssets(),
+    queryFn: () => promotionsApi.eligibleAssets(),
     staleTime: 60_000,
   });
 }
@@ -55,7 +56,7 @@ export function usePromotionForecasts(inputs: readonly PromotionForecastInput[])
   return useQueries({
     queries: inputs.map(input => ({
       queryKey: campaignKeys.forecast(input),
-      queryFn: () => promotionsApi.forecastPromotion(input),
+      queryFn: () => promotionsApi.forecast(input),
       staleTime: 5 * 60_000,
     })),
   });
@@ -76,8 +77,8 @@ export function useAdWallet() {
 async function persistDraft(draft: CampaignDraft): Promise<Promotion> {
   const input = draftToSaveInput(draft);
   const saved = draft.promotionId
-    ? await promotionsApi.updatePromotion(draft.promotionId, input)
-    : await promotionsApi.createPromotion(input);
+    ? await promotionsApi.update(draft.promotionId, input)
+    : await promotionsApi.create(input);
   useCampaignDraftStore.getState().update({ promotionId: saved.id });
   return saved;
 }
@@ -98,39 +99,56 @@ export type CampaignLaunchOutcome =
  * with card funding a shortfall opens Paystack, and the paid top-up launches
  * the campaign server-side (so a closed browser is not proof of failure).
  */
+/**
+ * Launch a saved boost or campaign. The budget is reserved from the ad wallet;
+ * with card funding a shortfall opens Paystack. Confirming the top-up credits
+ * the wallet, which launches the campaign server-side, so the app does not
+ * have to wait for the webhook (a closed browser is still not proof of failure).
+ */
+export async function launchWithCheckout(
+  kind: SponsoredKind,
+  id: string,
+  funding: 'wallet' | 'card',
+): Promise<{ promotion: Promotion; outcome: CampaignLaunchOutcome }> {
+  const api = sponsoredApi(kind);
+  const launched = await api.launch(id, {
+    fundingSource: funding,
+    callbackUrl: PAYMENT_RETURN_URL,
+  });
+
+  const { checkout } = launched;
+  if (!checkout?.authorizationUrl) {
+    return {
+      promotion: launched,
+      outcome: launched.status === 'Active' ? 'live' : 'scheduled',
+    };
+  }
+
+  const result = await WebBrowser.openAuthSessionAsync(
+    checkout.authorizationUrl,
+    PAYMENT_RETURN_URL,
+  );
+  await adWalletApi.confirmTopUp(checkout.reference).catch(() => undefined);
+  const after = await api.get(id);
+  const outcome: CampaignLaunchOutcome =
+    after.status === 'Active'
+      ? 'live'
+      : after.awaitingPayment
+        ? result.type === 'success'
+          ? 'awaiting-payment'
+          : 'cancelled'
+        : 'scheduled';
+  return { promotion: after, outcome };
+}
+
+/** Save the campaign draft, then launch it (see `launchWithCheckout`). */
 export function useLaunchCampaign() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (): Promise<{
-      promotion: Promotion;
-      outcome: CampaignLaunchOutcome;
-    }> => {
+    mutationFn: async () => {
       const { draft } = useCampaignDraftStore.getState();
       const saved = await persistDraft(draft);
-      const launched = await promotionsApi.launchPromotion(saved.id, {
-        fundingSource: draft.funding,
-        callbackUrl: PAYMENT_RETURN_URL,
-      });
-
-      const url = launched.checkout?.authorizationUrl;
-      if (!url) {
-        return {
-          promotion: launched,
-          outcome: launched.status === 'Active' ? 'live' : 'scheduled',
-        };
-      }
-
-      const result = await WebBrowser.openAuthSessionAsync(url, PAYMENT_RETURN_URL);
-      const after = await promotionsApi.getPromotion(saved.id);
-      const outcome: CampaignLaunchOutcome =
-        after.status === 'Active'
-          ? 'live'
-          : after.awaitingPayment
-            ? result.type === 'success'
-              ? 'awaiting-payment'
-              : 'cancelled'
-            : 'scheduled';
-      return { promotion: after, outcome };
+      return launchWithCheckout('promotion', saved.id, draft.funding);
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: campaignKeys.all });
@@ -144,14 +162,14 @@ export function useTogglePromotion() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, pause }: { id: string; pause: boolean }) =>
-      pause ? promotionsApi.pausePromotion(id) : promotionsApi.resumePromotion(id),
+      pause ? promotionsApi.pause(id) : promotionsApi.resume(id),
     onSettled: () => queryClient.invalidateQueries({ queryKey: campaignKeys.all }),
   });
 }
 
 /** Load a saved draft back into the wizard ("Continue Setup"). */
 export async function loadDraftIntoWizard(promotionId: string): Promise<void> {
-  const promotion = await promotionsApi.getPromotion(promotionId);
+  const promotion = await promotionsApi.get(promotionId);
   const store = useCampaignDraftStore.getState();
   store.start();
   const audience = promotion.audience ?? {};
@@ -181,5 +199,59 @@ export async function loadDraftIntoWizard(promotionId: string): Promise<void> {
       : {}),
     budgetMode: promotion.budgetMode ?? 'total',
     ...(promotion.budget > 0 ? { total: promotion.budget } : {}),
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/* Either kind (boost or promotion campaign)                                  */
+/* -------------------------------------------------------------------------- */
+
+export type SponsoredKind = 'boost' | 'promotion';
+
+export function sponsoredApi(kind: SponsoredKind) {
+  return kind === 'boost' ? boostsApi : promotionsApi;
+}
+
+/** Query-key root per kind; promotions keep the keys above. */
+export function sponsoredKeys(kind: SponsoredKind) {
+  return kind === 'boost' ? (['boosts'] as const) : campaignKeys.all;
+}
+
+export function useSponsoredCampaigns(kind: SponsoredKind) {
+  return useQuery({
+    queryKey: [...sponsoredKeys(kind), 'list'],
+    queryFn: () => sponsoredApi(kind).list({ limit: 50 }),
+    staleTime: 30_000,
+  });
+}
+
+export function useSponsoredCampaign(kind: SponsoredKind, id: string | undefined) {
+  return useQuery({
+    queryKey: [...sponsoredKeys(kind), 'detail', id ?? ''],
+    queryFn: () => sponsoredApi(kind).get(id!),
+    enabled: Boolean(id),
+    staleTime: 30_000,
+  });
+}
+
+export function useSponsoredStats(kind: SponsoredKind, id: string | undefined) {
+  return useQuery({
+    queryKey: [...sponsoredKeys(kind), 'stats', id ?? ''],
+    queryFn: () => sponsoredApi(kind).stats(id!),
+    enabled: Boolean(id),
+    staleTime: 30_000,
+  });
+}
+
+/** Pause, resume or end a launched boost or campaign. */
+export function useSponsoredAction(kind: SponsoredKind) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, action }: { id: string; action: 'pause' | 'resume' | 'end' }) =>
+      sponsoredApi(kind)[action](id),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: sponsoredKeys(kind) });
+      queryClient.invalidateQueries({ queryKey: campaignKeys.wallet });
+    },
   });
 }

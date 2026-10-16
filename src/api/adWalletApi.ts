@@ -1,47 +1,83 @@
 import { z } from 'zod';
 import { requestValidated } from '@api/client';
 import type { ApiRequestOptions } from '@app-types/api';
+import { decimal } from '@api/schemaHelpers';
+
+/**
+ * The prepaid naira ad wallet that funds boosts and promotion campaigns
+ * (`/ad-wallet`). Shapes follow `apps/backend/src/modules/ad-wallet`. Launching
+ * a campaign reserves its budget; spend is settled daily and unspent money is
+ * released when it ends. Not `/credits` (messaging credits).
+ */
 
 export const adWalletBalanceSchema = z.object({
-  balance: z.number(),
-  reserved: z.number().optional(),
-  spendable: z.number().optional(),
-  walletRef: z.string().optional(),
-  virtualAccount: z
-    .object({
-      bank: z.string().optional(),
-      number: z.string().optional(),
-    })
-    .optional(),
+  walletRef: z.string(),
+  balance: decimal(),
+  reserved: decimal(),
+  spendable: decimal(),
+  currency: z.string().optional(),
 });
 export type AdWalletBalance = z.infer<typeof adWalletBalanceSchema>;
 
+export const AD_WALLET_TRANSACTION_TYPES = [
+  'topup',
+  'bonus',
+  'reserve',
+  'spend',
+  'release',
+  'adjustment',
+] as const;
+export type AdWalletTransactionType = (typeof AD_WALLET_TRANSACTION_TYPES)[number];
+
 export const adWalletTransactionSchema = z.object({
   id: z.string(),
-  type: z.string().optional(),
-  amount: z.number().optional(),
-  createdAt: z.string().nullish(),
-  description: z.string().optional(),
+  type: z.string(),
+  amount: decimal(),
+  direction: z.enum(['credit', 'debit', 'adjustment']),
+  description: z.string().nullish(),
+  reference: z.string().nullish(),
+  campaignId: z.string().nullish(),
+  balanceAfter: decimal(),
+  reservedAfter: decimal(),
+  createdAt: z.string(),
 });
 export type AdWalletTransaction = z.infer<typeof adWalletTransactionSchema>;
 
+export const adWalletTransactionsPageSchema = z.object({
+  data: z.array(adWalletTransactionSchema),
+  total: z.number(),
+  page: z.number(),
+  limit: z.number(),
+  hasNextPage: z.boolean(),
+});
+export type AdWalletTransactionsPage = z.infer<typeof adWalletTransactionsPageSchema>;
+
+/** A top-up bundle: pay `amount`, receive `amount + bonus` ad credit. */
 export const adWalletPrepackSchema = z.object({
   id: z.string(),
-  name: z.string(),
-  amount: z.number().optional(),
-  price: z.number().optional(),
-  description: z.string().optional(),
+  amount: decimal(),
+  bonus: decimal(),
+  label: z.string(),
+  tier: z.string().nullish(),
 });
 export type AdWalletPrepack = z.infer<typeof adWalletPrepackSchema>;
 
-export const adWalletInvoiceSchema = z.object({
-  id: z.string(),
-  reference: z.string().optional(),
-  amount: z.number().optional(),
-  status: z.string().optional(),
-  issuedAt: z.string().nullish(),
+/** A started card top-up: open `authorizationUrl`, then confirm `reference`. */
+export const adWalletTopUpSchema = z.object({
+  reference: z.string(),
+  amount: decimal(),
+  bonus: decimal(),
+  accessCode: z.string().nullish(),
+  authorizationUrl: z.string().nullish(),
 });
-export type AdWalletInvoice = z.infer<typeof adWalletInvoiceSchema>;
+export type AdWalletTopUp = z.infer<typeof adWalletTopUpSchema>;
+
+export const adWalletTopUpConfirmationSchema = z.object({
+  reference: z.string(),
+  status: z.enum(['completed', 'pending']),
+  wallet: adWalletBalanceSchema,
+});
+export type AdWalletTopUpConfirmation = z.infer<typeof adWalletTopUpConfirmationSchema>;
 
 export const adWalletApi = {
   async getWallet(options: ApiRequestOptions = {}): Promise<AdWalletBalance> {
@@ -52,17 +88,12 @@ export const adWalletApi = {
   },
 
   async listTransactions(
-    params: { type?: string; page?: number; limit?: number } = {},
+    params: { type?: AdWalletTransactionType; page?: number; limit?: number } = {},
     options: ApiRequestOptions = {},
-  ): Promise<AdWalletTransaction[]> {
-    return requestValidated<AdWalletTransaction[]>(
-      {
-        method: 'GET',
-        url: '/ad-wallet/transactions',
-        params,
-        ...options,
-      },
-      z.array(adWalletTransactionSchema),
+  ): Promise<AdWalletTransactionsPage> {
+    return requestValidated<AdWalletTransactionsPage>(
+      { method: 'GET', url: '/ad-wallet/transactions', params, ...options },
+      adWalletTransactionsPageSchema,
     );
   },
 
@@ -73,32 +104,25 @@ export const adWalletApi = {
     );
   },
 
+  /** Start a card top-up for a bundle or a custom amount (₦2,000+, no bonus). */
   async topUpWallet(
-    input: { amount?: number; prepackId?: string },
+    input: { prepackId?: string; amount?: number; callbackUrl?: string },
     options: ApiRequestOptions = {},
-  ): Promise<{ paymentUrl?: string; status?: string; invoiceId?: string }> {
-    return requestValidated<{ paymentUrl?: string; status?: string; invoiceId?: string }>(
-      {
-        method: 'POST',
-        url: '/ad-wallet/top-up',
-        data: input,
-        ...options,
-      },
-      z.object({
-        paymentUrl: z.string().optional(),
-        status: z.string().optional(),
-        invoiceId: z.string().optional(),
-      }),
+  ): Promise<AdWalletTopUp> {
+    return requestValidated<AdWalletTopUp>(
+      { method: 'POST', url: '/ad-wallet/top-up', data: input, ...options },
+      adWalletTopUpSchema,
     );
   },
 
-  async getInvoice(
-    invoiceId: string,
+  /** Ask Paystack (through the API) whether a top-up paid; safe to repeat. */
+  async confirmTopUp(
+    reference: string,
     options: ApiRequestOptions = {},
-  ): Promise<AdWalletInvoice> {
-    return requestValidated<AdWalletInvoice>(
-      { method: 'GET', url: `/ad-wallet/invoices/${invoiceId}`, ...options },
-      adWalletInvoiceSchema,
+  ): Promise<AdWalletTopUpConfirmation> {
+    return requestValidated<AdWalletTopUpConfirmation>(
+      { method: 'POST', url: `/ad-wallet/top-up/${reference}/confirm`, ...options },
+      adWalletTopUpConfirmationSchema,
     );
   },
 };

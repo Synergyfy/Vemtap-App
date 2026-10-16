@@ -158,7 +158,11 @@ export type BusinessStackParamList = {
     | undefined;
   BoostPreviewPayment:
     { budget?: number; days?: number; dayparting?: boolean } | undefined;
-  BoostPerformance: undefined;
+  /**
+   * Performance of one boost or promotion campaign. Without an `id` it opens
+   * the most recent one of that `kind` (default `boost`).
+   */
+  BoostPerformance: { kind?: 'boost' | 'promotion'; id?: string } | undefined;
   BoostWallet: undefined;
   /** Create Campaign wizard — one stack entry per step, per AGENTS rule 21. */
   /**

@@ -29,8 +29,47 @@ import {
   usePromotionSummary,
   usePromotions,
   useSaveCampaignDraft,
+  useSponsoredAction,
+  useSponsoredCampaign,
+  useSponsoredCampaigns,
+  useSponsoredStats,
   useTogglePromotion,
 } from '@features/business/hooks/useCampaigns';
+import { statsToPerformanceView } from '@features/business/utils/campaignPerformanceMappers';
+import { BoostPerformanceScreen } from '@features/business/screens/BoostPerformanceScreen';
+import {
+  BOOST_ENGINE_RADIUS_KM,
+  BOOST_ENGINE_TIER_DAILY,
+  BoostEngineScreen,
+  type BoostEngineLive,
+  type BoostEngineSelection,
+} from '@features/business/screens/BoostEngineScreen';
+import { BoostGoalAudienceScreen } from '@features/business/screens/BoostGoalAudienceScreen';
+import { BoostBudgetScheduleScreen } from '@features/business/screens/BoostBudgetScheduleScreen';
+import { BoostPreviewPaymentScreen } from '@features/business/screens/BoostPreviewPaymentScreen';
+import { BoostWalletScreen } from '@features/business/screens/BoostWalletScreen';
+import { BoostAssetPickerSheet } from '@features/business/components/BoostAssetPickerSheet';
+import {
+  useActiveBoost,
+  useAdWalletPrepacks,
+  useAdWalletTransactions,
+  useBoostEligibleAssets,
+  useBoostForecasts,
+  useBoostSummary,
+  useLaunchBoost,
+  useSaveBoostDraft,
+  useWalletTopUp,
+} from '@features/business/hooks/useBoosts';
+import {
+  BOOST_AUDIENCE_SCOPE_IDS,
+  boostAssetBadge,
+  boostDraftToPreviewView,
+  eligibleAssetToBoostAsset,
+  formatNaira as formatBoostNaira,
+  prepackToCard,
+  transactionToRow,
+} from '@features/business/utils/boostMappers';
+import { useBoostDraftStore } from '@store/boostDraftStore';
 import {
   eligibleAssetToContentItem,
   estimateRange,
@@ -369,6 +408,9 @@ export function CampaignsHubRoute() {
         updateDraft({ strategy: 'segments', cohorts: ['dormant'] });
         navigation.navigate('CampaignCreateObjective');
       }}
+      onViewCampaign={id =>
+        navigation.navigate('BoostPerformance', { kind: 'promotion', id })
+      }
       campaigns={cards}
       metrics={
         totals
@@ -724,6 +766,547 @@ export function CampaignReviewLaunchRoute() {
           },
         })
       }
+    />
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Boost / campaign performance                                               */
+/* -------------------------------------------------------------------------- */
+
+const perfCopy = strings.boostWizard.performance.live;
+
+export function BoostPerformanceRoute() {
+  const navigation = useBusinessNavigation();
+  const route = useRoute<RouteProp<BusinessTabParamList, 'BoostPerformance'>>();
+  const kind = route.params?.kind ?? 'boost';
+  // No id (e.g. "View history"): show the most recent one of this kind.
+  const latest = useSponsoredCampaigns(kind);
+  const id = route.params?.id ?? latest.data?.data[0]?.id;
+  const record = useSponsoredCampaign(kind, id);
+  const stats = useSponsoredStats(kind, id);
+  const action = useSponsoredAction(kind);
+
+  const performance = useMemo(
+    () =>
+      record.data && stats.data
+        ? statsToPerformanceView(kind, record.data, stats.data)
+        : undefined,
+    [kind, record.data, stats.data],
+  );
+  const run = (next: 'pause' | 'resume' | 'end') => {
+    if (!id) return;
+    action.mutate(
+      { id, action: next },
+      {
+        onSuccess: () => {
+          if (next !== 'end') return;
+          showToast(perfCopy.ended, 'success');
+          navigation.navigate('BoostWallet');
+        },
+        onError: error => showToast(messageOf(error, perfCopy.actionFailed), 'error'),
+      },
+    );
+  };
+
+  const noneYet = !route.params?.id && latest.isSuccess && !id;
+  const loading =
+    (!route.params?.id && latest.isLoading) || record.isLoading || stats.isLoading;
+  const failed = latest.isError || record.isError || stats.isError;
+
+  return (
+    <BoostPerformanceScreen
+      onBack={navigation.goBack}
+      onShare={() => navigation.navigate('AnalyticsExportReport')}
+      onPause={() => run('pause')}
+      onResume={() => run('resume')}
+      onEndCampaign={() => run('end')}
+      onOpenWallet={() => navigation.navigate('BoostWallet')}
+      performance={performance}
+      busy={action.isPending}
+      isLoading={loading}
+      error={
+        noneYet
+          ? hubCopy.empty.body
+          : failed
+            ? messageOf(latest.error ?? record.error ?? stats.error, perfCopy.loadFailed)
+            : undefined
+      }
+      onRetry={() => {
+        latest.refetch();
+        record.refetch();
+        stats.refetch();
+      }}
+    />
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Boost wizard (`/boosts`) and the ad wallet                                 */
+/* -------------------------------------------------------------------------- */
+
+const engineCopy = strings.boostEngine.live;
+const boostCopy = strings.boostWizard.live;
+const walletCopy = strings.boostWizard.wallet.live;
+const goalCopy = strings.boostWizard.goalStep;
+
+/** Engine radius options in km, for the per-radius reach estimates. */
+const ENGINE_RADII = Object.entries(BOOST_ENGINE_RADIUS_KM);
+/** Budget-step tiers (₦ total) by id. */
+const BUDGET_TIERS = strings.boostWizard.budgetStep.tiers.map(tier => ({
+  id: tier.id,
+  amount: Number(tier.id) * 1000,
+}));
+
+function range(data?: {
+  reachMin: number;
+  reachMax: number;
+  claimsMin: number;
+  claimsMax: number;
+}) {
+  return data
+    ? {
+        reach: estimateRange(data.reachMin, data.reachMax),
+        claims: estimateRange(data.claimsMin, data.claimsMax),
+      }
+    : undefined;
+}
+
+/**
+ * The listing a boost features: the one chosen, else the first eligible deal
+ * (else the first eligible listing). Also returns the picker's cards.
+ */
+function useBoostAsset() {
+  const assets = useBoostEligibleAssets();
+  const chosen = useBoostDraftStore(state => state.draft.asset);
+  const update = useBoostDraftStore(state => state.update);
+  const items = useMemo(
+    () => (assets.data ?? []).map(eligibleAssetToContentItem),
+    [assets.data],
+  );
+  const fallback =
+    assets.data?.find(asset => asset.type === 'deal') ?? assets.data?.[0] ?? undefined;
+  const asset = chosen ?? (fallback ? eligibleAssetToBoostAsset(fallback) : undefined);
+  const pick = (id: string) => {
+    const match = assets.data?.find(candidate => candidate.id === id);
+    if (match) update({ asset: eligibleAssetToBoostAsset(match) });
+  };
+  return { assets, items, asset, pick };
+}
+
+function useBoostContext() {
+  const { branches, activeBranchId, isLive } = useActiveBranch();
+  const business = useMyBusiness();
+  const branch = branches.find(candidate => candidate.id === activeBranchId);
+  return {
+    branchId: isLive ? (activeBranchId ?? undefined) : undefined,
+    branchName: branch?.name ?? '',
+    businessName: business.data?.name ?? '',
+  };
+}
+
+export function BoostEngineRoute() {
+  const navigation = useBusinessNavigation();
+  const summary = useBoostSummary();
+  const active = useActiveBoost();
+  const { assets, items, asset, pick } = useBoostAsset();
+  const context = useBoostContext();
+  const draft = useBoostDraftStore(state => state.draft);
+  const update = useBoostDraftStore(state => state.update);
+  const [picking, setPicking] = useState(false);
+  const [selection, setSelection] = useState<BoostEngineSelection | null>(null);
+
+  const days = selection?.days ?? 7;
+  const total = selection?.total ?? 35_000;
+  const radiusKm = selection?.radiusKm ?? 3;
+  const radiusForecasts = useBoostForecasts(
+    ENGINE_RADII.map(([, km]) => ({ budget: total, durationDays: days, radiusKm: km })),
+  );
+  const tierForecasts = useBoostForecasts(
+    Object.entries(BOOST_ENGINE_TIER_DAILY).map(([, daily]) => ({
+      budget: daily * days,
+      durationDays: days,
+      radiusKm,
+    })),
+  );
+  const [current] = useBoostForecasts([{ budget: total, durationDays: days, radiusKm }]);
+
+  const totals = summary.data;
+  const running = active.data;
+  const live: BoostEngineLive = {
+    activeBanner: running
+      ? engineCopy.activeBanner(running.name, running.impressions ?? 0)
+      : undefined,
+    metrics: [
+      {
+        label: engineCopy.roiLabel,
+        value:
+          totals && totals.totalSpent > 0
+            ? `${(totals.revenue / totals.totalSpent).toFixed(1)}x`
+            : engineCopy.roiNone,
+        icon: 'insights',
+      },
+      {
+        label: engineCopy.reachLabel,
+        value: (totals?.audienceReached ?? 0).toLocaleString('en-NG'),
+        note: engineCopy.reachNote,
+        icon: 'group',
+      },
+      {
+        label: engineCopy.claimsLabel,
+        value: (totals?.claims ?? 0).toLocaleString('en-NG'),
+        note: engineCopy.claimsNote(totals?.redemptions ?? 0),
+        icon: 'redeem',
+      },
+      {
+        label: engineCopy.revenueLabel,
+        value: formatBoostNaira(totals?.revenue),
+        note: engineCopy.revenueNote(formatBoostNaira(totals?.totalSpent)),
+        icon: 'payments',
+      },
+    ],
+    asset: asset
+      ? {
+          name: asset.title,
+          now: asset.price ? formatBoostNaira(asset.price) : undefined,
+          was:
+            asset.wasPrice && asset.price && asset.wasPrice > asset.price
+              ? formatBoostNaira(asset.wasPrice)
+              : undefined,
+          badge: boostAssetBadge(asset),
+          note: asset.priorClaims ? engineCopy.priorClaims(asset.priorClaims) : undefined,
+        }
+      : assets.isPending
+        ? { name: '…', badge: '' }
+        : null,
+    radiusReach: Object.fromEntries(
+      ENGINE_RADII.flatMap(([id], index) => {
+        const data = range(radiusForecasts[index]?.data);
+        return data ? [[id, engineCopy.radiusReach(data.reach)]] : [];
+      }),
+    ),
+    tierClaims: Object.fromEntries(
+      Object.keys(BOOST_ENGINE_TIER_DAILY).flatMap((id, index) => {
+        const data = range(tierForecasts[index]?.data);
+        return data ? [[id, engineCopy.tierClaims(data.claims)]] : [];
+      }),
+    ),
+    estimate: range(current?.data)
+      ? engineCopy.estimate(range(current?.data)!.reach)
+      : undefined,
+    preview: {
+      name: asset?.title ?? '',
+      branch: [context.businessName, context.branchName].filter(Boolean).join(' • '),
+      distance: engineCopy.previewDistance(radiusKm),
+    },
+  };
+
+  return (
+    <>
+      <BoostEngineScreen
+        onBack={navigation.goBack}
+        onOpenNotifications={() => navigation.navigate('BusinessNotifications')}
+        onOpenSubTab={tabKey => {
+          if (tabKey === 'Campaigns') navigation.navigate('CampaignsHub');
+          if (tabKey === 'Segments') navigation.navigate('CustomerSegments');
+          if (tabKey === 'Insights') navigation.navigate('BusinessPerformanceAnalytics');
+        }}
+        onChangeDeal={() => setPicking(true)}
+        onSelectionChange={setSelection}
+        onLaunch={(_total, chosen) => {
+          if (!asset) return;
+          update({
+            boostId: undefined,
+            asset,
+            radiusKm: chosen.radiusKm,
+            durationDays: chosen.days,
+            budget: chosen.total,
+          });
+          navigation.navigate('BoostGoalAudience');
+        }}
+        onViewHistory={() => navigation.navigate('BoostPerformance', { kind: 'boost' })}
+        live={live}
+        initialSelection={{
+          radius:
+            ENGINE_RADII.find(([, km]) => km === draft.radiusKm)?.[0] ??
+            ENGINE_RADII[0][0],
+        }}
+      />
+      <BoostAssetPickerSheet
+        visible={picking}
+        onClose={() => setPicking(false)}
+        items={items}
+        selectedId={asset?.id}
+        onPick={pick}
+        isLoading={assets.isPending}
+      />
+    </>
+  );
+}
+
+export function BoostGoalAudienceRoute() {
+  const navigation = useBusinessNavigation();
+  const { assets, items, asset, pick } = useBoostAsset();
+  const context = useBoostContext();
+  const draft = useBoostDraftStore(state => state.draft);
+  const update = useBoostDraftStore(state => state.update);
+  const [picking, setPicking] = useState(false);
+  const [radiusKm, setRadiusKm] = useState(draft.radiusKm);
+  const [forecast] = useBoostForecasts([
+    { budget: draft.budget, durationDays: draft.durationDays, radiusKm },
+  ]);
+  const reach = range(forecast?.data);
+  const scopeIndex = Math.max(
+    0,
+    BOOST_AUDIENCE_SCOPE_IDS.indexOf(
+      draft.audienceScope as (typeof BOOST_AUDIENCE_SCOPE_IDS)[number],
+    ),
+  );
+
+  return (
+    <>
+      <BoostGoalAudienceScreen
+        onBack={navigation.goBack}
+        onHelp={() => navigation.navigate('BusinessSupportHelp')}
+        onChangeAsset={() => setPicking(true)}
+        initialSelection={{
+          goalId: draft.goalId,
+          audienceScope: goalCopy.audienceScopes[scopeIndex],
+          radiusKm: String(draft.radiusKm),
+          placements: draft.placements,
+        }}
+        onSelectionChange={selection => setRadiusKm(Number(selection.radiusKm) || 3)}
+        live={{
+          asset: asset
+            ? {
+                badge: boostAssetBadge(asset),
+                business: context.businessName,
+                name: asset.title,
+                claims: asset.priorClaims
+                  ? boostCopy.assetClaims(asset.priorClaims)
+                  : boostCopy.noClaimsYet,
+              }
+            : null,
+          geofencePlace: boostCopy.geofencePlace(context.branchName, radiusKm),
+          reach: forecast?.data
+            ? {
+                value: reach!.reach,
+                // Share of the people within the radius the budget can reach.
+                percent: forecast.data.audiencePopulation
+                  ? Math.min(
+                      100,
+                      Math.round(
+                        (forecast.data.reachMax / forecast.data.audiencePopulation) * 100,
+                      ),
+                    )
+                  : forecast.data.audienceCapped
+                    ? 100
+                    : 0,
+              }
+            : undefined,
+        }}
+        onContinue={selection => {
+          if (!asset) {
+            showToast(boostCopy.pickAssetFirst, 'error');
+            return;
+          }
+          const index = goalCopy.audienceScopes.indexOf(
+            selection.audienceScope as (typeof goalCopy.audienceScopes)[number],
+          );
+          update({
+            asset,
+            goalId: selection.goalId,
+            audienceScope: BOOST_AUDIENCE_SCOPE_IDS[Math.max(0, index)],
+            radiusKm: Number(selection.radiusKm) || 3,
+            placements: selection.placements,
+          });
+          navigation.navigate('BoostBudgetSchedule');
+        }}
+      />
+      <BoostAssetPickerSheet
+        visible={picking}
+        onClose={() => setPicking(false)}
+        items={items}
+        selectedId={asset?.id}
+        onPick={pick}
+        isLoading={assets.isPending}
+      />
+    </>
+  );
+}
+
+export function BoostBudgetScheduleRoute() {
+  const navigation = useBusinessNavigation();
+  const draft = useBoostDraftStore(state => state.draft);
+  const update = useBoostDraftStore(state => state.update);
+  const [selection, setSelection] = useState({
+    budget: draft.budget,
+    days: draft.durationDays,
+  });
+  const tierForecasts = useBoostForecasts(
+    BUDGET_TIERS.map(tier => ({
+      budget: tier.amount,
+      durationDays: selection.days,
+      radiusKm: draft.radiusKm,
+    })),
+  );
+  const [current] = useBoostForecasts([
+    { budget: selection.budget, durationDays: selection.days, radiusKm: draft.radiusKm },
+  ]);
+  const estimate = current?.data;
+  const price = draft.asset?.price ?? undefined;
+  const goalTitle =
+    goalCopy.goals.find(goal => goal.id === draft.goalId)?.title ?? draft.goalId;
+
+  return (
+    <BoostBudgetScheduleScreen
+      onBack={navigation.goBack}
+      initialSelection={{
+        budget: draft.budget,
+        days: draft.durationDays,
+        dayparting: draft.dayparting,
+      }}
+      onSelectionChange={next => setSelection({ budget: next.budget, days: next.days })}
+      live={{
+        assetName: draft.asset?.title ?? boostCopy.untitled,
+        assetGoal: boostCopy.assetGoal(goalTitle),
+        tierForecasts: Object.fromEntries(
+          BUDGET_TIERS.flatMap((tier, index) => {
+            const data = range(tierForecasts[index]?.data);
+            return data ? [[tier.id, data]] : [];
+          }),
+        ),
+        forecast: estimate
+          ? {
+              reach: estimateRange(estimate.reachMin, estimate.reachMax),
+              claims: estimateRange(estimate.claimsMin, estimate.claimsMax),
+              // Attributable sales only make sense for a priced listing.
+              revenue: price
+                ? `${formatBoostNaira(estimate.claimsMin * price)} – ${formatBoostNaira(estimate.claimsMax * price)}`
+                : undefined,
+              revenueMeta: price
+                ? boostCopy.revenueMeta(formatBoostNaira(price))
+                : undefined,
+            }
+          : undefined,
+      }}
+      onContinue={next => {
+        update({
+          budget: next.budget,
+          durationDays: next.days,
+          dayparting: next.dayparting,
+        });
+        navigation.navigate('BoostPreviewPayment');
+      }}
+    />
+  );
+}
+
+export function BoostPreviewPaymentRoute() {
+  const navigation = useBusinessNavigation();
+  const draft = useBoostDraftStore(state => state.draft);
+  const update = useBoostDraftStore(state => state.update);
+  const reset = useBoostDraftStore(state => state.reset);
+  const context = useBoostContext();
+  const wallet = useAdWallet();
+  const launch = useLaunchBoost(context.branchId);
+  const save = useSaveBoostDraft(context.branchId);
+
+  const preview = useMemo(
+    () =>
+      boostDraftToPreviewView(draft, {
+        businessName: context.businessName,
+        branchName: context.branchName,
+        walletSpendable: wallet.data?.spendable,
+      }),
+    [draft, context.businessName, context.branchName, wallet.data?.spendable],
+  );
+
+  return (
+    <BoostPreviewPaymentScreen
+      onBack={navigation.goBack}
+      onEditParameters={() => navigation.navigate('BoostGoalAudience')}
+      onOpenWallet={() => navigation.navigate('BoostWallet')}
+      preview={preview}
+      initialMethod={draft.funding}
+      launching={launch.isPending}
+      error={launch.isError ? messageOf(launch.error, boostCopy.launchFailed) : undefined}
+      onSaveDraft={() =>
+        save.mutate(undefined, {
+          onSuccess: () => {
+            showToast(boostCopy.draftSaved, 'success');
+            navigation.navigate('BoostEngine');
+          },
+          onError: error => showToast(messageOf(error, boostCopy.draftFailed), 'error'),
+        })
+      }
+      onLaunch={method => {
+        update({ funding: method === 'card' ? 'card' : 'wallet' });
+        launch.mutate(undefined, {
+          onSuccess: ({ promotion, outcome }) => {
+            const message = {
+              live: boostCopy.launched,
+              scheduled: boostCopy.scheduled,
+              'awaiting-payment': boostCopy.awaitingPayment,
+              cancelled: boostCopy.paymentCancelled,
+            }[outcome];
+            showToast(message, outcome === 'cancelled' ? 'error' : 'success');
+            reset();
+            navigation.replace('BoostPerformance', { kind: 'boost', id: promotion.id });
+          },
+        });
+      }}
+    />
+  );
+}
+
+const WALLET_PAGE = 20;
+
+export function BoostWalletRoute() {
+  const navigation = useBusinessNavigation();
+  const wallet = useAdWallet();
+  const prepacks = useAdWalletPrepacks();
+  const [limit, setLimit] = useState(WALLET_PAGE);
+  const transactions = useAdWalletTransactions(limit);
+  const topUp = useWalletTopUp();
+  const { data } = wallet;
+
+  return (
+    <BoostWalletScreen
+      onBack={navigation.goBack}
+      onViewLedger={() => setLimit(current => Math.min(100, current + WALLET_PAGE))}
+      onTopUp={(prepackId, amount) =>
+        topUp.mutate(amount !== undefined ? { amount } : { prepackId }, {
+          onSuccess: ({ outcome }) =>
+            showToast(
+              {
+                completed: walletCopy.topUpDone,
+                pending: walletCopy.topUpPending,
+                cancelled: walletCopy.topUpCancelled,
+              }[outcome],
+              outcome === 'cancelled' ? 'error' : 'success',
+            ),
+          onError: error => showToast(messageOf(error, walletCopy.topUpFailed), 'error'),
+        })
+      }
+      live={
+        data
+          ? {
+              walletRef: data.walletRef,
+              balance: formatBoostNaira(data.balance),
+              reserved: formatBoostNaira(data.reserved),
+              spendable: formatBoostNaira(data.spendable),
+              prepacks: (prepacks.data ?? []).map(prepackToCard),
+              transactions: (transactions.data?.data ?? []).map(transactionToRow),
+              hasMore: Boolean(transactions.data?.hasNextPage) && limit < 100,
+              minTopUp: 2000,
+            }
+          : undefined
+      }
+      topUpPending={topUp.isPending}
+      isLoading={wallet.isLoading}
+      error={wallet.isError ? messageOf(wallet.error, walletCopy.loadFailed) : undefined}
+      onRetry={() => wallet.refetch()}
     />
   );
 }

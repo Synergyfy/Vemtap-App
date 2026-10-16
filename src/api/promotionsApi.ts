@@ -4,12 +4,14 @@ import type { ApiRequestOptions } from '@app-types/api';
 import { decimal, nullableDecimal } from '@api/schemaHelpers';
 
 /**
- * Promotion campaigns (`/promotions`): paid discovery-feed campaigns built by
- * the Create Campaign wizard and funded from the ad wallet. Shapes follow
- * `apps/backend/src/modules/promotions` (`SaveCampaignDto`, `view()`); `/boosts`
- * is the same lifecycle with `kind: 'boost'`.
+ * Sponsored campaigns: promotion campaigns (`/promotions`, the Create Campaign
+ * wizard) and boosts (`/boosts`, the Boost wizard). The backend serves both
+ * from one controller over one table, differing only in `kind` and in which
+ * wizard fields launch requires, so one schema set and one client factory
+ * cover both. Shapes follow `apps/backend/src/modules/promotions`
+ * (`SaveCampaignDto`, `view()`, `stats()`, `options()`).
  *
- * Note this is not `/campaigns`, which is the WhatsApp/SMS message blast.
+ * Not `/campaigns`, which is the WhatsApp/SMS message blast.
  */
 
 export const PROMOTION_STATUSES = [
@@ -71,9 +73,14 @@ export type PromotionBudgetMode = z.infer<typeof promotionBudgetModeSchema>;
 /** `SaveCampaignDto`: create a draft, or patch any step of one. */
 export const savePromotionInputSchema = z.object({
   name: z.string().min(1).optional(),
+  /** Promotions only. */
   objective: z.string().optional(),
+  /** Boosts only. */
+  goalId: z.string().optional(),
+  /** A boost has exactly one asset. */
   assets: z.array(promotionAssetRefSchema).optional(),
   audience: promotionAudienceSchema.optional(),
+  placements: z.array(z.string()).optional(),
   schedule: promotionScheduleSchema.optional(),
   budgetMode: promotionBudgetModeSchema.optional(),
   /** Total budget (₦) when `budgetMode` is `total`. */
@@ -90,8 +97,10 @@ export const promotionSchema = z.object({
   name: z.string(),
   status: promotionStatusSchema,
   objective: z.string().nullish(),
+  goalId: z.string().nullish(),
   assets: z.array(promotionAssetRefSchema).default([]),
   audience: promotionAudienceSchema.nullish(),
+  placements: z.array(z.string()).nullish(),
   schedule: promotionScheduleSchema.nullish(),
   budgetMode: promotionBudgetModeSchema.nullish(),
   budget: decimal(),
@@ -149,6 +158,8 @@ export const promotionForecastSchema = z.object({
   claimsMin: z.number(),
   claimsMax: z.number(),
   audienceCapped: z.boolean(),
+  /** People within the radius: the most any budget can reach (newer API). */
+  audiencePopulation: z.number().optional(),
   isEstimate: z.boolean().optional(),
 });
 export type PromotionForecast = z.infer<typeof promotionForecastSchema>;
@@ -198,147 +209,165 @@ export const promotionStatsSchema = z.object({
 });
 export type PromotionStats = z.infer<typeof promotionStatsSchema>;
 
-export const promotionsApi = {
-  async listPromotions(
-    params: { status?: PromotionStatus; page?: number; limit?: number } = {},
-    options: ApiRequestOptions = {},
-  ): Promise<PromotionsPage> {
-    return requestValidated<PromotionsPage>(
-      { method: 'GET', url: '/promotions', params, ...options },
-      promotionsPageSchema,
-    );
-  },
+const optionSchema = z.object({ id: z.string(), label: z.string() });
 
-  async getPromotionSummary(options: ApiRequestOptions = {}): Promise<PromotionSummary> {
-    return requestValidated<PromotionSummary>(
-      { method: 'GET', url: '/promotions/summary', ...options },
-      promotionSummarySchema,
-    );
-  },
+/** Wizard option sets (`GET /promotions/options`, `GET /boosts/options`). */
+export const sponsoredCampaignOptionsSchema = z.object({
+  radiusKm: z.array(z.number()),
+  placements: z.array(optionSchema),
+  daypartWindows: z.array(optionSchema.extend({ start: z.string(), end: z.string() })),
+  durationsDays: z.array(z.number()),
+  budgetModes: z.array(z.string()),
+  minBudget: z.number(),
+  budgetTiers: z.array(
+    z.object({ id: z.string(), amount: z.number(), label: z.string() }),
+  ),
+  /** Boosts. */
+  goals: z.array(optionSchema).optional(),
+  audienceScopes: z.array(optionSchema).optional(),
+  /** Promotions. */
+  objectives: z.array(optionSchema).optional(),
+  strategies: z.array(optionSchema).optional(),
+  cohorts: z.array(optionSchema).optional(),
+});
+export type SponsoredCampaignOptions = z.infer<typeof sponsoredCampaignOptionsSchema>;
 
-  async createPromotion(
-    input: SavePromotionInput,
-    options: ApiRequestOptions = {},
-  ): Promise<Promotion> {
-    return requestValidated<Promotion>(
-      {
-        method: 'POST',
-        url: '/promotions',
-        data: savePromotionInputSchema.parse(input),
-        ...options,
-      },
-      promotionSchema,
-    );
-  },
+/** One client per resource; `/promotions` and `/boosts` share every route. */
+export function createSponsoredCampaignApi(basePath: '/promotions' | '/boosts') {
+  return {
+    async list(
+      params: { status?: PromotionStatus; page?: number; limit?: number } = {},
+      options: ApiRequestOptions = {},
+    ): Promise<PromotionsPage> {
+      return requestValidated<PromotionsPage>(
+        { method: 'GET', url: basePath, params, ...options },
+        promotionsPageSchema,
+      );
+    },
 
-  async getPromotion(
-    promotionId: string,
-    options: ApiRequestOptions = {},
-  ): Promise<Promotion> {
-    return requestValidated<Promotion>(
-      { method: 'GET', url: `/promotions/${promotionId}`, ...options },
-      promotionSchema,
-    );
-  },
+    async summary(options: ApiRequestOptions = {}): Promise<PromotionSummary> {
+      return requestValidated<PromotionSummary>(
+        { method: 'GET', url: `${basePath}/summary`, ...options },
+        promotionSummarySchema,
+      );
+    },
 
-  async updatePromotion(
-    promotionId: string,
-    input: SavePromotionInput,
-    options: ApiRequestOptions = {},
-  ): Promise<Promotion> {
-    return requestValidated<Promotion>(
-      {
-        method: 'PATCH',
-        url: `/promotions/${promotionId}`,
-        data: savePromotionInputSchema.parse(input),
-        ...options,
-      },
-      promotionSchema,
-    );
-  },
+    async options(options: ApiRequestOptions = {}): Promise<SponsoredCampaignOptions> {
+      return requestValidated<SponsoredCampaignOptions>(
+        { method: 'GET', url: `${basePath}/options`, ...options },
+        sponsoredCampaignOptionsSchema,
+      );
+    },
 
-  /**
-   * Reserve the budget from the ad wallet and go live (or scheduled). With
-   * `card`, a wallet shortfall comes back as a Paystack `checkout`; the paid
-   * top-up launches the campaign server-side.
-   */
-  async launchPromotion(
-    promotionId: string,
-    input: { fundingSource?: 'wallet' | 'card'; callbackUrl?: string } = {},
-    options: ApiRequestOptions = {},
-  ): Promise<LaunchedPromotion> {
-    return requestValidated<LaunchedPromotion>(
-      {
-        method: 'POST',
-        url: `/promotions/${promotionId}/launch`,
-        data: input,
-        ...options,
-      },
-      launchedPromotionSchema,
-    );
-  },
+    async create(
+      input: SavePromotionInput,
+      options: ApiRequestOptions = {},
+    ): Promise<Promotion> {
+      return requestValidated<Promotion>(
+        {
+          method: 'POST',
+          url: basePath,
+          data: savePromotionInputSchema.parse(input),
+          ...options,
+        },
+        promotionSchema,
+      );
+    },
 
-  async pausePromotion(
-    promotionId: string,
-    options: ApiRequestOptions = {},
-  ): Promise<Promotion> {
-    return requestValidated<Promotion>(
-      { method: 'POST', url: `/promotions/${promotionId}/pause`, ...options },
-      promotionSchema,
-    );
-  },
+    async get(id: string, options: ApiRequestOptions = {}): Promise<Promotion> {
+      return requestValidated<Promotion>(
+        { method: 'GET', url: `${basePath}/${id}`, ...options },
+        promotionSchema,
+      );
+    },
 
-  async resumePromotion(
-    promotionId: string,
-    options: ApiRequestOptions = {},
-  ): Promise<Promotion> {
-    return requestValidated<Promotion>(
-      { method: 'POST', url: `/promotions/${promotionId}/resume`, ...options },
-      promotionSchema,
-    );
-  },
+    async update(
+      id: string,
+      input: SavePromotionInput,
+      options: ApiRequestOptions = {},
+    ): Promise<Promotion> {
+      return requestValidated<Promotion>(
+        {
+          method: 'PATCH',
+          url: `${basePath}/${id}`,
+          data: savePromotionInputSchema.parse(input),
+          ...options,
+        },
+        promotionSchema,
+      );
+    },
 
-  async endPromotion(
-    promotionId: string,
-    options: ApiRequestOptions = {},
-  ): Promise<Promotion> {
-    return requestValidated<Promotion>(
-      { method: 'POST', url: `/promotions/${promotionId}/end`, ...options },
-      promotionSchema,
-    );
-  },
+    /**
+     * Reserve the budget from the ad wallet and go live (or scheduled). With
+     * `card`, a wallet shortfall comes back as a Paystack `checkout`; the paid
+     * top-up launches the campaign server-side.
+     */
+    async launch(
+      id: string,
+      input: { fundingSource?: 'wallet' | 'card'; callbackUrl?: string } = {},
+      options: ApiRequestOptions = {},
+    ): Promise<LaunchedPromotion> {
+      return requestValidated<LaunchedPromotion>(
+        { method: 'POST', url: `${basePath}/${id}/launch`, data: input, ...options },
+        launchedPromotionSchema,
+      );
+    },
 
-  async getPromotionStats(
-    promotionId: string,
-    options: ApiRequestOptions = {},
-  ): Promise<PromotionStats> {
-    return requestValidated<PromotionStats>(
-      { method: 'GET', url: `/promotions/${promotionId}/stats`, ...options },
-      promotionStatsSchema,
-    );
-  },
+    async pause(id: string, options: ApiRequestOptions = {}): Promise<Promotion> {
+      return requestValidated<Promotion>(
+        { method: 'POST', url: `${basePath}/${id}/pause`, ...options },
+        promotionSchema,
+      );
+    },
 
-  async listEligibleAssets(
-    options: ApiRequestOptions = {},
-  ): Promise<PromotionEligibleAsset[]> {
-    return requestValidated<PromotionEligibleAsset[]>(
-      { method: 'GET', url: '/promotions/eligible-assets', ...options },
-      z.array(promotionEligibleAssetSchema),
-    );
-  },
+    async resume(id: string, options: ApiRequestOptions = {}): Promise<Promotion> {
+      return requestValidated<Promotion>(
+        { method: 'POST', url: `${basePath}/${id}/resume`, ...options },
+        promotionSchema,
+      );
+    },
 
-  async forecastPromotion(
-    input: PromotionForecastInput,
-    options: ApiRequestOptions = {},
-  ): Promise<PromotionForecast> {
-    return requestValidated<PromotionForecast>(
-      {
-        method: 'POST',
-        url: '/promotions/forecast',
-        data: promotionForecastInputSchema.parse(input),
-        ...options,
-      },
-      promotionForecastSchema,
-    );
-  },
-};
+    /** End now; the unspent budget returns to the ad wallet. */
+    async end(id: string, options: ApiRequestOptions = {}): Promise<Promotion> {
+      return requestValidated<Promotion>(
+        { method: 'POST', url: `${basePath}/${id}/end`, ...options },
+        promotionSchema,
+      );
+    },
+
+    async stats(id: string, options: ApiRequestOptions = {}): Promise<PromotionStats> {
+      return requestValidated<PromotionStats>(
+        { method: 'GET', url: `${basePath}/${id}/stats`, ...options },
+        promotionStatsSchema,
+      );
+    },
+
+    async eligibleAssets(
+      options: ApiRequestOptions = {},
+    ): Promise<PromotionEligibleAsset[]> {
+      return requestValidated<PromotionEligibleAsset[]>(
+        { method: 'GET', url: `${basePath}/eligible-assets`, ...options },
+        z.array(promotionEligibleAssetSchema),
+      );
+    },
+
+    async forecast(
+      input: PromotionForecastInput,
+      options: ApiRequestOptions = {},
+    ): Promise<PromotionForecast> {
+      return requestValidated<PromotionForecast>(
+        {
+          method: 'POST',
+          url: `${basePath}/forecast`,
+          data: promotionForecastInputSchema.parse(input),
+          ...options,
+        },
+        promotionForecastSchema,
+      );
+    },
+  };
+}
+
+export type SponsoredCampaignApi = ReturnType<typeof createSponsoredCampaignApi>;
+
+export const promotionsApi = createSponsoredCampaignApi('/promotions');

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
@@ -37,6 +37,29 @@ export interface BoostBudgetScheduleScreenProps {
   onBack?: () => void;
   onContinue?: (selection: BoostBudgetSelection) => void;
   onEditSchedule?: () => void;
+  onSelectionChange?: (selection: BoostBudgetSelection) => void;
+  /** Starting choices; the design's defaults when absent. */
+  initialSelection?: Partial<BoostBudgetSelection>;
+  /**
+   * Live mode: the asset line, tier estimates and forecast come from the API
+   * and the dates from the clock, replacing the design's sample model.
+   */
+  live?: {
+    assetName: string;
+    assetGoal: string;
+    tierForecasts: Partial<Record<string, { reach: string; claims: string }>>;
+    forecast?: { reach: string; claims: string; revenue?: string; revenueMeta?: string };
+  };
+  /** Clock for the live dates (tests pin it). */
+  now?: Date;
+}
+
+function formatDay(date: Date): string {
+  return date.toLocaleDateString('en-NG', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  });
 }
 
 export interface BoostBudgetSelection {
@@ -62,17 +85,44 @@ export function BoostBudgetScheduleScreen({
   onBack,
   onContinue,
   onEditSchedule,
+  onSelectionChange,
+  initialSelection,
+  live,
+  now,
 }: BoostBudgetScheduleScreenProps) {
+  const initialBudget = initialSelection?.budget ?? 20000;
+  const initialDays = initialSelection?.days;
   const [mode, setMode] = useState<string>('total');
-  const [budget, setBudget] = useState<number>(20000);
-  const [custom, setCustom] = useState<string>('20,000');
-  const [days, setDays] = useState<string>(step.durations[1]);
-  const [dayparting, setDayparting] = useState(true);
+  const [budget, setBudget] = useState<number>(initialBudget);
+  const [custom, setCustom] = useState<string>(initialBudget.toLocaleString('en-NG'));
+  const [days, setDays] = useState<string>(
+    step.durations.find(option => Number.parseInt(option, 10) === initialDays) ??
+      step.durations[1],
+  );
+  const [dayparting, setDayparting] = useState(initialSelection?.dayparting ?? true);
 
   const customValue = Number(custom.replace(/[^0-9]/g, '')) || 0;
   const invalid = customValue > 0 && customValue < MIN_BUDGET;
-  const activeBudget = mode === 'daily' ? budget * 5 : budget;
-  const activeDays = Number.parseInt(days, 10) || MIN_DAYS;
+  const activeDays = Number.parseInt(days, 10) || initialDays || MIN_DAYS;
+  // Daily mode spends the amount every day of the run.
+  const activeBudget = mode === 'daily' ? budget * activeDays : budget;
+
+  function changeCustom(text: string) {
+    setCustom(text);
+    const value = Number(text.replace(/[^0-9]/g, '')) || 0;
+    if (value > 0) setBudget(value);
+  }
+
+  useEffect(() => {
+    onSelectionChange?.({ budget: activeBudget, days: activeDays, dayparting });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- report choice changes only.
+  }, [activeBudget, activeDays, dayparting]);
+
+  const start = now ?? new Date();
+  const startValue = live ? copy.live.startNow(formatDay(start)) : step.startValue;
+  const endValue = live
+    ? formatDay(new Date(start.getTime() + activeDays * 86_400_000))
+    : step.endValue;
 
   // The design's own model: reach 0.55–0.82 of spend, claims 0.0045–0.0068,
   // with a 1.15x lift while lunch dayparting is on.
@@ -119,12 +169,12 @@ export function BoostBudgetScheduleScreen({
       <SetupSectionCard tone="low" className="flex-row items-center gap-3 p-3">
         <View className="min-w-0 flex-1 gap-0.5">
           <VemtapText variant="labelMd" className="font-sans-semibold" numberOfLines={1}>
-            {step.assetName}
+            {live?.assetName ?? step.assetName}
           </VemtapText>
           <View className="flex-row items-center gap-1.5">
             <View className="h-1.5 w-1.5 rounded-full bg-primary" />
             <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-              {step.assetGoal}
+              {live?.assetGoal ?? step.assetGoal}
             </VemtapText>
           </View>
         </View>
@@ -211,13 +261,13 @@ export function BoostBudgetScheduleScreen({
                   <View className="min-w-0 flex-1 flex-row items-center gap-1">
                     <Icon name="group" size={13} color={colors.textSecondary} />
                     <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-                      {tier.reach}
+                      {live ? (live.tierForecasts[tier.id]?.reach ?? '') : tier.reach}
                     </VemtapText>
                   </View>
                   <View className="min-w-0 flex-1 flex-row items-center gap-1">
                     <Icon name="receipt" size={13} color={colors.textSecondary} />
                     <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-                      {tier.claims}
+                      {live ? (live.tierForecasts[tier.id]?.claims ?? '') : tier.claims}
                     </VemtapText>
                   </View>
                 </View>
@@ -242,7 +292,7 @@ export function BoostBudgetScheduleScreen({
           <BusinessNumberInput
             label={step.customLabel}
             value={custom}
-            onChangeText={setCustom}
+            onChangeText={changeCustom}
             leadingText="\u20a6"
             compact
           />
@@ -277,7 +327,7 @@ export function BoostBudgetScheduleScreen({
                 className="font-sans-semibold"
                 numberOfLines={1}
               >
-                {step.startValue}
+                {startValue}
               </VemtapText>
             </View>
             <View className="shrink-0 rounded-full bg-surface-container px-2 py-0.5">
@@ -297,7 +347,7 @@ export function BoostBudgetScheduleScreen({
                 className="font-sans-semibold"
                 numberOfLines={1}
               >
-                {step.endValue}
+                {endValue}
               </VemtapText>
             </View>
             <View className="shrink-0">
@@ -368,8 +418,9 @@ export function BoostBudgetScheduleScreen({
                 className="font-sans-semibold"
                 numberOfLines={1}
               >
-                {reachLow.toLocaleString('en-NG')} \u2013{' '}
-                {reachHigh.toLocaleString('en-NG')}
+                {live
+                  ? (live.forecast?.reach ?? '\u2026')
+                  : `${reachLow.toLocaleString('en-NG')} \u2013 ${reachHigh.toLocaleString('en-NG')}`}
               </VemtapText>
               <VemtapText variant="micro" tone="secondary" numberOfLines={1}>
                 {step.reachMeta}
@@ -384,31 +435,36 @@ export function BoostBudgetScheduleScreen({
                 className="font-sans-semibold"
                 numberOfLines={1}
               >
-                {claimsLow} \u2013 {claimsHigh}
+                {live
+                  ? (live.forecast?.claims ?? '\u2026')
+                  : `${claimsLow} \u2013 ${claimsHigh}`}
               </VemtapText>
               <VemtapText variant="micro" tone="secondary" numberOfLines={1}>
                 {step.claimsMeta}
               </VemtapText>
             </View>
           </View>
-          <View className="flex-row items-center justify-between gap-2 rounded-field bg-surface-subtle p-3">
-            <VemtapText variant="caption" tone="secondary" className="min-w-0 flex-1">
-              {step.revenueLabel}
-            </VemtapText>
-            <VemtapText
-              variant="labelMd"
-              className="font-sans-semibold"
-              numberOfLines={1}
-            >
-              {formatNaira(revenueLow)} \u2013 {formatNaira(revenueHigh)}
-            </VemtapText>
-          </View>
+          {live && !live.forecast?.revenue ? null : (
+            <View className="flex-row items-center justify-between gap-2 rounded-field bg-surface-subtle p-3">
+              <VemtapText variant="caption" tone="secondary" className="min-w-0 flex-1">
+                {step.revenueLabel}
+              </VemtapText>
+              <VemtapText
+                variant="labelMd"
+                className="font-sans-semibold"
+                numberOfLines={1}
+              >
+                {live?.forecast?.revenue ??
+                  `${formatNaira(revenueLow)} \u2013 ${formatNaira(revenueHigh)}`}
+              </VemtapText>
+            </View>
+          )}
           <View className="flex-row items-center justify-between gap-2">
             <VemtapText variant="micro" tone="tertiary" className="min-w-0 flex-1">
-              {step.forecastNote}
+              {live ? copy.live.forecastNote : step.forecastNote}
             </VemtapText>
             <VemtapText variant="micro" className="shrink-0 text-primary">
-              {step.revenueMeta}
+              {live ? (live.forecast?.revenueMeta ?? '') : step.revenueMeta}
             </VemtapText>
           </View>
         </SetupSectionCard>

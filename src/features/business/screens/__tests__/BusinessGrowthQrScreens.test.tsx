@@ -211,7 +211,10 @@ describe('boost engine', () => {
     );
 
     await pressAndSettle(view, copy.launchCta.replace('{amount}', '₦35,000'));
-    expect(onLaunch).toHaveBeenCalledWith('₦35,000');
+    expect(onLaunch).toHaveBeenCalledWith(
+      '₦35,000',
+      expect.objectContaining({ radiusKm: 3, days: 7, total: 35_000 }),
+    );
 
     await pressAndSettle(view, copy.changeDealCta);
     expect(onChangeDeal).toHaveBeenCalledTimes(1);

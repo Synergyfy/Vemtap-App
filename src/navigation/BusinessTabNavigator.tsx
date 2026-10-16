@@ -158,7 +158,6 @@ import {
 } from '@features/business/utils/catalogueHubRowMappers';
 import { endSession } from '@features/auth/endSession';
 import { navigationRef } from '@navigation/navigationRef';
-import { BoostEngineScreen } from '@features/business/screens/BoostEngineScreen';
 import {
   BusinessAnalyticsVemtapIntelligenceScreen,
   CustomersAnalyticsVemtapIntelligenceScreen,
@@ -167,11 +166,6 @@ import {
   PosAnalyticsVemtapIntelligenceScreen,
   AnalyticsFilterSettingsSheet,
   ExportAnalyticsReportScreen,
-  BoostGoalAudienceScreen,
-  BoostBudgetScheduleScreen,
-  BoostPreviewPaymentScreen,
-  BoostPerformanceScreen,
-  BoostWalletScreen,
 } from '@features/business/screens';
 import { AddServiceAvailabilityRulesScreen } from '@features/business/screens/AddServiceAvailabilityRulesScreen';
 import { AddServiceBasicsMediaScreen } from '@features/business/screens/AddServiceBasicsMediaScreen';
@@ -242,6 +236,12 @@ import { formatDay } from '@features/business/verificationDisplay';
 import { formatCurrency } from '@utils/formatters';
 import { useVerificationStatus } from '@features/business/hooks/useVerification';
 import {
+  BoostBudgetScheduleRoute,
+  BoostEngineRoute,
+  BoostGoalAudienceRoute,
+  BoostPerformanceRoute,
+  BoostPreviewPaymentRoute,
+  BoostWalletRoute,
   CampaignCreateAudienceRoute,
   CampaignCreateBudgetRoute,
   CampaignCreateContentRoute,
@@ -2486,26 +2486,6 @@ function SwitchToCustomerRoute() {
 /* Growth & QR routes                                                         */
 /* -------------------------------------------------------------------------- */
 
-function BoostEngineRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <BoostEngineScreen
-      onBack={navigation.goBack}
-      onOpenNotifications={() => navigation.navigate('BusinessNotifications')}
-      onOpenSubTab={tabKey => {
-        if (tabKey === 'Campaigns') navigation.navigate('CampaignsHub');
-        if (tabKey === 'Segments') navigation.navigate('CustomerSegments');
-        if (tabKey === 'Insights') navigation.navigate('BusinessPerformanceAnalytics');
-      }}
-      onChangeDeal={() => navigation.navigate('CentralDealsManagement')}
-      onLaunch={() => navigation.navigate('BoostGoalAudience')}
-      onViewHistory={() => navigation.navigate('BoostPerformance')}
-      onClaimDeal={() => undefined}
-      onOpenProfile={() => undefined}
-    />
-  );
-}
-
 /* -------------------------------------------------------------------------- */
 /* VEMTAP Intelligence routes                                                  */
 /* -------------------------------------------------------------------------- */
@@ -2660,84 +2640,6 @@ function AnalyticsExportReportRoute() {
 /* -------------------------------------------------------------------------- */
 /* Boost routes                                                               */
 /* -------------------------------------------------------------------------- */
-
-function BoostGoalAudienceRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <BoostGoalAudienceScreen
-      onBack={navigation.goBack}
-      onHelp={() => navigation.navigate('BusinessSupportHelp')}
-      onChangeAsset={() => navigation.navigate('CentralDealsManagement')}
-      onContinue={selection =>
-        navigation.navigate('BoostBudgetSchedule', {
-          goalId: selection.goalId,
-          audienceScope: selection.audienceScope,
-          radiusKm: selection.radiusKm,
-          placements: selection.placements,
-        })
-      }
-    />
-  );
-}
-
-function BoostBudgetScheduleRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <BoostBudgetScheduleScreen
-      onBack={navigation.goBack}
-      onEditSchedule={() => undefined}
-      onContinue={selection =>
-        navigation.navigate('BoostPreviewPayment', {
-          budget: selection.budget,
-          days: selection.days,
-          dayparting: selection.dayparting,
-        })
-      }
-    />
-  );
-}
-
-function BoostPreviewPaymentRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <BoostPreviewPaymentScreen
-      onBack={navigation.goBack}
-      onEditParameters={() => undefined}
-      onLaunch={() => navigation.replace('BoostPerformance')}
-      onSaveDraft={() => navigation.navigate('BoostEngine')}
-      onOpenWallet={() => navigation.navigate('BoostWallet')}
-    />
-  );
-}
-
-function BoostPerformanceRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <BoostPerformanceScreen
-      onBack={navigation.goBack}
-      onShare={() => navigation.navigate('AnalyticsExportReport')}
-      onAddBudget={() => navigation.navigate('BoostBudgetSchedule')}
-      onPause={() => undefined}
-      onEndCampaign={() => undefined}
-      onOpenWallet={() => navigation.navigate('BoostWallet')}
-    />
-  );
-}
-
-function BoostWalletRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <BoostWalletScreen
-      onBack={navigation.goBack}
-      onStatement={() => undefined}
-      onFilterHistory={() => undefined}
-      onViewLedger={() => undefined}
-      onTopUp={() => undefined}
-      onCopyAccount={() => undefined}
-      onTaxInvoices={() => undefined}
-    />
-  );
-}
 
 /* -------------------------------------------------------------------------- */
 /* Create Campaign wizard routes                                              */

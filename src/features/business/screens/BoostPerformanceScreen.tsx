@@ -17,6 +17,12 @@ import {
   BusinessSectionHeader,
 } from '@features/business/components/BusinessAnalyticsPrimitives';
 import { BusinessProgressMeter } from '@features/business/components/BusinessOpsPrimitives';
+import { ErrorState } from '@components/shared/ErrorState';
+import { LoadingState } from '@components/shared/LoadingState';
+import {
+  prototypePerformanceView,
+  type PerformanceView,
+} from '@features/business/utils/campaignPerformanceMappers';
 
 const copy = strings.boostWizard;
 const perf = copy.performance;
@@ -26,9 +32,17 @@ export interface BoostPerformanceScreenProps {
   onShare?: () => void;
   onAddBudget?: () => void;
   onPause?: () => void;
+  onResume?: () => void;
   onEndCampaign?: () => void;
   /** Ending a campaign refunds unspent budget, so it lands in the wallet. */
   onOpenWallet?: () => void;
+  /** The live boost or campaign; the design's sample shows when absent. */
+  performance?: PerformanceView;
+  isLoading?: boolean;
+  error?: string;
+  onRetry?: () => void;
+  /** A pause/resume/end request is in flight. */
+  busy?: boolean;
 }
 
 /**
@@ -42,11 +56,18 @@ export function BoostPerformanceScreen({
   onShare,
   onAddBudget,
   onPause,
+  onResume,
   onEndCampaign,
   onOpenWallet,
+  performance,
+  isLoading = false,
+  error,
+  onRetry,
+  busy = false,
 }: BoostPerformanceScreenProps) {
-  const spend = perf.kpis[0];
-  const redemptions = perf.kpis[1];
+  const view = performance ?? prototypePerformanceView;
+  const { spend, redemptions } = view.kpis;
+  const ready = !isLoading && !error;
 
   return (
     <BusinessScreenLayout
@@ -66,7 +87,7 @@ export function BoostPerformanceScreen({
     >
       <View className="flex-row items-center gap-2">
         <TextActionButton
-          label={perf.backToHub}
+          label={view.backLabel}
           icon="back"
           tone="brand"
           onPress={onBack}
@@ -81,315 +102,378 @@ export function BoostPerformanceScreen({
         </View>
       </View>
       <VemtapText variant="caption" tone="secondary">
-        {perf.headerSub}
+        {view.headerSub}
       </VemtapText>
 
-      <SetupSectionCard tone="lowest" className="gap-2.5 p-4">
-        <View className="flex-row flex-wrap items-center gap-1.5">
-          <View className="rounded-full bg-surface-tint px-2 py-0.5">
-            <VemtapText variant="labelSm" className="font-sans-semibold text-primary">
-              {perf.dealBadge}
-            </VemtapText>
-          </View>
-          <VemtapText variant="caption" tone="tertiary">
-            {perf.dealId}
-          </VemtapText>
-        </View>
-        <VemtapText variant="headingMd" className="font-sans-semibold" numberOfLines={2}>
-          {perf.dealName}
-        </VemtapText>
-        <VemtapText variant="bodyMd" tone="secondary" numberOfLines={2}>
-          {perf.dealSub}
-        </VemtapText>
-        <View className="flex-row items-center gap-2 rounded-field bg-surface-tint px-3 py-2">
-          <View className="h-1.5 w-1.5 rounded-full bg-primary" />
-          <VemtapText
-            variant="labelSm"
-            className="min-w-0 flex-1 font-sans-medium text-primary"
-            numberOfLines={2}
-          >
-            {perf.liveBanner}
-          </VemtapText>
-        </View>
-      </SetupSectionCard>
-
-      <View className="gap-3">
-        <BusinessSectionHeader
-          title={perf.pulseTitle}
-          meta={perf.pulseEyebrow}
-          icon="sync"
-        />
-        <BusinessMetricGrid
-          columns={2}
-          cells={[spend, redemptions, perf.kpis[2], perf.kpis[3]].map(kpi => ({
-            label: kpi.label,
-            value: kpi.value,
-            note: kpi.sub,
-            noteTone: 'brand' as const,
-          }))}
-        />
-        <View className="rounded-card bg-surface-container-lowest p-4 shadow-sm">
-          <BusinessProgressMeter
-            label={spend.label}
-            value={spend.value}
-            percent={spend.percent}
-            filledLabel={spend.consumed}
-            remainingLabel={spend.left}
-          />
-        </View>
-        <View className="flex-row items-center justify-between gap-2 rounded-card bg-surface-container-lowest p-4 shadow-sm">
-          <View className="min-w-0 flex-1 gap-0.5">
-            <VemtapText variant="caption" tone="tertiary">
-              {redemptions.boxLabel}
-            </VemtapText>
-            <VemtapText variant="labelMd" className="font-sans-bold" numberOfLines={1}>
-              {redemptions.boxValue}
-            </VemtapText>
-          </View>
-          <View className="shrink-0 items-end gap-1">
-            <VemtapText variant="micro" className="text-success" numberOfLines={1}>
-              {perf.kpis[2].delta}
-            </VemtapText>
-            <View className="rounded-full bg-badge-discount-bg px-2 py-0.5">
-              <VemtapText
-                variant="micro"
-                className="font-sans-semibold text-badge-discount-text"
-              >
-                {perf.kpis[3].badge}
-              </VemtapText>
-            </View>
-          </View>
-        </View>
-      </View>
-
-      <View className="gap-3">
-        <BusinessSectionHeader
-          title={perf.funnelTitle}
-          meta={perf.funnelSubtitle}
-          icon="tune"
-        />
-        <SetupSectionCard tone="lowest" className="gap-3 p-4">
-          {perf.funnel.map(stage => (
-            <View key={stage.id} className="gap-1.5">
-              <View className="flex-row items-center justify-between gap-2">
-                <VemtapText
-                  variant={'verified' in stage ? 'labelMd' : 'labelSm'}
-                  className={
-                    'verified' in stage
-                      ? 'min-w-0 flex-1 font-sans-semibold text-primary'
-                      : 'min-w-0 flex-1'
-                  }
-                  numberOfLines={2}
-                >
-                  {stage.label}
-                </VemtapText>
-                <View className="shrink-0 items-end">
-                  <VemtapText
-                    variant={'verified' in stage ? 'headingSm' : 'labelSm'}
-                    className="font-sans-bold"
-                    numberOfLines={1}
-                  >
-                    {stage.value}
-                  </VemtapText>
-                  <VemtapText variant="micro" tone="tertiary">
-                    {stage.percent}
-                  </VemtapText>
-                </View>
-              </View>
-              <View className="h-3 overflow-hidden rounded-full bg-surface-container">
-                <View
-                  className="h-full rounded-full bg-primary"
-                  style={{ width: `${stage.fill}%` }}
-                />
-              </View>
-            </View>
-          ))}
-          <VemtapText
-            variant="caption"
-            className="font-sans-medium text-badge-discount-text"
-          >
-            {perf.funnelCaption}
-          </VemtapText>
-          <SetupCallout
-            icon="qrCodeScanner"
-            title={perf.attributionTitle}
-            body={perf.attributionBody}
-            tone="subtle"
-            bodyVariant="caption"
-          />
-        </SetupSectionCard>
-      </View>
-
-      <View className="gap-3">
-        <BusinessSectionHeader
-          title={perf.rhythmTitle}
-          meta={perf.rhythmSubtitle}
-          icon="chartBox"
-        />
-        <SetupSectionCard tone="lowest" className="gap-3 p-4">
-          <View className="flex-row items-center gap-3">
-            <View className="flex-row items-center gap-1">
-              <View className="h-2 w-2 rounded-full bg-primary" />
-              <VemtapText variant="caption" tone="secondary">
-                {perf.rhythmViews}
-              </VemtapText>
-            </View>
-            <View className="flex-row items-center gap-1">
-              <View className="h-2 w-2 rounded-full bg-badge-discount-text" />
-              <VemtapText variant="caption" tone="secondary">
-                {perf.rhythmClaims}
-              </VemtapText>
-            </View>
-          </View>
-          <View className="h-36 flex-row items-end gap-2">
-            {perf.rhythm.map(slot => (
-              <View
-                key={slot.id}
-                className={
-                  'peak' in slot && slot.peak
-                    ? 'min-w-0 flex-1 items-center gap-1 rounded-lg bg-surface-tint p-1'
-                    : 'min-w-0 flex-1 items-center gap-1'
-                }
-              >
-                <View className="w-full flex-1 items-end justify-end gap-0.5">
-                  <View
-                    className="w-full rounded-t-sm bg-primary"
-                    style={{ height: `${slot.views}%` }}
-                  />
-                  <View
-                    className="w-full rounded-t-sm bg-badge-discount-text"
-                    style={{ height: `${slot.claims}%` }}
-                  />
-                </View>
-                <VemtapText
-                  variant="micro"
-                  className={
-                    'peak' in slot && slot.peak
-                      ? 'font-sans-bold text-primary'
-                      : 'text-text-tertiary'
-                  }
-                  numberOfLines={1}
-                >
-                  {slot.label}
+      {isLoading ? <LoadingState /> : null}
+      {!isLoading && error ? <ErrorState description={error} onRetry={onRetry} /> : null}
+      {ready ? (
+        <>
+          <SetupSectionCard tone="lowest" className="gap-2.5 p-4">
+            <View className="flex-row flex-wrap items-center gap-1.5">
+              <View className="rounded-full bg-surface-tint px-2 py-0.5">
+                <VemtapText variant="labelSm" className="font-sans-semibold text-primary">
+                  {view.badge}
                 </VemtapText>
               </View>
-            ))}
-          </View>
-          {'peak' in perf.rhythm[2] && perf.rhythm[2].peak ? (
-            <View className="self-start rounded-full bg-primary px-2 py-0.5">
-              <VemtapText
-                variant="micro"
-                className="font-sans-semibold text-primary-foreground"
-              >
-                {perf.rhythm[2].peak}
-              </VemtapText>
-            </View>
-          ) : null}
-          <View className="flex-row items-center gap-3 rounded-field bg-surface-subtle p-3">
-            <Icon name="restaurant" size={18} color={colors.primary} />
-            <View className="min-w-0 flex-1 gap-0.5">
-              <VemtapText
-                variant="labelSm"
-                className="font-sans-semibold"
-                numberOfLines={2}
-              >
-                {perf.peakTitle}
-              </VemtapText>
-              <VemtapText variant="caption" tone="secondary" numberOfLines={2}>
-                {perf.peakBody}
+              <VemtapText variant="caption" tone="tertiary">
+                {view.idLabel}
               </VemtapText>
             </View>
             <VemtapText
-              variant="labelMd"
-              className="shrink-0 font-sans-bold text-primary"
+              variant="headingMd"
+              className="font-sans-semibold"
+              numberOfLines={2}
             >
-              {perf.peakValue}
+              {view.name}
             </VemtapText>
-          </View>
-        </SetupSectionCard>
-      </View>
+            <VemtapText variant="bodyMd" tone="secondary" numberOfLines={2}>
+              {view.sub}
+            </VemtapText>
+            <View className="flex-row items-center gap-2 rounded-field bg-surface-tint px-3 py-2">
+              <View className="h-1.5 w-1.5 rounded-full bg-primary" />
+              <VemtapText
+                variant="labelSm"
+                className="min-w-0 flex-1 font-sans-medium text-primary"
+                numberOfLines={2}
+              >
+                {view.banner}
+              </VemtapText>
+            </View>
+          </SetupSectionCard>
 
-      <View className="gap-3">
-        <BusinessSectionHeader
-          title={perf.geoTitle}
-          meta={perf.geoSubtitle}
-          icon="distance"
-        />
-        <View className="gap-2">
-          {perf.geo.map(cluster => (
-            <View
-              key={cluster.id}
-              className="gap-2 rounded-card bg-surface-container-lowest p-3.5 shadow-sm"
-            >
-              <View className="flex-row items-start justify-between gap-2">
-                <View className="min-w-0 flex-1 gap-0.5">
-                  <VemtapText
-                    variant="labelMd"
-                    className="font-sans-semibold"
-                    numberOfLines={1}
-                  >
-                    {cluster.name}
-                  </VemtapText>
-                  {'meta' in cluster ? (
-                    <VemtapText variant="caption" tone="tertiary" numberOfLines={1}>
-                      {cluster.meta}
-                    </VemtapText>
-                  ) : null}
-                </View>
-                <VemtapText variant="labelMd" className="shrink-0 font-sans-bold">
-                  {cluster.percent}
+          <View className="gap-3">
+            <BusinessSectionHeader
+              title={perf.pulseTitle}
+              meta={view.pulseEyebrow}
+              icon="sync"
+            />
+            <BusinessMetricGrid
+              columns={2}
+              cells={[spend, redemptions, view.kpis.reach, view.kpis.cost].map(kpi => ({
+                label: kpi.label,
+                value: kpi.value,
+                note: kpi.sub,
+                noteTone: 'brand' as const,
+              }))}
+            />
+            <View className="rounded-card bg-surface-container-lowest p-4 shadow-sm">
+              <BusinessProgressMeter
+                label={spend.label}
+                value={spend.value}
+                percent={spend.percent}
+                filledLabel={spend.consumed}
+                remainingLabel={spend.left}
+              />
+            </View>
+            <View className="flex-row items-center justify-between gap-2 rounded-card bg-surface-container-lowest p-4 shadow-sm">
+              <View className="min-w-0 flex-1 gap-0.5">
+                <VemtapText variant="caption" tone="tertiary">
+                  {redemptions.boxLabel}
+                </VemtapText>
+                <VemtapText
+                  variant="labelMd"
+                  className="font-sans-bold"
+                  numberOfLines={1}
+                >
+                  {redemptions.boxValue}
                 </VemtapText>
               </View>
-              <View className="flex-row items-center justify-between gap-2">
-                <VemtapText variant="micro" tone="secondary" numberOfLines={1}>
-                  {cluster.diners}
-                </VemtapText>
-                <VemtapText variant="micro" tone="tertiary" numberOfLines={1}>
-                  {cluster.note}
-                </VemtapText>
+              <View className="shrink-0 items-end gap-1">
+                {view.kpis.reach.delta ? (
+                  <VemtapText variant="micro" className="text-success" numberOfLines={1}>
+                    {view.kpis.reach.delta}
+                  </VemtapText>
+                ) : null}
+                {view.kpis.cost.badge ? (
+                  <View className="rounded-full bg-badge-discount-bg px-2 py-0.5">
+                    <VemtapText
+                      variant="micro"
+                      className="font-sans-semibold text-badge-discount-text"
+                    >
+                      {view.kpis.cost.badge}
+                    </VemtapText>
+                  </View>
+                ) : null}
               </View>
             </View>
-          ))}
-        </View>
-      </View>
+          </View>
 
-      <View className="gap-3">
-        <SetupSectionHeading title={perf.optimizeTitle} />
-        <VemtapText variant="caption" tone="secondary">
-          {perf.optimizeSubtitle}
-        </VemtapText>
-        <View className="gap-2">
-          <Button
-            label={perf.addBudget}
-            labelVariant="button"
-            size="md"
-            className="min-h-[52px] rounded-xl"
-            leftIcon={<Icon name="bolt" size={18} color={colors.surface} />}
-            onPress={onAddBudget}
-          />
-          <Button
-            label={perf.pauseCta}
-            labelVariant="labelMd"
-            variant="secondary"
-            size="md"
-            className="min-h-[44px] rounded-xl"
-            leftIcon={<Icon name="pauseCircle" size={18} color={colors.text} />}
-            onPress={onPause}
-          />
-          <Button
-            label={perf.endCta}
-            labelVariant="labelMd"
-            variant="ghost"
-            size="md"
-            className="min-h-[44px] rounded-xl"
-            leftIcon={<Icon name="close" size={18} color={colors.error} />}
-            onPress={() => {
-              onEndCampaign?.();
-              onOpenWallet?.();
-            }}
-          />
-        </View>
-      </View>
+          <View className="gap-3">
+            <BusinessSectionHeader
+              title={perf.funnelTitle}
+              meta={perf.funnelSubtitle}
+              icon="tune"
+            />
+            <SetupSectionCard tone="lowest" className="gap-3 p-4">
+              {view.funnel.map(stage => (
+                <View key={stage.id} className="gap-1.5">
+                  <View className="flex-row items-center justify-between gap-2">
+                    <VemtapText
+                      variant={stage.verified ? 'labelMd' : 'labelSm'}
+                      className={
+                        stage.verified
+                          ? 'min-w-0 flex-1 font-sans-semibold text-primary'
+                          : 'min-w-0 flex-1'
+                      }
+                      numberOfLines={2}
+                    >
+                      {stage.label}
+                    </VemtapText>
+                    <View className="shrink-0 items-end">
+                      <VemtapText
+                        variant={stage.verified ? 'headingSm' : 'labelSm'}
+                        className="font-sans-bold"
+                        numberOfLines={1}
+                      >
+                        {stage.value}
+                      </VemtapText>
+                      <VemtapText variant="micro" tone="tertiary">
+                        {stage.percent}
+                      </VemtapText>
+                    </View>
+                  </View>
+                  <View className="h-3 overflow-hidden rounded-full bg-surface-container">
+                    <View
+                      className="h-full rounded-full bg-primary"
+                      style={{ width: `${stage.fill}%` }}
+                    />
+                  </View>
+                </View>
+              ))}
+              {view.funnelCaption ? (
+                <VemtapText
+                  variant="caption"
+                  className="font-sans-medium text-badge-discount-text"
+                >
+                  {view.funnelCaption}
+                </VemtapText>
+              ) : null}
+              <SetupCallout
+                icon="qrCodeScanner"
+                title={view.attributionTitle}
+                body={view.attributionBody}
+                tone="subtle"
+                bodyVariant="caption"
+              />
+            </SetupSectionCard>
+          </View>
+
+          <View className="gap-3">
+            <BusinessSectionHeader
+              title={perf.rhythmTitle}
+              meta={view.rhythmSubtitle}
+              icon="chartBox"
+            />
+            <SetupSectionCard tone="lowest" className="gap-3 p-4">
+              <View className="flex-row items-center gap-3">
+                {view.showViews ? (
+                  <View className="flex-row items-center gap-1">
+                    <View className="h-2 w-2 rounded-full bg-primary" />
+                    <VemtapText variant="caption" tone="secondary">
+                      {perf.rhythmViews}
+                    </VemtapText>
+                  </View>
+                ) : null}
+                <View className="flex-row items-center gap-1">
+                  <View className="h-2 w-2 rounded-full bg-badge-discount-text" />
+                  <VemtapText variant="caption" tone="secondary">
+                    {perf.rhythmClaims}
+                  </VemtapText>
+                </View>
+              </View>
+              <View className="h-36 flex-row items-end gap-2">
+                {view.rhythm.map((slot, index) => (
+                  <View
+                    key={slot.id}
+                    className={
+                      view.peak?.index === index
+                        ? 'min-w-0 flex-1 items-center gap-1 rounded-lg bg-surface-tint p-1'
+                        : 'min-w-0 flex-1 items-center gap-1'
+                    }
+                  >
+                    <View className="w-full flex-1 items-end justify-end gap-0.5">
+                      {view.showViews ? (
+                        <View
+                          className="w-full rounded-t-sm bg-primary"
+                          style={{ height: `${slot.views}%` }}
+                        />
+                      ) : null}
+                      <View
+                        className="w-full rounded-t-sm bg-badge-discount-text"
+                        style={{ height: `${slot.claims}%` }}
+                      />
+                    </View>
+                    <VemtapText
+                      variant="micro"
+                      className={
+                        view.peak?.index === index
+                          ? 'font-sans-bold text-primary'
+                          : 'text-text-tertiary'
+                      }
+                      numberOfLines={1}
+                    >
+                      {slot.label}
+                    </VemtapText>
+                  </View>
+                ))}
+              </View>
+              {view.peak ? (
+                <View className="self-start rounded-full bg-primary px-2 py-0.5">
+                  <VemtapText
+                    variant="micro"
+                    className="font-sans-semibold text-primary-foreground"
+                  >
+                    {view.peak.tag}
+                  </VemtapText>
+                </View>
+              ) : (
+                <VemtapText variant="caption" tone="tertiary">
+                  {perf.live.noActivity}
+                </VemtapText>
+              )}
+              {view.peak ? (
+                <View className="flex-row items-center gap-3 rounded-field bg-surface-subtle p-3">
+                  <Icon name="restaurant" size={18} color={colors.primary} />
+                  <View className="min-w-0 flex-1 gap-0.5">
+                    <VemtapText
+                      variant="labelSm"
+                      className="font-sans-semibold"
+                      numberOfLines={2}
+                    >
+                      {view.peak.title}
+                    </VemtapText>
+                    <VemtapText variant="caption" tone="secondary" numberOfLines={2}>
+                      {view.peak.body}
+                    </VemtapText>
+                  </View>
+                  <VemtapText
+                    variant="labelMd"
+                    className="shrink-0 font-sans-bold text-primary"
+                  >
+                    {view.peak.value}
+                  </VemtapText>
+                </View>
+              ) : null}
+            </SetupSectionCard>
+          </View>
+
+          <View className="gap-3">
+            <BusinessSectionHeader
+              title={view.geoTitle}
+              meta={view.geoSubtitle}
+              icon="distance"
+            />
+            <View className="gap-2">
+              {view.geo.length === 0 ? (
+                <VemtapText variant="caption" tone="tertiary">
+                  {perf.live.noActivity}
+                </VemtapText>
+              ) : null}
+              {view.geo.map(cluster => (
+                <View
+                  key={cluster.id}
+                  className="gap-2 rounded-card bg-surface-container-lowest p-3.5 shadow-sm"
+                >
+                  <View className="flex-row items-start justify-between gap-2">
+                    <View className="min-w-0 flex-1 gap-0.5">
+                      <VemtapText
+                        variant="labelMd"
+                        className="font-sans-semibold"
+                        numberOfLines={1}
+                      >
+                        {cluster.name}
+                      </VemtapText>
+                      {cluster.meta ? (
+                        <VemtapText variant="caption" tone="tertiary" numberOfLines={1}>
+                          {cluster.meta}
+                        </VemtapText>
+                      ) : null}
+                    </View>
+                    <VemtapText variant="labelMd" className="shrink-0 font-sans-bold">
+                      {cluster.percent}
+                    </VemtapText>
+                  </View>
+                  <View className="flex-row items-center justify-between gap-2">
+                    <VemtapText variant="micro" tone="secondary" numberOfLines={1}>
+                      {cluster.diners}
+                    </VemtapText>
+                    {cluster.note ? (
+                      <VemtapText variant="micro" tone="tertiary" numberOfLines={1}>
+                        {cluster.note}
+                      </VemtapText>
+                    ) : null}
+                  </View>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          <View className="gap-3">
+            <SetupSectionHeading title={perf.optimizeTitle} />
+            <VemtapText variant="caption" tone="secondary">
+              {perf.optimizeSubtitle}
+            </VemtapText>
+            {view.endedNote ? (
+              <VemtapText variant="caption" tone="secondary">
+                {view.endedNote}
+              </VemtapText>
+            ) : null}
+            <View className="gap-2">
+              {view.canAddBudget ? (
+                <Button
+                  label={perf.addBudget}
+                  labelVariant="button"
+                  size="md"
+                  className="min-h-[52px] rounded-xl"
+                  leftIcon={<Icon name="bolt" size={18} color={colors.surface} />}
+                  onPress={onAddBudget}
+                />
+              ) : null}
+              {view.canPause ? (
+                <Button
+                  label={perf.pauseCta}
+                  labelVariant="labelMd"
+                  variant="secondary"
+                  size="md"
+                  className="min-h-[44px] rounded-xl"
+                  leftIcon={<Icon name="pauseCircle" size={18} color={colors.text} />}
+                  disabled={busy}
+                  onPress={onPause}
+                />
+              ) : null}
+              {view.canResume ? (
+                <Button
+                  label={perf.live.resumeCta}
+                  labelVariant="labelMd"
+                  variant="secondary"
+                  size="md"
+                  className="min-h-[44px] rounded-xl"
+                  leftIcon={<Icon name="playCircle" size={18} color={colors.text} />}
+                  disabled={busy}
+                  onPress={onResume}
+                />
+              ) : null}
+              {view.canEnd ? (
+                <Button
+                  label={view.endLabel}
+                  labelVariant="labelMd"
+                  variant="ghost"
+                  size="md"
+                  className="min-h-[44px] rounded-xl"
+                  leftIcon={<Icon name="close" size={18} color={colors.error} />}
+                  disabled={busy}
+                  onPress={() => {
+                    onEndCampaign?.();
+                    // Live callers open the wallet once the refund has landed.
+                    if (!performance) onOpenWallet?.();
+                  }}
+                />
+              ) : null}
+            </View>
+          </View>
+        </>
+      ) : null}
     </BusinessScreenLayout>
   );
 }

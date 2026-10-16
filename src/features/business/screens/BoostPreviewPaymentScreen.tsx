@@ -25,6 +25,10 @@ import {
   BusinessSegmentTabs,
   type BusinessSegmentTab,
 } from '@features/business/components/BusinessOpsPrimitives';
+import {
+  prototypeBoostPreviewView,
+  type BoostPreviewView,
+} from '@features/business/utils/boostMappers';
 
 cssInterop(Pressable, { className: 'style' });
 
@@ -44,6 +48,12 @@ export interface BoostPreviewPaymentScreenProps {
   onSaveDraft?: () => void;
   /** Opens Boost Wallet & Credits from the wallet payment method. */
   onOpenWallet?: () => void;
+  /** The live boost; the design's sample when absent. */
+  preview?: BoostPreviewView;
+  initialMethod?: string;
+  /** Live callers own the launch (it waits for the API). */
+  launching?: boolean;
+  error?: string;
 }
 
 function LaunchButton({
@@ -90,14 +100,22 @@ export function BoostPreviewPaymentScreen({
   onLaunch,
   onSaveDraft,
   onOpenWallet,
+  preview,
+  initialMethod,
+  launching: launchingProp,
+  error,
 }: BoostPreviewPaymentScreenProps) {
+  const view = preview ?? prototypeBoostPreviewView;
   const [tab, setTab] = useState<string>('feed');
-  const [method, setMethod] = useState<string>(step.methods[0].id);
+  const [method, setMethod] = useState<string>(initialMethod ?? view.methods[0].id);
   const [agreed, setAgreed] = useState(true);
-  const [launching, setLaunching] = useState(false);
-  const [done, setDone] = useState(false);
+  const [launchingLocal, setLaunching] = useState(false);
+  const [doneLocal, setDone] = useState(false);
+  // The prototype fakes the launch; live callers report it.
+  const launching = preview ? Boolean(launchingProp) : launchingLocal;
+  const done = preview ? false : doneLocal;
 
-  const methodCopy = step.methods.find(option => option.id === method) ?? step.methods[0];
+  const methodCopy = view.methods.find(option => option.id === method) ?? view.methods[0];
 
   return (
     <BusinessScreenLayout
@@ -108,14 +126,16 @@ export function BoostPreviewPaymentScreen({
           <LaunchButton
             launching={launching}
             done={done}
-            label={done ? step.ctaDone : launching ? step.ctaLoading : step.cta}
+            label={done ? step.ctaDone : launching ? step.ctaLoading : view.cta}
             onPress={() => {
               if (!agreed || launching) {
-                setLaunching(false);
+                if (!preview) setLaunching(false);
                 return;
               }
-              setLaunching(true);
-              setDone(true);
+              if (!preview) {
+                setLaunching(true);
+                setDone(true);
+              }
               onLaunch?.(methodCopy.id);
             }}
           />
@@ -179,7 +199,7 @@ export function BoostPreviewPaymentScreen({
                     className="text-inverse-on-surface"
                     numberOfLines={1}
                   >
-                    {step.feedDistance}
+                    {view.feed.distance}
                   </VemtapText>
                 </View>
                 <View className="h-7 w-7 shrink-0 items-center justify-center rounded-full bg-surface-subtle">
@@ -188,12 +208,12 @@ export function BoostPreviewPaymentScreen({
               </View>
               <View className="h-24 w-full items-center justify-center rounded-field bg-surface-subtle">
                 <VemtapText variant="caption" tone="tertiary" numberOfLines={1}>
-                  {step.feedName}
+                  {view.feed.name}
                 </VemtapText>
               </View>
               <View className="flex-row items-center gap-1.5">
                 <VemtapText variant="labelSm" tone="secondary" numberOfLines={1}>
-                  {step.feedBusiness}
+                  {view.feed.business}
                 </VemtapText>
                 <Icon name="verified" size={12} color={colors.badgeDiscountText} />
               </View>
@@ -202,44 +222,58 @@ export function BoostPreviewPaymentScreen({
                 className="font-sans-semibold"
                 numberOfLines={2}
               >
-                {step.feedName}
+                {view.feed.name}
               </VemtapText>
               <View className="flex-row flex-wrap items-center gap-2">
-                <VemtapText variant="headingSm" className="font-sans-bold text-primary">
-                  {step.feedPrice}
-                </VemtapText>
-                <VemtapText variant="caption" tone="tertiary" className="line-through">
-                  {step.feedWas}
-                </VemtapText>
-                <View className="rounded-full bg-badge-discount-bg px-2 py-0.5">
-                  <VemtapText
-                    variant="caption"
-                    className="font-sans-semibold text-badge-discount-text"
-                  >
-                    {step.feedSave}
+                {view.feed.price ? (
+                  <VemtapText variant="headingSm" className="font-sans-bold text-primary">
+                    {view.feed.price}
                   </VemtapText>
-                </View>
+                ) : null}
+                {view.feed.was ? (
+                  <VemtapText variant="caption" tone="tertiary" className="line-through">
+                    {view.feed.was}
+                  </VemtapText>
+                ) : null}
+                {view.feed.save ? (
+                  <View className="rounded-full bg-badge-discount-bg px-2 py-0.5">
+                    <VemtapText
+                      variant="caption"
+                      className="font-sans-semibold text-badge-discount-text"
+                    >
+                      {view.feed.save}
+                    </VemtapText>
+                  </View>
+                ) : null}
               </View>
               <View className="flex-row items-center justify-center gap-1 rounded-xl bg-primary py-2.5">
                 <VemtapText
                   variant="labelMd"
                   className="font-sans-semibold text-primary-foreground"
                 >
-                  {step.feedCta}
+                  {view.feed.cta}
                 </VemtapText>
                 <Icon name="arrowForward" size={16} color={colors.surface} />
               </View>
-              <View className="flex-row flex-wrap items-center gap-x-3 gap-y-1">
-                <VemtapText variant="micro" tone="secondary" numberOfLines={1}>
-                  {step.feedLikes}
-                </VemtapText>
-                <VemtapText variant="micro" tone="secondary" numberOfLines={1}>
-                  {step.feedShares}
-                </VemtapText>
-                <VemtapText variant="micro" className="text-primary" numberOfLines={1}>
-                  {step.feedSpeed}
-                </VemtapText>
-              </View>
+              {view.feed.stats ? (
+                <View className="flex-row flex-wrap items-center gap-x-3 gap-y-1">
+                  {view.feed.stats.map((stat, index) => (
+                    <VemtapText
+                      key={stat}
+                      variant="micro"
+                      tone={
+                        index === view.feed.stats!.length - 1 ? undefined : 'secondary'
+                      }
+                      className={
+                        index === view.feed.stats!.length - 1 ? 'text-primary' : undefined
+                      }
+                      numberOfLines={1}
+                    >
+                      {stat}
+                    </VemtapText>
+                  ))}
+                </View>
+              ) : null}
             </View>
           ) : null}
 
@@ -258,14 +292,14 @@ export function BoostPreviewPaymentScreen({
                     className="font-sans-semibold text-inverse-on-surface"
                     numberOfLines={1}
                   >
-                    {step.spotlightTitle}
+                    {view.spotlight.title}
                   </VemtapText>
                   <VemtapText
                     variant="micro"
                     className="text-inverse-on-surface"
                     numberOfLines={1}
                   >
-                    {step.spotlightSub}
+                    {view.spotlight.sub}
                   </VemtapText>
                 </View>
                 <View className="flex-row items-center justify-between gap-2 p-3">
@@ -277,14 +311,16 @@ export function BoostPreviewPaymentScreen({
                       {step.spotlightTag}
                     </VemtapText>
                   </View>
-                  <VemtapText
-                    variant="caption"
-                    tone="tertiary"
-                    className="min-w-0 flex-1 text-right"
-                    numberOfLines={2}
-                  >
-                    {step.spotlightCaption}
-                  </VemtapText>
+                  {view.spotlight.caption ? (
+                    <VemtapText
+                      variant="caption"
+                      tone="tertiary"
+                      className="min-w-0 flex-1 text-right"
+                      numberOfLines={2}
+                    >
+                      {view.spotlight.caption}
+                    </VemtapText>
+                  ) : null}
                 </View>
               </View>
             </View>
@@ -318,22 +354,24 @@ export function BoostPreviewPaymentScreen({
                   className="font-sans-semibold"
                   numberOfLines={2}
                 >
-                  {step.pushTitle}
+                  {view.push.title}
                 </VemtapText>
                 <VemtapText variant="caption" tone="secondary">
-                  {step.pushBody}
+                  {view.push.body}
                 </VemtapText>
               </View>
               <View className="h-12 w-12 shrink-0 rounded-field bg-surface-subtle" />
             </View>
           ) : null}
         </PreviewShell>
-        <SetupCallout
-          icon="group"
-          body={step.trustNote}
-          tone="tint"
-          bodyVariant="caption"
-        />
+        {view.trustNote ? (
+          <SetupCallout
+            icon="group"
+            body={view.trustNote}
+            tone="tint"
+            bodyVariant="caption"
+          />
+        ) : null}
       </View>
 
       <View className="gap-3">
@@ -348,7 +386,7 @@ export function BoostPreviewPaymentScreen({
         </View>
         <View className="rounded-card">
           <SetupSectionCard tone="lowest" className="gap-0 p-0">
-            {step.params.map((row, index) => (
+            {view.params.map((row, index) => (
               <View key={row.id}>
                 {index > 0 ? <View className="h-px bg-surface-container" /> : null}
                 <View className="px-4 py-3">
@@ -356,7 +394,7 @@ export function BoostPreviewPaymentScreen({
                     icon={row.icon}
                     label={row.label}
                     value={row.value}
-                    detail={'detail' in row ? row.detail : undefined}
+                    detail={row.detail}
                   />
                 </View>
               </View>
@@ -380,7 +418,7 @@ export function BoostPreviewPaymentScreen({
               className="font-sans-bold"
               numberOfLines={1}
             >
-              {step.totalValue}
+              {view.total.value}
             </VemtapText>
           </View>
           <View className="shrink-0 items-end gap-1">
@@ -389,45 +427,38 @@ export function BoostPreviewPaymentScreen({
                 variant="labelSm"
                 className="font-sans-semibold text-badge-discount-text"
               >
-                {step.totalNote}
+                {view.total.note}
               </VemtapText>
             </View>
             <VemtapText variant="caption" tone="tertiary">
-              {step.totalPace}
+              {view.total.pace}
             </VemtapText>
           </View>
         </SetupSectionCard>
 
         <View className="gap-2">
-          {step.methods.map(option => {
+          {view.methods.map(option => {
             // The wallet method doubles as the door into Boost Wallet & Credits.
-            const chip =
-              'chip' in option ? (
-                option.id === 'wallet' && onOpenWallet ? (
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={step.openWallet}
-                    onPress={onOpenWallet}
-                    className="self-start rounded-full bg-surface-tint px-2 py-0.5"
-                  >
-                    <VemtapText
-                      variant="micro"
-                      className="font-sans-semibold text-primary"
-                    >
-                      {option.chip}
-                    </VemtapText>
-                  </Pressable>
-                ) : (
-                  <View className="self-start rounded-full bg-surface-tint px-2 py-0.5">
-                    <VemtapText
-                      variant="micro"
-                      className="font-sans-semibold text-primary"
-                    >
-                      {option.chip}
-                    </VemtapText>
-                  </View>
-                )
-              ) : null;
+            const chip = option.chip ? (
+              option.id === 'wallet' && onOpenWallet ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={step.openWallet}
+                  onPress={onOpenWallet}
+                  className="self-start rounded-full bg-surface-tint px-2 py-0.5"
+                >
+                  <VemtapText variant="micro" className="font-sans-semibold text-primary">
+                    {option.chip}
+                  </VemtapText>
+                </Pressable>
+              ) : (
+                <View className="self-start rounded-full bg-surface-tint px-2 py-0.5">
+                  <VemtapText variant="micro" className="font-sans-semibold text-primary">
+                    {option.chip}
+                  </VemtapText>
+                </View>
+              )
+            ) : null;
             return (
               <SetupSectionCard
                 key={option.id}
@@ -463,7 +494,7 @@ export function BoostPreviewPaymentScreen({
                 <VemtapText variant="caption" tone="secondary">
                   {option.body}
                 </VemtapText>
-                {'note' in option ? (
+                {option.note ? (
                   <VemtapText variant="micro" tone="tertiary">
                     {option.note}
                   </VemtapText>
@@ -475,12 +506,17 @@ export function BoostPreviewPaymentScreen({
 
         <BusinessCheckRow
           type="checkbox"
-          title={`${step.termsPrefix} ${step.termsLink}. ${step.termsSuffix}`}
+          title={`${step.termsPrefix} ${step.termsLink}. ${view.termsSuffix}`}
           selected={agreed}
           onPress={() => setAgreed(current => !current)}
         />
         {!agreed ? (
           <SetupCallout icon="alert" body={step.termsAlert} tone="subtle" />
+        ) : null}
+        {error ? (
+          <VemtapText variant="caption" className="text-error" accessibilityRole="alert">
+            {error}
+          </VemtapText>
         ) : null}
       </View>
     </BusinessScreenLayout>

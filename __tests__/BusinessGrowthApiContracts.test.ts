@@ -9,7 +9,8 @@ import {
   promotionsPageSchema,
   promotionEligibleAssetSchema,
   launchedPromotionSchema,
-  boostForecastSchema,
+  promotionStatsSchema,
+  sponsoredCampaignOptionsSchema,
 } from '../src/api';
 
 describe('new business growth api contracts', () => {
@@ -21,28 +22,30 @@ describe('new business growth api contracts', () => {
     expect(typeof segmentsApi.getSegmentInsights).toBe('function');
 
     expect(promotionsApi).toBeTruthy();
-    expect(typeof promotionsApi.listPromotions).toBe('function');
-    expect(typeof promotionsApi.createPromotion).toBe('function');
-    expect(typeof promotionsApi.getPromotion).toBe('function');
-    expect(typeof promotionsApi.getPromotionStats).toBe('function');
-    expect(typeof promotionsApi.forecastPromotion).toBe('function');
-
-    expect(boostsApi).toBeTruthy();
-    expect(typeof boostsApi.listBoosts).toBe('function');
-    expect(typeof boostsApi.createBoost).toBe('function');
-    expect(typeof boostsApi.launchBoost).toBe('function');
-    expect(typeof boostsApi.getBoostOptions).toBe('function');
-    expect(typeof boostsApi.forecastBoost).toBe('function');
+    // `/promotions` and `/boosts` share one controller, so one client shape.
+    for (const api of [promotionsApi, boostsApi]) {
+      for (const method of [
+        'list',
+        'create',
+        'get',
+        'launch',
+        'stats',
+        'options',
+        'forecast',
+      ]) {
+        expect(typeof api[method as keyof typeof api]).toBe('function');
+      }
+    }
 
     expect(adWalletApi).toBeTruthy();
     expect(typeof adWalletApi.getWallet).toBe('function');
     expect(typeof adWalletApi.listTransactions).toBe('function');
     expect(typeof adWalletApi.listPrepacks).toBe('function');
     expect(typeof adWalletApi.topUpWallet).toBe('function');
-    expect(typeof adWalletApi.getInvoice).toBe('function');
+    expect(typeof adWalletApi.confirmTopUp).toBe('function');
   });
 
-  it('accepts the expected forecast payload shapes for segments, promotions and boosts', () => {
+  it('accepts the backend payloads for segments, promotions and boosts', () => {
     const preview = segmentReachSchema.parse({
       size: 128,
       reachableByPush: 72,
@@ -151,14 +154,40 @@ describe('new business growth api contracts', () => {
     });
     expect(insight.favourites[0].orders).toBe(4);
 
-    const boostForecast = boostForecastSchema.parse({
-      reachMin: 500,
-      reachMax: 1200,
-      claimsMin: 18,
-      claimsMax: 44,
-      estReturn: 1600,
-      confidence: 'medium',
+    const stats = promotionStatsSchema.parse({
+      id: 'p1',
+      kind: 'boost',
+      status: 'Active',
+      kpis: {
+        budget: 20000,
+        spent: 12450,
+        left: 7550,
+        percentConsumed: 62,
+        redemptions: 64,
+        grossRevenue: 614400,
+        reach: 10840,
+        returnOnSpend: 49.35,
+      },
+      funnel: [{ id: 'impressions', label: 'Impressions', value: 10840 }],
+      rhythm: [{ hour: 13, claims: 28 }],
+      byBranch: [{ branchId: 'b1', name: 'Wuse II', claims: 37 }],
+      series: [{ date: '2026-10-14', spend: '4150.00', claims: 60 }],
     });
-    expect(boostForecast.reachMax).toBe(1200);
+    expect(stats.series[0].spend).toBe(4150);
+
+    const options = sponsoredCampaignOptionsSchema.parse({
+      radiusKm: [1, 3, 5, 10],
+      placements: [{ id: 'feed', label: 'Deal Discovery Feed' }],
+      daypartWindows: [
+        { id: 'lunch', label: 'Lunch Rush', start: '11:30', end: '15:30' },
+      ],
+      durationsDays: [3, 5, 7, 14, 30],
+      budgetModes: ['total', 'daily'],
+      minBudget: 2000,
+      goals: [{ id: 'claims', label: 'More Deal Claims & Sales' }],
+      audienceScopes: [{ id: 'nearby', label: 'Nearby Customers' }],
+      budgetTiers: [{ id: '10', amount: 10000, label: 'Starter' }],
+    });
+    expect(options.goals?.[0].id).toBe('claims');
   });
 });
