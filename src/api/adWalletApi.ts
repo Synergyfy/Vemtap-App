@@ -10,12 +10,35 @@ import { decimal } from '@api/schemaHelpers';
  * released when it ends. Not `/credits` (messaging credits).
  */
 
+/** The saved card, display fields only (the API never returns the authorization). */
+export const adWalletCardSchema = z.object({
+  brand: z.string().nullish(),
+  last4: z.string().nullish(),
+  expMonth: z.string().nullish(),
+  expYear: z.string().nullish(),
+  bank: z.string().nullish(),
+});
+export type AdWalletCard = z.infer<typeof adWalletCardSchema>;
+
+/** Top up from the saved card when spendable money drops below `threshold`. */
+export const adWalletAutoReloadSchema = z.object({
+  enabled: z.boolean(),
+  threshold: decimal(),
+  amount: decimal(),
+  /** Why auto-reload switched itself off (a declined card). */
+  lastError: z.string().nullish(),
+});
+export type AdWalletAutoReload = z.infer<typeof adWalletAutoReloadSchema>;
+
 export const adWalletBalanceSchema = z.object({
   walletRef: z.string(),
   balance: decimal(),
   reserved: decimal(),
   spendable: decimal(),
   currency: z.string().optional(),
+  // Optional: servers before saved cards do not send these.
+  card: adWalletCardSchema.nullish(),
+  autoReload: adWalletAutoReloadSchema.nullish(),
 });
 export type AdWalletBalance = z.infer<typeof adWalletBalanceSchema>;
 
@@ -79,6 +102,39 @@ export const adWalletTopUpConfirmationSchema = z.object({
 });
 export type AdWalletTopUpConfirmation = z.infer<typeof adWalletTopUpConfirmationSchema>;
 
+export const adWalletSavedCardTopUpSchema = z.object({
+  reference: z.string(),
+  status: z.enum(['completed', 'failed']),
+  reason: z.string().nullish(),
+  wallet: adWalletBalanceSchema,
+});
+export type AdWalletSavedCardTopUp = z.infer<typeof adWalletSavedCardTopUpSchema>;
+
+/** One invoice per launched boost or campaign (no VAT is charged). */
+export const adWalletInvoiceSchema = z.object({
+  id: z.string(),
+  invoiceNo: z.string().nullish(),
+  /** `Ad wallet`, `Card top-up` or `Saved card`. */
+  paymentMethod: z.string().nullish(),
+  amount: decimal(),
+  currency: z.string().optional(),
+  status: z.string(),
+  date: z.string(),
+  campaign: z
+    .object({ id: z.string(), name: z.string().nullish(), kind: z.string() })
+    .nullish(),
+});
+export type AdWalletInvoice = z.infer<typeof adWalletInvoiceSchema>;
+
+export const adWalletInvoicesPageSchema = z.object({
+  data: z.array(adWalletInvoiceSchema),
+  total: z.number(),
+  page: z.number(),
+  limit: z.number(),
+  hasNextPage: z.boolean(),
+});
+export type AdWalletInvoicesPage = z.infer<typeof adWalletInvoicesPageSchema>;
+
 export const adWalletApi = {
   async getWallet(options: ApiRequestOptions = {}): Promise<AdWalletBalance> {
     return requestValidated<AdWalletBalance>(
@@ -106,7 +162,13 @@ export const adWalletApi = {
 
   /** Start a card top-up for a bundle or a custom amount (₦2,000+, no bonus). */
   async topUpWallet(
-    input: { prepackId?: string; amount?: number; callbackUrl?: string },
+    input: {
+      prepackId?: string;
+      amount?: number;
+      callbackUrl?: string;
+      /** Keep the card for later top-ups (owner consent). */
+      saveCard?: boolean;
+    },
     options: ApiRequestOptions = {},
   ): Promise<AdWalletTopUp> {
     return requestValidated<AdWalletTopUp>(
@@ -123,6 +185,55 @@ export const adWalletApi = {
     return requestValidated<AdWalletTopUpConfirmation>(
       { method: 'POST', url: `/ad-wallet/top-up/${reference}/confirm`, ...options },
       adWalletTopUpConfirmationSchema,
+    );
+  },
+
+  /** Charge the saved card directly; no checkout. */
+  async topUpWithSavedCard(
+    input: { prepackId?: string; amount?: number },
+    options: ApiRequestOptions = {},
+  ): Promise<AdWalletSavedCardTopUp> {
+    return requestValidated<AdWalletSavedCardTopUp>(
+      { method: 'POST', url: '/ad-wallet/top-up/saved-card', data: input, ...options },
+      adWalletSavedCardTopUpSchema,
+    );
+  },
+
+  /** Forget the saved card (auto-reload switches off with it). */
+  async removeCard(options: ApiRequestOptions = {}): Promise<AdWalletBalance> {
+    return requestValidated<AdWalletBalance>(
+      { method: 'DELETE', url: '/ad-wallet/card', ...options },
+      adWalletBalanceSchema,
+    );
+  },
+
+  async setAutoReload(
+    input: { enabled: boolean; threshold: number; amount: number },
+    options: ApiRequestOptions = {},
+  ): Promise<AdWalletBalance> {
+    return requestValidated<AdWalletBalance>(
+      { method: 'PUT', url: '/ad-wallet/auto-reload', data: input, ...options },
+      adWalletBalanceSchema,
+    );
+  },
+
+  async listInvoices(
+    params: { page?: number; limit?: number } = {},
+    options: ApiRequestOptions = {},
+  ): Promise<AdWalletInvoicesPage> {
+    return requestValidated<AdWalletInvoicesPage>(
+      { method: 'GET', url: '/ad-wallet/invoices', params, ...options },
+      adWalletInvoicesPageSchema,
+    );
+  },
+
+  async getInvoice(
+    id: string,
+    options: ApiRequestOptions = {},
+  ): Promise<AdWalletInvoice> {
+    return requestValidated<AdWalletInvoice>(
+      { method: 'GET', url: `/ad-wallet/invoices/${id}`, ...options },
+      adWalletInvoiceSchema,
     );
   },
 };

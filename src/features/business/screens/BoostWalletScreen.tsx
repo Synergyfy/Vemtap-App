@@ -8,6 +8,7 @@ import { strings } from '@constants/strings';
 import { colors } from '@theme/colors';
 import { cn } from '@utils/cn';
 import {
+  BusinessCheckRow,
   BusinessScreenLayout,
   BusinessNumberInput,
 } from '@features/business/components/BusinessPrimitives';
@@ -33,13 +34,25 @@ export interface BoostWalletScreenProps {
   onStatement?: () => void;
   onFilterHistory?: () => void;
   onViewLedger?: () => void;
-  /** Prototype: a pack id. Live: the chosen pack, or `custom` with an amount. */
-  onTopUp?: (prepackId: string, amount?: number) => void;
+  /**
+   * Prototype: a pack id. Live: the chosen pack, or `custom` with an amount;
+   * `saveCard` is the owner's consent to keep a new card, `newCard` skips the
+   * saved one for a checkout.
+   */
+  onTopUp?: (
+    prepackId: string,
+    amount?: number,
+    options?: { saveCard?: boolean; newCard?: boolean },
+  ) => void;
+  onRemoveCard?: () => void;
+  onToggleAutoReload?: (enabled: boolean) => void;
+  onEditAutoReload?: () => void;
   onCopyAccount?: () => void;
   onTaxInvoices?: (period: string) => void;
   /**
-   * The live wallet. Live mode drops what has no backend yet: the virtual
-   * account, auto-reload, tax invoices and the statement shortcut.
+   * The live wallet. Live mode drops what has no backend yet (the virtual
+   * account and the VAT panel); the card, auto-reload and invoices show when
+   * their handlers are given.
    */
   live?: {
     walletRef: string;
@@ -65,6 +78,15 @@ export interface BoostWalletScreenProps {
     hasMore: boolean;
     /** Smallest custom top-up (₦). */
     minTopUp: number;
+    /** The saved card; null = none (undefined = server without saved cards). */
+    card?: { label: string; expiry?: string } | null;
+    autoReload?: {
+      enabled: boolean;
+      /** "Automatically reload ₦X whenever wallet balance drops below ₦Y." */
+      body: string;
+      /** Why it switched itself off. */
+      error?: string;
+    };
   };
   topUpPending?: boolean;
   /** Label of the active history filter (live); `undefined` = all activity. */
@@ -176,6 +198,9 @@ export function BoostWalletScreen({
   onTopUp,
   onCopyAccount,
   onTaxInvoices,
+  onRemoveCard,
+  onToggleAutoReload,
+  onEditAutoReload,
   live,
   topUpPending = false,
   activeFilterLabel,
@@ -217,13 +242,18 @@ export function BoostWalletScreen({
         ? liveCopy.topUpCta(chosenPack.title.replace(/ Top-Up$/, ''))
         : liveCopy.topUpChoose
     : wallet.topUpCta;
-  const topUp = () => {
+  const [saveCard, setSaveCard] = useState(false);
+  const savedCard = live?.card ?? null;
+  const topUp = (newCard = false) => {
     if (!live) {
       onTopUp?.(prepack);
       return;
     }
     if (customInvalid) return;
-    onTopUp?.(prepack, prepack === CUSTOM_PACK ? customValue : undefined);
+    onTopUp?.(prepack, prepack === CUSTOM_PACK ? customValue : undefined, {
+      saveCard: !savedCard && saveCard,
+      newCard,
+    });
   };
   const [autoReload, setAutoReload] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -338,9 +368,9 @@ export function BoostWalletScreen({
                 leftIcon={<Icon name="plusCircle" size={18} color={colors.primary} />}
                 loading={topUpPending}
                 disabled={topUpPending || customInvalid}
-                onPress={topUp}
+                onPress={() => topUp()}
               />
-              {live ? null : (
+              {live && !onTaxInvoices ? null : (
                 <Button
                   label={wallet.invoiceCta}
                   labelVariant="labelMd"
@@ -352,6 +382,25 @@ export function BoostWalletScreen({
               )}
             </View>
           </View>
+
+          {live && live.card !== undefined ? (
+            savedCard ? (
+              <TextActionButton
+                label={liveCopy.card.differentCard}
+                icon="creditCard"
+                tone="brand"
+                disabled={topUpPending || customInvalid}
+                onPress={() => topUp(true)}
+              />
+            ) : (
+              <BusinessCheckRow
+                title={liveCopy.card.save}
+                subtitle={liveCopy.card.saveBody}
+                selected={saveCard}
+                onPress={() => setSaveCard(current => !current)}
+              />
+            )
+          ) : null}
 
           <View className="gap-3">
             <View className="flex-row items-center justify-between gap-2">
@@ -483,6 +532,83 @@ export function BoostWalletScreen({
               </SetupSectionCard>
             )}
           </View>
+
+          {live && live.card !== undefined ? (
+            <SetupSectionCard tone="lowest" className="gap-3 p-4">
+              <SetupSectionHeading title={liveCopy.card.title} />
+              {savedCard ? (
+                <View className="flex-row items-center gap-2">
+                  <BusinessAnalyticsRow
+                    title={savedCard.label}
+                    subtitle={savedCard.expiry}
+                    icon="creditCard"
+                    className="min-w-0 flex-1"
+                  />
+                  <TextActionButton
+                    label={liveCopy.card.remove}
+                    tone="secondary"
+                    onPress={onRemoveCard}
+                    className="shrink-0"
+                  />
+                </View>
+              ) : (
+                <VemtapText variant="caption" tone="tertiary">
+                  {liveCopy.card.none}
+                </VemtapText>
+              )}
+            </SetupSectionCard>
+          ) : null}
+
+          {live?.autoReload ? (
+            <SetupSectionCard tone="lowest" className="gap-3 p-4">
+              <View className="flex-row items-center justify-between gap-2">
+                <SetupSectionHeading
+                  title={wallet.guardTitle}
+                  badge={
+                    live.autoReload.enabled
+                      ? liveCopy.autoReload.on
+                      : liveCopy.autoReload.off
+                  }
+                  className="min-w-0 flex-1"
+                />
+                {savedCard ? (
+                  <TextActionButton
+                    label={liveCopy.autoReload.edit}
+                    icon="edit"
+                    tone="brand"
+                    onPress={onEditAutoReload}
+                    className="shrink-0"
+                  />
+                ) : null}
+              </View>
+              {savedCard ? (
+                <ToggleRow
+                  title={live.autoReload.body}
+                  value={live.autoReload.enabled}
+                  onValueChange={value => onToggleAutoReload?.(value)}
+                />
+              ) : (
+                <VemtapText variant="bodyMd" tone="secondary">
+                  {live.autoReload.body}
+                </VemtapText>
+              )}
+              {live.autoReload.error ? (
+                <VemtapText
+                  variant="caption"
+                  className="text-error"
+                  accessibilityRole="alert"
+                >
+                  {liveCopy.autoReload.stopped(live.autoReload.error)}
+                </VemtapText>
+              ) : null}
+              <SetupCallout
+                icon={savedCard ? 'verifiedUser' : 'creditCard'}
+                body={savedCard ? wallet.guardNote : liveCopy.autoReload.needsCard}
+                tone="tint"
+                bodyVariant="caption"
+              />
+            </SetupSectionCard>
+          ) : null}
 
           {live ? null : (
             <SetupSectionCard tone="lowest" className="gap-3 p-4">

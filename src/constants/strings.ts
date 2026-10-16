@@ -9394,6 +9394,87 @@ export const strings = {
           release: 'Unspent budget returned',
           adjustment: 'Adjustment',
         },
+        /** The saved card (one per business, kept only with consent). */
+        card: {
+          title: 'Payment Card',
+          label: (brand: string, last4: string) =>
+            `${brand} \u2022\u2022\u2022\u2022 ${last4}`,
+          shortLabel: (brand: string, last4: string) => `${brand} \u2022\u2022 ${last4}`,
+          brandFallback: 'Card',
+          expiry: (month: string, year: string) => `Expires ${month}/${year}`,
+          none: 'No saved card yet. Save one when you top up to pay in one tap next time.',
+          remove: 'Remove',
+          removeTitle: 'Remove saved card?',
+          removeConfirm: 'Remove Card',
+          removed: 'Card removed. Auto-reload is off.',
+          removeFailed: 'Could not remove the card. Please try again.',
+          save: 'Save this card for future top-ups',
+          saveBody: 'Pay in one tap next time and use auto-reload. Remove it any time.',
+          differentCard: 'Use a different card',
+          declined: 'Your saved card was declined. Try a different card.',
+        },
+        autoReload: {
+          body: (amount: string, threshold: string) =>
+            `Automatically reload ${amount} whenever wallet balance drops below ${threshold}.`,
+          on: 'Active',
+          off: 'Off',
+          edit: 'Change amounts',
+          needsCard: 'Save a card with your next top-up to turn on auto-reload.',
+          dialogTitle: 'Auto-Reload Safety Guard',
+          amountLabel: 'Reload amount (\u20a6)',
+          thresholdLabel: 'When the balance drops below (\u20a6)',
+          save: 'Save',
+          invalid: 'Reload at least \u20a62,000, with a threshold of \u20a60 or more.',
+          saved: 'Auto-reload updated.',
+          failed: 'Could not update auto-reload. Please try again.',
+          stopped: (reason: string) => `Auto-reload was switched off: ${reason}`,
+          /** The design's example settings, used until the owner sets their own. */
+          defaultAmount: 10000,
+          defaultThreshold: 3000,
+        },
+        invoices: {
+          title: 'Tax Invoices',
+          intro: 'One invoice per boost or campaign launch. No VAT is charged.',
+          empty:
+            'No invoices yet. One is issued each time you launch a boost or campaign.',
+          loadFailed: 'Could not load your invoices.',
+          loadMore: 'Load more invoices',
+          exportAll: 'Export All (CSV)',
+          exportFailed: 'Could not export the invoices. Please try again.',
+          shareFailed: 'Could not share the invoice. Please try again.',
+          share: (invoiceNo: string) => `Share invoice ${invoiceNo}`,
+          meta: (date: string, method: string) => `${date} \u2022 ${method}`,
+          kinds: { boost: 'Boost', promotion: 'Campaign' } as Record<string, string>,
+          untitled: 'Untitled campaign',
+          fileName: 'ad-invoices',
+          headers: [
+            'Invoice no.',
+            'Date',
+            'Campaign',
+            'Type',
+            'Payment method',
+            'Amount (NGN)',
+            'Status',
+          ] as const,
+          text: (invoice: {
+            invoiceNo: string;
+            date: string;
+            campaign: string;
+            kind: string;
+            method: string;
+            amount: string;
+            status: string;
+          }) =>
+            [
+              `VEMTAP Advertising Invoice ${invoice.invoiceNo}`,
+              `Date: ${invoice.date}`,
+              `${invoice.kind}: ${invoice.campaign}`,
+              `Amount: ${invoice.amount}`,
+              `Paid by: ${invoice.method}`,
+              `Status: ${invoice.status}`,
+              'No VAT charged.',
+            ].join('\n'),
+        },
       },
     },
   },

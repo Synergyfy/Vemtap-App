@@ -1,5 +1,10 @@
 import { strings } from '@constants/strings';
-import type { AdWalletPrepack, AdWalletTransaction } from '@api/adWalletApi';
+import type {
+  AdWalletCard,
+  AdWalletInvoice,
+  AdWalletPrepack,
+  AdWalletTransaction,
+} from '@api/adWalletApi';
 import type { PromotionEligibleAsset, SavePromotionInput } from '@api/promotionsApi';
 import type { IconName } from '@components/ui/Icon';
 import type { BoostDraft, BoostDraftAsset } from '@store/boostDraftStore';
@@ -111,6 +116,80 @@ export function transactionToRow(transaction: AdWalletTransaction) {
     icon: TRANSACTION_ICON[transaction.type] ?? 'receiptLong',
     credit,
   };
+}
+
+function capitalize(text: string): string {
+  return text ? text.charAt(0).toUpperCase() + text.slice(1) : text;
+}
+
+/** "Visa •••• 4242" (or the short "Visa •• 4242" for tight rows). */
+export function savedCardLabel(card: AdWalletCard, short = false): string {
+  const brand = capitalize(card.brand?.trim() ?? '') || walletLive.card.brandFallback;
+  const last4 = card.last4 ?? '????';
+  return short
+    ? walletLive.card.shortLabel(brand, last4)
+    : walletLive.card.label(brand, last4);
+}
+
+/** "Expires 08/27", or undefined when Paystack sent no expiry. */
+export function savedCardExpiry(card: AdWalletCard): string | undefined {
+  if (!card.expMonth || !card.expYear) return undefined;
+  return walletLive.card.expiry(card.expMonth.padStart(2, '0'), card.expYear.slice(-2));
+}
+
+function invoiceDate(invoice: AdWalletInvoice): string {
+  return new Date(invoice.date).toLocaleDateString('en-NG', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
+function invoiceFields(invoice: AdWalletInvoice) {
+  const { invoices } = walletLive;
+  return {
+    invoiceNo: invoice.invoiceNo ?? invoice.id.slice(0, 8).toUpperCase(),
+    date: invoiceDate(invoice),
+    campaign: invoice.campaign?.name?.trim() || invoices.untitled,
+    kind: invoices.kinds[invoice.campaign?.kind ?? ''] ?? invoices.kinds.promotion,
+    method: invoice.paymentMethod ?? '',
+    amount: formatNaira(invoice.amount),
+    status: invoice.status,
+  };
+}
+
+/** An invoice as a list row. */
+export function invoiceToRow(invoice: AdWalletInvoice) {
+  const fields = invoiceFields(invoice);
+  return {
+    id: invoice.id,
+    invoiceNo: fields.invoiceNo,
+    title: fields.campaign,
+    meta: walletLive.invoices.meta(fields.date, fields.invoiceNo),
+    amount: fields.amount,
+    status: fields.method || fields.status,
+  };
+}
+
+/** One invoice as shareable text. */
+export function invoiceText(invoice: AdWalletInvoice): string {
+  return walletLive.invoices.text(invoiceFields(invoice));
+}
+
+/** Invoices as CSV rows (`wallet.live.invoices.headers` order). */
+export function invoicesToCsvRows(invoices: readonly AdWalletInvoice[]) {
+  return invoices.map(invoice => {
+    const fields = invoiceFields(invoice);
+    return [
+      fields.invoiceNo,
+      invoice.date.slice(0, 10),
+      fields.campaign,
+      fields.kind,
+      fields.method,
+      invoice.amount,
+      fields.status,
+    ];
+  });
 }
 
 /** Everything the Preview & Payment step shows, live or from the design. */

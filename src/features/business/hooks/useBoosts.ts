@@ -1,8 +1,10 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as WebBrowser from 'expo-web-browser';
 import { boostsApi } from '@api/boostsApi';
+import { Share } from 'react-native';
 import {
   adWalletApi,
+  type AdWalletInvoice,
   type AdWalletTransaction,
   type AdWalletTransactionType,
 } from '@api/adWalletApi';
@@ -17,6 +19,8 @@ import {
 } from '@features/business/hooks/useCampaigns';
 import {
   boostDraftToSaveInput,
+  invoiceText,
+  invoicesToCsvRows,
   transactionsToStatementRows,
 } from '@features/business/utils/boostMappers';
 import { useBoostDraftStore, type BoostDraft } from '@store/boostDraftStore';
@@ -125,7 +129,12 @@ export type TopUpOutcome = 'completed' | 'pending' | 'cancelled';
 export function useWalletTopUp() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { prepackId?: string; amount?: number }) => {
+    mutationFn: async (input: {
+      prepackId?: string;
+      amount?: number;
+      /** Keep the card for later (owner consent). */
+      saveCard?: boolean;
+    }) => {
       const topUp = await adWalletApi.topUpWallet({
         ...input,
         callbackUrl: PAYMENT_RETURN_URL,
@@ -149,6 +158,76 @@ export function useWalletTopUp() {
       return { outcome, reference: topUp.reference };
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: campaignKeys.wallet }),
+  });
+}
+
+/** Top up from the saved card: no browser, the answer is immediate. */
+export function useSavedCardTopUp() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { prepackId?: string; amount?: number }) =>
+      adWalletApi.topUpWithSavedCard(input),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: campaignKeys.wallet }),
+  });
+}
+
+export function useRemoveSavedCard() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => adWalletApi.removeCard(),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: campaignKeys.wallet }),
+  });
+}
+
+export function useSetAutoReload() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { enabled: boolean; threshold: number; amount: number }) =>
+      adWalletApi.setAutoReload(input),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: campaignKeys.wallet }),
+  });
+}
+
+export function useAdWalletInvoices(limit: number, enabled = true) {
+  return useQuery({
+    queryKey: [...campaignKeys.wallet, 'invoices', limit],
+    queryFn: () => adWalletApi.listInvoices({ limit }),
+    staleTime: 30_000,
+    enabled,
+    placeholderData: previous => previous,
+  });
+}
+
+/** Share one invoice as text through the share sheet. */
+export async function shareInvoice(invoice: AdWalletInvoice): Promise<void> {
+  await Share.share({ message: invoiceText(invoice) });
+}
+
+/** Every invoice, page by page (an export must be complete). */
+async function listAllInvoices(
+  page = 1,
+  collected: AdWalletInvoice[] = [],
+): Promise<AdWalletInvoice[]> {
+  const result = await adWalletApi.listInvoices({ page, limit: 100 });
+  const all = [...collected, ...result.data];
+  return result.hasNextPage && page < 100 ? listAllInvoices(page + 1, all) : all;
+}
+
+/** Export every invoice as a CSV through the share sheet. */
+export function useExportInvoices() {
+  return useMutation({
+    mutationFn: async (): Promise<{ count: number }> => {
+      const invoices = await listAllInvoices();
+      if (invoices.length) {
+        const copy = strings.boostWizard.wallet.live.invoices;
+        await shareCsv(
+          datedFileName(copy.fileName),
+          toCsv(copy.headers, invoicesToCsvRows(invoices)),
+          copy.title,
+        );
+      }
+      return { count: invoices.length };
+    },
   });
 }
 

@@ -62,7 +62,15 @@ import {
   useSaveBoostDraft,
   useExportWalletStatement,
   useWalletTopUp,
+  useSavedCardTopUp,
+  useRemoveSavedCard,
+  useSetAutoReload,
+  useAdWalletInvoices,
+  useExportInvoices,
+  shareInvoice,
 } from '@features/business/hooks/useBoosts';
+import { WalletInvoicesSheet } from '@features/business/components/WalletInvoicesSheet';
+import { PromptDialog } from '@features/business/components/PromptDialog';
 import { WalletActivityFilterSheet } from '@features/business/components/WalletActivityFilterSheet';
 import type { AdWalletTransactionType } from '@api/adWalletApi';
 import {
@@ -71,7 +79,10 @@ import {
   boostDraftToPreviewView,
   eligibleAssetToBoostAsset,
   formatNaira as formatBoostNaira,
+  invoiceToRow,
   prepackToCard,
+  savedCardExpiry,
+  savedCardLabel,
   transactionToRow,
 } from '@features/business/utils/boostMappers';
 import { useBoostDraftStore } from '@store/boostDraftStore';
@@ -1307,13 +1318,64 @@ export function BoostWalletRoute() {
   const [limit, setLimit] = useState(WALLET_PAGE);
   const [filter, setFilter] = useState<AdWalletTransactionType | undefined>();
   const [filtering, setFiltering] = useState(false);
+  const [removingCard, setRemovingCard] = useState(false);
+  const [editingReload, setEditingReload] = useState(false);
+  const [reloadError, setReloadError] = useState<string | null>(null);
+  const [invoicesOpen, setInvoicesOpen] = useState(false);
+  const [invoiceLimit, setInvoiceLimit] = useState(WALLET_PAGE);
   const transactions = useAdWalletTransactions(limit, filter);
   const topUp = useWalletTopUp();
+  const savedCardTopUp = useSavedCardTopUp();
+  const removeCard = useRemoveSavedCard();
+  const setAutoReload = useSetAutoReload();
+  const invoices = useAdWalletInvoices(invoiceLimit, invoicesOpen);
+  const exportInvoices = useExportInvoices();
   const statement = useExportWalletStatement();
   const { data } = wallet;
   const filterLabel = walletCopy.filter.options.find(
     option => option.id === filter,
   )?.label;
+  // `undefined` = a server without saved cards: those sections stay hidden.
+  const card = data?.card === undefined ? undefined : (data.card ?? null);
+  const reload = data?.autoReload;
+  const reloadAmount = reload?.amount || walletCopy.autoReload.defaultAmount;
+  const reloadThreshold = reload?.threshold ?? walletCopy.autoReload.defaultThreshold;
+
+  const saveReload = (
+    next: { enabled: boolean; threshold: number; amount: number },
+    onDone?: () => void,
+  ) =>
+    setAutoReload.mutate(next, {
+      onSuccess: () => {
+        onDone?.();
+        showToast(walletCopy.autoReload.saved, 'success');
+      },
+      onError: error => {
+        const message = messageOf(error, walletCopy.autoReload.failed);
+        if (onDone) setReloadError(message);
+        else showToast(message, 'error');
+      },
+    });
+
+  const checkoutTopUp = (
+    input: { prepackId?: string; amount?: number },
+    saveCard: boolean,
+  ) =>
+    topUp.mutate(
+      { ...input, ...(saveCard && { saveCard: true }) },
+      {
+        onSuccess: ({ outcome }) =>
+          showToast(
+            {
+              completed: walletCopy.topUpDone,
+              pending: walletCopy.topUpPending,
+              cancelled: walletCopy.topUpCancelled,
+            }[outcome],
+            outcome === 'cancelled' ? 'error' : 'success',
+          ),
+        onError: error => showToast(messageOf(error, walletCopy.topUpFailed), 'error'),
+      },
+    );
 
   return (
     <>
@@ -1332,21 +1394,30 @@ export function BoostWalletRoute() {
               showToast(messageOf(error, walletCopy.statement.failed), 'error'),
           })
         }
-        onTopUp={(prepackId, amount) =>
-          topUp.mutate(amount !== undefined ? { amount } : { prepackId }, {
-            onSuccess: ({ outcome }) =>
-              showToast(
-                {
-                  completed: walletCopy.topUpDone,
-                  pending: walletCopy.topUpPending,
-                  cancelled: walletCopy.topUpCancelled,
-                }[outcome],
-                outcome === 'cancelled' ? 'error' : 'success',
-              ),
-            onError: error =>
-              showToast(messageOf(error, walletCopy.topUpFailed), 'error'),
-          })
+        onTopUp={(prepackId, amount, options) => {
+          const input = amount !== undefined ? { amount } : { prepackId };
+          if (card && !options?.newCard) {
+            savedCardTopUp.mutate(input, {
+              onSuccess: result =>
+                result.status === 'completed'
+                  ? showToast(walletCopy.topUpDone, 'success')
+                  : showToast(walletCopy.card.declined, 'error'),
+              onError: error =>
+                showToast(messageOf(error, walletCopy.topUpFailed), 'error'),
+            });
+            return;
+          }
+          checkoutTopUp(input, Boolean(options?.saveCard));
+        }}
+        onRemoveCard={() => setRemovingCard(true)}
+        onToggleAutoReload={enabled =>
+          saveReload({ enabled, threshold: reloadThreshold, amount: reloadAmount })
         }
+        onEditAutoReload={() => {
+          setReloadError(null);
+          setEditingReload(true);
+        }}
+        onTaxInvoices={() => setInvoicesOpen(true)}
         live={
           data
             ? {
@@ -1358,10 +1429,28 @@ export function BoostWalletRoute() {
                 transactions: (transactions.data?.data ?? []).map(transactionToRow),
                 hasMore: Boolean(transactions.data?.hasNextPage) && limit < 100,
                 minTopUp: 2000,
+                card:
+                  card === undefined
+                    ? undefined
+                    : card && {
+                        label: savedCardLabel(card),
+                        expiry: savedCardExpiry(card),
+                      },
+                autoReload:
+                  card === undefined
+                    ? undefined
+                    : {
+                        enabled: Boolean(card && reload?.enabled),
+                        body: walletCopy.autoReload.body(
+                          formatBoostNaira(reloadAmount),
+                          formatBoostNaira(reloadThreshold),
+                        ),
+                        error: reload?.lastError ?? undefined,
+                      },
               }
             : undefined
         }
-        topUpPending={topUp.isPending}
+        topUpPending={topUp.isPending || savedCardTopUp.isPending}
         isLoading={wallet.isLoading}
         error={
           wallet.isError ? messageOf(wallet.error, walletCopy.loadFailed) : undefined
@@ -1376,6 +1465,88 @@ export function BoostWalletRoute() {
           setFilter(next);
           setLimit(WALLET_PAGE);
         }}
+      />
+      <PromptDialog
+        visible={removingCard}
+        title={walletCopy.card.removeTitle}
+        fields={[]}
+        confirmLabel={walletCopy.card.removeConfirm}
+        confirmVariant="destructive"
+        onCancel={() => setRemovingCard(false)}
+        onConfirm={() => {
+          setRemovingCard(false);
+          removeCard.mutate(undefined, {
+            onSuccess: () => showToast(walletCopy.card.removed, 'success'),
+            onError: error =>
+              showToast(messageOf(error, walletCopy.card.removeFailed), 'error'),
+          });
+        }}
+      />
+      <PromptDialog
+        visible={editingReload}
+        title={walletCopy.autoReload.dialogTitle}
+        fields={[
+          {
+            key: 'amount',
+            label: walletCopy.autoReload.amountLabel,
+            value: String(reloadAmount),
+            keyboardType: 'numeric',
+          },
+          {
+            key: 'threshold',
+            label: walletCopy.autoReload.thresholdLabel,
+            value: String(reloadThreshold),
+            keyboardType: 'numeric',
+          },
+        ]}
+        confirmLabel={walletCopy.autoReload.save}
+        error={reloadError}
+        onChangeField={() => setReloadError(null)}
+        onCancel={() => setEditingReload(false)}
+        onConfirm={values => {
+          const amount = Number(values.amount.replace(/[^0-9.]/g, ''));
+          const threshold = Number(values.threshold.replace(/[^0-9.]/g, ''));
+          if (
+            !values.amount.trim() ||
+            !values.threshold.trim() ||
+            !(amount >= 2000) ||
+            !(threshold >= 0)
+          ) {
+            setReloadError(walletCopy.autoReload.invalid);
+            return;
+          }
+          saveReload({ enabled: true, threshold, amount }, () => setEditingReload(false));
+        }}
+      />
+      <WalletInvoicesSheet
+        visible={invoicesOpen}
+        onClose={() => setInvoicesOpen(false)}
+        invoices={(invoices.data?.data ?? []).map(invoiceToRow)}
+        isLoading={invoices.isLoading}
+        error={
+          invoices.isError
+            ? messageOf(invoices.error, walletCopy.invoices.loadFailed)
+            : undefined
+        }
+        onRetry={() => invoices.refetch()}
+        hasMore={Boolean(invoices.data?.hasNextPage) && invoiceLimit < 100}
+        onLoadMore={() =>
+          setInvoiceLimit(current => Math.min(100, current + WALLET_PAGE))
+        }
+        onShare={id => {
+          const invoice = invoices.data?.data.find(entry => entry.id === id);
+          if (!invoice) return;
+          shareInvoice(invoice).catch(() =>
+            showToast(walletCopy.invoices.shareFailed, 'error'),
+          );
+        }}
+        exportPending={exportInvoices.isPending}
+        onExport={() =>
+          exportInvoices.mutate(undefined, {
+            onError: error =>
+              showToast(messageOf(error, walletCopy.invoices.exportFailed), 'error'),
+          })
+        }
       />
     </>
   );

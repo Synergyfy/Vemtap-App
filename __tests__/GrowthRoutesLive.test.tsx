@@ -6,7 +6,7 @@ import {
 } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react-native';
-import { View } from 'react-native';
+import { Share, View } from 'react-native';
 import { strings } from '@constants/strings';
 import { segmentsApi } from '@api/segmentsApi';
 import { promotionsApi, type Promotion } from '@api/promotionsApi';
@@ -534,6 +534,228 @@ describe('boost wallet history (live)', () => {
     expect(header).toBe(strings.boostWizard.wallet.live.statement.headers.join(','));
     expect(row).toBe(
       '2026-10-15,Ad spend,Boost delivery: Jollof Combo,,-4000,46000,6000',
+    );
+  });
+});
+
+describe('boost wallet saved card, auto-reload and invoices (live)', () => {
+  const { live } = strings.boostWizard.wallet;
+  const visa = {
+    brand: 'visa',
+    last4: '4242',
+    expMonth: '8',
+    expYear: '2027',
+    bank: null,
+  };
+  const walletWith = (extra: Record<string, unknown>) => ({
+    walletRef: 'VEM-WAL-ABC123',
+    balance: 1_000,
+    reserved: 0,
+    spendable: 1_000,
+    ...extra,
+  });
+  const emptyPage = { data: [], total: 0, page: 1, limit: 20, hasNextPage: false };
+
+  beforeEach(() => {
+    jest
+      .spyOn(adWalletApi, 'listPrepacks')
+      .mockResolvedValue([
+        { id: '25k', amount: 25_000, bonus: 2_000, label: '₦25,000 Top-Up', tier: null },
+      ]);
+    jest.spyOn(adWalletApi, 'listTransactions').mockResolvedValue(emptyPage);
+  });
+
+  it('shows the saved card and removes it after confirming', async () => {
+    jest
+      .spyOn(adWalletApi, 'getWallet')
+      .mockResolvedValue(walletWith({ card: visa, autoReload: null }));
+    const remove = jest
+      .spyOn(adWalletApi, 'removeCard')
+      .mockResolvedValue(walletWith({ card: null, autoReload: null }));
+    await renderRoutes('BoostWallet');
+
+    expect(screen.getByText('Visa •••• 4242')).toBeTruthy();
+    expect(screen.getByText('Expires 08/27')).toBeTruthy();
+    // A saved card replaces the consent box with "use a different card".
+    expect(screen.queryByText(live.card.save)).toBeNull();
+
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText(live.card.remove));
+      await settle(50);
+    });
+    expect(remove).not.toHaveBeenCalled();
+    await act(async () => {
+      fireEvent.press(screen.getByText(live.card.removeConfirm));
+      await settle(50);
+    });
+    expect(remove).toHaveBeenCalled();
+  });
+
+  it('sends the save-card consent with a checkout top-up', async () => {
+    jest
+      .spyOn(adWalletApi, 'getWallet')
+      .mockResolvedValue(walletWith({ card: null, autoReload: null }));
+    const topUp = jest.spyOn(adWalletApi, 'topUpWallet').mockResolvedValue({
+      reference: 'ADW-1',
+      amount: 25_000,
+      bonus: 2_000,
+      authorizationUrl: 'https://checkout.paystack.com/x',
+    });
+    jest.spyOn(adWalletApi, 'confirmTopUp').mockRejectedValue(new Error('pending'));
+    await renderRoutes('BoostWallet');
+
+    expect(screen.getByText(live.card.none)).toBeTruthy();
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText(live.card.save));
+      await settle(10);
+    });
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText('Top Up ₦25,000'));
+      await settle(50);
+    });
+    expect(topUp).toHaveBeenCalledWith({
+      prepackId: '25k',
+      saveCard: true,
+      callbackUrl: 'vemtap://payments/return',
+    });
+  });
+
+  it('tops up from the saved card with no browser, or through checkout on request', async () => {
+    jest
+      .spyOn(adWalletApi, 'getWallet')
+      .mockResolvedValue(walletWith({ card: visa, autoReload: null }));
+    const charge = jest.spyOn(adWalletApi, 'topUpWithSavedCard').mockResolvedValue({
+      reference: 'ADW-2',
+      status: 'completed',
+      wallet: walletWith({ balance: 28_000, spendable: 28_000, card: visa }),
+    });
+    const checkout = jest.spyOn(adWalletApi, 'topUpWallet').mockResolvedValue({
+      reference: 'ADW-3',
+      amount: 25_000,
+      bonus: 2_000,
+      authorizationUrl: 'https://checkout.paystack.com/y',
+    });
+    jest.spyOn(adWalletApi, 'confirmTopUp').mockRejectedValue(new Error('pending'));
+    jest.mocked(WebBrowser.openAuthSessionAsync).mockClear();
+    await renderRoutes('BoostWallet');
+
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText('Top Up ₦25,000'));
+      await settle(50);
+    });
+    expect(charge).toHaveBeenCalledWith({ prepackId: '25k' });
+    expect(checkout).not.toHaveBeenCalled();
+    expect(WebBrowser.openAuthSessionAsync).not.toHaveBeenCalled();
+
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText(live.card.differentCard));
+      await settle(50);
+    });
+    expect(checkout).toHaveBeenCalledWith({
+      prepackId: '25k',
+      callbackUrl: 'vemtap://payments/return',
+    });
+  });
+
+  it('switches auto-reload on with the saved amounts, and shows why it stopped', async () => {
+    jest.spyOn(adWalletApi, 'getWallet').mockResolvedValue(
+      walletWith({
+        card: visa,
+        autoReload: {
+          enabled: false,
+          threshold: 3_000,
+          amount: 10_000,
+          lastError: 'Your saved card was declined',
+        },
+      }),
+    );
+    const save = jest
+      .spyOn(adWalletApi, 'setAutoReload')
+      .mockResolvedValue(walletWith({ card: visa }));
+    await renderRoutes('BoostWallet');
+
+    expect(
+      screen.getByText(live.autoReload.stopped('Your saved card was declined')),
+    ).toBeTruthy();
+    const body = live.autoReload.body('₦10,000', '₦3,000');
+    await act(async () => {
+      fireEvent(screen.getByLabelText(body), 'valueChange', true);
+      await settle(50);
+    });
+    expect(save).toHaveBeenCalledWith({
+      enabled: true,
+      threshold: 3_000,
+      amount: 10_000,
+    });
+  });
+
+  it('needs a saved card before auto-reload can be switched on', async () => {
+    jest
+      .spyOn(adWalletApi, 'getWallet')
+      .mockResolvedValue(walletWith({ card: null, autoReload: null }));
+    await renderRoutes('BoostWallet');
+
+    expect(screen.getByText(live.autoReload.needsCard)).toBeTruthy();
+    expect(screen.getByText(live.autoReload.body('₦10,000', '₦3,000'))).toBeTruthy();
+    expect(screen.queryByRole('switch')).toBeNull();
+  });
+
+  it('lists invoices, shares one as text and exports them all', async () => {
+    jest
+      .spyOn(adWalletApi, 'getWallet')
+      .mockResolvedValue(walletWith({ card: null, autoReload: null }));
+    const invoice = {
+      id: 'inv-1',
+      invoiceNo: 'INV-B-ABCD1234',
+      paymentMethod: 'Saved card',
+      amount: 10_000,
+      currency: 'NGN',
+      status: 'Paid',
+      date: '2026-10-14T10:00:00.000Z',
+      campaign: { id: 'c-1', name: 'Lunch boost', kind: 'boost' },
+    };
+    const list = jest.spyOn(adWalletApi, 'listInvoices').mockResolvedValue({
+      data: [invoice],
+      total: 1,
+      page: 1,
+      limit: 20,
+      hasNextPage: false,
+    });
+    const share = jest
+      .spyOn(Share, 'share')
+      .mockResolvedValue({ action: 'sharedAction' });
+    await renderRoutes('BoostWallet');
+
+    expect(list).not.toHaveBeenCalled();
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText(strings.boostWizard.wallet.invoiceCta));
+      await settle(100);
+    });
+    await act(async () => {
+      await settle(100);
+    });
+    expect(screen.getByText('Lunch boost')).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText('Lunch boost'));
+      await settle(50);
+    });
+    const { message } = share.mock.calls[0][0] as { message: string };
+    expect(message).toContain('INV-B-ABCD1234');
+    expect(message).toContain('Boost: Lunch boost');
+    expect(message).toContain('No VAT charged.');
+
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText(live.invoices.exportAll));
+      await settle(100);
+    });
+    expect(Sharing.shareAsync).toHaveBeenCalled();
+    const csv =
+      (globalThis as { __lastWrittenFile?: { content: string } }).__lastWrittenFile
+        ?.content ?? '';
+    expect(csv.split('\r\n')[0]).toBe(live.invoices.headers.join(','));
+    expect(csv).toContain(
+      'INV-B-ABCD1234,2026-10-14,Lunch boost,Boost,Saved card,10000,Paid',
     );
   });
 });

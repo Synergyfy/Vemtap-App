@@ -4,6 +4,9 @@ import {
   promotionsApi,
   boostsApi,
   adWalletApi,
+  adWalletBalanceSchema,
+  adWalletSavedCardTopUpSchema,
+  adWalletInvoicesPageSchema,
   segmentReachSchema,
   segmentInsightSchema,
   promotionForecastSchema,
@@ -190,6 +193,67 @@ describe('new business growth api contracts', () => {
       budgetTiers: [{ id: '10', amount: 10000, label: 'Starter' }],
     });
     expect(options.goals?.[0].id).toBe('claims');
+  });
+});
+
+describe('ad wallet saved card and invoices contract', () => {
+  // Mirrors ad-wallet.service.ts `summarize`, `topUpWithSavedCard` and
+  // ad-wallet-invoices.service.ts `view`.
+  const wallet = {
+    walletRef: 'VEM-WAL-ABC123',
+    balance: 12000,
+    reserved: 2000,
+    spendable: 10000,
+    currency: 'NGN',
+    card: { brand: 'visa', last4: '4242', expMonth: '08', expYear: '2027', bank: null },
+    autoReload: { enabled: true, threshold: 2000, amount: 10000, lastError: null },
+  };
+
+  it('reads the card and auto-reload, and tolerates older servers', () => {
+    expect(adWalletBalanceSchema.parse(wallet).card?.last4).toBe('4242');
+    const older = adWalletBalanceSchema.parse({
+      walletRef: 'VEM-WAL-ABC123',
+      balance: '12000.00',
+      reserved: '0.00',
+      spendable: 12000,
+    });
+    expect(older.card).toBeUndefined();
+    expect(older.autoReload).toBeUndefined();
+  });
+
+  it('reads saved-card top-ups and invoices', () => {
+    const failed = adWalletSavedCardTopUpSchema.parse({
+      reference: 'ADW-1',
+      status: 'failed',
+      reason: 'Your saved card was declined',
+      wallet,
+    });
+    expect(failed.reason).toBe('Your saved card was declined');
+
+    const page = adWalletInvoicesPageSchema.parse({
+      data: [
+        {
+          id: 'inv-1',
+          invoiceNo: 'INV-B-ABCD1234',
+          paymentMethod: 'Saved card',
+          amount: 10000,
+          currency: 'NGN',
+          status: 'Paid',
+          date: '2026-10-14T10:00:00.000Z',
+          campaign: { id: 'c-1', name: 'Lunch boost', kind: 'boost' },
+        },
+      ],
+      total: 1,
+      page: 1,
+      limit: 20,
+      hasNextPage: false,
+    });
+    expect(page.data[0].campaign?.name).toBe('Lunch boost');
+    expect(typeof adWalletApi.topUpWithSavedCard).toBe('function');
+    expect(typeof adWalletApi.removeCard).toBe('function');
+    expect(typeof adWalletApi.setAutoReload).toBe('function');
+    expect(typeof adWalletApi.listInvoices).toBe('function');
+    expect(typeof adWalletApi.getInvoice).toBe('function');
   });
 });
 

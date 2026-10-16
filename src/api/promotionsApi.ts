@@ -304,7 +304,14 @@ export function createSponsoredCampaignApi(basePath: '/promotions' | '/boosts') 
      */
     async launch(
       id: string,
-      input: { fundingSource?: 'wallet' | 'card'; callbackUrl?: string } = {},
+      input: {
+        fundingSource?: 'wallet' | 'card';
+        callbackUrl?: string;
+        /** Card funding: charge the shortfall to the saved card, no checkout. */
+        useSavedCard?: boolean;
+        /** Card funding through checkout: keep the card (owner consent). */
+        saveCard?: boolean;
+      } = {},
       options: ApiRequestOptions = {},
     ): Promise<LaunchedPromotion> {
       return requestValidated<LaunchedPromotion>(
