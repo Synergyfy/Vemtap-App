@@ -201,11 +201,30 @@ export const promotionStatsSchema = z.object({
     returnOnSpend: nullableDecimal(),
   }),
   funnel: z.array(z.object({ id: z.string(), label: z.string(), value: z.number() })),
-  rhythm: z.array(z.object({ hour: z.number(), claims: z.number() })),
+  /** Views (impressions) and claims per hour of day, Lagos time. */
+  rhythm: z.array(
+    z.object({ hour: z.number(), views: z.number().optional(), claims: z.number() }),
+  ),
   byBranch: z.array(
     z.object({ branchId: z.string(), name: z.string(), claims: z.number() }),
   ),
   series: z.array(z.object({ date: z.string(), spend: decimal(), claims: z.number() })),
+  // Optional: servers before run comparison / benchmarks do not send these.
+  /** The run to compare with (renewed-from, else the last run of the same deal). */
+  previous: z
+    .object({
+      id: z.string(),
+      name: z.string(),
+      endDate: z.string().nullish(),
+      reach: z.number(),
+      claims: z.number(),
+      redemptions: z.number(),
+      spent: decimal(),
+      costPerClaim: nullableDecimal(),
+    })
+    .nullish(),
+  /** Platform-wide cost per claim (last 90 days); null until there is enough data. */
+  benchmark: z.object({ costPerClaim: decimal(), campaigns: z.number() }).nullish(),
 });
 export type PromotionStats = z.infer<typeof promotionStatsSchema>;
 

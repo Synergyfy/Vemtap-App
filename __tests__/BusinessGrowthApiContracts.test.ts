@@ -15,7 +15,10 @@ import {
   launchedPromotionSchema,
   promotionStatsSchema,
   sponsoredCampaignOptionsSchema,
+  sponsoredApi,
+  sponsoredOffersSchema,
 } from '../src/api';
+import offersFeed from './fixtures/offers-feed.json';
 
 describe('new business growth api contracts', () => {
   it('exposes the newer resource modules and their core fetch/write methods', () => {
@@ -193,6 +196,66 @@ describe('new business growth api contracts', () => {
       budgetTiers: [{ id: '10', amount: 10000, label: 'Starter' }],
     });
     expect(options.goals?.[0].id).toBe('claims');
+  });
+});
+
+describe('sponsored delivery and run comparison contract', () => {
+  it('reads promoted offers as public offer rows', () => {
+    const page = sponsoredOffersSchema.parse({
+      data: [{ campaignId: 'c-1', offer: offersFeed.data[0] }],
+    });
+    expect(page.data[0].campaignId).toBe('c-1');
+    expect(page.data[0].offer.id).toBe(offersFeed.data[0].id);
+    expect(typeof sponsoredApi.list).toBe('function');
+    expect(typeof sponsoredApi.recordEvents).toBe('function');
+  });
+
+  it('reads views per hour, the previous run and the benchmark (all optional)', () => {
+    const base = {
+      id: 'p1',
+      status: 'Active',
+      kpis: {
+        budget: 20000,
+        spent: 4000,
+        left: 16000,
+        percentConsumed: 20,
+        redemptions: 4,
+        grossRevenue: 40000,
+        reach: 80,
+        returnOnSpend: 10,
+      },
+      funnel: [],
+      rhythm: [{ hour: 13, views: 40, claims: 6 }],
+      byBranch: [],
+      series: [],
+    };
+    // Mirrors promotions.service.ts `previousRun` and `benchmark`.
+    const stats = promotionStatsSchema.parse({
+      ...base,
+      previous: {
+        id: 'c-0',
+        name: 'Lunch boost (run 1)',
+        endDate: '2026-10-06T08:00:00.000Z',
+        reach: 60,
+        claims: 8,
+        redemptions: 3,
+        spent: 10000,
+        costPerClaim: 1250,
+      },
+      benchmark: { costPerClaim: 250, campaigns: 10 },
+    });
+    expect(stats.previous?.reach).toBe(60);
+    expect(stats.benchmark?.costPerClaim).toBe(250);
+    expect(stats.rhythm[0].views).toBe(40);
+
+    const older = promotionStatsSchema.parse({
+      ...base,
+      rhythm: [{ hour: 13, claims: 6 }],
+      previous: null,
+      benchmark: null,
+    });
+    expect(older.previous).toBeNull();
+    expect(older.rhythm[0].views).toBeUndefined();
   });
 });
 

@@ -1,5 +1,12 @@
-import React, { useCallback, useMemo, useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
+import {
+  Pressable,
+  ScrollView,
+  View,
+  type LayoutChangeEvent,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { cssInterop } from 'nativewind';
 import { EmptyState } from '@components/shared/EmptyState';
@@ -17,6 +24,8 @@ import { FeaturedDealsCard } from '@features/home/components/FeaturedDealsCard';
 import { type FeaturedListing } from '@features/home/data/featuredDeals';
 import { mapOfferToFeaturedListing } from '@features/home/utils/homeOfferMapper';
 import { usePublicOffersFeed } from '@features/deals/hooks/usePublicOffers';
+import { useSponsoredOffers } from '@features/deals/hooks/useSponsoredOffers';
+import { sponsoredTracker } from '@services/sponsoredTracker';
 import { useSavedFeed, useToggleDealSave } from '@features/accountHub/hooks/useSavedHub';
 import { discoveryOrigin } from '@utils/geo';
 import { useLocationStore } from '@store/locationStore';
@@ -110,18 +119,33 @@ export function FeaturedDealsScreen({
   const area = useLocationStore(state => state.area);
   const coords = useLocationStore(state => state.coords);
   const origin = useMemo(() => discoveryOrigin(area, coords), [area, coords]);
-  const liveListings = useMemo(
-    () => (feed.offers ?? []).map(offer => mapOfferToFeaturedListing(offer, origin)),
-    [feed.offers, origin],
+  // Promoted listings (live boosts and campaigns for the `feed` placement) lead
+  // the page with the "Promoted" badge. Only the API sets it, so organic cards
+  // stay unbadged.
+  const sponsored = useSponsoredOffers('feed');
+  const promotedListings = useMemo(
+    () =>
+      sponsored.map(entry => ({
+        ...mapOfferToFeaturedListing(entry.offer, origin),
+        promotion: copy.promoted,
+        campaignId: entry.campaignId,
+      })),
+    [sponsored, origin],
   );
+  const liveListings = useMemo(() => {
+    const promotedIds = new Set(promotedListings.map(listing => listing.id));
+    return (feed.offers ?? [])
+      .filter(offer => !promotedIds.has(offer.id))
+      .map(offer => mapOfferToFeaturedListing(offer, origin));
+  }, [feed.offers, origin, promotedListings]);
 
   const listings = useMemo(() => {
     // A listing whose business has no coordinates has an unknown distance, not
     // an infinite one — dropping those would empty the page for exactly the
     // merchants we know least about. Sorting still puts them last.
-    const withinRange = liveListings.filter(
-      listing => listing.distanceMeters == null || distanceKm(listing) <= maxDistance,
-    );
+    const inRange = (listing: FeaturedListing) =>
+      listing.distanceMeters == null || distanceKm(listing) <= maxDistance;
+    const withinRange = liveListings.filter(inRange);
     const sorted = [...withinRange];
     if (sort === 'closest') {
       sorted.sort((a, b) => distanceKm(a) - distanceKm(b));
@@ -135,12 +159,84 @@ export function FeaturedDealsScreen({
     if (sort === 'ending') {
       sorted.sort((a, b) => a.id.localeCompare(b.id));
     }
-    return sorted;
+    // Promoted listings stay on top whatever the sort, but still respect the
+    // viewer's distance cap.
+    return [...promotedListings.filter(inRange), ...sorted];
     // `liveListings` was added when this page moved off its static array; without
     // it here the list would stay frozen at its first (empty) render.
-  }, [liveListings, maxDistance, sort]);
+  }, [liveListings, promotedListings, maxDistance, sort]);
 
-  const openListing = useCallback((id: string) => onOpenDeal?.(id), [onOpenDeal]);
+  const openListing = useCallback(
+    (id: string) => {
+      const listing = listings.find(entry => entry.id === id);
+      if (listing?.campaignId) {
+        sponsoredTracker.track({
+          campaignId: listing.campaignId,
+          offerId: id,
+          type: 'tap',
+        });
+      }
+      onOpenDeal?.(id);
+    },
+    [listings, onOpenDeal],
+  );
+
+  // A promoted card counts as viewed once any part of it is inside the scroll
+  // viewport. Cards report their offset within the list, the list its offset
+  // within the scroll content; the tracker drops repeats within the hour.
+  // `listY` stays null until the list reports: children can lay out before
+  // their parent, and a 0 offset would count below-the-fold cards as seen.
+  const viewport = useRef<{ top: number; height: number; listY: number | null }>({
+    top: 0,
+    height: 0,
+    listY: null,
+  });
+  const cardLayouts = useRef(new Map<string, { y: number; height: number }>());
+  const trackVisiblePromoted = useCallback(() => {
+    const { top, height, listY } = viewport.current;
+    if (!height || listY == null) return;
+    listings.forEach(listing => {
+      const layout = cardLayouts.current.get(listing.id);
+      if (!listing.campaignId || !layout) return;
+      const cardTop = listY + layout.y;
+      if (cardTop < top + height && cardTop + layout.height > top) {
+        sponsoredTracker.track({
+          campaignId: listing.campaignId,
+          offerId: listing.id,
+          type: 'impression',
+        });
+      }
+    });
+  }, [listings]);
+  const onViewportLayout = useCallback(
+    (event: LayoutChangeEvent) => {
+      viewport.current.height = event.nativeEvent.layout.height;
+      trackVisiblePromoted();
+    },
+    [trackVisiblePromoted],
+  );
+  const onScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      viewport.current.top = event.nativeEvent.contentOffset.y;
+      trackVisiblePromoted();
+    },
+    [trackVisiblePromoted],
+  );
+  const onListLayout = useCallback(
+    (event: LayoutChangeEvent) => {
+      viewport.current.listY = event.nativeEvent.layout.y;
+      trackVisiblePromoted();
+    },
+    [trackVisiblePromoted],
+  );
+  const onCardLayout = useCallback(
+    (id: string, event: LayoutChangeEvent) => {
+      const { y, height } = event.nativeEvent.layout;
+      cardLayouts.current.set(id, { y, height });
+      trackVisiblePromoted();
+    },
+    [trackVisiblePromoted],
+  );
 
   return (
     <View className="flex-1 bg-surface">
@@ -164,9 +260,8 @@ export function FeaturedDealsScreen({
               >
                 {copy.title}
               </VemtapText>
-              {/* The design's "Promoted" pill is gone: this page now lists the
-                  general public feed, and the API publishes no sponsorship flag
-                  on an offer, so the label would claim something untrue. */}
+              {/* No page-level "Promoted" pill: the page mixes promoted and
+                  organic listings, so only the promoted cards carry the badge. */}
             </View>
             <View className="flex-row items-center gap-1">
               <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
@@ -195,9 +290,13 @@ export function FeaturedDealsScreen({
         </View>
       </SafeAreaView>
       <ScrollView
+        testID="featured-deals-scroll"
         className="flex-1"
         contentContainerClassName="pb-8"
         showsVerticalScrollIndicator={false}
+        onLayout={onViewportLayout}
+        onScroll={onScroll}
+        scrollEventThrottle={250}
       >
         <View className="gap-2 bg-surface px-6 pb-2 pt-4 shadow-sm">
           <View className="flex-row items-center justify-between gap-2">
@@ -333,7 +432,11 @@ export function FeaturedDealsScreen({
           </View>
         </View>
 
-        <View className="gap-4 px-6 py-4">
+        <View
+          testID="featured-deals-list"
+          className="gap-4 px-6 py-4"
+          onLayout={onListLayout}
+        >
           {/* Live feed now, so the page needs honest pending/failed states —
               before this it rendered a hardcoded array that could never fail. */}
           {feed.isLoading && listings.length === 0 ? (
@@ -350,13 +453,18 @@ export function FeaturedDealsScreen({
             />
           ) : (
             listings.map(listing => (
-              <FeaturedDealsCard
+              <View
                 key={listing.id}
-                listing={listing}
-                saved={savedIds.has(listing.id)}
-                onOpen={openListing}
-                onToggleSave={dealId => toggleDealSave.mutate(dealId)}
-              />
+                testID={`featured-listing-${listing.id}`}
+                onLayout={event => onCardLayout(listing.id, event)}
+              >
+                <FeaturedDealsCard
+                  listing={listing}
+                  saved={savedIds.has(listing.id)}
+                  onOpen={openListing}
+                  onToggleSave={dealId => toggleDealSave.mutate(dealId)}
+                />
+              </View>
             ))
           )}
         </View>

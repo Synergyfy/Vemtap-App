@@ -33,6 +33,8 @@ export type FeaturedDeal = {
   likes: number;
   comments: number;
   liked?: boolean;
+  /** Set when a live boost or campaign put this deal here. */
+  campaignId?: string;
 };
 
 export type TrendingDeal = {

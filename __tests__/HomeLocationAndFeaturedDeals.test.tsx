@@ -153,8 +153,8 @@ describe('home location trigger', () => {
 
 describe('featured deals screen', () => {
   it('renders a card per live offer with its merchant and price', async () => {
-    // Live feed now: titles and merchants come from the offers endpoint, and
-    // the sponsorship badge is gone because offers carry no such flag.
+    // Live feed now: titles and merchants come from the offers endpoint. No
+    // boost is live here, so no card may claim to be promoted.
     await render(<FeaturedDealsScreen onBack={jest.fn()} />);
     expect(screen.getByText(fd.title)).toBeTruthy();
     expect(screen.getByText('20% Off Prime Lunch Combo')).toBeTruthy();
@@ -163,7 +163,7 @@ describe('featured deals screen', () => {
     // legitimately appears more than once.
     expect(screen.getAllByText('Urban Grill').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Cafe Aroma').length).toBeGreaterThan(0);
-    // Sponsorship is gone from both the card badge and the header pill.
+    // Only `/sponsored` rows are badged (FeaturedSponsoredDeals.test.tsx).
     expect(screen.queryByText(fd.promoted)).toBeNull();
     expect(screen.getByText(fd.aboutTitle)).toBeTruthy();
   });

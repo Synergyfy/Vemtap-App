@@ -31,6 +31,8 @@ export interface FeaturedDealsRailProps {
   onOpenComments?: (id: string) => void;
   onShare?: (id: string) => void;
   onOpenDetail?: (id: string) => void;
+  /** The card on screen (first, then each slide); promoted views count from it. */
+  onVisibleChange?: (deal: FeaturedDeal) => void;
   className?: string;
 }
 
@@ -88,6 +90,7 @@ export function FeaturedDealsRail({
   onOpenComments,
   onShare,
   onOpenDetail,
+  onVisibleChange,
   className,
 }: FeaturedDealsRailProps) {
   const listRef = useRef<FlatList<FeaturedDeal>>(null);
@@ -106,6 +109,13 @@ export function FeaturedDealsRail({
   const [reduceMotion, setReduceMotion] = useState(false);
 
   const count = deals.length;
+  const visible = deals[Math.min(index, Math.max(0, count - 1))];
+
+  useEffect(() => {
+    if (visible) onVisibleChange?.(visible);
+    // The visible deal, not a new callback identity, is what changed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible?.id]);
 
   /** Each page is exactly one card wide, so offsets are index * pageWidth. */
   const scrollToPage = useCallback(

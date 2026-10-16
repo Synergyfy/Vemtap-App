@@ -45,6 +45,10 @@ jest.mock('@features/home/hooks/useNearbyBusinesses', () => ({
 
 // Wrapped rather than assigned: the factory runs while the module's imports are
 // still evaluating, before `const mockFeed` is initialised.
+// No promoted deals: these tests drive the organic feed alone.
+jest.mock('@features/deals/hooks/useSponsoredOffers', () => ({
+  useSponsoredOffers: () => [],
+}));
 jest.mock('@features/deals/hooks/usePublicOffers', () => ({
   ...jest.requireActual('./helpers/mockOffersFeed').mockOffersFeedModule(),
   usePublicOffersFeed: (...args: unknown[]) => mockFeed(...args),

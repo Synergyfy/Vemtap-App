@@ -19,4 +19,5 @@ export * from './bookingsApi';
 export * from './segmentsApi';
 export * from './promotionsApi';
 export * from './boostsApi';
+export * from './sponsoredApi';
 export * from './adWalletApi';

@@ -24,8 +24,13 @@ import { useNearbyBusinesses } from '@features/home/hooks/useNearbyBusinesses';
 import { useNearbyProducts } from '@features/home/hooks/useNearbyProducts';
 import { useSearch, chipSearchTerm } from '@features/search/hooks/usePublicSearch';
 import { SearchResults } from '@features/search/components/SearchResults';
-import type { NearbyDeal, TrendingDeal } from '@features/home/data/homeFeed';
+import type {
+  FeaturedDeal,
+  NearbyDeal,
+  TrendingDeal,
+} from '@features/home/data/homeFeed';
 import { LoadingState } from '@components/shared/LoadingState';
+import { sponsoredTracker } from '@services/sponsoredTracker';
 import { EmptyState } from '@components/shared/EmptyState';
 
 cssInterop(View, { className: 'style' });
@@ -182,6 +187,25 @@ export function HomeScreen({
 
   const openDeal = useCallback((dealId: string) => onOpenDeal?.(dealId), [onOpenDeal]);
 
+  // Promoted cards report their views and taps (the boost's analytics).
+  const trackFeatured = useCallback((deal: FeaturedDeal, type: 'impression' | 'tap') => {
+    if (deal.campaignId) {
+      sponsoredTracker.track({ campaignId: deal.campaignId, offerId: deal.id, type });
+    }
+  }, []);
+  const openFeatured = useCallback(
+    (dealId: string) => {
+      const deal = featured.find(entry => entry.id === dealId);
+      if (deal) trackFeatured(deal, 'tap');
+      openDeal(dealId);
+    },
+    [featured, openDeal, trackFeatured],
+  );
+  const viewFeatured = useCallback(
+    (deal: FeaturedDeal) => trackFeatured(deal, 'impression'),
+    [trackFeatured],
+  );
+
   const openComments = useCallback((dealId: string) => setCommentsDealId(dealId), []);
 
   const openShare = useCallback((dealId: string) => setShareDealId(dealId), []);
@@ -254,7 +278,8 @@ export function HomeScreen({
                   deals={featured}
                   onOpenComments={openComments}
                   onShare={openShare}
-                  onOpenDetail={openDeal}
+                  onOpenDetail={openFeatured}
+                  onVisibleChange={viewFeatured}
                 />
               ) : !isLoading ? (
                 <SectionEmpty

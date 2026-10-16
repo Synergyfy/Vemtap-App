@@ -161,6 +161,7 @@ export function mapOfferToFeaturedListing(
     merchant: merchantName,
     rating: undefined,
     ratingCount: undefined,
+    // Organic by default; the Featured Deals page badges `/sponsored` rows.
     promotion: undefined,
     title: offer.name,
     body: offer.description ?? '',

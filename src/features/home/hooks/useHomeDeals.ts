@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { usePublicOffersFeed } from '@features/deals/hooks/usePublicOffers';
+import { useSponsoredOffers } from '@features/deals/hooks/useSponsoredOffers';
 import { discoveryOrigin } from '@utils/geo';
 import { useLocationStore } from '@store/locationStore';
 import {
@@ -29,6 +30,9 @@ const FEATURED_COUNT = 3;
  * the only popularity signal the API actually exposes — rather than being a
  * second copy of the same list in a different order.
  *
+ * Promoted deals (live boosts and campaigns for the `home` placement) lead
+ * the featured rail and are taken out of the other sections.
+ *
  * Sections come back empty rather than padded: with a narrow radius the API can
  * legitimately return fewer than FEATURED_COUNT offers, and a section showing
  * the same offer twice would be worse than a section that is not there.
@@ -39,10 +43,15 @@ export function useHomeDeals(limit = 20) {
   const origin = useMemo(() => discoveryOrigin(area, coords), [area, coords]);
 
   const { offers, isLoading, isError, refetch } = usePublicOffersFeed(limit);
+  const sponsored = useSponsoredOffers('home', FEATURED_COUNT);
 
   return useMemo(() => {
-    const featuredOffers = offers.slice(0, FEATURED_COUNT);
-    const rest = offers.slice(FEATURED_COUNT);
+    const promoted = sponsored.slice(0, FEATURED_COUNT);
+    const promotedIds = new Set(promoted.map(entry => entry.offer.id));
+    const organic = offers.filter(offer => !promotedIds.has(offer.id));
+    const organicFeatured = Math.max(0, FEATURED_COUNT - promoted.length);
+    const featuredOffers = organic.slice(0, organicFeatured);
+    const rest = organic.slice(organicFeatured);
 
     const trending = [...rest]
       .sort((a, b) => b.claimedCount - a.claimedCount)
@@ -50,7 +59,13 @@ export function useHomeDeals(limit = 20) {
       .map(offer => mapOfferToHomeTrending(offer, origin));
 
     return {
-      featured: featuredOffers.map(offer => mapOfferToHomeFeatured(offer, origin)),
+      featured: [
+        ...promoted.map(entry => ({
+          ...mapOfferToHomeFeatured(entry.offer, origin),
+          campaignId: entry.campaignId,
+        })),
+        ...featuredOffers.map(offer => mapOfferToHomeFeatured(offer, origin)),
+      ],
       nearby: rest.map(offer => mapOfferToHomeNearby(offer, origin)),
       trending,
       isLoading,
@@ -64,5 +79,5 @@ export function useHomeDeals(limit = 20) {
       isError: boolean;
       refetch: () => void;
     };
-  }, [offers, origin, isLoading, isError, refetch]);
+  }, [offers, sponsored, origin, isLoading, isError, refetch]);
 }

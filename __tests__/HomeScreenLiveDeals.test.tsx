@@ -3,6 +3,10 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react-nativ
 import { HomeScreen } from '@features/home/screens/HomeScreen';
 import { useHomeDeals } from '@features/home/hooks/useHomeDeals';
 
+// No promoted deals: these tests drive the organic feed alone.
+jest.mock('@features/deals/hooks/useSponsoredOffers', () => ({
+  useSponsoredOffers: () => [],
+}));
 jest.mock('@features/deals/hooks/usePublicOffers', () =>
   jest.requireActual('./helpers/mockOffersFeed').mockOffersFeedModule(),
 );

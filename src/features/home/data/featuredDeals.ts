@@ -15,11 +15,13 @@ export type FeaturedListing = {
   /** Discount badge, e.g. `20% OFF`. */
   discount: string;
   /**
-   * Sponsorship label, e.g. `Promoted` / `Sponsored`. The offers API publishes
-   * no sponsorship flag, so live listings leave this undefined and the card
-   * hides the badge rather than inventing a claim.
+   * Sponsorship label, e.g. `Promoted`. Only listings served by `/sponsored`
+   * (a live boost or campaign) carry it; organic feed listings leave it
+   * undefined, so the card never claims a promotion that was not paid for.
    */
   promotion?: string;
+  /** The live boost or campaign that placed this listing, when promoted. */
+  campaignId?: string;
   distance: string;
   /** Raw metres for sorting/range-filtering; undefined when unknown. */
   distanceMeters?: number | null;
