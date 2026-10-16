@@ -87,7 +87,13 @@ function moreStack(initialRouteName: string) {
 }
 
 async function renderRoutes(initialRouteName: string) {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  // No gc timers: React Query's default 5-minute gcTime keeps Jest from exiting.
+  const client = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false, gcTime: Infinity },
+      mutations: { retry: false, gcTime: Infinity },
+    },
+  });
   const ref = createNavigationContainerRef();
   const MoreStack = moreStack(initialRouteName);
   function BusinessTabs() {

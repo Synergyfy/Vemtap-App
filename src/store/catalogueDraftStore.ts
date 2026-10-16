@@ -57,6 +57,10 @@ export interface ServiceBookingRules {
   horizonDays?: number;
   capacity?: number;
   requiresConfirmation?: boolean;
+  /** Dates the service cannot be booked (`YYYY-MM-DD`). */
+  blockouts?: { date: string; reason?: string }[];
+  /** A branch's own days/hours, replacing the service-wide ones there. */
+  branchSchedules?: { branchId: string; days?: number[]; from?: string; to?: string }[];
 }
 
 export interface ServiceDraft {

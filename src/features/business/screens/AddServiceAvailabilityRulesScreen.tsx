@@ -14,6 +14,10 @@ import {
 } from '@features/business/components/ServiceFlowPrimitives';
 import { serviceBranches } from '@features/business/data/serviceFlowData';
 import { strings } from '@constants/strings';
+import {
+  LocationScheduleSheet,
+  type WeeklyHours,
+} from '@features/business/components/LocationScheduleSheet';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { colors } from '@theme/colors';
@@ -30,6 +34,8 @@ export type ServiceAvailabilityValue = {
   pricingMode: 'uniform' | 'per_branch';
   /** Price per selected branch (raw input) when priced per branch. */
   branchPrices: Record<string, string>;
+  /** Selected branches with their own days/hours. */
+  branchSchedules: (WeeklyHours & { branchId: string })[];
 };
 
 /** Lead-time choices → minutes of notice. */
@@ -64,6 +70,9 @@ export interface AddServiceAvailabilityRulesScreenProps {
   initialRules?: Partial<ServiceAvailabilityValue['rules']>;
   initialPricingMode?: ServiceAvailabilityValue['pricingMode'];
   initialBranchPrices?: Record<string, string>;
+  /** The service-wide days/hours from the pricing step (live). */
+  serviceSchedule?: WeeklyHours;
+  initialBranchSchedules?: ServiceAvailabilityValue['branchSchedules'];
 }
 
 const copy = strings.serviceFlow;
@@ -78,7 +87,15 @@ export function AddServiceAvailabilityRulesScreen({
   initialRules,
   initialPricingMode,
   initialBranchPrices,
+  serviceSchedule,
+  initialBranchSchedules,
 }: AddServiceAvailabilityRulesScreenProps) {
+  const [schedules, setSchedules] = useState<Record<string, WeeklyHours>>(() =>
+    Object.fromEntries(
+      (initialBranchSchedules ?? []).map(({ branchId, ...hours }) => [branchId, hours]),
+    ),
+  );
+  const [scheduling, setScheduling] = useState<{ id: string; name: string } | null>(null);
   const live = branches !== undefined;
   const outlets = branches ?? serviceBranches;
   const [selectedOutlets, setSelectedOutlets] = useState(
@@ -119,6 +136,10 @@ export function AddServiceAvailabilityRulesScreen({
     branchPrices: tiered
       ? Object.fromEntries([...selectedOutlets].map(id => [id, priceFor(id)]))
       : {},
+    // Only branches still offering the service keep their own schedule.
+    branchSchedules: [...selectedOutlets]
+      .filter(id => schedules[id])
+      .map(id => ({ branchId: id, ...schedules[id] })),
   };
 
   const toggleOutlet = (id: string) => {
@@ -220,6 +241,16 @@ export function AddServiceAvailabilityRulesScreen({
                             </VemtapText>
                           </View>
                         ) : null}
+                        {live && selected && schedules[branch.id] ? (
+                          <View className="rounded-full bg-surface-tint px-2 py-0.5">
+                            <VemtapText
+                              variant="caption"
+                              className="font-sans-semibold text-primary"
+                            >
+                              {copy.locationSchedule.customPill}
+                            </VemtapText>
+                          </View>
+                        ) : null}
                       </View>
                       {branch.address ? (
                         <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
@@ -250,11 +281,15 @@ export function AddServiceAvailabilityRulesScreen({
                       trailingLabel="NGN"
                     />
                   ) : null}
-                  {live ? null : (
+                  {live && !selected ? null : (
                     <View className="flex-row justify-end pt-1">
                       <Pressable
                         accessibilityRole="button"
                         accessibilityLabel={`Edit Location Schedule for ${branch.name}`}
+                        disabled={!live}
+                        onPress={() =>
+                          setScheduling({ id: branch.id, name: branch.name })
+                        }
                         className="min-h-11 flex-row items-center gap-1 rounded-lg bg-surface-tint px-2.5 active:scale-[0.98]"
                       >
                         <Icon name="locationSchedule" size={16} color={colors.primary} />
@@ -477,6 +512,22 @@ export function AddServiceAvailabilityRulesScreen({
           </ServiceSection>
         </View>
       </View>
+      {live && serviceSchedule ? (
+        <LocationScheduleSheet
+          visible={scheduling !== null}
+          onClose={() => setScheduling(null)}
+          branchName={scheduling?.name ?? ''}
+          serviceSchedule={serviceSchedule}
+          value={scheduling ? schedules[scheduling.id] : undefined}
+          onSave={next => {
+            if (!scheduling) return;
+            setSchedules(current => {
+              const { [scheduling.id]: _previous, ...rest } = current;
+              return next ? { ...rest, [scheduling.id]: next } : rest;
+            });
+          }}
+        />
+      ) : null}
     </ServiceFlowPage>
   );
 }

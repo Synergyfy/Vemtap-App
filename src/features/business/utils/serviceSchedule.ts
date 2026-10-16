@@ -56,3 +56,50 @@ export function dailySlots(
   for (let start = from; start + duration <= to; start += step) slots.push(start);
   return slots;
 }
+
+/** A local date as the API's `YYYY-MM-DD` (never via UTC, which can shift the day). */
+export function dateKey(date: Date): string {
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${day}`;
+}
+
+export function fromDateKey(key: string): Date {
+  const [year, month, day] = key.split('-').map(Number);
+  return new Date(year, month - 1, day);
+}
+
+/**
+ * The bookable window's days, grouped by month: `[0]` is today's month from
+ * today, later months run to the window's last day.
+ */
+export function blockoutMonths(today: Date, windowDays: number): Date[][] {
+  const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const months: Date[][] = [];
+  for (let offset = 0; offset < windowDays; offset += 1) {
+    const day = new Date(start.getFullYear(), start.getMonth(), start.getDate() + offset);
+    const last = months[months.length - 1];
+    if (last && last[0].getMonth() === day.getMonth()) last.push(day);
+    else months.push([day]);
+  }
+  return months;
+}
+
+/** `Fri 16`. */
+export function dayChipLabel(date: Date): string {
+  return `${date.toLocaleDateString('en-NG', { weekday: 'short' })} ${date.getDate()}`;
+}
+
+/** `25 Dec 2026` for a `YYYY-MM-DD` key. */
+export function shortDateLabel(key: string): string {
+  return fromDateKey(key).toLocaleDateString('en-NG', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
+/** `October 2026`. */
+export function monthLabel(date: Date): string {
+  return date.toLocaleDateString('en-NG', { month: 'long', year: 'numeric' });
+}

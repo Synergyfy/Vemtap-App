@@ -24,7 +24,11 @@ import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { colors } from '@theme/colors';
 import { strings } from '@constants/strings';
-import { parseTime, toClock } from '@features/business/utils/serviceSchedule';
+import {
+  parseTime,
+  shortDateLabel,
+  toClock,
+} from '@features/business/utils/serviceSchedule';
 
 cssInterop(Pressable, { className: 'style' });
 cssInterop(View, { className: 'style' });
@@ -48,6 +52,25 @@ function naira(value: string | undefined): string {
   return `\u20a6${(Number((value ?? '').replace(/[^0-9.]/g, '')) || 0).toLocaleString('en-NG')}`;
 }
 
+function daysLabel(days: number[] | undefined): string {
+  return !days || days.length === 7
+    ? reviewCopy.everyDay
+    : days.map(day => DAY_LABEL[day]).join(', ');
+}
+
+/** A branch's own schedule, when it has one. */
+function customHoursLabel(draft: ServiceDraft, branchId: string): string | undefined {
+  const own = draft.bookingRules?.branchSchedules?.find(
+    entry => entry.branchId === branchId,
+  );
+  if (!own) return undefined;
+  const clock = (value: string | undefined) => {
+    const minutes = parseTime(value ?? '');
+    return minutes === null ? '' : toClock(minutes);
+  };
+  return reviewCopy.customHours(daysLabel(own.days), clock(own.from), clock(own.to));
+}
+
 /** The draft's booking rules as policy rows. */
 function ruleRows(draft: ServiceDraft) {
   if (!draft.bookingEnabled) {
@@ -56,15 +79,34 @@ function ruleRows(draft: ServiceDraft) {
     ];
   }
   const rules = draft.bookingRules ?? {};
-  const days =
-    !rules.days || rules.days.length === 7
-      ? reviewCopy.everyDay
-      : rules.days.map(day => DAY_LABEL[day]).join(', ');
+  const days = daysLabel(rules.days);
   const time = (value: string | undefined, fallback: string) => {
     const minutes = parseTime(value ?? '');
     return minutes === null ? fallback : toClock(minutes);
   };
+  const blocked = [...(rules.blockouts ?? [])].sort((a, b) =>
+    a.date.localeCompare(b.date),
+  );
+  const blockedRow = blocked.length
+    ? [
+        {
+          title: reviewCopy.blockedTitle(blocked.length),
+          description: [
+            ...blocked
+              .slice(0, 3)
+              .map(entry =>
+                entry.reason
+                  ? `${shortDateLabel(entry.date)} (${entry.reason})`
+                  : shortDateLabel(entry.date),
+              ),
+            ...(blocked.length > 3 ? [reviewCopy.blockedMore(blocked.length - 3)] : []),
+          ].join(', '),
+          icon: 'doNotDisturb' as const,
+        },
+      ]
+    : [];
   return [
+    ...blockedRow,
     {
       title: reviewCopy.daysHours(
         days,
@@ -111,13 +153,18 @@ export function ReviewServiceSummaryScreen({
           .filter(branch => draft.branchIds.includes(branch.id))
           .map(branch => ({
             name: branch.name,
-            summary: reviewCopy.branchSummary(
-              naira(
-                draft.pricingMode === 'per_branch'
-                  ? (draft.branchPrices[branch.id] ?? draft.basePrice)
-                  : draft.basePrice,
+            summary: [
+              reviewCopy.branchSummary(
+                naira(
+                  draft.pricingMode === 'per_branch'
+                    ? (draft.branchPrices[branch.id] ?? draft.basePrice)
+                    : draft.basePrice,
+                ),
               ),
-            ),
+              customHoursLabel(draft, branch.id),
+            ]
+              .filter(Boolean)
+              .join(' \u2022 '),
             badge: 'Active',
           }))
       : serviceBranches;

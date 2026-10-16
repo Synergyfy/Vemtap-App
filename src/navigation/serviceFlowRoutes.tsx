@@ -31,6 +31,10 @@ export interface ServiceFlowNavigation {
 
 const copy = strings.serviceFlow;
 
+/** The pricing step's defaults: Monday–Saturday, 09:00–18:00. */
+const DEFAULT_SERVICE_DAYS = [1, 2, 3, 4, 5, 6];
+const DEFAULT_SERVICE_HOURS = { from: '09:00', to: '18:00' };
+
 function messageOf(error: unknown, fallback: string): string {
   return error instanceof Error && error.message ? error.message : fallback;
 }
@@ -173,9 +177,11 @@ export function ServiceAvailabilityStep({ nav }: { nav: ServiceFlowNavigation })
     isBookable: value.isBookable,
     pricingMode: value.pricingMode,
     branchPrices: value.branchPrices,
+    // Kept apart from `rules` so an empty list clears earlier overrides.
     bookingRules: {
       ...useCatalogueDraftStore.getState().service.bookingRules,
       ...value.rules,
+      branchSchedules: value.branchSchedules.length ? value.branchSchedules : undefined,
     },
   });
 
@@ -197,6 +203,17 @@ export function ServiceAvailabilityStep({ nav }: { nav: ServiceFlowNavigation })
       initialRules={draft.bookingRules}
       initialPricingMode={draft.pricingMode}
       initialBranchPrices={draft.branchPrices}
+      serviceSchedule={{
+        days: draft.bookingRules?.days ?? DEFAULT_SERVICE_DAYS,
+        from: draft.bookingRules?.from ?? DEFAULT_SERVICE_HOURS.from,
+        to: draft.bookingRules?.to ?? DEFAULT_SERVICE_HOURS.to,
+      }}
+      initialBranchSchedules={draft.bookingRules?.branchSchedules?.map(entry => ({
+        branchId: entry.branchId,
+        days: entry.days ?? draft.bookingRules?.days ?? DEFAULT_SERVICE_DAYS,
+        from: entry.from ?? draft.bookingRules?.from ?? DEFAULT_SERVICE_HOURS.from,
+        to: entry.to ?? draft.bookingRules?.to ?? DEFAULT_SERVICE_HOURS.to,
+      }))}
       onNext={value => {
         setService(toDraft(value));
         nav.next('review');

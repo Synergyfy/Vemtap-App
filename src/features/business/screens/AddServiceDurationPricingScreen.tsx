@@ -12,7 +12,6 @@ import {
   ServiceSection,
   ServiceToggle,
 } from '@features/business/components/ServiceFlowPrimitives';
-import { BusinessSelectionChip } from '@features/business/components/BusinessPrimitives';
 import {
   serviceDurations,
   serviceFlowDraft,
@@ -25,6 +24,8 @@ import { VemtapText } from '@components/ui/Text';
 import { colors } from '@theme/colors';
 import { strings } from '@constants/strings';
 import { PromptDialog } from '@features/business/components/PromptDialog';
+import { ServiceWeeklySchedule } from '@features/business/components/ServiceWeeklySchedule';
+import { ServiceBlockoutsSheet } from '@features/business/components/ServiceBlockoutsSheet';
 import type { ServiceBookingRules, ServiceTier } from '@store/catalogueDraftStore';
 import {
   dailySlots,
@@ -46,7 +47,7 @@ export type ServiceDurationPricingValue = {
   /** Days, hours, buffer and confirmation (the API's `bookingRules`). */
   schedule: Pick<
     ServiceBookingRules,
-    'days' | 'from' | 'to' | 'bufferMinutes' | 'requiresConfirmation'
+    'days' | 'from' | 'to' | 'bufferMinutes' | 'requiresConfirmation' | 'blockouts'
   >;
 };
 
@@ -115,6 +116,8 @@ export function AddServiceDurationPricingScreen({
   const [from, setFrom] = useState(parseTime(schedule?.from ?? '') ?? 9 * 60);
   const [to, setTo] = useState(parseTime(schedule?.to ?? '') ?? 18 * 60);
   const [buffer, setBuffer] = useState(schedule?.bufferMinutes ?? 15);
+  const [blockouts, setBlockouts] = useState(schedule?.blockouts ?? []);
+  const [editingBlockouts, setEditingBlockouts] = useState(false);
   const [dialog, setDialog] = useState<Dialog>(null);
   const [dialogError, setDialogError] = useState<string | null>(null);
 
@@ -152,6 +155,7 @@ export function AddServiceDurationPricingScreen({
       to: toHhmm(to),
       bufferMinutes: buffer,
       requiresConfirmation: confirmationEnabled,
+      blockouts,
     },
   };
 
@@ -447,69 +451,23 @@ export function AddServiceDurationPricingScreen({
               />
             </View>
           </View>
-          <View className="gap-3 rounded-card-lg bg-surface-container-low p-3">
-            <View className="flex-row flex-wrap items-center justify-between gap-2">
-              <VemtapText variant="labelSm" className="font-sans-semibold text-text">
-                Weekly Available Days
-              </VemtapText>
-              <VemtapText variant="caption" tone="secondary">
-                {activeDays.size} days active
-              </VemtapText>
-            </View>
-            <View accessibilityRole="radiogroup" className="flex-row gap-1">
-              {serviceWeekdays.map(day => (
-                <BusinessSelectionChip
-                  key={day}
-                  label={day}
-                  selected={activeDays.has(day)}
-                  tone="neutral"
-                  onPress={() => toggleDay(day)}
-                  className="min-w-0 flex-1 rounded-lg px-0"
-                />
-              ))}
-            </View>
-            <View className="mt-1 gap-1.5">
-              <VemtapText variant="caption" tone="secondary" className="font-sans-medium">
-                Available Daily Hours
-              </VemtapText>
-              <View className="flex-row gap-2">
-                {[
-                  ['Start Time', live ? toClock(from) : '09:00 AM'],
-                  ['End Time', live ? toClock(to) : '06:00 PM'],
-                ].map(([label, value]) => (
-                  <Pressable
-                    key={label}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${label}: ${value}`}
-                    disabled={!live}
-                    onPress={() => setDialog('hours')}
-                    className="min-w-0 flex-1 flex-row items-center justify-between gap-1 rounded-lg border border-border bg-surface px-3 py-2"
-                  >
-                    <View className="min-w-0 flex-1">
-                      <VemtapText variant="micro" tone="tertiary" className="uppercase">
-                        {label}
-                      </VemtapText>
-                      <VemtapText
-                        variant="labelMd"
-                        className="font-sans-semibold text-text"
-                      >
-                        {value}
-                      </VemtapText>
-                    </View>
-                    <Icon name="schedule" size={18} color={colors.textTertiary} />
-                  </Pressable>
-                ))}
+          <ServiceWeeklySchedule
+            activeDays={activeDays}
+            onToggleDay={toggleDay}
+            startLabel={live ? toClock(from) : '09:00 AM'}
+            endLabel={live ? toClock(to) : '06:00 PM'}
+            onPressHours={live ? () => setDialog('hours') : undefined}
+            footer={
+              <View className="flex-row items-start gap-1.5 pt-0.5">
+                <Icon name="info" size={16} color={colors.primary} />
+                <VemtapText variant="caption" tone="secondary" className="min-w-0 flex-1">
+                  {live
+                    ? liveCopy.slotsNote(minutes, buffer)
+                    : '60 mins appointment slots (15 mins cleanup buffer auto-added)'}
+                </VemtapText>
               </View>
-            </View>
-            <View className="flex-row items-start gap-1.5 pt-0.5">
-              <Icon name="info" size={16} color={colors.primary} />
-              <VemtapText variant="caption" tone="secondary" className="min-w-0 flex-1">
-                {live
-                  ? liveCopy.slotsNote(minutes, buffer)
-                  : '60 mins appointment slots (15 mins cleanup buffer auto-added)'}
-              </VemtapText>
-            </View>
-          </View>
+            }
+          />
           <View className="gap-1.5">
             <View className="flex-row flex-wrap items-center justify-between gap-2">
               <VemtapText variant="caption" tone="secondary" className="font-sans-medium">
@@ -549,12 +507,16 @@ export function AddServiceDurationPricingScreen({
               ))}
             </View>
           </View>
-          {live ? null : (
-            <ServiceLinkButton
-              label="Customize Specific Dates & Blockouts"
-              icon="doNotDisturb"
-            />
-          )}
+          <ServiceLinkButton
+            label="Customize Specific Dates & Blockouts"
+            icon="doNotDisturb"
+            onPress={live ? () => setEditingBlockouts(true) : undefined}
+          />
+          {live ? (
+            <VemtapText variant="caption" tone="secondary" className="text-center">
+              {liveCopy.blockouts.summary(blockouts.length)}
+            </VemtapText>
+          ) : null}
         </ServiceSection>
 
         <ServiceSection>
@@ -602,6 +564,12 @@ export function AddServiceDurationPricingScreen({
       </View>
       {live ? (
         <>
+          <ServiceBlockoutsSheet
+            visible={editingBlockouts}
+            onClose={() => setEditingBlockouts(false)}
+            value={blockouts}
+            onSave={setBlockouts}
+          />
           <PromptDialog
             visible={dialog === 'tier'}
             title={liveCopy.tierDialog.title}

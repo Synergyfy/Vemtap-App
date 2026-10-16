@@ -17,6 +17,8 @@ import { AddServiceBasicsMediaScreen } from '@features/business/screens/AddServi
 import { AddServiceDurationPricingScreen } from '@features/business/screens/AddServiceDurationPricingScreen';
 import { AddServiceAvailabilityRulesScreen } from '@features/business/screens/AddServiceAvailabilityRulesScreen';
 import { ReviewServiceSummaryScreen } from '@features/business/screens/ReviewServiceSummaryScreen';
+import { ServiceBlockoutsSheet } from '@features/business/components/ServiceBlockoutsSheet';
+import { LocationScheduleSheet } from '@features/business/components/LocationScheduleSheet';
 import {
   serviceBranchPricingInput,
   serviceDraftToCreateInput,
@@ -35,7 +37,23 @@ import type { ServiceDraft } from '@store/catalogueDraftStore';
 const copy = strings.serviceFlow;
 const BRANCH = 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  jest.restoreAllMocks();
+});
+
+/**
+ * No retries, and no garbage-collection timers: React Query's default 5-minute
+ * gcTime keeps Jest from exiting after the tests pass.
+ */
+function testQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false, gcTime: Infinity },
+      mutations: { retry: false, gcTime: Infinity },
+    },
+  });
+}
 
 describe('service schedule arithmetic', () => {
   it('parses times and durations the way the bookings API does', () => {
@@ -165,6 +183,7 @@ describe('live service screens', () => {
       to: '18:00',
       bufferMinutes: 15,
       requiresConfirmation: true,
+      blockouts: [],
     });
   });
 
@@ -189,7 +208,10 @@ describe('live service screens', () => {
   });
 
   it('review shows the draft, its tiers and its booking rules', async () => {
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    jest
+      .spyOn(catalogueApi, 'listBusinessBranches')
+      .mockResolvedValue([{ id: BRANCH, name: 'Wuse II' } as never]);
+    const client = testQueryClient();
     await render(
       <QueryClientProvider client={client}>
         <ReviewServiceSummaryScreen
@@ -324,7 +346,7 @@ describe('tiered branch pricing', () => {
       pricingMode: 'per_branch',
       branchPrices: { [BRANCH]: '15,000', [OTHER]: '18,000' },
     });
-    const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
+    const client = testQueryClient();
     const { result } = await renderHook(() => usePublishCatalogueItem(), {
       wrapper: ({ children }) => (
         <QueryClientProvider client={client}>{children}</QueryClientProvider>
@@ -348,5 +370,134 @@ describe('tiered branch pricing', () => {
     });
     jest.restoreAllMocks();
     useCatalogueDraftStore.getState().resetService();
+  });
+});
+
+describe('blocked dates and branch schedules', () => {
+  // Friday 16 Oct 2026, local time.
+  const NOW = new Date(2026, 9, 16, 9, 0);
+
+  it('blocks and unblocks days from the month strip, with a reason', async () => {
+    const onSave = jest.fn();
+    await render(
+      <ServiceBlockoutsSheet
+        visible
+        onClose={jest.fn()}
+        value={[]}
+        onSave={onSave}
+        now={NOW}
+      />,
+    );
+    expect(screen.getByText('October 2026')).toBeTruthy();
+
+    await fireEvent.changeText(
+      screen.getByLabelText(copy.blockouts.reasonLabel),
+      'Staff training',
+    );
+    await fireEvent.press(screen.getByText('Sat 24'));
+    await fireEvent.press(screen.getByLabelText(copy.blockouts.nextMonth));
+    expect(screen.getByText('November 2026')).toBeTruthy();
+    await fireEvent.press(screen.getByText('Mon 2'));
+    // Tapping again unblocks.
+    await fireEvent.press(screen.getByText('Mon 2'));
+    await fireEvent.press(screen.getByText('Tue 3'));
+    await fireEvent.press(screen.getByText(copy.blockouts.save));
+
+    expect(onSave).toHaveBeenCalledWith([
+      { date: '2026-10-24', reason: 'Staff training' },
+      { date: '2026-11-03', reason: 'Staff training' },
+    ]);
+  });
+
+  const locationProps = (onSave: jest.Mock) => ({
+    visible: true,
+    onClose: jest.fn(),
+    branchName: 'Maitama',
+    serviceSchedule: { days: [1, 2, 3, 4, 5, 6], from: '09:00', to: '18:00' },
+    onSave,
+  });
+
+  it('keeps the service schedule at a branch by default', async () => {
+    const onSave = jest.fn();
+    await render(<LocationScheduleSheet {...locationProps(onSave)} />);
+    await fireEvent.press(screen.getByText(copy.locationSchedule.save));
+    expect(onSave).toHaveBeenLastCalledWith(undefined);
+  });
+
+  it('gives a branch its own days and hours, validating the times', async () => {
+    const onSave = jest.fn();
+    await render(<LocationScheduleSheet {...locationProps(onSave)} />);
+    await fireEvent.press(screen.getByText(copy.locationSchedule.custom));
+    await fireEvent.press(screen.getByText('Sat'));
+    await fireEvent.changeText(
+      screen.getByLabelText(copy.locationSchedule.startLabel),
+      '10:00',
+    );
+    await fireEvent.changeText(
+      screen.getByLabelText(copy.locationSchedule.endLabel),
+      '8:00',
+    );
+    await fireEvent.press(screen.getByText(copy.locationSchedule.save));
+    expect(screen.getByText(copy.locationSchedule.invalid)).toBeTruthy();
+    expect(onSave).not.toHaveBeenCalled();
+
+    await fireEvent.changeText(
+      screen.getByLabelText(copy.locationSchedule.endLabel),
+      '20:00',
+    );
+    await fireEvent.press(screen.getByText(copy.locationSchedule.save));
+    expect(onSave).toHaveBeenLastCalledWith({
+      days: [1, 2, 3, 4, 5],
+      from: '10:00',
+      to: '20:00',
+    });
+  });
+
+  it('opens the location schedule from a ticked branch and emits the override', async () => {
+    const onNext = jest.fn();
+    await render(
+      <AddServiceAvailabilityRulesScreen
+        onBack={jest.fn()}
+        onNext={onNext}
+        branches={[{ id: BRANCH, name: 'Wuse II', address: '' }]}
+        serviceSchedule={{ days: [1, 2, 3, 4, 5, 6], from: '09:00', to: '18:00' }}
+      />,
+    );
+    await fireEvent.press(screen.getByLabelText('Edit Location Schedule for Wuse II'));
+    await fireEvent.press(screen.getByText(copy.locationSchedule.custom));
+    await fireEvent.changeText(
+      screen.getByLabelText(copy.locationSchedule.startLabel),
+      '12:00',
+    );
+    await fireEvent.press(screen.getByText(copy.locationSchedule.save));
+    expect(screen.getByText(copy.locationSchedule.customPill)).toBeTruthy();
+
+    await fireEvent.press(screen.getByText('Review & Publish'));
+    expect(onNext.mock.calls[0][0].branchSchedules).toEqual([
+      { branchId: BRANCH, days: [1, 2, 3, 4, 5, 6], from: '12:00', to: '18:00' },
+    ]);
+  });
+
+  it('opens the blockouts editor from the pricing step and emits the dates', async () => {
+    const onNext = jest.fn();
+    await render(
+      <AddServiceDurationPricingScreen
+        onBack={jest.fn()}
+        onNext={onNext}
+        live
+        initialValue={{
+          basePrice: '15,000',
+          schedule: { blockouts: [{ date: '2026-12-25', reason: 'Christmas' }] },
+        }}
+      />,
+    );
+    expect(screen.getByText(copy.blockouts.summary(1))).toBeTruthy();
+    await fireEvent.press(screen.getByText('Customize Specific Dates & Blockouts'));
+    expect(screen.getByText(copy.blockouts.blockedTitle(1))).toBeTruthy();
+
+    await fireEvent.press(screen.getByText('Continue to Branch Availability'));
+    expect(onNext.mock.calls[0][0].schedule.blockouts).toEqual([
+      { date: '2026-12-25', reason: 'Christmas' },
+    ]);
   });
 });

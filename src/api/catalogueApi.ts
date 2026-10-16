@@ -430,6 +430,34 @@ export const bookingRulesSchema = z
     horizonDays: z.number().int().min(1).max(365).optional(),
     capacity: z.number().int().min(1).max(50).optional(),
     requiresConfirmation: z.boolean().optional(),
+    /** Dates the service cannot be booked. */
+    blockouts: z
+      .array(
+        z.object({
+          date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+          reason: z.string().max(80).optional(),
+        }),
+      )
+      .max(100)
+      .optional(),
+    /** A branch's own days/hours, replacing the service-wide ones there. */
+    branchSchedules: z
+      .array(
+        z.object({
+          branchId: z.string().uuid(),
+          days: z.array(z.number().int().min(0).max(6)).max(7).optional(),
+          from: z
+            .string()
+            .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
+            .optional(),
+          to: z
+            .string()
+            .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
+            .optional(),
+        }),
+      )
+      .max(50)
+      .optional(),
   })
   .optional();
 const catalogueItemPricingModeSchema = z.enum(['uniform', 'per_branch']).optional();
