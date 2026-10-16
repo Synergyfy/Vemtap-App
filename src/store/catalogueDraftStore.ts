@@ -36,6 +36,29 @@ export interface ProductDraft {
   publishedItemId?: string;
 }
 
+/** A priced option of a service (sent to the API as an item variant). */
+export interface ServiceTier {
+  id: string;
+  name: string;
+  price: string;
+  duration?: string;
+}
+
+/**
+ * When a service can be booked (the API's `bookingRules`). Weekdays are
+ * `0 = Sunday … 6 = Saturday`; times are `HH:mm`.
+ */
+export interface ServiceBookingRules {
+  days?: number[];
+  from?: string;
+  to?: string;
+  bufferMinutes?: number;
+  leadMinutes?: number;
+  horizonDays?: number;
+  capacity?: number;
+  requiresConfirmation?: boolean;
+}
+
 export interface ServiceDraft {
   name: string;
   description: string;
@@ -56,6 +79,9 @@ export interface ServiceDraft {
   /** Optional category for service organization (mirrors product categoryId). */
   categoryId?: string;
   categoryName?: string;
+  /** Priced tiers/add-ons on top of the base price. */
+  tiers: ServiceTier[];
+  bookingRules?: ServiceBookingRules;
   publishedServiceId?: string;
 }
 
@@ -125,6 +151,7 @@ const emptyService: ServiceDraft = {
   serviceMode: 'location',
   isBookable: true,
   bookingMethod: 'vemtap',
+  tiers: [],
 };
 
 const emptyDeal: DealDraft = {

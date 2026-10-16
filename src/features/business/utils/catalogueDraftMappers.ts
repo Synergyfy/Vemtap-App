@@ -1,3 +1,4 @@
+import { strings } from '@constants/strings';
 import type {
   BusinessOfferAdmin,
   CreateCatalogueItemInput,
@@ -73,8 +74,14 @@ export function productDraftToCreateInput(
     minStock: parseCountInput(draft.lowStockThreshold),
     stockQuantity: draft.inStock ? undefined : 0,
     allowBackOrder: draft.backorder,
-    condition: draft.condition?.trim() || undefined,
-    tags: [...draft.attributes, draft.condition].filter(Boolean),
+    // The API's condition is new | refurbished | used; the wizard's food
+    // conditions only map onto `new` (the label still goes out as a tag).
+    condition: PRODUCT_CONDITION_MAP[draft.condition] ?? undefined,
+    tags: [
+      ...draft.attributes,
+      strings.addProductBasics.conditions.find(option => option.id === draft.condition)
+        ?.label ?? draft.condition,
+    ].filter(Boolean),
     variants: draft.variants.map(variant => ({
       name: variant.name,
       price: parseMoneyInput(variant.price) ?? 0,
@@ -93,6 +100,15 @@ export function productDraftToCreateInput(
   };
 }
 
+/** Wizard product conditions → the API's `CatalogueItemCondition`. */
+const PRODUCT_CONDITION_MAP: Record<string, 'new' | 'refurbished' | 'used'> = {
+  fresh: 'new',
+  packaged: 'new',
+  new: 'new',
+  refurbished: 'refurbished',
+  used: 'used',
+};
+
 export function serviceDraftToCreateInput(
   draft: ServiceDraft,
   branchId: string,
@@ -109,6 +125,13 @@ export function serviceDraftToCreateInput(
     bookingMethod: 'vemtap',
     audience: draft.audience?.trim() || undefined,
     tags: draft.highlights.length ? draft.highlights : undefined,
+    variants: draft.tiers.length
+      ? draft.tiers.map(tier => ({
+          name: tier.duration ? `${tier.name} (${tier.duration})` : tier.name,
+          price: parseMoneyInput(tier.price) ?? 0,
+        }))
+      : undefined,
+    bookingRules: draft.bookingEnabled ? draft.bookingRules : undefined,
     mainImage: draft.mainImage,
     galleryImages: draft.galleryImages.length ? draft.galleryImages : undefined,
     itemType: 'service',

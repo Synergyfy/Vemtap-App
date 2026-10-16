@@ -108,6 +108,7 @@ describe('review service summary screen', () => {
           branchIds: ['maitama'],
           serviceMode: 'location',
           isBookable: true,
+          tiers: [],
           galleryImages: [],
         }}
       />,
@@ -121,7 +122,10 @@ describe('review service summary screen', () => {
     await render(<ReviewServiceSummaryScreen onBack={jest.fn()} />);
 
     expect(screen.getByText(serviceFlowDraft.title)).toBeTruthy();
-    expect(screen.getByText(serviceFlowDraft.basePriceFormatted)).toBeTruthy();
+    // The base rate and the branch summaries both quote it.
+    expect(
+      screen.getAllByText(serviceFlowDraft.basePriceFormatted).length,
+    ).toBeGreaterThan(0);
   });
 });
 
@@ -146,6 +150,7 @@ describe('service published status screen', () => {
           branchIds: ['wuse'],
           serviceMode: 'location',
           isBookable: true,
+          tiers: [],
           galleryImages: [],
         }}
       />,

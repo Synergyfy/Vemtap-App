@@ -23,6 +23,16 @@ import {
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { colors } from '@theme/colors';
+import { strings } from '@constants/strings';
+import { PromptDialog } from '@features/business/components/PromptDialog';
+import type { ServiceBookingRules, ServiceTier } from '@store/catalogueDraftStore';
+import {
+  dailySlots,
+  durationMinutes,
+  parseTime,
+  toClock,
+  toHhmm,
+} from '@features/business/utils/serviceSchedule';
 
 cssInterop(Pressable, { className: 'style' });
 cssInterop(View, { className: 'style' });
@@ -32,37 +42,122 @@ export type ServiceDurationPricingValue = {
   compareAtPrice: string;
   duration: string;
   bookingEnabled: boolean;
+  tiers: ServiceTier[];
+  /** Days, hours, buffer and confirmation (the API's `bookingRules`). */
+  schedule: Pick<
+    ServiceBookingRules,
+    'days' | 'from' | 'to' | 'bufferMinutes' | 'requiresConfirmation'
+  >;
 };
 
 export interface AddServiceDurationPricingScreenProps {
   onBack: () => void;
   onNext?: (value: ServiceDurationPricingValue) => void;
   onSaveDraft?: (value: ServiceDurationPricingValue) => void;
+  /**
+   * Live mode starts from `initialValue` (or empty) instead of the design's
+   * sample prices and tiers, makes hours, buffer and tiers editable, and
+   * drops controls that have no backend.
+   */
+  live?: boolean;
+  initialValue?: Partial<ServiceDurationPricingValue>;
 }
+
+const liveCopy = strings.serviceFlow;
+/** Wizard weekday labels → the API's `0 = Sunday … 6 = Saturday`. */
+const WEEKDAY_NUMBER: Record<string, number> = {
+  Sun: 0,
+  Mon: 1,
+  Tue: 2,
+  Wed: 3,
+  Thu: 4,
+  Fri: 5,
+  Sat: 6,
+};
+
+type Dialog = 'tier' | 'hours' | 'buffer' | null;
 
 export function AddServiceDurationPricingScreen({
   onBack,
   onNext,
   onSaveDraft,
+  live = false,
+  initialValue,
 }: AddServiceDurationPricingScreenProps) {
-  const [basePrice, setBasePrice] = useState<string>(serviceFlowDraft.basePrice);
+  const [basePrice, setBasePrice] = useState<string>(
+    initialValue?.basePrice ?? (live ? '' : serviceFlowDraft.basePrice),
+  );
   const [compareAtPrice, setCompareAtPrice] = useState<string>(
-    serviceFlowDraft.compareAtPrice,
+    initialValue?.compareAtPrice ?? (live ? '' : serviceFlowDraft.compareAtPrice),
   );
-  const [duration, setDuration] = useState('60 mins');
-  const [tiers, setTiers] = useState([...serviceTiers]);
-  const [tiersEnabled, setTiersEnabled] = useState(true);
-  const [bookingEnabled, setBookingEnabled] = useState(true);
-  const [confirmationEnabled, setConfirmationEnabled] = useState(true);
+  const [duration, setDuration] = useState(initialValue?.duration ?? '60 mins');
+  const [tiers, setTiers] = useState<
+    { id: string; name: string; price: string; duration?: string; capacity?: string }[]
+  >(() => initialValue?.tiers ?? (live ? [] : [...serviceTiers]));
+  const [tiersEnabled, setTiersEnabled] = useState(
+    live ? (initialValue?.tiers?.length ?? 0) > 0 : true,
+  );
+  const [bookingEnabled, setBookingEnabled] = useState(
+    initialValue?.bookingEnabled ?? true,
+  );
+  const schedule = initialValue?.schedule;
+  const [confirmationEnabled, setConfirmationEnabled] = useState(
+    schedule?.requiresConfirmation ?? true,
+  );
   const [activeDays, setActiveDays] = useState(
-    () => new Set<string>(serviceWeekdays.filter(day => day !== 'Sun')),
+    () =>
+      new Set<string>(
+        schedule?.days
+          ? serviceWeekdays.filter(day => schedule.days!.includes(WEEKDAY_NUMBER[day]))
+          : serviceWeekdays.filter(day => day !== 'Sun'),
+      ),
   );
+  const [from, setFrom] = useState(parseTime(schedule?.from ?? '') ?? 9 * 60);
+  const [to, setTo] = useState(parseTime(schedule?.to ?? '') ?? 18 * 60);
+  const [buffer, setBuffer] = useState(schedule?.bufferMinutes ?? 15);
+  const [dialog, setDialog] = useState<Dialog>(null);
+  const [dialogError, setDialogError] = useState<string | null>(null);
+
+  const minutes = durationMinutes(duration);
+  const slots = dailySlots(from, to, minutes, buffer);
+  const base = Number(basePrice.replace(/[^0-9.]/g, '')) || 0;
+  const was = Number(compareAtPrice.replace(/[^0-9.]/g, '')) || 0;
+  const saving =
+    was > base && base > 0
+      ? liveCopy.save(
+          `\u20a6${(was - base).toLocaleString('en-NG')}`,
+          Math.round(((was - base) / was) * 100),
+        )
+      : undefined;
+  const canContinue = !live || base > 0;
 
   const currentValue: ServiceDurationPricingValue = {
     basePrice,
     compareAtPrice,
     duration,
     bookingEnabled,
+    tiers: tiersEnabled
+      ? tiers.map(tier => ({
+          id: tier.id,
+          name: tier.name,
+          price: tier.price,
+          duration: tier.duration,
+        }))
+      : [],
+    schedule: {
+      days: serviceWeekdays
+        .filter(day => activeDays.has(day))
+        .map(day => WEEKDAY_NUMBER[day]),
+      from: toHhmm(from),
+      to: toHhmm(to),
+      bufferMinutes: buffer,
+      requiresConfirmation: confirmationEnabled,
+    },
+  };
+
+  const closeDialog = () => {
+    setDialog(null);
+    setDialogError(null);
   };
 
   const toggleDay = (day: string) => {
@@ -82,6 +177,7 @@ export function AddServiceDurationPricingScreen({
       footer={
         <ServiceFlowFooter
           primaryLabel="Continue to Branch Availability"
+          primaryDisabled={!canContinue}
           onPrimary={() => onNext?.(currentValue)}
           backLabel="Back to Step 1"
           onBack={onBack}
@@ -134,7 +230,7 @@ export function AddServiceDurationPricingScreen({
             <ServicePriceField
               label="Compare-at Price"
               optionalLabel="(Optional)"
-              badge="Save ₦4,000 (20% OFF)"
+              badge={live ? saving : 'Save ₦4,000 (20% OFF)'}
               value={compareAtPrice}
               onChangeText={setCompareAtPrice}
               trailingIcon="localOffer"
@@ -170,7 +266,7 @@ export function AddServiceDurationPricingScreen({
               <View className="min-w-0 flex-1">
                 <View className="flex-row items-center gap-1">
                   <VemtapText variant="labelMd" className="font-sans-semibold text-text">
-                    15 mins turnaround buffer
+                    {live ? liveCopy.bufferTitle(buffer) : '15 mins turnaround buffer'}
                   </VemtapText>
                   <Icon name="info" size={16} color={colors.textTertiary} />
                 </View>
@@ -182,6 +278,7 @@ export function AddServiceDurationPricingScreen({
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Change turnaround buffer"
+              onPress={live ? () => setDialog('buffer') : undefined}
               className="min-h-11 shrink-0 justify-center rounded-field px-2"
             >
               <VemtapText variant="labelSm" tone="brand" className="font-sans-semibold">
@@ -200,7 +297,7 @@ export function AddServiceDurationPricingScreen({
                 </VemtapText>
                 <View className="rounded-full bg-success-container px-2 py-0.5">
                   <VemtapText variant="caption" tone="success" className="font-sans-bold">
-                    {tiers.length} active
+                    {liveCopy.activeTiers(tiersEnabled ? tiers.length : 0)}
                   </VemtapText>
                 </View>
               </View>
@@ -216,35 +313,42 @@ export function AddServiceDurationPricingScreen({
               />
             </View>
           </View>
-          <View className="flex-row flex-wrap items-center justify-between gap-2 rounded-lg bg-surface-container-low px-3 py-2">
-            <View className="min-w-0 flex-1 flex-row flex-wrap items-center gap-2">
-              <VemtapText
-                variant="caption"
-                tone="secondary"
-                className="min-w-0 font-sans-medium"
+          {live ? null : (
+            <View className="flex-row flex-wrap items-center justify-between gap-2 rounded-lg bg-surface-container-low px-3 py-2">
+              <View className="min-w-0 flex-1 flex-row flex-wrap items-center gap-2">
+                <VemtapText
+                  variant="caption"
+                  tone="secondary"
+                  className="min-w-0 font-sans-medium"
+                >
+                  Option Group:
+                </VemtapText>
+                <VemtapText
+                  variant="labelSm"
+                  className="min-w-0 flex-1 font-sans-semibold text-text"
+                >
+                  Treatment Depth / Tier
+                </VemtapText>
+              </View>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Edit treatment depth tier option group"
+                className="min-h-11 shrink-0 flex-row items-center gap-1 rounded-field px-2"
               >
-                Option Group:
-              </VemtapText>
-              <VemtapText
-                variant="labelSm"
-                className="min-w-0 flex-1 font-sans-semibold text-text"
-              >
-                Treatment Depth / Tier
-              </VemtapText>
+                <Icon name="edit" size={16} color={colors.primary} />
+                <VemtapText variant="labelSm" tone="brand" className="font-sans-semibold">
+                  Edit
+                </VemtapText>
+              </Pressable>
             </View>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Edit treatment depth tier option group"
-              className="min-h-11 shrink-0 flex-row items-center gap-1 rounded-field px-2"
-            >
-              <Icon name="edit" size={16} color={colors.primary} />
-              <VemtapText variant="labelSm" tone="brand" className="font-sans-semibold">
-                Edit
-              </VemtapText>
-            </Pressable>
-          </View>
+          )}
+          {live && (!tiersEnabled || tiers.length === 0) ? (
+            <VemtapText variant="caption" tone="secondary">
+              {liveCopy.noTiers}
+            </VemtapText>
+          ) : null}
           <View className="gap-3">
-            {tiers.map(tier => (
+            {(tiersEnabled ? tiers : []).map(tier => (
               <View
                 key={tier.id}
                 className="flex-row items-center justify-between gap-2 rounded-card-lg bg-surface-container-low p-3"
@@ -257,22 +361,28 @@ export function AddServiceDurationPricingScreen({
                     >
                       {tier.name}
                     </VemtapText>
-                    <View className="rounded-full bg-surface-tint px-2 py-0.5">
-                      <VemtapText variant="caption" tone="brand">
-                        {tier.duration}
-                      </VemtapText>
-                    </View>
+                    {tier.duration ? (
+                      <View className="rounded-full bg-surface-tint px-2 py-0.5">
+                        <VemtapText variant="caption" tone="brand">
+                          {tier.duration}
+                        </VemtapText>
+                      </View>
+                    ) : null}
                   </View>
                   <View className="flex-row flex-wrap items-center gap-3">
                     <VemtapText variant="labelMd" tone="brand" className="font-sans-bold">
-                      {tier.price}
+                      {live
+                        ? `\u20a6${(Number(tier.price.replace(/[^0-9.]/g, '')) || 0).toLocaleString('en-NG')}`
+                        : tier.price}
                     </VemtapText>
-                    <View className="flex-row items-center gap-1">
-                      <Icon name="person" size={14} color={colors.textSecondary} />
-                      <VemtapText variant="caption" tone="secondary">
-                        {tier.capacity}
-                      </VemtapText>
-                    </View>
+                    {tier.capacity ? (
+                      <View className="flex-row items-center gap-1">
+                        <Icon name="person" size={14} color={colors.textSecondary} />
+                        <VemtapText variant="caption" tone="secondary">
+                          {tier.capacity}
+                        </VemtapText>
+                      </View>
+                    ) : null}
                   </View>
                 </View>
                 <Pressable
@@ -289,9 +399,17 @@ export function AddServiceDurationPricingScreen({
             ))}
           </View>
           <ServiceLinkButton
-            label="Add Another Tier or Add-on"
+            label={liveCopy.addTier}
             icon="plusCircle"
             className="bg-surface-tint active:bg-surface-tint-blue"
+            onPress={
+              live
+                ? () => {
+                    setTiersEnabled(true);
+                    setDialog('tier');
+                  }
+                : undefined
+            }
           />
         </ServiceSection>
 
@@ -356,11 +474,15 @@ export function AddServiceDurationPricingScreen({
               </VemtapText>
               <View className="flex-row gap-2">
                 {[
-                  ['Start Time', '09:00 AM'],
-                  ['End Time', '06:00 PM'],
+                  ['Start Time', live ? toClock(from) : '09:00 AM'],
+                  ['End Time', live ? toClock(to) : '06:00 PM'],
                 ].map(([label, value]) => (
-                  <View
+                  <Pressable
                     key={label}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${label}: ${value}`}
+                    disabled={!live}
+                    onPress={() => setDialog('hours')}
                     className="min-w-0 flex-1 flex-row items-center justify-between gap-1 rounded-lg border border-border bg-surface px-3 py-2"
                   >
                     <View className="min-w-0 flex-1">
@@ -375,14 +497,16 @@ export function AddServiceDurationPricingScreen({
                       </VemtapText>
                     </View>
                     <Icon name="schedule" size={18} color={colors.textTertiary} />
-                  </View>
+                  </Pressable>
                 ))}
               </View>
             </View>
             <View className="flex-row items-start gap-1.5 pt-0.5">
               <Icon name="info" size={16} color={colors.primary} />
               <VemtapText variant="caption" tone="secondary" className="min-w-0 flex-1">
-                60 mins appointment slots (15 mins cleanup buffer auto-added)
+                {live
+                  ? liveCopy.slotsNote(minutes, buffer)
+                  : '60 mins appointment slots (15 mins cleanup buffer auto-added)'}
               </VemtapText>
             </View>
           </View>
@@ -392,15 +516,21 @@ export function AddServiceDurationPricingScreen({
                 Preview Slot Intervals
               </VemtapText>
               <VemtapText variant="caption" tone="success" className="font-sans-semibold">
-                7 Daily Windows
+                {live ? liveCopy.dailyWindows(slots.length) : '7 Daily Windows'}
               </VemtapText>
             </View>
             <View className="flex-row flex-wrap gap-1.5">
-              {servicePreviewSlots.map((slot, index) => (
+              {(live
+                ? [
+                    ...slots.slice(0, 5).map(toClock),
+                    ...(slots.length > 5 ? [liveCopy.moreSlots(slots.length - 5)] : []),
+                  ]
+                : servicePreviewSlots
+              ).map((slot, index, all) => (
                 <View
                   key={slot}
                   className={
-                    index < servicePreviewSlots.length - 1
+                    index < all.length - 1 || (live && slots.length <= 5)
                       ? 'rounded-lg bg-surface-tint px-2.5 py-2'
                       : 'rounded-lg bg-surface-container-low px-2.5 py-2'
                   }
@@ -408,7 +538,7 @@ export function AddServiceDurationPricingScreen({
                   <VemtapText
                     variant="labelSm"
                     className={
-                      index < servicePreviewSlots.length - 1
+                      index < all.length - 1 || (live && slots.length <= 5)
                         ? 'font-sans-semibold text-primary'
                         : 'font-sans-medium text-text-secondary'
                     }
@@ -419,10 +549,12 @@ export function AddServiceDurationPricingScreen({
               ))}
             </View>
           </View>
-          <ServiceLinkButton
-            label="Customize Specific Dates & Blockouts"
-            icon="doNotDisturb"
-          />
+          {live ? null : (
+            <ServiceLinkButton
+              label="Customize Specific Dates & Blockouts"
+              icon="doNotDisturb"
+            />
+          )}
         </ServiceSection>
 
         <ServiceSection>
@@ -438,16 +570,24 @@ export function AddServiceDurationPricingScreen({
             <View className="min-w-[190px] flex-1">
               <View className="flex-row flex-wrap items-center gap-1.5">
                 <VemtapText variant="labelMd" className="font-sans-semibold text-text">
-                  Advance consultation confirmation
+                  {live ? liveCopy.confirmTitle : 'Advance consultation confirmation'}
                 </VemtapText>
-                <View className="rounded bg-success-container px-1.5 py-0.5">
-                  <VemtapText variant="micro" tone="success" className="font-sans-medium">
-                    WhatsApp
-                  </VemtapText>
-                </View>
+                {live ? null : (
+                  <View className="rounded bg-success-container px-1.5 py-0.5">
+                    <VemtapText
+                      variant="micro"
+                      tone="success"
+                      className="font-sans-medium"
+                    >
+                      WhatsApp
+                    </VemtapText>
+                  </View>
+                )}
               </View>
               <VemtapText variant="caption" tone="secondary">
-                Send automated instant WhatsApp ping to confirm high-value visits
+                {live
+                  ? liveCopy.confirmBody
+                  : 'Send automated instant WhatsApp ping to confirm high-value visits'}
               </VemtapText>
             </View>
             <View className="shrink-0">
@@ -460,6 +600,92 @@ export function AddServiceDurationPricingScreen({
           </View>
         </ServiceSection>
       </View>
+      {live ? (
+        <>
+          <PromptDialog
+            visible={dialog === 'tier'}
+            title={liveCopy.tierDialog.title}
+            fields={[
+              { key: 'name', label: liveCopy.tierDialog.name, value: '' },
+              {
+                key: 'price',
+                label: liveCopy.tierDialog.price,
+                value: '',
+                keyboardType: 'decimal-pad',
+              },
+              { key: 'duration', label: liveCopy.tierDialog.duration, value: '' },
+            ]}
+            confirmLabel={liveCopy.tierDialog.confirm}
+            error={dialogError}
+            onChangeField={() => setDialogError(null)}
+            onCancel={closeDialog}
+            onConfirm={values => {
+              const name = values.name?.trim() ?? '';
+              const price = values.price?.trim() ?? '';
+              if (!name) return setDialogError(liveCopy.tierDialog.nameRequired);
+              if (!(Number(price.replace(/[^0-9.]/g, '')) > 0)) {
+                return setDialogError(liveCopy.tierDialog.priceRequired);
+              }
+              setTiers(current => [
+                ...current,
+                {
+                  id: `tier-${Date.now()}`,
+                  name,
+                  price,
+                  duration: values.duration?.trim() || undefined,
+                },
+              ]);
+              return closeDialog();
+            }}
+          />
+          <PromptDialog
+            visible={dialog === 'hours'}
+            title={liveCopy.hoursDialog.title}
+            fields={[
+              { key: 'from', label: liveCopy.hoursDialog.from, value: toHhmm(from) },
+              { key: 'to', label: liveCopy.hoursDialog.to, value: toHhmm(to) },
+            ]}
+            confirmLabel={liveCopy.hoursDialog.confirm}
+            error={dialogError}
+            onChangeField={() => setDialogError(null)}
+            onCancel={closeDialog}
+            onConfirm={values => {
+              const start = parseTime(values.from ?? '');
+              const end = parseTime(values.to ?? '');
+              if (start === null || end === null || end <= start) {
+                return setDialogError(liveCopy.hoursDialog.invalid);
+              }
+              setFrom(start);
+              setTo(end);
+              return closeDialog();
+            }}
+          />
+          <PromptDialog
+            visible={dialog === 'buffer'}
+            title={liveCopy.bufferDialog.title}
+            fields={[
+              {
+                key: 'minutes',
+                label: liveCopy.bufferDialog.minutes,
+                value: String(buffer),
+                keyboardType: 'numeric',
+              },
+            ]}
+            confirmLabel={liveCopy.bufferDialog.confirm}
+            error={dialogError}
+            onChangeField={() => setDialogError(null)}
+            onCancel={closeDialog}
+            onConfirm={values => {
+              const next = Number(values.minutes);
+              if (!Number.isInteger(next) || next < 0 || next > 240) {
+                return setDialogError(liveCopy.bufferDialog.invalid);
+              }
+              setBuffer(next);
+              return closeDialog();
+            }}
+          />
+        </>
+      ) : null}
     </ServiceFlowPage>
   );
 }

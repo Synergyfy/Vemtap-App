@@ -45,26 +45,52 @@ export interface AddServiceBasicsMediaScreenProps {
   onBack: () => void;
   onNext?: (value: ServiceBasicsValue) => void;
   onSaveDraft?: (value: ServiceBasicsValue) => void;
+  /**
+   * Live mode: the provider and category rows show the business itself, and
+   * the form starts empty (or from `initialValue`) with no sample photos.
+   */
+  live?: {
+    provider: string;
+    providerLocation: string;
+    primaryCategory: string;
+    subCategory: string;
+  };
+  initialValue?: Partial<ServiceBasicsValue>;
 }
+
+const liveCopy = strings.serviceFlow;
 
 export function AddServiceBasicsMediaScreen({
   onBack,
   onNext,
   onSaveDraft,
+  live,
+  initialValue,
 }: AddServiceBasicsMediaScreenProps) {
-  const [title, setTitle] = useState<string>(serviceFlowDraft.title);
-  const [description, setDescription] = useState<string>(serviceFlowDraft.description);
-  const [delivery, setDelivery] = useState('in-salon');
-  const [highlights, setHighlights] = useState(
-    () => new Set(['Sensitive Skin Safe', 'Organic Botanicals']),
+  const sample = live === undefined;
+  const [title, setTitle] = useState<string>(
+    initialValue?.title ?? (sample ? serviceFlowDraft.title : ''),
   );
-  const [gender, setGender] = useState('all');
+  const [description, setDescription] = useState<string>(
+    initialValue?.description ?? (sample ? serviceFlowDraft.description : ''),
+  );
+  const [delivery, setDelivery] = useState(initialValue?.delivery ?? 'in-salon');
+  const [highlights, setHighlights] = useState(
+    () =>
+      new Set(
+        initialValue?.highlights ??
+          (sample ? ['Sensitive Skin Safe', 'Organic Botanicals'] : []),
+      ),
+  );
+  const [gender, setGender] = useState(initialValue?.audience ?? 'all');
   const [mainImage, setMainImage] = useState<string | undefined>(
-    serviceFlowImages.cover.uri,
+    initialValue?.mainImage ?? (sample ? serviceFlowImages.cover.uri : undefined),
   );
   const [galleryImages, setGalleryImages] = useState<string[]>(
-    serviceFlowImages.thumbnails.map(t => t.uri),
+    initialValue?.galleryImages ??
+      (sample ? serviceFlowImages.thumbnails.map(t => t.uri) : []),
   );
+  const canContinue = sample || title.trim().length > 0;
   const [uploading, setUploading] = useState(false);
 
   const currentValue: ServiceBasicsValue = {
@@ -154,6 +180,7 @@ export function AddServiceBasicsMediaScreen({
       footer={
         <ServiceFlowFooter
           primaryLabel="Continue to Duration & Pricing"
+          primaryDisabled={!canContinue}
           onPrimary={() => onNext?.(currentValue)}
           secondaryLabel="Save as Draft & Exit"
           onSecondary={() => onSaveDraft?.(currentValue)}
@@ -183,16 +210,31 @@ export function AddServiceBasicsMediaScreen({
               </VemtapText>
             </View>
             <VemtapText variant="caption" tone="secondary">
-              {galleryImages.length + 1} / 10 photos
+              {galleryImages.length + (mainImage ? 1 : 0)} / 10 photos
             </VemtapText>
           </View>
           <View className="relative aspect-[4/3] w-full overflow-hidden rounded-card-lg bg-surface-container-high shadow-sm">
-            <BusinessProductImage
-              source={{ uri: mainImage }}
-              alt="Service cover photo"
-              className="h-full w-full"
-              resizeMode="cover"
-            />
+            {mainImage ? (
+              <BusinessProductImage
+                source={{ uri: mainImage }}
+                alt={liveCopy.coverAlt}
+                className="h-full w-full"
+                resizeMode="cover"
+              />
+            ) : (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={liveCopy.noPhotoYet}
+                onPress={handleChangeCover}
+                disabled={uploading}
+                className="h-full w-full items-center justify-center gap-2"
+              >
+                <Icon name="addPhoto" size={28} color={colors.primary} />
+                <VemtapText variant="labelMd" tone="brand" className="font-sans-medium">
+                  {liveCopy.noPhotoYet}
+                </VemtapText>
+              </Pressable>
+            )}
             <View className="absolute left-3 right-3 top-3 flex-row items-center justify-between gap-2">
               <View className="min-w-0 flex-row items-center gap-1 rounded-full bg-on-surface/90 px-2 py-1 shadow-sm">
                 <Icon name="star" size={14} color={colors.tertiaryFixed} />
@@ -242,25 +284,27 @@ export function AddServiceBasicsMediaScreen({
               </VemtapText>
             </Pressable>
           </View>
-          <View className="flex-row items-start gap-2 rounded-card-lg bg-surface-tint p-3">
-            <View className="h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10">
-              <Icon name="lightbulb" size={18} color={colors.primary} />
-            </View>
-            <VemtapText
-              variant="caption"
-              tone="secondary"
-              className="min-w-0 flex-1 leading-snug"
-            >
-              <VemtapText tone="brand" className="font-sans-medium">
-                Pro Tip:
-              </VemtapText>{' '}
-              Clean ambient treatment photos increase appointment bookings by up to{' '}
-              <VemtapText tone="brand" className="font-sans-semibold">
-                3.4x
+          {sample ? (
+            <View className="flex-row items-start gap-2 rounded-card-lg bg-surface-tint p-3">
+              <View className="h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                <Icon name="lightbulb" size={18} color={colors.primary} />
+              </View>
+              <VemtapText
+                variant="caption"
+                tone="secondary"
+                className="min-w-0 flex-1 leading-snug"
+              >
+                <VemtapText tone="brand" className="font-sans-medium">
+                  Pro Tip:
+                </VemtapText>{' '}
+                Clean ambient treatment photos increase appointment bookings by up to{' '}
+                <VemtapText tone="brand" className="font-sans-semibold">
+                  3.4x
+                </VemtapText>
+                .
               </VemtapText>
-              .
-            </VemtapText>
-          </View>
+            </View>
+          ) : null}
         </View>
 
         <View className="gap-3">
@@ -301,24 +345,30 @@ export function AddServiceBasicsMediaScreen({
                         className="min-w-0 flex-shrink font-sans-semibold text-text"
                         numberOfLines={1}
                       >
-                        {serviceFlowDraft.provider}
+                        {live?.provider ?? serviceFlowDraft.provider}
                       </VemtapText>
                       <Icon name="verified" size={16} color={colors.primary} />
                     </View>
                     <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-                      {serviceFlowDraft.providerLocation}
+                      {live?.providerLocation ?? serviceFlowDraft.providerLocation}
                     </VemtapText>
                   </View>
                 </View>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Change listed provider"
-                  className="min-h-11 shrink-0 justify-center rounded-field px-2 active:bg-surface-container"
-                >
-                  <VemtapText variant="labelSm" tone="brand" className="font-sans-medium">
-                    Change
-                  </VemtapText>
-                </Pressable>
+                {sample ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Change listed provider"
+                    className="min-h-11 shrink-0 justify-center rounded-field px-2 active:bg-surface-container"
+                  >
+                    <VemtapText
+                      variant="labelSm"
+                      tone="brand"
+                      className="font-sans-medium"
+                    >
+                      Change
+                    </VemtapText>
+                  </Pressable>
+                ) : null}
               </View>
             </View>
           </ServiceSection>
@@ -332,14 +382,14 @@ export function AddServiceBasicsMediaScreen({
             <ServiceSettingRow
               icon="wellnessCategory"
               label="Primary Category"
-              value={serviceFlowDraft.primaryCategory}
-              actionLabel="Change"
+              value={live?.primaryCategory ?? serviceFlowDraft.primaryCategory}
+              actionLabel={live ? undefined : 'Change'}
             />
             <ServiceSettingRow
               icon="facialCategory"
               label="Sub-Category"
-              value={serviceFlowDraft.subCategory}
-              actionLabel="Change"
+              value={live?.subCategory ?? serviceFlowDraft.subCategory}
+              actionLabel={live ? undefined : 'Change'}
             />
             <View className="gap-2 pt-1">
               <VemtapText variant="labelMd" className="font-sans-medium text-text">

@@ -167,10 +167,6 @@ import {
   AnalyticsFilterSettingsSheet,
   ExportAnalyticsReportScreen,
 } from '@features/business/screens';
-import { AddServiceAvailabilityRulesScreen } from '@features/business/screens/AddServiceAvailabilityRulesScreen';
-import { AddServiceBasicsMediaScreen } from '@features/business/screens/AddServiceBasicsMediaScreen';
-import { AddServiceDurationPricingScreen } from '@features/business/screens/AddServiceDurationPricingScreen';
-import { ReviewServiceSummaryScreen } from '@features/business/screens/ReviewServiceSummaryScreen';
 import { BusinessQrScreen } from '@features/business/screens/BusinessQrScreen';
 import { LocationQrScreen } from '@features/business/screens/LocationQrScreen';
 import { BusinessDiscoveryFeedScreen } from '@features/business/screens/BusinessDiscoveryFeedScreen';
@@ -254,6 +250,13 @@ import {
   SegmentActionsRoute,
   SegmentAudienceDetailsRoute,
 } from './growthRoutes';
+import {
+  ServiceAvailabilityStep,
+  ServiceBasicsStep,
+  ServicePricingStep,
+  ServiceReviewStep,
+  type ServiceFlowNavigation,
+} from './serviceFlowRoutes';
 import { useBusinessNavigation } from './useBusinessNavigation';
 import type { BusinessTabParamList } from './types';
 
@@ -1301,6 +1304,8 @@ function ServicesCategoriesRoute() {
       <ServicesCategoriesManagementScreen
         onNotifications={() => navigation.navigate('BusinessNotifications')}
         onAddService={() => {
+          // A new service starts from an empty draft, not the last one.
+          useCatalogueDraftStore.getState().resetService();
           navigation.navigate('AddServiceBasics');
         }}
         onAddCategory={async () => {
@@ -1446,186 +1451,41 @@ function ServicesCategoriesRoute() {
   );
 }
 
-function AddServiceBasicsRoute() {
+/** Add Service steps in the hub: done → back to the services list. */
+function useHubServiceFlowNavigation(): ServiceFlowNavigation {
   const navigation = useBusinessNavigation();
-  const setService = useCatalogueDraftStore(state => state.setService);
-  const publish = usePublishCatalogueItem();
-  return (
-    <AddServiceBasicsMediaScreen
-      onBack={navigation.goBack}
-      onNext={value => {
-        setService({
-          name: value.title,
-          description: value.description,
-          deliveryMode: value.delivery,
-          highlights: value.highlights,
-          audience: value.audience,
-          // Uploaded service media — without these the published item goes
-          // out imageless even though the owner picked photos (the old dead
-          // end: the tiles were demo assets with no picker behind them).
-          mainImage: value.mainImage,
-          galleryImages: value.galleryImages,
-        });
-        navigation.navigate('AddServiceDurationPricing');
-      }}
-      onSaveDraft={value => {
-        setService({
-          name: value.title,
-          description: value.description,
-          deliveryMode: value.delivery,
-          highlights: value.highlights,
-          audience: value.audience,
-          // Uploaded service media — without these the published item goes
-          // out imageless even though the owner picked photos (the old dead
-          // end: the tiles were demo assets with no picker behind them).
-          mainImage: value.mainImage,
-          galleryImages: value.galleryImages,
-        });
-        const { service } = useCatalogueDraftStore.getState();
-        if (!service.branchIds.length) {
-          showError('Select branches first, then save the draft.');
-          return;
-        }
-        publish.mutate(
-          { kind: 'service', status: 'inactive' },
-          {
-            onSuccess: () => {
-              showSuccess('Service saved as draft.');
-              navigation.navigate('ServicesCategories');
-            },
-            onError: error =>
-              showError(
-                error instanceof Error ? error.message : 'Could not save the draft.',
-              ),
-          },
-        );
-      }}
-    />
-  );
+  return {
+    goBack: navigation.goBack,
+    next: step =>
+      navigation.navigate(
+        step === 'pricing'
+          ? 'AddServiceDurationPricing'
+          : step === 'availability'
+            ? 'AddServiceAvailabilityRules'
+            : 'ReviewServiceSummary',
+      ),
+    done: status => {
+      showSuccess(status === 'active' ? 'Service published.' : 'Service saved as draft.');
+      useCatalogueDraftStore.getState().resetService();
+      navigation.navigate('ServicesCategories');
+    },
+  };
+}
+
+function AddServiceBasicsRoute() {
+  return <ServiceBasicsStep nav={useHubServiceFlowNavigation()} />;
 }
 
 function AddServiceDurationPricingRoute() {
-  const navigation = useBusinessNavigation();
-  const setService = useCatalogueDraftStore(state => state.setService);
-  const publish = usePublishCatalogueItem();
-  return (
-    <AddServiceDurationPricingScreen
-      onBack={navigation.goBack}
-      onNext={value => {
-        setService({
-          basePrice: value.basePrice,
-          compareAtPrice: value.compareAtPrice,
-          duration: value.duration,
-          bookingEnabled: value.bookingEnabled,
-        });
-        navigation.navigate('AddServiceAvailabilityRules');
-      }}
-      onSaveDraft={value => {
-        setService({
-          basePrice: value.basePrice,
-          compareAtPrice: value.compareAtPrice,
-          duration: value.duration,
-          bookingEnabled: value.bookingEnabled,
-        });
-        const { service } = useCatalogueDraftStore.getState();
-        if (!service.branchIds.length) {
-          showError('Select branches first, then save the draft.');
-          return;
-        }
-        publish.mutate(
-          { kind: 'service', status: 'inactive' },
-          {
-            onSuccess: () => {
-              showSuccess('Service saved as draft.');
-              navigation.navigate('ServicesCategories');
-            },
-            onError: error =>
-              showError(
-                error instanceof Error ? error.message : 'Could not save the draft.',
-              ),
-          },
-        );
-      }}
-    />
-  );
+  return <ServicePricingStep nav={useHubServiceFlowNavigation()} />;
 }
 
 function AddServiceAvailabilityRulesRoute() {
-  const navigation = useBusinessNavigation();
-  const setService = useCatalogueDraftStore(state => state.setService);
-  const publish = usePublishCatalogueItem();
-  return (
-    <AddServiceAvailabilityRulesScreen
-      onBack={navigation.goBack}
-      onNext={value => {
-        setService({
-          branchIds: value.branchIds,
-          serviceMode: value.serviceMode,
-          isBookable: value.isBookable,
-        });
-        navigation.navigate('ReviewServiceSummary');
-      }}
-      onSaveDraft={value => {
-        setService({
-          branchIds: value.branchIds,
-          serviceMode: value.serviceMode,
-          isBookable: value.isBookable,
-        });
-        const { service } = useCatalogueDraftStore.getState();
-        if (!service.branchIds.length) {
-          showError('Select branches first, then save the draft.');
-          return;
-        }
-        publish.mutate(
-          { kind: 'service', status: 'inactive' },
-          {
-            onSuccess: () => {
-              showSuccess('Service saved as draft.');
-              navigation.navigate('ServicesCategories');
-            },
-            onError: error =>
-              showError(
-                error instanceof Error ? error.message : 'Could not save the draft.',
-              ),
-          },
-        );
-      }}
-    />
-  );
+  return <ServiceAvailabilityStep nav={useHubServiceFlowNavigation()} />;
 }
 
 function ReviewServiceSummaryRoute() {
-  const navigation = useBusinessNavigation();
-  const draft = useCatalogueDraftStore(state => state.service);
-  const publish = usePublishCatalogueItem();
-
-  const submit = (status: 'active' | 'inactive') => {
-    publish.mutate(
-      { kind: 'service', status },
-      {
-        onSuccess: () => {
-          showSuccess(
-            status === 'active' ? 'Service published.' : 'Service saved as draft.',
-          );
-          navigation.navigate('ServicesCategories');
-        },
-        onError: error =>
-          showError(
-            error instanceof Error ? error.message : 'Could not publish the service',
-          ),
-      },
-    );
-  };
-
-  return (
-    <ReviewServiceSummaryScreen
-      draft={draft}
-      publishing={publish.isPending}
-      onBack={navigation.goBack}
-      onPublish={() => submit('active')}
-      onSaveDraft={() => submit('inactive')}
-    />
-  );
+  return <ServiceReviewStep nav={useHubServiceFlowNavigation()} />;
 }
 
 function AddProductBasicsMediaRoute() {

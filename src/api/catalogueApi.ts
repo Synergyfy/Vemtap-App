@@ -413,6 +413,25 @@ const catalogueItemVariantsSchema = z
     ]),
   )
   .optional();
+/** When a bookable service can be booked; narrows the branch's hours. */
+export const bookingRulesSchema = z
+  .object({
+    days: z.array(z.number().int().min(0).max(6)).max(7).optional(),
+    from: z
+      .string()
+      .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
+      .optional(),
+    to: z
+      .string()
+      .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
+      .optional(),
+    bufferMinutes: z.number().int().min(0).max(240).optional(),
+    leadMinutes: z.number().int().min(0).max(10_080).optional(),
+    horizonDays: z.number().int().min(1).max(365).optional(),
+    capacity: z.number().int().min(1).max(50).optional(),
+    requiresConfirmation: z.boolean().optional(),
+  })
+  .optional();
 const catalogueItemPricingModeSchema = z.enum(['uniform', 'per_branch']).optional();
 const catalogueItemFulfillmentModesSchema = z
   .array(z.enum(['pickup', 'delivery', 'dine_in']))
@@ -457,6 +476,7 @@ export const createCatalogueItemInputSchema = z.object({
   audience: z.string().optional(),
   pricingMode: catalogueItemPricingModeSchema,
   fulfillmentModes: catalogueItemFulfillmentModesSchema,
+  bookingRules: bookingRulesSchema,
   branchId: z.string().uuid(),
 });
 export type CreateCatalogueItemInput = z.input<typeof createCatalogueItemInputSchema>;
@@ -498,6 +518,7 @@ export const updateCatalogueItemInputSchema = z.object({
   audience: z.string().optional(),
   pricingMode: catalogueItemPricingModeSchema,
   fulfillmentModes: catalogueItemFulfillmentModesSchema,
+  bookingRules: bookingRulesSchema,
   branchId: z.string().uuid().optional(),
   status: catalogueItemStatusSchema.optional(),
   applyGlobally: z.boolean().optional(),

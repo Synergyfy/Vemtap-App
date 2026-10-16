@@ -23,6 +23,8 @@ import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { colors } from '@theme/colors';
+import { strings } from '@constants/strings';
+import { parseTime, toClock } from '@features/business/utils/serviceSchedule';
 
 cssInterop(Pressable, { className: 'style' });
 cssInterop(View, { className: 'style' });
@@ -35,6 +37,57 @@ export interface ReviewServiceSummaryScreenProps {
   onPublish?: () => void;
   onSaveDraft?: () => void;
   onPreview?: () => void;
+  /** The business the service is listed under (live only). */
+  provider?: { name: string; category: string };
+}
+
+const reviewCopy = strings.serviceFlow.review;
+const DAY_LABEL = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+function naira(value: string | undefined): string {
+  return `\u20a6${(Number((value ?? '').replace(/[^0-9.]/g, '')) || 0).toLocaleString('en-NG')}`;
+}
+
+/** The draft's booking rules as policy rows. */
+function ruleRows(draft: ServiceDraft) {
+  if (!draft.bookingEnabled) {
+    return [
+      { title: reviewCopy.bookingOff, description: '', icon: 'doNotDisturb' as const },
+    ];
+  }
+  const rules = draft.bookingRules ?? {};
+  const days =
+    !rules.days || rules.days.length === 7
+      ? reviewCopy.everyDay
+      : rules.days.map(day => DAY_LABEL[day]).join(', ');
+  const time = (value: string | undefined, fallback: string) => {
+    const minutes = parseTime(value ?? '');
+    return minutes === null ? fallback : toClock(minutes);
+  };
+  return [
+    {
+      title: reviewCopy.daysHours(
+        days,
+        time(rules.from, '9:00 AM'),
+        time(rules.to, '6:00 PM'),
+      ),
+      description: reviewCopy.daysHoursBody,
+      icon: 'eventAvailable' as const,
+    },
+    {
+      title: reviewCopy.bufferTitle,
+      description: reviewCopy.bufferBody(rules.bufferMinutes ?? 0, rules.capacity ?? 1),
+      icon: 'group' as const,
+    },
+    {
+      title: reviewCopy.horizonTitle(rules.horizonDays ?? 30),
+      description:
+        rules.requiresConfirmation === false
+          ? reviewCopy.confirmOff
+          : reviewCopy.confirmOn,
+      icon: 'verifiedUser' as const,
+    },
+  ];
 }
 
 export function ReviewServiceSummaryScreen({
@@ -44,7 +97,13 @@ export function ReviewServiceSummaryScreen({
   onPublish,
   onSaveDraft,
   onPreview,
+  provider,
 }: ReviewServiceSummaryScreenProps) {
+  const live = draft !== undefined;
+  const photoCount = live ? (draft.mainImage ? 1 : 0) + draft.galleryImages.length : 3;
+  const base = Number((draft?.basePrice ?? '').replace(/[^0-9.]/g, '')) || 0;
+  const was = Number((draft?.compareAtPrice ?? '').replace(/[^0-9.]/g, '')) || 0;
+  const leadHours = Math.round((draft?.bookingRules?.leadMinutes ?? 120) / 60);
   const liveBranches = useBusinessBranches();
   const shownBranches =
     draft && liveBranches.data
@@ -52,14 +111,12 @@ export function ReviewServiceSummaryScreen({
           .filter(branch => draft.branchIds.includes(branch.id))
           .map(branch => ({
             name: branch.name,
-            summary: `₦${draft.basePrice || '0'} Base`,
+            summary: reviewCopy.branchSummary(naira(draft.basePrice)),
             badge: 'Active',
           }))
       : serviceBranches;
   const shownBranchCount = draft ? draft.branchIds.length : 2;
-  const shownHighlights = draft?.highlights.length
-    ? draft.highlights
-    : serviceReviewHighlights;
+  const shownHighlights = live ? draft.highlights : serviceReviewHighlights;
   return (
     <ServiceFlowPage
       title="Add Service   Step 4: Review Service Summary"
@@ -93,17 +150,23 @@ export function ReviewServiceSummaryScreen({
 
       <ServiceSection className="gap-0 overflow-hidden p-0">
         <View className="relative h-52 w-full bg-surface-container">
-          <BusinessProductImage
-            source={{ uri: serviceFlowImages.review.uri }}
-            alt={serviceFlowImages.review.alt}
-            className="h-full w-full"
-            resizeMode="cover"
-          />
+          {live && !draft.mainImage ? (
+            <View className="h-full w-full items-center justify-center">
+              <Icon name="photoLibrary" size={28} color={colors.textTertiary} />
+            </View>
+          ) : (
+            <BusinessProductImage
+              source={{ uri: live ? draft.mainImage : serviceFlowImages.review.uri }}
+              alt={live ? strings.serviceFlow.coverAlt : serviceFlowImages.review.alt}
+              className="h-full w-full"
+              resizeMode="cover"
+            />
+          )}
           <View className="absolute left-3 top-3 flex-row flex-wrap gap-1.5">
             <View className="flex-row items-center gap-1 rounded-full bg-surface/90 px-2 py-1 shadow-sm">
               <Icon name="photoLibrary" size={14} color={colors.text} />
               <VemtapText variant="caption" className="font-sans-medium text-text">
-                3 Photos
+                {reviewCopy.photos(photoCount)}
               </VemtapText>
             </View>
             <View className="flex-row items-center gap-1 rounded-full bg-primary px-2 py-1 shadow-sm">
@@ -128,14 +191,15 @@ export function ReviewServiceSummaryScreen({
           <View className="flex-row items-center gap-1">
             <Icon name="storefront" size={16} color={colors.primary} />
             <VemtapText variant="labelSm" tone="tertiary" numberOfLines={1}>
-              {serviceFlowDraft.provider}
+              {provider?.name ?? serviceFlowDraft.provider}
             </VemtapText>
           </View>
           <VemtapText variant="headingMd" className="text-heading-md text-text">
             {draft?.name || serviceFlowDraft.title}
           </VemtapText>
           <VemtapText variant="bodyMd" tone="secondary">
-            {serviceFlowDraft.primaryCategory} &gt; {serviceFlowDraft.subCategory}
+            {provider?.category ??
+              `${serviceFlowDraft.primaryCategory} > ${serviceFlowDraft.subCategory}`}
           </VemtapText>
         </View>
       </ServiceSection>
@@ -144,7 +208,11 @@ export function ReviewServiceSummaryScreen({
         <ServiceSectionHeader
           icon="payments"
           title="Pricing & Session Tiers"
-          subtitle="3 customizable options available"
+          subtitle={
+            live
+              ? reviewCopy.tiersSubtitle(draft.tiers.length)
+              : '3 customizable options available'
+          }
           actionLabel="Edit"
           boxedIcon
         />
@@ -155,26 +223,40 @@ export function ReviewServiceSummaryScreen({
             </VemtapText>
             <View className="mt-0.5 flex-row flex-wrap items-baseline gap-2">
               <VemtapText variant="headingSm" className="font-sans-bold text-text">
-                ₦{draft?.basePrice || '0'}
+                {live ? naira(draft.basePrice) : `₦${serviceFlowDraft.basePrice}`}
               </VemtapText>
-              <VemtapText variant="caption" tone="tertiary" className="line-through">
-                {draft?.compareAtPrice
-                  ? `₦${draft.compareAtPrice}`
-                  : serviceFlowDraft.compareAtPriceFormatted}
-              </VemtapText>
+              {live && !(was > base) ? null : (
+                <VemtapText variant="caption" tone="tertiary" className="line-through">
+                  {live
+                    ? naira(draft.compareAtPrice)
+                    : serviceFlowDraft.compareAtPriceFormatted}
+                </VemtapText>
+              )}
               <VemtapText variant="caption" tone="secondary">
                 • {draft?.duration || serviceFlowDraft.duration}
               </VemtapText>
             </View>
           </View>
-          <View className="rounded-full bg-success-container px-2 py-1">
-            <VemtapText variant="caption" tone="success" className="font-sans-semibold">
-              Save ₦4,000
-            </VemtapText>
-          </View>
+          {live && !(was > base) ? null : (
+            <View className="rounded-full bg-success-container px-2 py-1">
+              <VemtapText variant="caption" tone="success" className="font-sans-semibold">
+                {live
+                  ? `Save \u20a6${(was - base).toLocaleString('en-NG')}`
+                  : 'Save ₦4,000'}
+              </VemtapText>
+            </View>
+          )}
         </View>
         <View className="gap-2">
-          {serviceTiers.map(tier => (
+          {(live
+            ? draft.tiers.map(tier => ({
+                id: tier.id,
+                reviewName: tier.name,
+                reviewDescription: tier.duration ?? '',
+                price: naira(tier.price),
+              }))
+            : serviceTiers
+          ).map(tier => (
             <View
               key={tier.id}
               className="flex-row items-center justify-between gap-3 rounded-lg bg-surface p-3 shadow-sm"
@@ -200,19 +282,25 @@ export function ReviewServiceSummaryScreen({
             </View>
           ))}
         </View>
-        <View className="flex-row items-start gap-2 pt-1">
-          <Icon name="badge" size={18} color={colors.primary} />
-          <VemtapText variant="labelSm" tone="secondary" className="min-w-0 flex-1">
-            {serviceFlowDraft.specialist}
-          </VemtapText>
-        </View>
+        {live ? null : (
+          <View className="flex-row items-start gap-2 pt-1">
+            <Icon name="badge" size={18} color={colors.primary} />
+            <VemtapText variant="labelSm" tone="secondary" className="min-w-0 flex-1">
+              {serviceFlowDraft.specialist}
+            </VemtapText>
+          </View>
+        )}
       </ServiceSection>
 
       <ServiceSection>
         <ServiceSectionHeader
           icon="locationOn"
           title="Branch Availability"
-          subtitle={`${shownBranchCount} Active Studios Serving This Treatment`}
+          subtitle={
+            live
+              ? reviewCopy.branchesSubtitle(shownBranchCount)
+              : `${shownBranchCount} Active Studios Serving This Treatment`
+          }
           actionLabel="Edit"
           boxedIcon
         />
@@ -238,7 +326,7 @@ export function ReviewServiceSummaryScreen({
                         : 'font-sans-medium text-primary'
                     }
                   >
-                    {index === 0 ? 'Flagship' : 'Secondary'}
+                    {index === 0 ? strings.serviceFlow.flagship : 'Secondary'}
                   </VemtapText>
                 </View>
               </View>
@@ -251,7 +339,9 @@ export function ReviewServiceSummaryScreen({
         <View className="flex-row items-center gap-2 pt-1">
           <Icon name="schedule" size={18} color={colors.tertiaryContainer} />
           <VemtapText variant="labelSm" tone="secondary" className="min-w-0 flex-1">
-            Minimum 2 hours advance booking required
+            {live
+              ? reviewCopy.notice(leadHours)
+              : 'Minimum 2 hours advance booking required'}
           </VemtapText>
         </View>
       </ServiceSection>
@@ -259,12 +349,12 @@ export function ReviewServiceSummaryScreen({
       <ServiceSection>
         <ServiceSectionHeader
           icon="policy"
-          title="Booking & Safety Policies"
+          title={live ? reviewCopy.rulesTitle : 'Booking & Safety Policies'}
           actionLabel="Edit"
           boxedIcon
         />
         <View className="gap-3">
-          {servicePolicyRows.map((policy, index) => (
+          {(live ? ruleRows(draft) : servicePolicyRows).map((policy, index) => (
             <ServiceInfoRow
               key={policy.title}
               icon={policy.icon}
@@ -284,7 +374,7 @@ export function ReviewServiceSummaryScreen({
           boxedIcon
         />
         <VemtapText variant="bodyMd" tone="secondary" className="leading-relaxed">
-          {draft?.description || serviceFlowDraft.reviewDescription}
+          {live ? draft.description : serviceFlowDraft.reviewDescription}
         </VemtapText>
         <View className="flex-row flex-wrap gap-1">
           {shownHighlights.map(highlight => (
@@ -297,31 +387,33 @@ export function ReviewServiceSummaryScreen({
         </View>
       </ServiceSection>
 
-      <View className="flex-row flex-wrap items-center justify-between gap-3 rounded-card-lg bg-surface-tint p-4 shadow-sm">
-        <View className="min-w-[180px] flex-1 flex-row items-center gap-3">
-          <View className="h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
-            <Icon name="visibility" size={20} color={colors.primary} />
+      {live && !onPreview ? null : (
+        <View className="flex-row flex-wrap items-center justify-between gap-3 rounded-card-lg bg-surface-tint p-4 shadow-sm">
+          <View className="min-w-[180px] flex-1 flex-row items-center gap-3">
+            <View className="h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
+              <Icon name="visibility" size={20} color={colors.primary} />
+            </View>
+            <View className="min-w-0 flex-1">
+              <VemtapText variant="labelMd" tone="brand" className="font-sans-semibold">
+                Consumer View Preview
+              </VemtapText>
+              <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
+                Simulate live client booking screen
+              </VemtapText>
+            </View>
           </View>
-          <View className="min-w-0 flex-1">
-            <VemtapText variant="labelMd" tone="brand" className="font-sans-semibold">
-              Consumer View Preview
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Inspect consumer view"
+            onPress={onPreview}
+            className="min-h-11 shrink-0 justify-center rounded-lg bg-surface px-3 py-2 shadow-sm active:bg-surface-muted"
+          >
+            <VemtapText variant="labelSm" tone="brand" className="font-sans-semibold">
+              Inspect
             </VemtapText>
-            <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-              Simulate live client booking screen
-            </VemtapText>
-          </View>
+          </Pressable>
         </View>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Inspect consumer view"
-          onPress={onPreview}
-          className="min-h-11 shrink-0 justify-center rounded-lg bg-surface px-3 py-2 shadow-sm active:bg-surface-muted"
-        >
-          <VemtapText variant="labelSm" tone="brand" className="font-sans-semibold">
-            Inspect
-          </VemtapText>
-        </Pressable>
-      </View>
+      )}
 
       <View className="gap-3 pt-1">
         <Button

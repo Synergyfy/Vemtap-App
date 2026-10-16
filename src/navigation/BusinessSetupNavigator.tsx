@@ -9,9 +9,6 @@ import {
   AddProductLocationPricingScreen,
   AddProductPricingVariantsScreen,
   AddProductsOrServicesScreen,
-  AddServiceAvailabilityRulesScreen,
-  AddServiceBasicsMediaScreen,
-  AddServiceDurationPricingScreen,
   BusinessAccountCredentialsScreen,
   BusinessAccountOtpScreen,
   BusinessIntroductionScreen,
@@ -38,7 +35,6 @@ import {
   ProductPublishedMakeItADealScreen,
   ProductPublishedOrSavedAsDraftScreen,
   ReviewProductSummaryScreen,
-  ReviewServiceSummaryScreen,
   ServicePublishedStatusScreen,
   SubscribeNowPaymentScreen,
   TrialActiveStatusScreen,
@@ -129,6 +125,13 @@ import {
 import { subscriptionRef, trialProgress } from '@features/business/subscriptionDisplay';
 import { formatCurrency } from '@utils/formatters';
 import type { BusinessSetupStackParamList, RootStackParamList } from '@navigation/types';
+import {
+  ServiceAvailabilityStep,
+  ServiceBasicsStep,
+  ServicePricingStep,
+  ServiceReviewStep,
+  type ServiceFlowNavigation,
+} from './serviceFlowRoutes';
 
 const Stack = createNativeStackNavigator<BusinessSetupStackParamList>();
 type FlowNavigation = NativeStackNavigationProp<BusinessSetupStackParamList>;
@@ -625,7 +628,10 @@ function AddProductsOrServicesRoute() {
       onContinue={() => navigation.navigate('BusinessQrReady')}
       onSkip={() => navigation.navigate('BusinessQrReady')}
       onAddProduct={() => navigation.navigate('AddProductLocationPricing')}
-      onAddService={() => navigation.navigate('AddServiceBasics')}
+      onAddService={() => {
+        useCatalogueDraftStore.getState().resetService();
+        navigation.navigate('AddServiceBasics');
+      }}
       onAddAnother={() => navigation.navigate('AddProductsOrServices')}
       onEditItem={() => undefined}
       onRemoveItem={() => undefined}
@@ -634,171 +640,37 @@ function AddProductsOrServicesRoute() {
   );
 }
 
-function AddServiceBasicsRoute() {
+/** Add Service steps in setup: done → the published-status page. */
+function useSetupServiceFlowNavigation(): ServiceFlowNavigation {
   const navigation = useFlowNavigation();
-  const setService = useCatalogueDraftStore(state => state.setService);
-  const publish = usePublishCatalogueItem();
-  return (
-    <AddServiceBasicsMediaScreen
-      onBack={navigation.goBack}
-      onNext={value => {
-        setService({
-          name: value.title,
-          description: value.description,
-          deliveryMode: value.delivery,
-          highlights: value.highlights,
-          audience: value.audience,
-        });
-        navigation.navigate('AddServiceDurationPricing');
-      }}
-      onSaveDraft={value => {
-        setService({
-          name: value.title,
-          description: value.description,
-          deliveryMode: value.delivery,
-          highlights: value.highlights,
-          audience: value.audience,
-        });
-        const { service } = useCatalogueDraftStore.getState();
-        if (!service.branchIds.length) {
-          showError('Select branches first, then save the draft.');
-          return;
-        }
-        publish.mutate(
-          { kind: 'service', status: 'inactive' },
-          {
-            onSuccess: () => {
-              showSuccess('Service saved as draft.');
-              navigation.navigate('ServicePublished');
-            },
-            onError: error =>
-              showError(
-                error instanceof Error ? error.message : 'Could not save the draft.',
-              ),
-          },
-        );
-      }}
-    />
-  );
+  return {
+    goBack: navigation.goBack,
+    next: step =>
+      navigation.navigate(
+        step === 'pricing'
+          ? 'AddServiceDurationPricing'
+          : step === 'availability'
+            ? 'AddServiceAvailabilityRules'
+            : 'ReviewServiceSummary',
+      ),
+    done: () => navigation.navigate('ServicePublished'),
+  };
+}
+
+function AddServiceBasicsRoute() {
+  return <ServiceBasicsStep nav={useSetupServiceFlowNavigation()} />;
 }
 
 function AddServiceDurationPricingRoute() {
-  const navigation = useFlowNavigation();
-  const setService = useCatalogueDraftStore(state => state.setService);
-  const publish = usePublishCatalogueItem();
-  return (
-    <AddServiceDurationPricingScreen
-      onBack={navigation.goBack}
-      onNext={value => {
-        setService({
-          basePrice: value.basePrice,
-          compareAtPrice: value.compareAtPrice,
-          duration: value.duration,
-          bookingEnabled: value.bookingEnabled,
-        });
-        navigation.navigate('AddServiceAvailabilityRules');
-      }}
-      onSaveDraft={value => {
-        setService({
-          basePrice: value.basePrice,
-          compareAtPrice: value.compareAtPrice,
-          duration: value.duration,
-          bookingEnabled: value.bookingEnabled,
-        });
-        const { service } = useCatalogueDraftStore.getState();
-        if (!service.branchIds.length) {
-          showError('Select branches first, then save the draft.');
-          return;
-        }
-        publish.mutate(
-          { kind: 'service', status: 'inactive' },
-          {
-            onSuccess: () => {
-              showSuccess('Service saved as draft.');
-              navigation.navigate('ServicePublished');
-            },
-            onError: error =>
-              showError(
-                error instanceof Error ? error.message : 'Could not save the draft.',
-              ),
-          },
-        );
-      }}
-    />
-  );
+  return <ServicePricingStep nav={useSetupServiceFlowNavigation()} />;
 }
 
 function AddServiceAvailabilityRulesRoute() {
-  const navigation = useFlowNavigation();
-  const setService = useCatalogueDraftStore(state => state.setService);
-  const publish = usePublishCatalogueItem();
-  return (
-    <AddServiceAvailabilityRulesScreen
-      onBack={navigation.goBack}
-      onNext={value => {
-        setService({
-          branchIds: value.branchIds,
-          serviceMode: value.serviceMode,
-          isBookable: value.isBookable,
-        });
-        navigation.navigate('ReviewServiceSummary');
-      }}
-      onSaveDraft={value => {
-        setService({
-          branchIds: value.branchIds,
-          serviceMode: value.serviceMode,
-          isBookable: value.isBookable,
-        });
-        const { service } = useCatalogueDraftStore.getState();
-        if (!service.branchIds.length) {
-          showError('Select branches first, then save the draft.');
-          return;
-        }
-        publish.mutate(
-          { kind: 'service', status: 'inactive' },
-          {
-            onSuccess: () => {
-              showSuccess('Service saved as draft.');
-              navigation.navigate('ServicePublished');
-            },
-            onError: error =>
-              showError(
-                error instanceof Error ? error.message : 'Could not save the draft.',
-              ),
-          },
-        );
-      }}
-    />
-  );
+  return <ServiceAvailabilityStep nav={useSetupServiceFlowNavigation()} />;
 }
 
 function ReviewServiceSummaryRoute() {
-  const navigation = useFlowNavigation();
-  const draft = useCatalogueDraftStore(state => state.service);
-  const publish = usePublishCatalogueItem();
-
-  const submit = (status: 'active' | 'inactive') => {
-    publish.mutate(
-      { kind: 'service', status },
-      {
-        onSuccess: () => navigation.navigate('ServicePublished'),
-        onError: error =>
-          showError(
-            error instanceof Error ? error.message : 'Could not publish the service',
-          ),
-      },
-    );
-  };
-
-  return (
-    <ReviewServiceSummaryScreen
-      draft={draft}
-      publishing={publish.isPending}
-      onBack={navigation.goBack}
-      onPublish={() => submit('active')}
-      onSaveDraft={() => submit('inactive')}
-    />
-  );
+  return <ServiceReviewStep nav={useSetupServiceFlowNavigation()} />;
 }
 
 function ServicePublishedRoute() {
@@ -811,7 +683,10 @@ function ServicePublishedRoute() {
       onBack={navigation.goBack}
       onNext={() => navigation.navigate('BusinessQrReady')}
       onSaveDraft={undefined}
-      onAddAnother={() => navigation.navigate('AddServiceBasics')}
+      onAddAnother={() => {
+        useCatalogueDraftStore.getState().resetService();
+        navigation.navigate('AddServiceBasics');
+      }}
       onCreateDeal={() => navigation.navigate('CreateDealAutoImported')}
       onStatusChange={status => {
         if (!serviceId) return;

@@ -79,7 +79,7 @@ describe('productDraftToCreateInput', () => {
     brand: 'Urban Grill',
     unbranded: false,
     description: 'Double patty',
-    condition: 'Fresh / New',
+    condition: 'fresh',
     attributes: ['beef'],
     galleryImages: ['https://img/1.jpg'],
     regularPrice: '14,000',
@@ -109,7 +109,8 @@ describe('productDraftToCreateInput', () => {
       sku: 'UG-RB-042',
       itemType: 'product',
       branchId,
-      condition: 'Fresh / New',
+      // The API only knows new | refurbished | used.
+      condition: 'new',
       pricingMode: 'uniform',
       fulfillmentModes: ['pickup'],
     });
@@ -153,6 +154,7 @@ describe('serviceDraftToCreateInput', () => {
         branchIds: [branchId],
         serviceMode: 'in-salon',
         isBookable: true,
+        tiers: [],
         bookingMethod: 'vemtap',
       },
       branchId,

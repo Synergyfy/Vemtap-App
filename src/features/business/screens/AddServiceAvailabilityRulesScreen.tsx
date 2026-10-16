@@ -12,6 +12,7 @@ import {
   ServiceSectionHeader,
 } from '@features/business/components/ServiceFlowPrimitives';
 import { serviceBranches } from '@features/business/data/serviceFlowData';
+import { strings } from '@constants/strings';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { colors } from '@theme/colors';
@@ -23,32 +24,77 @@ export type ServiceAvailabilityValue = {
   branchIds: string[];
   serviceMode: string;
   isBookable: boolean;
+  /** Notice, horizon and capacity (the API's `bookingRules`). */
+  rules: { leadMinutes: number; horizonDays: number; capacity: number };
 };
+
+/** Lead-time choices → minutes of notice. */
+const LEAD_MINUTES: Record<string, number> = {
+  'same-day': 120,
+  '12-hours': 720,
+  '24-hours': 1440,
+};
+/** Horizon choices → days ahead. */
+const HORIZON_DAYS: Record<string, number> = {
+  '14-days': 14,
+  '30-days': 30,
+  '60-days': 60,
+};
+const keyFor = (map: Record<string, number>, value: number | undefined) =>
+  Object.keys(map).find(key => map[key] === value);
 
 export interface AddServiceAvailabilityRulesScreenProps {
   onBack: () => void;
   onNext?: (value: ServiceAvailabilityValue) => void;
   onSaveDraft?: (value: ServiceAvailabilityValue) => void;
+  /**
+   * The business's real branches. Without them the design's sample outlets
+   * show, whose ids the API cannot accept, so live callers always pass these.
+   */
+  branches?: readonly { id: string; name: string; address?: string | null }[];
+  /** Branches ticked on arrival (all of them when absent). */
+  initialBranchIds?: readonly string[];
+  /** The base price from the pricing step, for the universal-price card. */
+  basePrice?: string;
+  /** Saved notice/horizon/capacity when the owner comes back to this step. */
+  initialRules?: Partial<ServiceAvailabilityValue['rules']>;
 }
+
+const copy = strings.serviceFlow;
 
 export function AddServiceAvailabilityRulesScreen({
   onBack,
   onNext,
   onSaveDraft,
+  branches,
+  initialBranchIds,
+  basePrice,
+  initialRules,
 }: AddServiceAvailabilityRulesScreenProps) {
+  const live = branches !== undefined;
+  const outlets = branches ?? serviceBranches;
   const [selectedOutlets, setSelectedOutlets] = useState(
-    () => new Set<string>(serviceBranches.map(branch => branch.id)),
+    () => new Set<string>(initialBranchIds ?? outlets.map(branch => branch.id)),
   );
   const [deselectMode, setDeselectMode] = useState(false);
   const [pricingMode, setPricingMode] = useState('universal');
-  const [leadTime, setLeadTime] = useState('same-day');
-  const [horizon, setHorizon] = useState('30-days');
-  const [capacity, setCapacity] = useState(2);
+  const [leadTime, setLeadTime] = useState(
+    keyFor(LEAD_MINUTES, initialRules?.leadMinutes) ?? 'same-day',
+  );
+  const [horizon, setHorizon] = useState(
+    keyFor(HORIZON_DAYS, initialRules?.horizonDays) ?? '30-days',
+  );
+  const [capacity, setCapacity] = useState(initialRules?.capacity ?? 2);
 
   const currentValue: ServiceAvailabilityValue = {
     branchIds: [...selectedOutlets],
     serviceMode: 'location',
     isBookable: leadTime !== 'never',
+    rules: {
+      leadMinutes: LEAD_MINUTES[leadTime] ?? 120,
+      horizonDays: HORIZON_DAYS[horizon] ?? 30,
+      capacity,
+    },
   };
 
   const toggleOutlet = (id: string) => {
@@ -64,9 +110,7 @@ export function AddServiceAvailabilityRulesScreen({
     const nextDeselectMode = !deselectMode;
     setDeselectMode(nextDeselectMode);
     setSelectedOutlets(
-      nextDeselectMode
-        ? new Set<string>()
-        : new Set(serviceBranches.map(branch => branch.id)),
+      nextDeselectMode ? new Set<string>() : new Set(outlets.map(branch => branch.id)),
     );
   };
 
@@ -78,6 +122,7 @@ export function AddServiceAvailabilityRulesScreen({
       footer={
         <ServiceFlowFooter
           primaryLabel="Review & Publish"
+          primaryDisabled={live && selectedOutlets.size === 0}
           onPrimary={() => onNext?.(currentValue)}
           backLabel="Back"
           onBack={onBack}
@@ -100,11 +145,16 @@ export function AddServiceAvailabilityRulesScreen({
           <ServiceSectionHeader
             icon="storefront"
             title="Available Outlets & Studios"
-            actionLabel={deselectMode ? 'Deselect all' : 'Select all (2 active)'}
+            actionLabel={deselectMode ? copy.deselectAll : copy.selectAll(outlets.length)}
             onAction={toggleAllOutlets}
           />
           <View className="gap-3">
-            {serviceBranches.map((branch, index) => {
+            {live && outlets.length === 0 ? (
+              <VemtapText variant="caption" tone="secondary">
+                {copy.noBranches}
+              </VemtapText>
+            ) : null}
+            {outlets.map((branch, index) => {
               const selected = selectedOutlets.has(branch.id);
               return (
                 <ServiceSection key={branch.id} className="gap-3">
@@ -142,66 +192,74 @@ export function AddServiceAvailabilityRulesScreen({
                               variant="caption"
                               className="font-sans-semibold text-on-secondary-container"
                             >
-                              Flagship
+                              {copy.flagship}
                             </VemtapText>
                           </View>
                         ) : null}
                       </View>
-                      <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-                        {branch.address}
-                      </VemtapText>
-                      <View className="mt-2 flex-row items-center gap-1.5">
-                        <View className="h-2 w-2 rounded-full bg-success" />
-                        <VemtapText
-                          variant="caption"
-                          tone="success"
-                          className="font-sans-medium"
-                        >
-                          {branch.rooms}
+                      {branch.address ? (
+                        <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
+                          {branch.address}
                         </VemtapText>
-                      </View>
+                      ) : null}
+                      {'rooms' in branch ? (
+                        <View className="mt-2 flex-row items-center gap-1.5">
+                          <View className="h-2 w-2 rounded-full bg-success" />
+                          <VemtapText
+                            variant="caption"
+                            tone="success"
+                            className="font-sans-medium"
+                          >
+                            {branch.rooms}
+                          </VemtapText>
+                        </View>
+                      ) : null}
                     </View>
                   </View>
-                  <View className="flex-row justify-end pt-1">
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel={`Edit Location Schedule for ${branch.name}`}
-                      className="min-h-11 flex-row items-center gap-1 rounded-lg bg-surface-tint px-2.5 active:scale-[0.98]"
-                    >
-                      <Icon name="locationSchedule" size={16} color={colors.primary} />
-                      <VemtapText
-                        variant="button"
-                        tone="brand"
-                        className="font-sans-medium"
+                  {live ? null : (
+                    <View className="flex-row justify-end pt-1">
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={`Edit Location Schedule for ${branch.name}`}
+                        className="min-h-11 flex-row items-center gap-1 rounded-lg bg-surface-tint px-2.5 active:scale-[0.98]"
                       >
-                        Edit Location Schedule
-                      </VemtapText>
-                    </Pressable>
-                  </View>
+                        <Icon name="locationSchedule" size={16} color={colors.primary} />
+                        <VemtapText
+                          variant="button"
+                          tone="brand"
+                          className="font-sans-medium"
+                        >
+                          Edit Location Schedule
+                        </VemtapText>
+                      </Pressable>
+                    </View>
+                  )}
                 </ServiceSection>
               );
             })}
-            <View className="flex-row items-start gap-3 rounded-card-lg bg-surface-muted/80 p-4 opacity-70">
-              <View className="h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-container-high">
-                <Icon name="lock" size={14} color={colors.textTertiary} />
-              </View>
-              <View className="min-w-0 flex-1">
-                <View className="flex-row flex-wrap items-center gap-2">
-                  <VemtapText
-                    variant="bodyMd"
-                    className="font-sans-semibold text-text-secondary"
-                  >
-                    Garki Branch
-                  </VemtapText>
-                  <View className="rounded-full bg-surface-container-high px-2 py-0.5">
-                    <VemtapText variant="caption">Opening June</VemtapText>
-                  </View>
+            {live ? null : (
+              <View className="flex-row items-start gap-3 rounded-card-lg bg-surface-muted/80 p-4 opacity-70">
+                <View className="h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-container-high">
+                  <Icon name="lock" size={14} color={colors.textTertiary} />
                 </View>
-                <VemtapText variant="caption" tone="tertiary" numberOfLines={1}>
-                  Area 11 Commercial District, Garki
-                </VemtapText>
+                <View className="min-w-0 flex-1">
+                  <View className="flex-row flex-wrap items-center gap-2">
+                    <VemtapText
+                      variant="bodyMd"
+                      className="font-sans-semibold text-text-secondary"
+                    >
+                      Garki Branch
+                    </VemtapText>
+                    <View className="rounded-full bg-surface-container-high px-2 py-0.5">
+                      <VemtapText variant="caption">Opening June</VemtapText>
+                    </View>
+                  </View>
+                  <VemtapText variant="caption" tone="tertiary" numberOfLines={1}>
+                    Area 11 Commercial District, Garki
+                  </VemtapText>
+                </View>
               </View>
-            </View>
+            )}
           </View>
         </View>
 
@@ -210,7 +268,13 @@ export function AddServiceAvailabilityRulesScreen({
           <View accessibilityRole="radiogroup" className="gap-2">
             <ServiceChoiceCard
               title="Universal Session Price"
-              description="Uniform ₦16,000 baseline across all active Abuja studios."
+              description={
+                live
+                  ? basePrice
+                    ? copy.universalPrice(basePrice)
+                    : copy.universalPriceUnset
+                  : 'Uniform ₦16,000 baseline across all active Abuja studios.'
+              }
               selected={pricingMode === 'universal'}
               onPress={() => setPricingMode('universal')}
               selectionPosition="left"

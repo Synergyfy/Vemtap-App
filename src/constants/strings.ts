@@ -8520,6 +8520,80 @@ export const strings = {
       },
     },
   },
+  /** Add Service flow (Business Hub and setup); labels for live data. */
+  serviceFlow: {
+    selectAll: (count: number) => `Select all (${count} active)`,
+    deselectAll: 'Deselect all',
+    flagship: 'Flagship',
+    noBranches: 'Add a branch first, then offer this service there.',
+    pickBranch: 'Select at least one branch.',
+    universalPrice: (price: string) => `Uniform ${price} across every selected branch.`,
+    universalPriceUnset: 'One price across every selected branch.',
+    coverAlt: 'Service cover photo',
+    noPhotoYet: 'Add a cover photo',
+    nameRequired: 'Give the service a name.',
+    priceRequired: 'Set a base price.',
+    save: (amount: string, percent: number) => `Save ${amount} (${percent}% OFF)`,
+    activeTiers: (count: number) => `${count} active`,
+    noTiers: 'No tiers yet. Add options such as a longer session or an add-on.',
+    addTier: 'Add Another Tier or Add-on',
+    tierDialog: {
+      title: 'Add a Tier or Add-on',
+      name: 'Name',
+      price: 'Price (NGN)',
+      duration: 'Duration (e.g. 90 mins)',
+      confirm: 'Add',
+      nameRequired: 'Give the tier a name.',
+      priceRequired: 'Enter a price.',
+    },
+    hoursDialog: {
+      title: 'Available Daily Hours',
+      from: 'Start (HH:MM, 24h)',
+      to: 'End (HH:MM, 24h)',
+      confirm: 'Save hours',
+      invalid: 'Use 24-hour times like 09:00 and 18:00, with the end after the start.',
+    },
+    bufferDialog: {
+      title: 'Turnaround Buffer',
+      minutes: 'Minutes between clients',
+      confirm: 'Save',
+      invalid: 'Enter 0 to 240 minutes.',
+    },
+    bufferTitle: (minutes: number) => `${minutes} mins turnaround buffer`,
+    slotsNote: (duration: number, buffer: number) =>
+      `${duration} mins appointment slots (${buffer} mins buffer after each)`,
+    dailyWindows: (count: number) =>
+      `${count} Daily ${count === 1 ? 'Window' : 'Windows'}`,
+    moreSlots: (count: number) => `+${count} more`,
+    review: {
+      photos: (count: number) => `${count} ${count === 1 ? 'Photo' : 'Photos'}`,
+      tiersSubtitle: (count: number) =>
+        count
+          ? `${count} ${count === 1 ? 'option' : 'options'} on top of the base price`
+          : 'Base price only',
+      branchesSubtitle: (count: number) =>
+        `${count} ${count === 1 ? 'branch' : 'branches'} offering this service`,
+      branchSummary: (price: string) => `${price} base`,
+      notice: (hours: number) =>
+        hours >= 24
+          ? `Book at least ${Math.round(hours / 24)} ${Math.round(hours / 24) === 1 ? 'day' : 'days'} ahead`
+          : `Book at least ${hours} ${hours === 1 ? 'hour' : 'hours'} ahead`,
+      rulesTitle: 'Booking Rules',
+      daysHours: (days: string, from: string, to: string) =>
+        `${days} \u2022 ${from} \u2013 ${to}`,
+      daysHoursBody: 'When customers can book this service',
+      bufferBody: (minutes: number, capacity: number) =>
+        `${minutes} mins between bookings \u2022 ${capacity} ${capacity === 1 ? 'client' : 'clients'} at a time`,
+      bufferTitle: 'Turnaround & capacity',
+      horizonTitle: (days: number) => `Bookable up to ${days} days ahead`,
+      confirmOn: 'You confirm each booking',
+      confirmOff: 'Bookings are confirmed at once',
+      bookingOff: 'Online booking is off for this service',
+      everyDay: 'Every day',
+    },
+    confirmTitle: 'Confirm each booking yourself',
+    confirmBody: 'Bookings wait for your confirmation. Off: they are confirmed at once.',
+  },
   boostEngine: {
     headerTitle: 'VEMTAP Growth Engine',
     headerSubtitle: 'Local Feed Booster',
