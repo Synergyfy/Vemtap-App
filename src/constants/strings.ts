@@ -9097,8 +9097,12 @@ export const strings = {
         consumed: (percent: number) => `${percent}% consumed`,
         left: (amount: string) => `${amount} left`,
         redemptionsSub: 'Redeemed vouchers',
-        reachSub: 'Feed impressions',
+        reachSub: 'Unique viewers',
+        reachDelta: (percent: string) => `${percent} vs previous run`,
         costPerClaim: 'Cost / Claim',
+        benchmark: (amount: string) => `Platform avg: ${amount}`,
+        cheaper: (percent: number) => `${percent}% Cheaper`,
+        pricier: (percent: number) => `${percent}% Higher`,
         noClaimsYet: 'No claims yet',
         returnOnSpend: (ratio: string) => `${ratio}\u00d7 return on spend`,
         funnelCaption: (percent: string) =>

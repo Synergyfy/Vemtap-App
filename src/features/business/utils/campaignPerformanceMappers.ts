@@ -158,15 +158,24 @@ function bannerFor(promotion: Promotion, now: number): string {
   }
 }
 
-/** Claims per hour folded into the six 4-hour slots the chart shows. */
+/** Claims and views per hour folded into the six 4-hour slots the chart shows. */
 function rhythmSlots(rhythm: PromotionStats['rhythm']) {
   const totals = liveCopy.rhythmSlots.map(() => 0);
-  for (const { hour, claims } of rhythm) {
-    const slot = Math.min(5, Math.max(0, Math.floor(hour / 4)));
-    totals[slot] += claims;
+  const views = liveCopy.rhythmSlots.map(() => 0);
+  for (const entry of rhythm) {
+    const slot = Math.min(5, Math.max(0, Math.floor(entry.hour / 4)));
+    totals[slot] += entry.claims;
+    views[slot] += entry.views ?? 0;
   }
   const max = Math.max(0, ...totals);
-  return { totals, max };
+  const maxViews = Math.max(0, ...views);
+  return { totals, max, views, maxViews };
+}
+
+/** "+14.2%" / "−8%": the change from `before` to `now`, one decimal. */
+function signedChange(now: number, before: number): string {
+  const change = Math.round(((now - before) / before) * 1000) / 10;
+  return `${change >= 0 ? '+' : '\u2212'}${Math.abs(change)}%`;
 }
 
 export function statsToPerformanceView(
@@ -197,7 +206,14 @@ export function statsToPerformanceView(
     };
   });
 
-  const { totals, max } = rhythmSlots(stats.rhythm);
+  const { totals, max, views, maxViews } = rhythmSlots(stats.rhythm);
+  const costPerClaim = claims > 0 ? kpis.spent / claims : null;
+  const benchmark = stats.benchmark?.costPerClaim;
+  // Against the platform average: positive = cheaper.
+  const versusBenchmark =
+    costPerClaim !== null && benchmark
+      ? Math.round(((benchmark - costPerClaim) / benchmark) * 100)
+      : null;
   const totalClaims = totals.reduce((sum, value) => sum + value, 0);
   const peakIndex = max > 0 ? totals.indexOf(max) : -1;
 
@@ -244,14 +260,27 @@ export function statsToPerformanceView(
         label: perf.kpis[2].label,
         value: count(kpis.reach),
         sub: liveCopy.reachSub,
+        // Only against a run that was measured (reach before events was 0).
+        delta:
+          stats.previous && stats.previous.reach > 0
+            ? liveCopy.reachDelta(signedChange(kpis.reach, stats.previous.reach))
+            : undefined,
       },
       cost: {
         label: liveCopy.costPerClaim,
         value: claims > 0 ? naira(kpis.spent / claims) : '—',
         sub:
-          kpis.returnOnSpend !== null && kpis.returnOnSpend !== undefined
-            ? liveCopy.returnOnSpend(kpis.returnOnSpend.toFixed(1))
-            : liveCopy.noClaimsYet,
+          benchmark && costPerClaim !== null
+            ? liveCopy.benchmark(naira(benchmark))
+            : kpis.returnOnSpend !== null && kpis.returnOnSpend !== undefined
+              ? liveCopy.returnOnSpend(kpis.returnOnSpend.toFixed(1))
+              : liveCopy.noClaimsYet,
+        badge:
+          versusBenchmark === null || versusBenchmark === 0
+            ? undefined
+            : versusBenchmark > 0
+              ? liveCopy.cheaper(versusBenchmark)
+              : liveCopy.pricier(-versusBenchmark),
       },
     },
     funnel,
@@ -259,12 +288,13 @@ export function statsToPerformanceView(
       claims > 0 ? liveCopy.funnelCaption(`${percentOf(redeemed, claims)}%`) : undefined,
     attributionTitle: liveCopy.attributionTitle,
     attributionBody: liveCopy.attributionBody,
-    rhythmSubtitle: liveCopy.rhythmSubtitle,
-    showViews: false,
+    // With views recorded the chart is the design's views-vs-claims one.
+    rhythmSubtitle: maxViews > 0 ? perf.rhythmSubtitle : liveCopy.rhythmSubtitle,
+    showViews: maxViews > 0,
     rhythm: liveCopy.rhythmSlots.map((label, index) => ({
       id: `slot-${index}`,
       label,
-      views: 0,
+      views: maxViews > 0 ? Math.round((views[index] / maxViews) * 100) : 0,
       claims: max > 0 ? Math.round((totals[index] / max) * 100) : 0,
     })),
     peak:

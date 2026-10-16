@@ -353,6 +353,83 @@ describe('campaign performance mapping', () => {
     expect(view.showViews).toBe(false);
   });
 
+  it('compares reach with the previous run and cost with the platform', () => {
+    const perfLive = strings.boostWizard.performance.live;
+    const view = statsToPerformanceView('boost', promotion, {
+      ...stats,
+      // 12,450 / 100 claims = ₦124.50 against a ₦250 average.
+      previous: {
+        id: 'c-0',
+        name: 'Run 1',
+        endDate: '2026-10-06T08:00:00.000Z',
+        reach: 9_492,
+        claims: 80,
+        redemptions: 30,
+        spent: 10_000,
+        costPerClaim: 125,
+      },
+      benchmark: { costPerClaim: 250, campaigns: 12 },
+    });
+    expect(view.kpis.reach.delta).toBe(perfLive.reachDelta('+14.2%'));
+    expect(view.kpis.cost.sub).toBe(perfLive.benchmark('₦250'));
+    expect(view.kpis.cost.badge).toBe(perfLive.cheaper(50));
+
+    const worse = statsToPerformanceView('boost', promotion, {
+      ...stats,
+      kpis: { ...stats.kpis, reach: 5_000 },
+      previous: {
+        id: 'c-0',
+        name: 'Run 1',
+        reach: 10_000,
+        claims: 1,
+        redemptions: 0,
+        spent: 1,
+        costPerClaim: 1,
+      },
+      // ₦124.50 against ₦83 is 50% higher.
+      benchmark: { costPerClaim: 83, campaigns: 12 },
+    });
+    expect(worse.kpis.reach.delta).toBe(perfLive.reachDelta('\u221250%'));
+    expect(worse.kpis.cost.badge).toBe(perfLive.pricier(50));
+  });
+
+  it('hides the comparisons when there is nothing to compare with', () => {
+    const view = statsToPerformanceView('boost', promotion, {
+      ...stats,
+      previous: {
+        id: 'c-0',
+        name: 'Run 1',
+        reach: 0,
+        claims: 0,
+        redemptions: 0,
+        spent: 0,
+        costPerClaim: null,
+      },
+      benchmark: null,
+    });
+    expect(view.kpis.reach.delta).toBeUndefined();
+    expect(view.kpis.cost.badge).toBeUndefined();
+    expect(view.kpis.cost.sub).toBe(
+      strings.boostWizard.performance.live.returnOnSpend('49.4'),
+    );
+    expect(view.showViews).toBe(false);
+  });
+
+  it('draws views next to claims once views are recorded', () => {
+    const view = statsToPerformanceView('boost', promotion, {
+      ...stats,
+      rhythm: [
+        { hour: 13, views: 200, claims: 60 },
+        { hour: 19, views: 50, claims: 10 },
+      ],
+    });
+    expect(view.showViews).toBe(true);
+    expect(view.rhythmSubtitle).toBe(strings.boostWizard.performance.rhythmSubtitle);
+    // 12–4pm is the busiest slot for both.
+    expect(view.rhythm[3]).toMatchObject({ views: 100, claims: 100 });
+    expect(view.rhythm[4]).toMatchObject({ views: 25 });
+  });
+
   it('offers resume on a paused campaign and nothing on an ended one', () => {
     const paused = statsToPerformanceView(
       'boost',
