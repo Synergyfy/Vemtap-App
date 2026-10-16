@@ -11,6 +11,7 @@ import {
   dealDraftToCreateInput,
   dealDraftToUpdateInput,
   productDraftToCreateInput,
+  serviceBranchPricingInput,
   serviceDraftToCreateInput,
   splitBranchIds,
 } from '@features/business/utils/catalogueDraftMappers';
@@ -84,6 +85,13 @@ export function usePublishCatalogueItem() {
             status: 'inactive',
           });
         }
+      }
+      // A service priced per branch: set every branch's own price (and keep
+      // the branch set in step when an existing draft is re-saved).
+      const branchPricing =
+        kind === 'service' ? serviceBranchPricingInput(state.service) : undefined;
+      if (branchPricing) {
+        await catalogueApi.setItemBranchPricing(created.id, branchPricing);
       }
       return created;
     },

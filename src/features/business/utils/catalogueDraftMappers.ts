@@ -1,5 +1,6 @@
 import { strings } from '@constants/strings';
 import type {
+  SetItemBranchPricingInput,
   BusinessOfferAdmin,
   CreateCatalogueItemInput,
   CreateCatalogueOfferInput,
@@ -132,6 +133,7 @@ export function serviceDraftToCreateInput(
         }))
       : undefined,
     bookingRules: draft.bookingEnabled ? draft.bookingRules : undefined,
+    pricingMode: draft.pricingMode,
     mainImage: draft.mainImage,
     galleryImages: draft.galleryImages.length ? draft.galleryImages : undefined,
     itemType: 'service',
@@ -256,4 +258,24 @@ export function splitBranchIds(branchIds: string[]): {
 } {
   const [primaryBranchId, ...remainingBranchIds] = branchIds;
   return { primaryBranchId, remainingBranchIds };
+}
+
+/**
+ * The service's per-branch prices as a `PUT …/branch-pricing` body, or
+ * `undefined` when it has one price everywhere (create + import cover that).
+ * A branch without its own price falls back to the base price.
+ */
+export function serviceBranchPricingInput(
+  draft: ServiceDraft,
+): SetItemBranchPricingInput | undefined {
+  if (draft.pricingMode !== 'per_branch' || !draft.branchIds.length) return undefined;
+  const base = parseMoneyInput(draft.basePrice);
+  return {
+    pricingMode: 'per_branch',
+    branches: draft.branchIds.map(branchId => ({
+      branchId,
+      isAvailable: true,
+      price: parseMoneyInput(draft.branchPrices[branchId]) ?? base ?? null,
+    })),
+  };
 }

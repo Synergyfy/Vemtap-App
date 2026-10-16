@@ -1,6 +1,13 @@
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react-native';
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  renderHook,
+  screen,
+} from '@testing-library/react-native';
 import { strings } from '@constants/strings';
 import {
   serviceBranches,
@@ -10,7 +17,13 @@ import { AddServiceBasicsMediaScreen } from '@features/business/screens/AddServi
 import { AddServiceDurationPricingScreen } from '@features/business/screens/AddServiceDurationPricingScreen';
 import { AddServiceAvailabilityRulesScreen } from '@features/business/screens/AddServiceAvailabilityRulesScreen';
 import { ReviewServiceSummaryScreen } from '@features/business/screens/ReviewServiceSummaryScreen';
-import { serviceDraftToCreateInput } from '@features/business/utils/catalogueDraftMappers';
+import {
+  serviceBranchPricingInput,
+  serviceDraftToCreateInput,
+} from '@features/business/utils/catalogueDraftMappers';
+import { usePublishCatalogueItem } from '@features/business/hooks/useCatalogueMutations';
+import { catalogueApi } from '@api/catalogueApi';
+import { useCatalogueDraftStore } from '@store/catalogueDraftStore';
 import {
   dailySlots,
   durationMinutes,
@@ -57,6 +70,8 @@ describe('service draft → create DTO', () => {
     branchIds: [BRANCH],
     serviceMode: 'location',
     isBookable: true,
+    pricingMode: 'uniform',
+    branchPrices: {},
     tiers: [{ id: 't1', name: 'Hot stones', price: '5,000', duration: '30 mins' }],
     bookingRules: {
       days: [1, 2, 3],
@@ -193,6 +208,8 @@ describe('live service screens', () => {
             branchIds: [BRANCH],
             serviceMode: 'location',
             isBookable: true,
+            pricingMode: 'uniform',
+            branchPrices: {},
             tiers: [{ id: 't1', name: 'Hot stones', price: '5000' }],
             bookingRules: {
               days: [1, 2, 3],
@@ -210,5 +227,126 @@ describe('live service screens', () => {
     expect(screen.getByText('Mon, Tue, Wed • 10:00 AM – 5:00 PM')).toBeTruthy();
     expect(screen.getByText(copy.review.confirmOff)).toBeTruthy();
     expect(screen.queryByText('Pay at Salon Reception')).toBeNull();
+  });
+});
+
+describe('tiered branch pricing', () => {
+  const OTHER = 'c3d4e5f6-a7b8-4c9d-8e0f-2a3b4c5d6e7f';
+  const branches = [
+    { id: BRANCH, name: 'Wuse II', address: '' },
+    { id: OTHER, name: 'Maitama', address: '' },
+  ];
+
+  it('asks for a price per ticked branch, prefilled with the base price', async () => {
+    const onNext = jest.fn();
+    await render(
+      <AddServiceAvailabilityRulesScreen
+        onBack={jest.fn()}
+        onNext={onNext}
+        branches={branches}
+        basePrice="₦15,000"
+      />,
+    );
+    expect(screen.queryByText(copy.branchPriceLabel)).toBeNull();
+
+    await fireEvent.press(screen.getByText('Tiered Branch Pricing'));
+    expect(screen.getAllByText(copy.branchPriceLabel)).toHaveLength(2);
+
+    await fireEvent.changeText(screen.getAllByDisplayValue('15,000')[1], '18,000');
+    await fireEvent.press(screen.getByText('Review & Publish'));
+    expect(onNext.mock.calls[0][0]).toMatchObject({
+      pricingMode: 'per_branch',
+      branchPrices: { [BRANCH]: '15,000', [OTHER]: '18,000' },
+    });
+  });
+
+  it('blocks continuing while a ticked branch has no price', async () => {
+    const onNext = jest.fn();
+    await render(
+      <AddServiceAvailabilityRulesScreen
+        onBack={jest.fn()}
+        onNext={onNext}
+        branches={branches}
+        initialPricingMode="per_branch"
+        initialBranchPrices={{ [BRANCH]: '' }}
+      />,
+    );
+    expect(screen.getByText(copy.branchPriceMissing)).toBeTruthy();
+    await fireEvent.press(screen.getByText('Review & Publish'));
+    expect(onNext).not.toHaveBeenCalled();
+  });
+
+  it('turns per-branch prices into the branch-pricing body', () => {
+    const base: ServiceDraft = {
+      name: 'Massage',
+      description: '',
+      deliveryMode: '',
+      highlights: [],
+      audience: '',
+      galleryImages: [],
+      basePrice: '15,000',
+      bookingEnabled: true,
+      branchIds: [BRANCH, OTHER],
+      serviceMode: 'location',
+      isBookable: true,
+      tiers: [],
+      pricingMode: 'per_branch',
+      branchPrices: { [OTHER]: '18,000' },
+    };
+    expect(serviceBranchPricingInput(base)).toEqual({
+      pricingMode: 'per_branch',
+      branches: [
+        { branchId: BRANCH, isAvailable: true, price: 15000 },
+        { branchId: OTHER, isAvailable: true, price: 18000 },
+      ],
+    });
+    expect(
+      serviceBranchPricingInput({ ...base, pricingMode: 'uniform' }),
+    ).toBeUndefined();
+  });
+
+  it('publishes, then sets the branch prices on the new service', async () => {
+    const created = { id: 'svc-1', name: 'Massage' };
+    const create = jest
+      .spyOn(catalogueApi, 'createCatalogueItem')
+      .mockResolvedValue(created as never);
+    const importItem = jest
+      .spyOn(catalogueApi, 'importItemToBranch')
+      .mockResolvedValue(created as never);
+    const setPricing = jest
+      .spyOn(catalogueApi, 'setItemBranchPricing')
+      .mockResolvedValue({} as never);
+    useCatalogueDraftStore.getState().resetService();
+    useCatalogueDraftStore.getState().setService({
+      name: 'Massage',
+      basePrice: '15,000',
+      branchIds: [BRANCH, OTHER],
+      pricingMode: 'per_branch',
+      branchPrices: { [BRANCH]: '15,000', [OTHER]: '18,000' },
+    });
+    const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
+    const { result } = await renderHook(() => usePublishCatalogueItem(), {
+      wrapper: ({ children }) => (
+        <QueryClientProvider client={client}>{children}</QueryClientProvider>
+      ),
+    });
+
+    await act(async () => {
+      await result.current.mutateAsync({ kind: 'service', status: 'active' });
+    });
+
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({ branchId: BRANCH, pricingMode: 'per_branch' }),
+    );
+    expect(importItem).toHaveBeenCalledWith('svc-1', OTHER);
+    expect(setPricing).toHaveBeenCalledWith('svc-1', {
+      pricingMode: 'per_branch',
+      branches: [
+        { branchId: BRANCH, isAvailable: true, price: 15000 },
+        { branchId: OTHER, isAvailable: true, price: 18000 },
+      ],
+    });
+    jest.restoreAllMocks();
+    useCatalogueDraftStore.getState().resetService();
   });
 });

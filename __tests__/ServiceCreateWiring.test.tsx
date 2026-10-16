@@ -108,6 +108,8 @@ describe('review service summary screen', () => {
           branchIds: ['maitama'],
           serviceMode: 'location',
           isBookable: true,
+          pricingMode: 'uniform',
+          branchPrices: {},
           tiers: [],
           galleryImages: [],
         }}
@@ -150,6 +152,8 @@ describe('service published status screen', () => {
           branchIds: ['wuse'],
           serviceMode: 'location',
           isBookable: true,
+          pricingMode: 'uniform',
+          branchPrices: {},
           tiers: [],
           galleryImages: [],
         }}

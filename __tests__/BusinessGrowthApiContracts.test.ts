@@ -1,3 +1,4 @@
+import { itemBranchPricingSchema } from '@api/catalogueApi';
 import {
   segmentsApi,
   promotionsApi,
@@ -189,5 +190,30 @@ describe('new business growth api contracts', () => {
       budgetTiers: [{ id: '10', amount: 10000, label: 'Starter' }],
     });
     expect(options.goals?.[0].id).toBe('claims');
+  });
+});
+
+describe('catalogue branch pricing contract', () => {
+  it('parses the backend branch-pricing payload (numeric strings included)', () => {
+    // Mirrors CatalogueBranchPricingService.getItemBranchPricing.
+    const pricing = itemBranchPricingSchema.parse({
+      itemId: 'svc-1',
+      pricingMode: 'per_branch',
+      basePrice: 15000,
+      baseCompareAtPrice: null,
+      branches: [
+        {
+          branchId: 'b1',
+          branchName: 'Wuse II',
+          isMainBranch: true,
+          isAvailable: true,
+          price: '18000.00',
+          compareAtPrice: null,
+          stockQuantity: null,
+          hasOverride: true,
+        },
+      ],
+    });
+    expect(pricing.branches[0].price).toBe(18000);
   });
 });

@@ -171,6 +171,8 @@ export function ServiceAvailabilityStep({ nav }: { nav: ServiceFlowNavigation })
     branchIds: value.branchIds,
     serviceMode: value.serviceMode,
     isBookable: value.isBookable,
+    pricingMode: value.pricingMode,
+    branchPrices: value.branchPrices,
     bookingRules: {
       ...useCatalogueDraftStore.getState().service.bookingRules,
       ...value.rules,
@@ -193,6 +195,8 @@ export function ServiceAvailabilityStep({ nav }: { nav: ServiceFlowNavigation })
       initialBranchIds={chosen.length ? chosen : undefined}
       basePrice={draft.basePrice ? `₦${draft.basePrice}` : undefined}
       initialRules={draft.bookingRules}
+      initialPricingMode={draft.pricingMode}
+      initialBranchPrices={draft.branchPrices}
       onNext={value => {
         setService(toDraft(value));
         nav.next('review');

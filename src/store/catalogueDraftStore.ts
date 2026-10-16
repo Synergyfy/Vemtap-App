@@ -81,6 +81,10 @@ export interface ServiceDraft {
   categoryName?: string;
   /** Priced tiers/add-ons on top of the base price. */
   tiers: ServiceTier[];
+  /** One price everywhere, or a price per branch (`branchPrices`). */
+  pricingMode: 'uniform' | 'per_branch';
+  /** Price per branch id (raw input) when `pricingMode` is `per_branch`. */
+  branchPrices: Record<string, string>;
   bookingRules?: ServiceBookingRules;
   publishedServiceId?: string;
 }
@@ -152,6 +156,8 @@ const emptyService: ServiceDraft = {
   isBookable: true,
   bookingMethod: 'vemtap',
   tiers: [],
+  pricingMode: 'uniform',
+  branchPrices: {},
 };
 
 const emptyDeal: DealDraft = {

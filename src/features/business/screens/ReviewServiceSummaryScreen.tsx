@@ -111,7 +111,13 @@ export function ReviewServiceSummaryScreen({
           .filter(branch => draft.branchIds.includes(branch.id))
           .map(branch => ({
             name: branch.name,
-            summary: reviewCopy.branchSummary(naira(draft.basePrice)),
+            summary: reviewCopy.branchSummary(
+              naira(
+                draft.pricingMode === 'per_branch'
+                  ? (draft.branchPrices[branch.id] ?? draft.basePrice)
+                  : draft.basePrice,
+              ),
+            ),
             badge: 'Active',
           }))
       : serviceBranches;

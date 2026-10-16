@@ -437,6 +437,45 @@ const catalogueItemFulfillmentModesSchema = z
   .array(z.enum(['pickup', 'delivery', 'dine_in']))
   .optional();
 
+/** One branch's row of `GET/PUT /catalogue/items/:id/branch-pricing`. */
+export const itemBranchPricingRowSchema = z.object({
+  branchId: z.string(),
+  branchName: z.string(),
+  isMainBranch: z.boolean(),
+  isAvailable: z.boolean(),
+  price: decimal(),
+  compareAtPrice: nullableDecimal(),
+  stockQuantity: z.number().nullish(),
+  hasOverride: z.boolean().optional(),
+});
+export type ItemBranchPricingRow = z.infer<typeof itemBranchPricingRowSchema>;
+
+export const itemBranchPricingSchema = z.object({
+  itemId: z.string(),
+  pricingMode: z.enum(['uniform', 'per_branch']),
+  basePrice: decimal(),
+  baseCompareAtPrice: nullableDecimal(),
+  branches: z.array(itemBranchPricingRowSchema),
+});
+export type ItemBranchPricing = z.infer<typeof itemBranchPricingSchema>;
+
+/** Which branches carry an item and, when priced per branch, at what price. */
+export const setItemBranchPricingInputSchema = z.object({
+  pricingMode: z.enum(['uniform', 'per_branch']),
+  branches: z
+    .array(
+      z.object({
+        branchId: z.string().uuid(),
+        isAvailable: z.boolean(),
+        price: z.number().min(0).nullish(),
+        compareAtPrice: z.number().min(0).nullish(),
+        stockQuantity: z.number().min(0).nullish(),
+      }),
+    )
+    .min(1),
+});
+export type SetItemBranchPricingInput = z.input<typeof setItemBranchPricingInputSchema>;
+
 export const createCatalogueItemInputSchema = z.object({
   name: z.string().min(1),
   price: z.number().min(0).optional(),
@@ -799,6 +838,33 @@ export const catalogueApi = {
    * Multi-branch creates are a create for the first branch plus one import per
    * remaining branch.
    */
+  async getItemBranchPricing(
+    itemId: string,
+    options: ApiRequestOptions = {},
+  ): Promise<ItemBranchPricing> {
+    return requestValidated<ItemBranchPricing>(
+      { method: 'GET', url: `/catalogue/items/${itemId}/branch-pricing`, ...options },
+      itemBranchPricingSchema,
+    );
+  },
+
+  /** Replace the item's branch availability and per-branch prices in one call. */
+  async setItemBranchPricing(
+    itemId: string,
+    input: SetItemBranchPricingInput,
+    options: ApiRequestOptions = {},
+  ): Promise<ItemBranchPricing> {
+    return requestValidated<ItemBranchPricing>(
+      {
+        method: 'PUT',
+        url: `/catalogue/items/${itemId}/branch-pricing`,
+        data: setItemBranchPricingInputSchema.parse(input),
+        ...options,
+      },
+      itemBranchPricingSchema,
+    );
+  },
+
   async importItemToBranch(
     itemId: string,
     targetBranchId: string,

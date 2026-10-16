@@ -6,6 +6,7 @@ import { BusinessSelectionChip } from '@features/business/components/BusinessPri
 import {
   ServiceChoiceCard,
   ServiceFlowFooter,
+  ServicePriceField,
   ServiceFlowPage,
   ServiceProgress,
   ServiceSection,
@@ -26,6 +27,9 @@ export type ServiceAvailabilityValue = {
   isBookable: boolean;
   /** Notice, horizon and capacity (the API's `bookingRules`). */
   rules: { leadMinutes: number; horizonDays: number; capacity: number };
+  pricingMode: 'uniform' | 'per_branch';
+  /** Price per selected branch (raw input) when priced per branch. */
+  branchPrices: Record<string, string>;
 };
 
 /** Lead-time choices → minutes of notice. */
@@ -58,6 +62,8 @@ export interface AddServiceAvailabilityRulesScreenProps {
   basePrice?: string;
   /** Saved notice/horizon/capacity when the owner comes back to this step. */
   initialRules?: Partial<ServiceAvailabilityValue['rules']>;
+  initialPricingMode?: ServiceAvailabilityValue['pricingMode'];
+  initialBranchPrices?: Record<string, string>;
 }
 
 const copy = strings.serviceFlow;
@@ -70,6 +76,8 @@ export function AddServiceAvailabilityRulesScreen({
   initialBranchIds,
   basePrice,
   initialRules,
+  initialPricingMode,
+  initialBranchPrices,
 }: AddServiceAvailabilityRulesScreenProps) {
   const live = branches !== undefined;
   const outlets = branches ?? serviceBranches;
@@ -77,7 +85,19 @@ export function AddServiceAvailabilityRulesScreen({
     () => new Set<string>(initialBranchIds ?? outlets.map(branch => branch.id)),
   );
   const [deselectMode, setDeselectMode] = useState(false);
-  const [pricingMode, setPricingMode] = useState('universal');
+  const [pricingMode, setPricingMode] = useState(
+    initialPricingMode === 'per_branch' ? 'tiered' : 'universal',
+  );
+  const [branchPrices, setBranchPrices] = useState<Record<string, string>>(
+    initialBranchPrices ?? {},
+  );
+  const tiered = live && pricingMode === 'tiered';
+  // A branch with no price of its own starts from the base price.
+  const priceFor = (branchId: string) =>
+    branchPrices[branchId] ?? (basePrice ?? '').replace(/[^0-9.,]/g, '');
+  const missingPrice =
+    tiered &&
+    [...selectedOutlets].some(id => !(Number(priceFor(id).replace(/[^0-9.]/g, '')) > 0));
   const [leadTime, setLeadTime] = useState(
     keyFor(LEAD_MINUTES, initialRules?.leadMinutes) ?? 'same-day',
   );
@@ -95,6 +115,10 @@ export function AddServiceAvailabilityRulesScreen({
       horizonDays: HORIZON_DAYS[horizon] ?? 30,
       capacity,
     },
+    pricingMode: tiered ? 'per_branch' : 'uniform',
+    branchPrices: tiered
+      ? Object.fromEntries([...selectedOutlets].map(id => [id, priceFor(id)]))
+      : {},
   };
 
   const toggleOutlet = (id: string) => {
@@ -122,7 +146,7 @@ export function AddServiceAvailabilityRulesScreen({
       footer={
         <ServiceFlowFooter
           primaryLabel="Review & Publish"
-          primaryDisabled={live && selectedOutlets.size === 0}
+          primaryDisabled={live && (selectedOutlets.size === 0 || missingPrice)}
           onPrimary={() => onNext?.(currentValue)}
           backLabel="Back"
           onBack={onBack}
@@ -216,6 +240,16 @@ export function AddServiceAvailabilityRulesScreen({
                       ) : null}
                     </View>
                   </View>
+                  {tiered && selected ? (
+                    <ServicePriceField
+                      label={copy.branchPriceLabel}
+                      value={priceFor(branch.id)}
+                      onChangeText={value =>
+                        setBranchPrices(current => ({ ...current, [branch.id]: value }))
+                      }
+                      trailingLabel="NGN"
+                    />
+                  ) : null}
                   {live ? null : (
                     <View className="flex-row justify-end pt-1">
                       <Pressable
@@ -291,6 +325,15 @@ export function AddServiceAvailabilityRulesScreen({
               selectedTone="surface"
             />
           </View>
+          {missingPrice ? (
+            <VemtapText
+              variant="caption"
+              className="text-error"
+              accessibilityRole="alert"
+            >
+              {copy.branchPriceMissing}
+            </VemtapText>
+          ) : null}
         </View>
 
         <View className="gap-4">

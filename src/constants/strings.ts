@@ -8530,6 +8530,8 @@ export const strings = {
     noBranches: 'Add a branch first, then offer this service there.',
     pickBranch: 'Select at least one branch.',
     universalPrice: (price: string) => `Uniform ${price} across every selected branch.`,
+    branchPriceLabel: 'Price at this branch',
+    branchPriceMissing: 'Set a price for every selected branch.',
     universalPriceUnset: 'One price across every selected branch.',
     coverAlt: 'Service cover photo',
     noPhotoYet: 'Add a cover photo',

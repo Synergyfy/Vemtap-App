@@ -155,6 +155,8 @@ describe('serviceDraftToCreateInput', () => {
         serviceMode: 'in-salon',
         isBookable: true,
         tiers: [],
+        pricingMode: 'uniform',
+        branchPrices: {},
         bookingMethod: 'vemtap',
       },
       branchId,
