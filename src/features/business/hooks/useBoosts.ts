@@ -87,10 +87,12 @@ export function useSaveBoostDraft(branchId?: string) {
 export function useLaunchBoost(branchId?: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async () => {
+    mutationFn: async (input: { useSavedCard?: boolean } = {}) => {
       const { draft } = useBoostDraftStore.getState();
       const saved = await persistBoost(draft, branchId);
-      return launchWithCheckout('boost', saved.id, draft.funding);
+      return launchWithCheckout('boost', saved.id, draft.funding, {
+        useSavedCard: input.useSavedCard,
+      });
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: boostKeys });

@@ -8069,6 +8069,12 @@ export const strings = {
       liveAutoDebitBody:
         'Opens a secure Paystack checkout for whatever your wallet cannot cover.',
       liveTopUpRequired: 'Turn on card payment or top up your ad wallet to launch.',
+      liveSavedCardBody: (card: string) =>
+        `Charge ${card} for whatever your wallet cannot cover. No checkout.`,
+      liveSavedCardBadge: 'Paystack Secured',
+      liveSaveCard: 'Save this card for future payments',
+      liveSaveCardBody:
+        'Pay in one tap next time. Remove it any time from the Boost Wallet.',
       liveReach: 'Reach',
       liveClaims: 'Claims',
       back: 'Previous Step',
@@ -8750,6 +8756,8 @@ export const strings = {
       cardChip: 'Card',
       cardBody:
         'Pays any amount your wallet cannot cover through a secure Paystack checkout.',
+      savedCardBody:
+        'Charges your saved card for whatever your wallet cannot cover. No checkout.',
       termsSuffix: (amount: string) =>
         `The boost automatically pauses when the ${amount} budget is used up, with no hidden overages.`,
       cta: (amount: string) => `Launch Boost Campaign (${amount})`,

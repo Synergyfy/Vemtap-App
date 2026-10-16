@@ -278,6 +278,125 @@ describe('campaign review (live)', () => {
   });
 });
 
+describe('campaign and boost launch with the saved card (live)', () => {
+  const visa = { brand: 'visa', last4: '4242', expMonth: '08', expYear: '2027' };
+
+  it('charges the campaign shortfall to the saved card without a browser', async () => {
+    jest.spyOn(adWalletApi, 'getWallet').mockResolvedValue({
+      walletRef: 'VEM-WAL-ABC123',
+      balance: 5_000,
+      reserved: 0,
+      spendable: 5_000,
+      card: visa,
+    });
+    jest.spyOn(promotionsApi, 'list').mockResolvedValue({
+      data: [],
+      total: 0,
+      page: 1,
+      limit: 50,
+      hasNextPage: false,
+    });
+    jest.spyOn(promotionsApi, 'create').mockResolvedValue(savedPromotion);
+    const launch = jest
+      .spyOn(promotionsApi, 'launch')
+      .mockResolvedValue({ ...savedPromotion, status: 'Active' });
+    jest.mocked(WebBrowser.openAuthSessionAsync).mockClear();
+    useCampaignDraftStore.getState().update({
+      objectiveId: 'deal',
+      assets: [{ type: 'deal', id: 'd1', title: 'Lunch Combo' }],
+      branchIds: [BRANCH_ID],
+      funding: 'card',
+      saveCard: true,
+    });
+    await renderRoutes('CampaignReviewLaunch');
+
+    // The split shows the saved card, not "Card (Paystack)".
+    expect(screen.getByText('Visa •• 4242')).toBeTruthy();
+    await act(async () => {
+      fireEvent.press(
+        screen.getByLabelText(
+          strings.campaignWizard.launchCta.replace('{amount}', '₦35,000'),
+        ),
+      );
+      await settle(50);
+    });
+    expect(launch).toHaveBeenCalledWith(savedPromotion.id, {
+      fundingSource: 'card',
+      callbackUrl: 'vemtap://payments/return',
+      useSavedCard: true,
+    });
+    expect(WebBrowser.openAuthSessionAsync).not.toHaveBeenCalled();
+  });
+
+  it('asks the checkout to save the card when there is none and the owner agreed', async () => {
+    jest.spyOn(promotionsApi, 'list').mockResolvedValue({
+      data: [],
+      total: 0,
+      page: 1,
+      limit: 50,
+      hasNextPage: false,
+    });
+    jest.spyOn(promotionsApi, 'create').mockResolvedValue(savedPromotion);
+    const launch = jest
+      .spyOn(promotionsApi, 'launch')
+      .mockResolvedValue({ ...savedPromotion, status: 'Active' });
+    useCampaignDraftStore.getState().update({
+      objectiveId: 'deal',
+      assets: [{ type: 'deal', id: 'd1', title: 'Lunch Combo' }],
+      branchIds: [BRANCH_ID],
+      funding: 'card',
+      saveCard: true,
+    });
+    await renderRoutes('CampaignReviewLaunch');
+    await act(async () => {
+      fireEvent.press(
+        screen.getByLabelText(
+          strings.campaignWizard.launchCta.replace('{amount}', '₦35,000'),
+        ),
+      );
+      await settle(50);
+    });
+    expect(launch).toHaveBeenCalledWith(savedPromotion.id, {
+      fundingSource: 'card',
+      callbackUrl: 'vemtap://payments/return',
+      saveCard: true,
+    });
+  });
+
+  it('shows the saved card as the boost card method and launches with it', async () => {
+    jest.spyOn(adWalletApi, 'getWallet').mockResolvedValue({
+      walletRef: 'VEM-WAL-ABC123',
+      balance: 0,
+      reserved: 0,
+      spendable: 0,
+      card: visa,
+    });
+    const created = { ...savedPromotion, id: '9c1e2f3a-4b5c-4d6e-8f70-112233445566' };
+    jest.spyOn(boostsApi, 'create').mockResolvedValue(created);
+    const launch = jest
+      .spyOn(boostsApi, 'launch')
+      .mockResolvedValue({ ...created, status: 'Active' });
+    useBoostDraftStore.getState().update({
+      asset: { type: 'deal', id: 'd1', title: 'Jollof Combo', price: 4000 },
+      budget: 10_000,
+      funding: 'card',
+    });
+    await renderRoutes('BoostPreviewPayment');
+
+    expect(screen.getAllByText('Visa •• 4242').length).toBeGreaterThan(0);
+    expect(screen.getByText(strings.boostWizard.live.savedCardBody)).toBeTruthy();
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText('Launch Boost Campaign (₦10,000)'));
+      await settle(50);
+    });
+    expect(launch).toHaveBeenCalledWith(created.id, {
+      fundingSource: 'card',
+      callbackUrl: 'vemtap://payments/return',
+      useSavedCard: true,
+    });
+  });
+});
+
 describe('campaigns hub (live)', () => {
   it('lists live campaigns and pauses one through the API', async () => {
     jest.spyOn(promotionsApi, 'list').mockResolvedValue({

@@ -170,6 +170,7 @@ const draft: CampaignDraft = {
   budgetMode: 'total',
   total: 35_000,
   funding: 'wallet',
+  saveCard: false,
 };
 
 describe('campaign draft mapping', () => {

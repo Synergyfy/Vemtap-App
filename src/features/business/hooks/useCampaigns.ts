@@ -112,11 +112,18 @@ export async function launchWithCheckout(
   kind: SponsoredKind,
   id: string,
   funding: 'wallet' | 'card',
+  /**
+   * Card funding: `useSavedCard` charges the saved card for the shortfall (no
+   * browser); `saveCard` keeps the checkout's card.
+   */
+  card: { useSavedCard?: boolean; saveCard?: boolean } = {},
 ): Promise<{ promotion: Promotion; outcome: CampaignLaunchOutcome }> {
   const api = sponsoredApi(kind);
   const launched = await api.launch(id, {
     fundingSource: funding,
     callbackUrl: PAYMENT_RETURN_URL,
+    ...(funding === 'card' && card.useSavedCard && { useSavedCard: true }),
+    ...(funding === 'card' && !card.useSavedCard && card.saveCard && { saveCard: true }),
   });
 
   const { checkout } = launched;
@@ -148,10 +155,13 @@ export async function launchWithCheckout(
 export function useLaunchCampaign() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async () => {
+    mutationFn: async (input: { useSavedCard?: boolean } = {}) => {
       const { draft } = useCampaignDraftStore.getState();
       const saved = await persistDraft(draft);
-      return launchWithCheckout('promotion', saved.id, draft.funding);
+      return launchWithCheckout('promotion', saved.id, draft.funding, {
+        useSavedCard: input.useSavedCard,
+        saveCard: draft.saveCard,
+      });
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: campaignKeys.all });

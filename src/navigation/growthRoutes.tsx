@@ -708,14 +708,17 @@ export function CampaignCreateBudgetRoute() {
         mode: draft.budgetMode,
         total: draft.total,
         funding: draft.funding,
+        saveCard: draft.saveCard,
       }}
       walletSpendable={wallet.data?.spendable ?? wallet.data?.balance}
+      savedCard={wallet.data?.card ? savedCardLabel(wallet.data.card, true) : undefined}
       tierForecasts={tierForecasts}
       onContinue={budget => {
         update({
           budgetMode: budget.mode === 'daily' ? 'daily' : 'total',
           total: budget.total,
           funding: budget.funding === 'card' ? 'card' : 'wallet',
+          saveCard: Boolean(budget.saveCard),
         });
         navigation.navigate('CampaignReviewLaunch');
       }}
@@ -784,7 +787,11 @@ export function CampaignReviewLaunchRoute() {
         formatCampaignNaira(Math.round(draft.total / Math.max(1, draft.durationDays))),
       )}
       walletLabel={formatCampaignNaira(fromWallet)}
-      cardLabel={wizardCopy.step6.liveCardLabel}
+      cardLabel={
+        wallet.data?.card
+          ? savedCardLabel(wallet.data.card, true)
+          : wizardCopy.step6.liveCardLabel
+      }
       cardAmountLabel={byCard > 0 ? formatCampaignNaira(byCard) : ''}
       forecast={
         forecast?.data
@@ -801,19 +808,22 @@ export function CampaignReviewLaunchRoute() {
           : undefined
       }
       onLaunch={() =>
-        launch.mutate(undefined, {
-          onSuccess: ({ outcome }) => {
-            const message = {
-              live: wizardCopy.liveLaunched,
-              scheduled: wizardCopy.liveScheduled,
-              'awaiting-payment': wizardCopy.liveAwaitingPayment,
-              cancelled: wizardCopy.livePaymentCancelled,
-            }[outcome];
-            showToast(message, outcome === 'cancelled' ? 'error' : 'success');
-            reset();
-            navigation.replace('CampaignsHub');
+        launch.mutate(
+          { useSavedCard: Boolean(wallet.data?.card) },
+          {
+            onSuccess: ({ outcome }) => {
+              const message = {
+                live: wizardCopy.liveLaunched,
+                scheduled: wizardCopy.liveScheduled,
+                'awaiting-payment': wizardCopy.liveAwaitingPayment,
+                cancelled: wizardCopy.livePaymentCancelled,
+              }[outcome];
+              showToast(message, outcome === 'cancelled' ? 'error' : 'success');
+              reset();
+              navigation.replace('CampaignsHub');
+            },
           },
-        })
+        )
       }
     />
   );
@@ -1267,8 +1277,15 @@ export function BoostPreviewPaymentRoute() {
         businessName: context.businessName,
         branchName: context.branchName,
         walletSpendable: wallet.data?.spendable,
+        savedCard: wallet.data?.card ? savedCardLabel(wallet.data.card, true) : undefined,
       }),
-    [draft, context.businessName, context.branchName, wallet.data?.spendable],
+    [
+      draft,
+      context.businessName,
+      context.branchName,
+      wallet.data?.spendable,
+      wallet.data?.card,
+    ],
   );
 
   return (
@@ -1291,19 +1308,22 @@ export function BoostPreviewPaymentRoute() {
       }
       onLaunch={method => {
         update({ funding: method === 'card' ? 'card' : 'wallet' });
-        launch.mutate(undefined, {
-          onSuccess: ({ promotion, outcome }) => {
-            const message = {
-              live: boostCopy.launched,
-              scheduled: boostCopy.scheduled,
-              'awaiting-payment': boostCopy.awaitingPayment,
-              cancelled: boostCopy.paymentCancelled,
-            }[outcome];
-            showToast(message, outcome === 'cancelled' ? 'error' : 'success');
-            reset();
-            navigation.replace('BoostPerformance', { kind: 'boost', id: promotion.id });
+        launch.mutate(
+          { useSavedCard: Boolean(wallet.data?.card) },
+          {
+            onSuccess: ({ promotion, outcome }) => {
+              const message = {
+                live: boostCopy.launched,
+                scheduled: boostCopy.scheduled,
+                'awaiting-payment': boostCopy.awaitingPayment,
+                cancelled: boostCopy.paymentCancelled,
+              }[outcome];
+              showToast(message, outcome === 'cancelled' ? 'error' : 'success');
+              reset();
+              navigation.replace('BoostPerformance', { kind: 'boost', id: promotion.id });
+            },
           },
-        });
+        );
       }}
     />
   );

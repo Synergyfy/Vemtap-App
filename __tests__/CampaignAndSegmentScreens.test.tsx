@@ -134,6 +134,45 @@ describe('create campaign — step 5 budget', () => {
     await fireEvent.press(screen.getByLabelText(copy.step5.tiers[0].name));
     expect(screen.getByText(copy.step5.fullyFunded)).toBeTruthy();
   });
+
+  it('live: pays the shortfall with the saved card in one tap', async () => {
+    const onContinue = jest.fn();
+    await render(
+      <CampaignStep5BudgetScreen
+        onBack={noop}
+        onContinue={onContinue}
+        live
+        walletSpendable={0}
+        savedCard="Visa •• 4242"
+      />,
+    );
+    expect(screen.getByText('Visa •• 4242')).toBeTruthy();
+    expect(screen.getByText(copy.step5.liveSavedCardBody('Visa •• 4242'))).toBeTruthy();
+    expect(screen.queryByText(copy.step5.liveSaveCard)).toBeNull();
+    await fireEvent.press(screen.getByLabelText(copy.reviewCta));
+    expect(onContinue).toHaveBeenCalledWith(
+      expect.not.objectContaining({ saveCard: expect.anything() }),
+    );
+    expect(onContinue.mock.calls[0][0].funding).toBe('card');
+  });
+
+  it('live: without a saved card, the checkout can save the card', async () => {
+    const onContinue = jest.fn();
+    await render(
+      <CampaignStep5BudgetScreen
+        onBack={noop}
+        onContinue={onContinue}
+        live
+        walletSpendable={0}
+      />,
+    );
+    expect(screen.queryByText(copy.step5.linkedCard)).toBeNull();
+    await fireEvent.press(screen.getByLabelText(copy.step5.liveSaveCard));
+    await fireEvent.press(screen.getByLabelText(copy.reviewCta));
+    expect(onContinue).toHaveBeenCalledWith(
+      expect.objectContaining({ funding: 'card', saveCard: true }),
+    );
+  });
 });
 
 describe('create campaign — step 6 review', () => {

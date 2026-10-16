@@ -269,6 +269,8 @@ export function boostDraftToPreviewView(
     businessName: string;
     branchName: string;
     walletSpendable?: number;
+    /** The saved card ("Visa •• 4242"), which pays the shortfall with no checkout. */
+    savedCard?: string;
     now?: Date;
   },
 ): BoostPreviewView {
@@ -377,7 +379,12 @@ export function boostDraftToPreviewView(
                 ),
         note: walletMethod.note,
       },
-      { id: 'card', title: live.cardTitle, chip: live.cardChip, body: live.cardBody },
+      {
+        id: 'card',
+        title: context.savedCard ?? live.cardTitle,
+        chip: live.cardChip,
+        body: context.savedCard ? live.savedCardBody : live.cardBody,
+      },
     ],
     termsSuffix: live.termsSuffix(total),
     cta: live.cta(total),

@@ -35,6 +35,8 @@ export interface CampaignDraft {
   /** Total budget (₦) for the whole run. */
   total: number;
   funding: 'wallet' | 'card';
+  /** Card checkout: keep the card for one-tap payments (owner consent). */
+  saveCard: boolean;
 }
 
 const initialDraft: CampaignDraft = {
@@ -53,6 +55,7 @@ const initialDraft: CampaignDraft = {
   budgetMode: 'total',
   total: 35_000,
   funding: 'wallet',
+  saveCard: false,
 };
 
 interface CampaignDraftState {

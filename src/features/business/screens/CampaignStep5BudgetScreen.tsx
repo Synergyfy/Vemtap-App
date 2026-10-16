@@ -11,7 +11,10 @@ import {
   SetupSectionHeading,
   ToggleRow,
 } from '@features/business/components/BusinessSetupPrimitives';
-import { BusinessNumberInput } from '@features/business/components/BusinessPrimitives';
+import {
+  BusinessCheckRow,
+  BusinessNumberInput,
+} from '@features/business/components/BusinessPrimitives';
 import {
   BusinessProgressMeter,
   BusinessScopeCard,
@@ -52,7 +55,9 @@ export interface CampaignStep5BudgetScreenProps {
   onSaveDraft?: () => void;
   initialDays?: number;
   /** Starting choices; the design's sample budget when absent. */
-  initialSelection?: Partial<Pick<CampaignBudgetSelection, 'mode' | 'total' | 'funding'>>;
+  initialSelection?: Partial<
+    Pick<CampaignBudgetSelection, 'mode' | 'total' | 'funding' | 'saveCard'>
+  >;
   /**
    * Live mode reads the wallet and the tier estimates from the API, and drops
    * the design's sample card, projections and testimonial.
@@ -60,6 +65,11 @@ export interface CampaignStep5BudgetScreenProps {
   live?: boolean;
   /** Spendable ad-wallet balance (₦); `undefined` while it loads. */
   walletSpendable?: number;
+  /**
+   * Live: the saved card ("Visa •• 4242"). With one, 1-tap funding charges it;
+   * without, card funding opens a checkout that can save the card.
+   */
+  savedCard?: string;
   /** Reach and claims estimate per tier id. */
   tierForecasts?: Partial<Record<string, { reach: string; claims: string }>>;
 }
@@ -70,6 +80,8 @@ export interface CampaignBudgetSelection {
   daily: number;
   /** `wallet`, or `card` to pay any shortfall by card (`split` in the design). */
   funding: string;
+  /** Live, no saved card: keep the checkout's card (owner consent). */
+  saveCard?: boolean;
 }
 
 /**
@@ -84,6 +96,7 @@ export function CampaignStep5BudgetScreen({
   initialSelection,
   live = false,
   walletSpendable,
+  savedCard,
   tierForecasts,
 }: CampaignStep5BudgetScreenProps) {
   const initialTotal = initialSelection?.total ?? tierAmounts.growth;
@@ -97,6 +110,7 @@ export function CampaignStep5BudgetScreen({
   const [autoDebit, setAutoDebit] = useState(
     initialSelection?.funding ? initialSelection.funding !== 'wallet' : true,
   );
+  const [saveCard, setSaveCard] = useState(Boolean(initialSelection?.saveCard));
 
   const days = initialDays;
   const customValue = Number(custom.replace(/[^0-9]/g, '')) || 0;
@@ -128,6 +142,7 @@ export function CampaignStep5BudgetScreen({
           total,
           daily,
           funding: autoDebit ? (live ? 'card' : 'split') : 'wallet',
+          ...(live && autoDebit && !savedCard && { saveCard }),
         })
       }
       disabled={blocked}
@@ -359,8 +374,14 @@ export function CampaignStep5BudgetScreen({
             </View>
           )}
           <ToggleRow
-            title={live ? step.liveAutoDebitTitle : step.autoDebitTitle}
-            body={live ? step.liveAutoDebitBody : step.autoDebitBody}
+            title={live && !savedCard ? step.liveAutoDebitTitle : step.autoDebitTitle}
+            body={
+              live
+                ? savedCard
+                  ? step.liveSavedCardBody(savedCard)
+                  : step.liveAutoDebitBody
+                : step.autoDebitBody
+            }
             value={autoDebit}
             onValueChange={setAutoDebit}
           />
@@ -373,18 +394,26 @@ export function CampaignStep5BudgetScreen({
               {step.liveTopUpRequired}
             </VemtapText>
           ) : null}
-          {live ? null : (
+          {live && autoDebit && !savedCard ? (
+            <BusinessCheckRow
+              title={step.liveSaveCard}
+              subtitle={step.liveSaveCardBody}
+              selected={saveCard}
+              onPress={() => setSaveCard(current => !current)}
+            />
+          ) : null}
+          {live && !savedCard ? null : (
             <View className="flex-row items-center justify-between gap-2">
               <View className="min-w-0 flex-1 flex-row items-center gap-1.5">
                 <Icon name="creditCard" size={14} color={colors.textSecondary} />
                 <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-                  {step.linkedCard}
+                  {savedCard ?? step.linkedCard}
                 </VemtapText>
               </View>
               <View className="shrink-0 flex-row items-center gap-1">
                 <Icon name="lock" size={12} color={colors.success} />
                 <VemtapText variant="micro" className="text-success" numberOfLines={1}>
-                  {step.linkedCardBadge}
+                  {live ? step.liveSavedCardBadge : step.linkedCardBadge}
                 </VemtapText>
               </View>
             </View>
