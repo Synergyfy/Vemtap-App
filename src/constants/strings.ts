@@ -7605,6 +7605,11 @@ export const strings = {
       audienceNearby: (radiusKm: number) => `Nearby customers (${radiusKm} km radius)`,
       audienceSegments: (count: number, radiusKm: number) =>
         `${count} ${count === 1 ? 'segment' : 'segments'} within ${radiusKm} km`,
+      /** A run targeting districts in place of the radius. */
+      audienceDistricts: (districts: number) =>
+        `Customers in ${districts} ${districts === 1 ? 'district' : 'districts'}`,
+      audienceSegmentsInDistricts: (count: number, districts: number) =>
+        `${count} ${count === 1 ? 'segment' : 'segments'} in ${districts} ${districts === 1 ? 'district' : 'districts'}`,
       resumeCta: 'Resume Campaign',
       continueCta: 'Continue Setup',
       stats: {
@@ -8493,6 +8498,10 @@ export const strings = {
         location: 'Visited a branch',
         spend: 'High average ticket',
         recency: 'Lapsed visitors',
+        saved: 'Saved a deal, not redeemed',
+        district: 'Lives in a district',
+        interacted: 'Recent QR scan or chat',
+        loyalty: 'Unspent loyalty points',
         everyone: 'Every customer you have served',
       },
       details: {
@@ -8526,6 +8535,12 @@ export const strings = {
           'Counted from POS sales, orders, visits and deal claims at your business.',
         noOptions: 'Nothing to pick yet',
         saveFailed: 'Could not save the segment. Please try again.',
+        /**
+         * Live wording for criteria whose design text describes data VEMTAP
+         * does not hold (customers give no delivery address).
+         */
+        districtLabel: 'District',
+        districtBody: 'The area customers chose when browsing VEMTAP',
       },
     },
   },
@@ -8735,6 +8750,11 @@ export const strings = {
       lunchOnly: 'Lunch Rush (11:30 AM \u2013 3:30 PM)',
       allDay: 'All day',
       radiusValue: (km: number, branch: string) => `${km} km around ${branch}`,
+      /** Districts or clusters picked under an area scope, in place of the radius. */
+      areasValue: (names: readonly string[]) => names.join(' \u2022 '),
+      pickDistricts: 'Choose the districts this boost shows in.',
+      pickClusters: 'Choose the clusters this boost shows in.',
+      pickAreaFirst: 'Choose at least one area first.',
       totalPace: (amount: string) => `${amount}/day`,
       walletBody: (balance: string, after: string) =>
         `Balance: ${balance} \u2022 After boost: ${after}`,
@@ -9133,6 +9153,10 @@ export const strings = {
         loadFailed: 'Could not load this campaign.',
         actionFailed: 'Could not update the campaign. Please try again.',
         ended: 'Campaign ended. Unspent budget is back in your wallet.',
+        /** The design's "Add ₦10,000 Budget • Extend 2 Days", with the run's numbers. */
+        addBudget: (amount: string, days: number) =>
+          `Add ${amount} Budget \u2022 Extend ${days} ${days === 1 ? 'Day' : 'Days'}`,
+        budgetAdded: (amount: string) => `${amount} added. The run now ends later.`,
       },
     },
     preview: {

@@ -227,6 +227,44 @@ describe('boost engine', () => {
   });
 });
 
+describe('boost engine live audiences', () => {
+  const copy = strings.boostEngine;
+  const live = {
+    metrics: [],
+    asset: { name: 'Jollof Combo', badge: 'Deal' },
+    radiusReach: {},
+    tierClaims: {},
+    preview: { name: 'Jollof Combo', branch: 'Wuse', distance: '0.4 km' },
+  };
+  const audienceLabel = (title: string) => `${copy.audienceTitle}: ${title}`;
+  const [regulars, competitors, walkins] = boostAudiences;
+
+  it('offers past customers and walk-ins, never competitor claimers', async () => {
+    const view = await render(<BoostEngineScreen live={live} />);
+    expect(view.getByText(regulars.title)).toBeTruthy();
+    expect(view.getByText(walkins.title)).toBeTruthy();
+    expect(view.queryByText(competitors.title)).toBeNull();
+  });
+
+  it('starts with everyone nearby, and a second tap clears the audience', async () => {
+    const onLaunch = jest.fn();
+    const view = await render(<BoostEngineScreen live={live} onLaunch={onLaunch} />);
+    const launch = () =>
+      pressAndSettle(view, copy.launchCta.replace('{amount}', '₦35,000'));
+
+    await launch();
+    expect(onLaunch.mock.calls[0][1].audience).toBe('');
+
+    await pressAndSettle(view, audienceLabel(walkins.title));
+    await launch();
+    expect(onLaunch.mock.calls[1][1].audience).toBe('walkins');
+
+    await pressAndSettle(view, audienceLabel(walkins.title));
+    await launch();
+    expect(onLaunch.mock.calls[2][1].audience).toBe('');
+  });
+});
+
 describe('business master QR', () => {
   const copy = strings.businessQr;
 

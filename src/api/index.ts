@@ -21,3 +21,4 @@ export * from './promotionsApi';
 export * from './boostsApi';
 export * from './sponsoredApi';
 export * from './adWalletApi';
+export * from './districtsApi';

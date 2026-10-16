@@ -33,9 +33,11 @@ export interface CampaignStep3AudienceScreenProps {
   branchOptions?: readonly { id: string; name: string; address: string }[];
   /** The business's saved segments, offered beside the built-in cohorts. */
   segmentOptions?: readonly { id: string; name: string; size: number }[];
+  /** Live districts for "Target District Clusters"; selection reports their ids. */
+  districtOptions?: readonly { id: string; name: string }[];
   /**
-   * Live mode drops what has no live source: district clusters, the sample
-   * reach forecast and the sample cohort sizes.
+   * Live mode drops what has no live source: the sample reach forecast and
+   * the sample cohort sizes (and the district chips until districts load).
    */
   live?: boolean;
 }
@@ -46,6 +48,7 @@ export interface CampaignAudienceSelection {
   /** Saved segment ids (from `/segments`). */
   segmentIds: string[];
   branches: string[];
+  /** Sample: cluster names. Live: district ids; empty = the radius applies. */
   clusters: string[];
   radius: string;
 }
@@ -61,8 +64,12 @@ export function CampaignStep3AudienceScreen({
   initialSelection,
   branchOptions,
   segmentOptions = [],
+  districtOptions = [],
   live = false,
 }: CampaignStep3AudienceScreenProps) {
+  const clusterChips = live
+    ? districtOptions.map(district => ({ id: district.id, label: district.name }))
+    : step.clusters.map(cluster => ({ id: cluster, label: cluster }));
   const outlets = branchOptions ?? step.branches;
   const [strategy, setStrategy] = useState<string>(
     initialSelection?.strategy ?? step.strategies[1].id,
@@ -81,7 +88,8 @@ export function CampaignStep3AudienceScreen({
     initialSelection?.branches ?? [step.branches[0].id, step.branches[1].id],
   );
   const [clusters, setClusters] = useState<string[]>(
-    initialSelection?.clusters ?? [step.clusters[0], step.clusters[1], step.clusters[2]],
+    initialSelection?.clusters ??
+      (live ? [] : [step.clusters[0], step.clusters[1], step.clusters[2]]),
   );
   const [radius, setRadius] = useState<string>(
     initialSelection?.radius ?? step.radii[1].id,
@@ -104,7 +112,9 @@ export function CampaignStep3AudienceScreen({
           cohorts,
           segmentIds,
           branches,
-          clusters: live ? [] : clusters,
+          clusters: live
+            ? clusters.filter(id => districtOptions.some(district => district.id === id))
+            : clusters,
           radius,
         })
       }
@@ -261,7 +271,7 @@ export function CampaignStep3AudienceScreen({
             onPress={() => toggle(branches, setBranches, branch.id)}
           />
         ))}
-        {live ? null : (
+        {clusterChips.length ? (
           <>
             <VemtapText
               variant="labelSm"
@@ -270,18 +280,18 @@ export function CampaignStep3AudienceScreen({
               {step.clustersTitle}
             </VemtapText>
             <HorizontallyScrollableRow>
-              {step.clusters.map(cluster => (
+              {clusterChips.map(cluster => (
                 <BusinessSelectionChip
-                  key={cluster}
-                  label={cluster}
+                  key={cluster.id}
+                  label={cluster.label}
                   showCheck
-                  selected={clusters.includes(cluster)}
-                  onPress={() => toggle(clusters, setClusters, cluster)}
+                  selected={clusters.includes(cluster.id)}
+                  onPress={() => toggle(clusters, setClusters, cluster.id)}
                 />
               ))}
             </HorizontallyScrollableRow>
           </>
-        )}
+        ) : null}
       </View>
 
       <View className="gap-3">

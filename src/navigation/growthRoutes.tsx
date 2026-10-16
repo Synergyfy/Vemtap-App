@@ -33,6 +33,8 @@ import {
   useSponsoredCampaign,
   useSponsoredCampaigns,
   useSponsoredStats,
+  useSponsoredOptions,
+  useAddSponsoredBudget,
   useTogglePromotion,
   useExportCampaignLedger,
 } from '@features/business/hooks/useCampaigns';
@@ -238,6 +240,12 @@ export function CreateCustomSegmentRoute() {
       }}
       criterionIds={LIVE_SEGMENT_CRITERIA}
       pickerOptions={pickerOptions}
+      criterionOverrides={{
+        district: {
+          body: segmentCopy.live.builder.districtBody,
+          pickerLabel: segmentCopy.live.builder.districtLabel,
+        },
+      }}
       sizing={
         preview.data
           ? {
@@ -584,6 +592,7 @@ export function CampaignCreateAudienceRoute() {
   const navigation = useBusinessNavigation();
   const branches = useBusinessBranches();
   const segments = useSegments();
+  const options = useSponsoredOptions('promotion');
   const draft = useCampaignDraftStore(state => state.draft);
   const update = useCampaignDraftStore(state => state.update);
   const saveDraft = useSaveDraftAndExit();
@@ -614,10 +623,12 @@ export function CampaignCreateAudienceRoute() {
         name: segment.name,
         size: segment.size ?? 0,
       }))}
+      districtOptions={options.data?.districts ?? []}
       initialSelection={{
         strategy: draft.strategy,
         cohorts: draft.cohorts,
         segmentIds: draft.segmentIds,
+        clusters: draft.districtIds,
         branches: draft.branchIds.length
           ? draft.branchIds
           : outlets.map(outlet => outlet.id),
@@ -629,6 +640,7 @@ export function CampaignCreateAudienceRoute() {
           cohorts: selection.cohorts,
           segmentIds: selection.segmentIds,
           branchIds: selection.branches,
+          districtIds: selection.clusters,
           radiusKm: Number(selection.radius) || 3,
         });
         navigation.navigate('CampaignCreateSchedule');
@@ -845,6 +857,8 @@ export function BoostPerformanceRoute() {
   const record = useSponsoredCampaign(kind, id);
   const stats = useSponsoredStats(kind, id);
   const action = useSponsoredAction(kind);
+  const addBudget = useAddSponsoredBudget(kind);
+  const wallet = useAdWallet();
 
   const performance = useMemo(
     () =>
@@ -868,6 +882,24 @@ export function BoostPerformanceRoute() {
     );
   };
 
+  const topUp = () => {
+    const amount = performance?.addBudgetAmount;
+    if (!id || !amount) return;
+    addBudget.mutate(
+      // A shortfall goes on the saved card when there is one; else the API
+      // says how much to top up.
+      { id, amount, useSavedCard: Boolean(wallet.data?.card) },
+      {
+        onSuccess: () =>
+          showToast(
+            perfCopy.budgetAdded(`\u20a6${amount.toLocaleString('en-NG')}`),
+            'success',
+          ),
+        onError: error => showToast(messageOf(error, perfCopy.actionFailed), 'error'),
+      },
+    );
+  };
+
   const noneYet = !route.params?.id && latest.isSuccess && !id;
   const loading =
     (!route.params?.id && latest.isLoading) || record.isLoading || stats.isLoading;
@@ -880,9 +912,10 @@ export function BoostPerformanceRoute() {
       onPause={() => run('pause')}
       onResume={() => run('resume')}
       onEndCampaign={() => run('end')}
+      onAddBudget={topUp}
       onOpenWallet={() => navigation.navigate('BoostWallet')}
       performance={performance}
-      busy={action.isPending}
+      busy={action.isPending || addBudget.isPending}
       isLoading={loading}
       error={
         noneYet
@@ -1077,6 +1110,7 @@ export function BoostEngineRoute() {
           update({
             boostId: undefined,
             asset,
+            audienceType: chosen.audience || undefined,
             radiusKm: chosen.radiusKm,
             durationDays: chosen.days,
             budget: chosen.total,
@@ -1111,6 +1145,10 @@ export function BoostGoalAudienceRoute() {
   const update = useBoostDraftStore(state => state.update);
   const [picking, setPicking] = useState(false);
   const [radiusKm, setRadiusKm] = useState(draft.radiusKm);
+  const options = useSponsoredOptions('boost');
+  const districts = options.data?.districts ?? [];
+  const clusters = options.data?.clusters ?? [];
+  const [pickedAreas, setPickedAreas] = useState(draft.areas);
   const [forecast] = useBoostForecasts([
     { budget: draft.budget, durationDays: draft.durationDays, radiusKm },
   ]);
@@ -1133,8 +1171,16 @@ export function BoostGoalAudienceRoute() {
           audienceScope: goalCopy.audienceScopes[scopeIndex],
           radiusKm: String(draft.radiusKm),
           placements: draft.placements,
+          clusterIds: draft.areas.map(area => area.id),
         }}
-        onSelectionChange={selection => setRadiusKm(Number(selection.radiusKm) || 3)}
+        onSelectionChange={selection => {
+          setRadiusKm(Number(selection.radiusKm) || 3);
+          setPickedAreas(
+            [...districts, ...clusters].filter(area =>
+              selection.clusterIds.includes(area.id),
+            ),
+          );
+        }}
         live={{
           asset: asset
             ? {
@@ -1146,7 +1192,10 @@ export function BoostGoalAudienceRoute() {
                   : boostCopy.noClaimsYet,
               }
             : null,
-          geofencePlace: boostCopy.geofencePlace(context.branchName, radiusKm),
+          geofencePlace: pickedAreas.length
+            ? boostCopy.areasValue(pickedAreas.map(area => area.name))
+            : boostCopy.geofencePlace(context.branchName, radiusKm),
+          areas: { districts, clusters },
           reach: forecast?.data
             ? {
                 value: reach!.reach,
@@ -1172,10 +1221,17 @@ export function BoostGoalAudienceRoute() {
           const index = goalCopy.audienceScopes.indexOf(
             selection.audienceScope as (typeof goalCopy.audienceScopes)[number],
           );
+          const audienceScope = BOOST_AUDIENCE_SCOPE_IDS[Math.max(0, index)];
           update({
             asset,
             goalId: selection.goalId,
-            audienceScope: BOOST_AUDIENCE_SCOPE_IDS[Math.max(0, index)],
+            audienceScope,
+            areas:
+              audienceScope === 'nearby'
+                ? []
+                : [...districts, ...clusters]
+                    .filter(area => selection.clusterIds.includes(area.id))
+                    .map(area => ({ id: area.id, name: area.name })),
             radiusKm: Number(selection.radiusKm) || 3,
             placements: selection.placements,
           });

@@ -17,6 +17,11 @@ import {
   sponsoredCampaignOptionsSchema,
   sponsoredApi,
   sponsoredOffersSchema,
+  districtsApi,
+  targetAreaSchema,
+  segmentCriteriaSchema,
+  segmentCriteriaOptionsSchema,
+  promotionAudienceSchema,
 } from '../src/api';
 import offersFeed from './fixtures/offers-feed.json';
 
@@ -256,6 +261,74 @@ describe('sponsored delivery and run comparison contract', () => {
     });
     expect(older.previous).toBeNull();
     expect(older.rhythm[0].views).toBeUndefined();
+  });
+});
+
+describe('district targeting, audiences and add budget contract', () => {
+  // `GET /clusters/districts` and promotions' `TargetArea` (numeric coords).
+  const wuse = {
+    id: 'd-wuse',
+    name: 'Wuse 2',
+    latitude: 9.087,
+    longitude: 7.4805,
+    radiusMeters: 2500,
+  };
+  const options = {
+    radiusKm: [1, 3, 5, 10],
+    placements: [{ id: 'home', label: 'Consumer Home Spotlight' }],
+    daypartWindows: [],
+    durationsDays: [3, 7],
+    budgetModes: ['total', 'daily'],
+    minBudget: 2000,
+    budgetTiers: [],
+  };
+
+  it('reads districts, business clusters and boost audience types', () => {
+    expect(targetAreaSchema.parse(wuse)).toEqual(wuse);
+    const parsed = sponsoredCampaignOptionsSchema.parse({
+      ...options,
+      districts: [wuse],
+      clusters: [{ ...wuse, id: 'cl-banex', name: 'Banex Plaza', radiusMeters: 500 }],
+      audienceTypes: [
+        { id: 'regulars', label: 'Past Customers & Regulars' },
+        { id: 'walkins', label: 'New Walk-ins in 1km Radius' },
+      ],
+    });
+    expect(parsed.districts?.[0].name).toBe('Wuse 2');
+    expect(parsed.clusters?.[0].id).toBe('cl-banex');
+    expect(parsed.audienceTypes?.map(type => type.id)).toEqual(['regulars', 'walkins']);
+    // Older servers send none of them.
+    expect(sponsoredCampaignOptionsSchema.parse(options).districts).toBeUndefined();
+    expect(typeof districtsApi.list).toBe('function');
+  });
+
+  it('carries areas and the audience type on a run, and can add budget', () => {
+    expect(
+      promotionAudienceSchema.parse({
+        strategy: 'districts',
+        clusterIds: ['d-wuse'],
+        audienceType: 'walkins',
+      }),
+    ).toEqual({ strategy: 'districts', clusterIds: ['d-wuse'], audienceType: 'walkins' });
+    expect(typeof boostsApi.addBudget).toBe('function');
+    expect(typeof promotionsApi.addBudget).toBe('function');
+  });
+
+  it('sends the four new segment criteria and reads district options', () => {
+    const criteria = {
+      location: { homeDistrictIds: ['d-wuse'] },
+      deals: { savedNotRedeemed: true },
+      recency: { interactedWithinDays: 14 },
+      loyalty: { minPoints: 500 },
+    };
+    expect(segmentCriteriaSchema.parse(criteria)).toEqual(criteria);
+    const parsed = segmentCriteriaOptionsSchema.parse({
+      deals: [],
+      menuItems: [],
+      branches: [],
+      districts: [{ id: 'd-wuse', name: 'Wuse 2' }],
+    });
+    expect(parsed.districts).toEqual([{ id: 'd-wuse', name: 'Wuse 2' }]);
   });
 });
 

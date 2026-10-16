@@ -256,6 +256,35 @@ export function useSponsoredStats(kind: SponsoredKind, id: string | undefined) {
   });
 }
 
+/** Wizard choices: districts, the business's clusters, audience types. */
+export function useSponsoredOptions(kind: SponsoredKind) {
+  return useQuery({
+    queryKey: [...sponsoredKeys(kind), 'options'],
+    queryFn: () => sponsoredApi(kind).options(),
+    staleTime: 10 * 60_000,
+  });
+}
+
+/** Add budget to a live run; its end date moves out at the same daily spend. */
+export function useAddSponsoredBudget(kind: SponsoredKind) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      amount,
+      useSavedCard,
+    }: {
+      id: string;
+      amount: number;
+      useSavedCard?: boolean;
+    }) => sponsoredApi(kind).addBudget(id, { amount, useSavedCard }),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: sponsoredKeys(kind) });
+      queryClient.invalidateQueries({ queryKey: campaignKeys.wallet });
+    },
+  });
+}
+
 /** Pause, resume or end a launched boost or campaign. */
 export function useSponsoredAction(kind: SponsoredKind) {
   const queryClient = useQueryClient();

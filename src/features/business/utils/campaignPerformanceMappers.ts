@@ -68,6 +68,9 @@ export interface PerformanceView {
   }[];
   /** Live actions the campaign's status allows. */
   canAddBudget: boolean;
+  /** Live: the ₦ amount the Add Budget button adds, and its label. */
+  addBudgetAmount?: number;
+  addBudgetLabel?: string;
   canPause: boolean;
   canResume: boolean;
   canEnd: boolean;
@@ -114,6 +117,33 @@ export const prototypePerformanceView: PerformanceView = {
   canEnd: true,
   endLabel: perf.endCta,
 };
+
+/** Add Budget extends the run by this many days at its current daily spend. */
+export const ADD_BUDGET_DAYS = 2;
+/** The API's smallest budget (`MIN_CAMPAIGN_BUDGET`). */
+const MIN_ADD_BUDGET = 2_000;
+/** The API's longest run (`MAX_RUN_DAYS`). */
+const MAX_RUN_DAYS = 90;
+
+/**
+ * What "Add Budget" adds: two more days at the run's current daily spend
+ * (the API moves the end date out by amount ÷ daily spend). Undefined when
+ * the run has no dates or budget, or the extra days would pass 90 days.
+ */
+export function budgetTopUp(
+  promotion: Pick<Promotion, 'budget' | 'startDate' | 'endDate'>,
+): { amount: number; days: number } | undefined {
+  if (!promotion.startDate || !promotion.endDate) return undefined;
+  const runDays =
+    (Date.parse(promotion.endDate) - Date.parse(promotion.startDate)) / DAY_MS;
+  const budget = Number(promotion.budget) || 0;
+  if (!(runDays > 0) || budget <= 0) return undefined;
+  const daily = budget / runDays;
+  const amount = Math.max(MIN_ADD_BUDGET, Math.round(daily * ADD_BUDGET_DAYS));
+  const days = Math.max(1, Math.round(amount / daily));
+  if (runDays + amount / daily > MAX_RUN_DAYS) return undefined;
+  return { amount, days };
+}
 
 function naira(value: number): string {
   return `₦${Math.round(value).toLocaleString('en-NG')}`;
@@ -220,6 +250,7 @@ export function statsToPerformanceView(
   const branchClaims = stats.byBranch.reduce((sum, branch) => sum + branch.claims, 0);
   const { status } = promotion;
   const launched = Boolean(promotion.launchedAt);
+  const topUp = budgetTopUp(promotion);
 
   return {
     backLabel: kind === 'boost' ? liveCopy.backToBoosts : liveCopy.backToCampaigns,
@@ -316,8 +347,12 @@ export function statsToPerformanceView(
       diners: liveCopy.geoClaims(branch.claims),
       note: '',
     })),
-    // A launched campaign's budget is fixed server-side; there is nothing to add to.
-    canAddBudget: false,
+    canAddBudget:
+      launched && (status === 'Active' || status === 'Paused') && Boolean(topUp),
+    addBudgetAmount: topUp?.amount,
+    addBudgetLabel: topUp
+      ? liveCopy.addBudget(naira(topUp.amount), topUp.days)
+      : undefined,
     canPause: status === 'Active',
     canResume: status === 'Paused',
     canEnd: launched && status !== 'Ended',

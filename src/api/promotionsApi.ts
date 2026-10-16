@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { requestValidated } from '@api/client';
 import type { ApiRequestOptions } from '@app-types/api';
+import { targetAreaSchema } from '@api/districtsApi';
 import { decimal, nullableDecimal } from '@api/schemaHelpers';
 
 /**
@@ -50,8 +51,11 @@ export const promotionAudienceSchema = z.object({
   segmentIds: z.array(z.string()).optional(),
   cohorts: z.array(z.string()).optional(),
   branchIds: z.array(z.string()).optional(),
+  /** Districts or the business's clusters; set = served only inside them. */
   clusterIds: z.array(z.string()).optional(),
   radiusKm: z.number().optional(),
+  /** Boosts: `regulars` | `walkins`; absent = everyone in the area. */
+  audienceType: z.string().optional(),
 });
 export type PromotionAudience = z.infer<typeof promotionAudienceSchema>;
 
@@ -241,9 +245,14 @@ export const sponsoredCampaignOptionsSchema = z.object({
   budgetTiers: z.array(
     z.object({ id: z.string(), amount: z.number(), label: z.string() }),
   ),
+  /** Districts a run can target (older servers: absent). */
+  districts: z.array(targetAreaSchema).optional(),
   /** Boosts. */
   goals: z.array(optionSchema).optional(),
   audienceScopes: z.array(optionSchema).optional(),
+  audienceTypes: z.array(optionSchema).optional(),
+  /** Clusters holding one of the business's branches. */
+  clusters: z.array(targetAreaSchema).optional(),
   /** Promotions. */
   objectives: z.array(optionSchema).optional(),
   strategies: z.array(optionSchema).optional(),
@@ -349,6 +358,22 @@ export function createSponsoredCampaignApi(basePath: '/promotions' | '/boosts') 
     async resume(id: string, options: ApiRequestOptions = {}): Promise<Promotion> {
       return requestValidated<Promotion>(
         { method: 'POST', url: `${basePath}/${id}/resume`, ...options },
+        promotionSchema,
+      );
+    },
+
+    /**
+     * Add budget to a live run; its end moves out at the same daily spend.
+     * A wallet shortfall is charged to the saved card only with
+     * `useSavedCard`, and is otherwise refused (402).
+     */
+    async addBudget(
+      id: string,
+      input: { amount: number; useSavedCard?: boolean },
+      options: ApiRequestOptions = {},
+    ): Promise<Promotion> {
+      return requestValidated<Promotion>(
+        { method: 'POST', url: `${basePath}/${id}/budget`, data: input, ...options },
         promotionSchema,
       );
     },

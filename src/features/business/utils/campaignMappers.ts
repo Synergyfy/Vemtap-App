@@ -63,6 +63,8 @@ export function draftToSaveInput(draft: CampaignDraft): SavePromotionInput {
       segmentIds: segments ? draft.segmentIds : [],
       branchIds: draft.branchIds,
       radiusKm: draft.radiusKm,
+      // Districts replace the radius; none = the radius around the branches.
+      ...(draft.districtIds.length ? { clusterIds: draft.districtIds } : {}),
     },
     schedule: {
       durationDays: draft.durationDays,
@@ -187,7 +189,14 @@ function audienceLabel(promotion: Promotion): string {
   const audience = promotion.audience ?? {};
   const radius = audience.radiusKm ?? 3;
   const segments = (audience.segmentIds?.length ?? 0) + (audience.cohorts?.length ?? 0);
-  return audience.strategy === 'segments' && segments
+  const districts = audience.clusterIds?.length ?? 0;
+  const bySegment = audience.strategy === 'segments' && segments > 0;
+  if (districts) {
+    return bySegment
+      ? hubCopy.audienceSegmentsInDistricts(segments, districts)
+      : hubCopy.audienceDistricts(districts);
+  }
+  return bySegment
     ? hubCopy.audienceSegments(segments, radius)
     : hubCopy.audienceNearby(radius);
 }

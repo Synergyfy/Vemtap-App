@@ -109,6 +109,8 @@ export interface UpdateProfileInput {
   gender?: string;
   /** Hosted portrait URL from `POST /uploads`, persisted server-side. */
   avatar?: string;
+  /** The district (`districtsApi.list`) of the area the customer picked; null clears it. */
+  homeDistrictId?: string | null;
 }
 export type RegisterInput = z.infer<typeof registerInputSchema>;
 export type User = z.infer<typeof userSchema>;

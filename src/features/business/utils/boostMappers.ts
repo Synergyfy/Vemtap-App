@@ -61,6 +61,10 @@ export function boostDraftToSaveInput(
       strategy: draft.audienceScope,
       radiusKm: draft.radiusKm,
       ...(branchId ? { branchIds: [branchId] } : {}),
+      ...(draft.audienceScope !== 'nearby' && draft.areas.length
+        ? { clusterIds: draft.areas.map(area => area.id) }
+        : {}),
+      ...(draft.audienceType ? { audienceType: draft.audienceType } : {}),
     },
     placements: draft.placements,
     schedule: {
@@ -341,7 +345,10 @@ export function boostDraftToPreviewView(
       {
         id: 'radius',
         label: previewCopy.params[2].label,
-        value: live.radiusValue(draft.radiusKm, context.branchName),
+        value:
+          draft.audienceScope !== 'nearby' && draft.areas.length
+            ? live.areasValue(draft.areas.map(area => area.name))
+            : live.radiusValue(draft.radiusKm, context.branchName),
         icon: 'radar',
       },
       {

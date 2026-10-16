@@ -17,6 +17,8 @@ export const segmentCriteriaSchema = z.object({
       offerIds: z.array(z.string()).optional(),
       redeemedAtLeast: z.number().int().min(1).optional(),
       withinDays: z.number().int().min(1).optional(),
+      /** Saved one of the deals and never redeemed it. */
+      savedNotRedeemed: z.boolean().optional(),
     })
     .optional(),
   menu: z
@@ -25,12 +27,20 @@ export const segmentCriteriaSchema = z.object({
       orderedAtLeast: z.number().int().min(1).optional(),
     })
     .optional(),
-  location: z.object({ branchIds: z.array(z.string()) }).optional(),
+  location: z
+    .object({
+      branchIds: z.array(z.string()).optional(),
+      /** Customers whose home district is one of these. */
+      homeDistrictIds: z.array(z.string()).optional(),
+    })
+    .optional(),
   recency: z
     .object({
       visitedWithinDays: z.number().int().min(1).optional(),
       notVisitedForDays: z.number().int().min(1).optional(),
       minVisits: z.number().int().min(1).optional(),
+      /** A table QR visit or a chat within N days. */
+      interactedWithinDays: z.number().int().min(1).optional(),
     })
     .optional(),
   spend: z
@@ -39,6 +49,8 @@ export const segmentCriteriaSchema = z.object({
       minAverageTicket: z.number().min(0).optional(),
     })
     .optional(),
+  /** Unspent loyalty points at the business. */
+  loyalty: z.object({ minPoints: z.number().int().min(1) }).optional(),
 });
 export type SegmentCriteria = z.infer<typeof segmentCriteriaSchema>;
 
@@ -111,6 +123,8 @@ export const segmentCriteriaOptionsSchema = z.object({
   deals: z.array(namedOptionSchema),
   menuItems: z.array(namedOptionSchema),
   branches: z.array(namedOptionSchema),
+  /** Home districts (older servers: absent). */
+  districts: z.array(namedOptionSchema).optional(),
   recency: z.array(presetOptionSchema).optional(),
   spend: z.array(presetOptionSchema).optional(),
 });

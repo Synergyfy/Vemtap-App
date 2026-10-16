@@ -59,12 +59,16 @@ export const BOOST_ENGINE_RADIUS_KM: Record<string, number> = {
   metro: 10,
 };
 
+/** Boost audiences the API serves (`BOOST_AUDIENCE_TYPES`). */
+const LIVE_AUDIENCE_IDS: readonly string[] = ['regulars', 'walkins'];
+
 /** Daily budget (₦) per engine tier. */
 export const BOOST_ENGINE_TIER_DAILY = tierDailyPrice;
 
 export interface BoostEngineSelection {
   radius: string;
   radiusKm: number;
+  /** Live: `regulars` | `walkins`, or '' for everyone nearby. */
   audience: string;
   tier: string;
   duration: string;
@@ -135,7 +139,14 @@ export function BoostEngineScreen({
 }: BoostEngineScreenProps) {
   const [subTab, setSubTab] = useState(growthSubTabs[1]);
   const [radius, setRadius] = useState(initialSelection?.radius ?? boostRadii[0].id);
-  const [audience, setAudience] = useState(boostAudiences[0].id);
+  // Live: optional, and only the audiences built from the business's own
+  // data; targeting rivals' claimers is not offered.
+  const audiences = live
+    ? boostAudiences.filter(option => LIVE_AUDIENCE_IDS.includes(option.id))
+    : boostAudiences;
+  const [audience, setAudience] = useState<string>(live ? '' : boostAudiences[0].id);
+  const chooseAudience = (id: string) =>
+    setAudience(current => (live && current === id ? '' : id));
   const [tier, setTier] = useState(initialSelection?.tier ?? 'top');
   const [duration, setDuration] = useState<string>(
     initialSelection?.duration ?? copy.durations[1],
@@ -380,23 +391,21 @@ export function BoostEngineScreen({
         />
       </BusinessPanel>
 
-      {live ? null : (
-        <BusinessPanel className="mt-3" title={copy.audienceTitle} icon="loyalty">
-          <BusinessOptionGrid
-            options={boostAudiences.map(option => ({
-              id: option.id,
-              title: option.title,
-              value: '',
-              footnote: option.detail,
-              icon: option.icon,
-            }))}
-            value={audience}
-            onChange={setAudience}
-            columns={3}
-            accessibilityLabel={copy.audienceTitle}
-          />
-        </BusinessPanel>
-      )}
+      <BusinessPanel className="mt-3" title={copy.audienceTitle} icon="loyalty">
+        <BusinessOptionGrid
+          options={audiences.map(option => ({
+            id: option.id,
+            title: option.title,
+            value: '',
+            footnote: option.detail,
+            icon: option.icon,
+          }))}
+          value={audience}
+          onChange={chooseAudience}
+          columns={live ? 2 : 3}
+          accessibilityLabel={copy.audienceTitle}
+        />
+      </BusinessPanel>
 
       <BusinessPanel
         className="mt-3"

@@ -55,6 +55,12 @@ export interface CreateCustomSegmentScreenProps {
   criterionIds?: readonly string[];
   /** Live picker options per criterion, replacing the design's samples. */
   pickerOptions?: Partial<Record<string, readonly CriterionOption[]>>;
+  /**
+   * Live wording per criterion: a body where the design describes data VEMTAP
+   * does not hold, and a picker label for a criterion the design shows
+   * without one (its options come from `pickerOptions`).
+   */
+  criterionOverrides?: Partial<Record<string, { body?: string; pickerLabel?: string }>>;
   /** Live sizing; the design's estimate when absent and not pending. */
   sizing?: CustomSegmentSizing;
   sizingPending?: boolean;
@@ -94,6 +100,7 @@ export function CreateCustomSegmentScreen({
   initialSelection,
   criterionIds,
   pickerOptions,
+  criterionOverrides,
   sizing,
   sizingPending = false,
   sizingNote = copy.sizingNote,
@@ -331,22 +338,28 @@ export function CreateCustomSegmentScreen({
               </View>
               {rows.map(criterion => {
                 const selected = criteria.includes(criterion.id);
+                const override = criterionOverrides?.[criterion.id];
+                const pickerLabel =
+                  override?.pickerLabel ??
+                  ('picker' in criterion ? criterion.pickerLabel : undefined);
                 return (
                   <View key={criterion.id} className="gap-1.5">
                     <BusinessCheckRow
                       type="checkbox"
                       title={criterion.title}
-                      subtitle={criterion.body}
+                      subtitle={override?.body ?? criterion.body}
                       selected={selected}
                       onPress={() => toggle(criterion.id)}
                     />
-                    {selected && 'picker' in criterion ? (
+                    {selected && pickerLabel ? (
                       <CriterionPicker
-                        label={criterion.pickerLabel}
+                        label={pickerLabel}
                         labelClassName={categoryIconTone[category.id]}
                         options={
                           pickerOptions?.[criterion.id] ??
-                          criterion.picker.map(label => ({ id: label, label }))
+                          ('picker' in criterion
+                            ? criterion.picker.map(label => ({ id: label, label }))
+                            : [])
                         }
                         selectedIndex={pickers[criterion.id] ?? 0}
                         onPick={index => pick(criterion.id, index)}

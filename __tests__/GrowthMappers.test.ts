@@ -14,7 +14,10 @@ import {
   estimateRange,
   promotionToCampaignCard,
 } from '@features/business/utils/campaignMappers';
-import { statsToPerformanceView } from '@features/business/utils/campaignPerformanceMappers';
+import {
+  budgetTopUp,
+  statsToPerformanceView,
+} from '@features/business/utils/campaignPerformanceMappers';
 import {
   boostDraftToPreviewView,
   boostDraftToSaveInput,
@@ -68,6 +71,44 @@ describe('segment criteria mapping', () => {
       criteria: ['claimed', 'dormant'],
       pickers: { claimed: 1, dormant: 1 },
     });
+  });
+
+  it('maps the saved, district, interaction and points criteria', () => {
+    const withDistricts = segmentPickerOptions({
+      deals: [{ id: 'deal-1', name: 'Lunch Combo' }],
+      menuItems: [],
+      branches: [],
+      districts: [
+        { id: 'd-apo', name: 'Apo' },
+        { id: 'd-wuse', name: 'Wuse 2' },
+      ],
+    });
+    const selection = {
+      criteria: ['claimed', 'saved', 'district', 'interacted', 'points', 'dormant'],
+      pickers: { district: 1, dormant: 1 },
+    };
+    const criteria = selectionToCriteria(selection, withDistricts);
+    expect(criteria).toEqual({
+      // The picked deal stays a claim rule; saved covers any deal.
+      deals: { offerIds: ['deal-1'], savedNotRedeemed: true },
+      location: { homeDistrictIds: ['d-wuse'] },
+      recency: { interactedWithinDays: 14, notVisitedForDays: 60 },
+      loyalty: { minPoints: 500 },
+    });
+
+    const reopened = criteriaToSelection(criteria, withDistricts);
+    expect([...reopened.criteria].sort()).toEqual([...selection.criteria].sort());
+    expect(reopened.pickers).toEqual({ district: 1, dormant: 1 });
+  });
+
+  it('labels each new rule on a segment card, not as its neighbour', () => {
+    const detail = (criteria: object) =>
+      segmentToCard({ id: 's', name: 'S', type: 'dynamic', size: 1, criteria }).detail;
+    const { rules } = strings.customerSegments.live;
+    expect(detail({ deals: { savedNotRedeemed: true } })).toBe(rules.saved);
+    expect(detail({ location: { homeDistrictIds: ['d'] } })).toBe(rules.district);
+    expect(detail({ recency: { interactedWithinDays: 14 } })).toBe(rules.interacted);
+    expect(detail({ loyalty: { minPoints: 500 } })).toBe(rules.loyalty);
   });
 
   it('describes a dynamic segment by its rules on its card', () => {
@@ -160,6 +201,7 @@ const draft: CampaignDraft = {
   cohorts: ['vip'],
   segmentIds: ['seg-1'],
   branchIds: ['b1'],
+  districtIds: [],
   radiusKm: 5,
   durationDays: 7,
   instantLaunch: true,
@@ -174,6 +216,13 @@ const draft: CampaignDraft = {
 };
 
 describe('campaign draft mapping', () => {
+  it('sends chosen districts in place of the radius', () => {
+    expect(
+      draftToSaveInput({ ...draft, districtIds: ['d-wuse'] }).audience,
+    ).toMatchObject({ clusterIds: ['d-wuse'] });
+    expect(draftToSaveInput(draft).audience).not.toHaveProperty('clusterIds');
+  });
+
   it('names the campaign after its objective and lead asset', () => {
     expect(campaignName(draft)).toBe('Promote a Deal: Lunch Combo');
   });
@@ -349,7 +398,10 @@ describe('campaign performance mapping', () => {
     expect(view.peak?.value).toBe('80%');
     expect(view.geo.map(branch => branch.percent)).toEqual(['75%', '25%']);
     expect(view.canPause).toBe(true);
-    expect(view.canAddBudget).toBe(false);
+    // ₦20,000 over 5 days: two more days is ₦8,000.
+    expect(view.canAddBudget).toBe(true);
+    expect(view.addBudgetAmount).toBe(8_000);
+    expect(view.addBudgetLabel).toBe('Add ₦8,000 Budget • Extend 2 Days');
     expect(view.showViews).toBe(false);
   });
 
@@ -445,6 +497,24 @@ describe('campaign performance mapping', () => {
     );
     expect(ended.canEnd).toBe(false);
     expect(ended.endedNote).toBeDefined();
+    expect(paused.canAddBudget).toBe(true);
+    expect(ended.canAddBudget).toBe(false);
+  });
+
+  it('adds at least the API minimum, and nothing past 90 days', () => {
+    const run = (budget: number, days: number) => ({
+      budget,
+      startDate: '2026-10-01T00:00:00Z',
+      endDate: new Date(
+        Date.parse('2026-10-01T00:00:00Z') + days * 86_400_000,
+      ).toISOString(),
+    });
+    // ₦500/day: two days would be ₦1,000, so ₦2,000 buys four.
+    expect(budgetTopUp(run(3_500, 7))).toEqual({ amount: 2_000, days: 4 });
+    expect(budgetTopUp(run(89_000, 89))).toBeUndefined();
+    expect(
+      budgetTopUp({ budget: 10_000, startDate: null, endDate: null }),
+    ).toBeUndefined();
   });
 });
 
@@ -453,6 +523,7 @@ describe('boost mapping', () => {
     asset: { type: 'deal', id: 'd1', title: 'Jollof Combo', price: 4000, wasPrice: 5000 },
     goalId: 'claims',
     audienceScope: 'nearby',
+    areas: [],
     radiusKm: 5,
     placements: ['feed', 'push'],
     durationDays: 7,
@@ -477,6 +548,25 @@ describe('boost mapping', () => {
       budgetMode: 'total',
       budget: 35_000,
     });
+  });
+
+  it('sends district areas and the audience type, never areas for nearby', () => {
+    const areas = [{ id: 'd-wuse', name: 'Wuse 2' }];
+    expect(
+      boostDraftToSaveInput({
+        ...boostDraft,
+        audienceScope: 'districts',
+        areas,
+        audienceType: 'walkins',
+      }).audience,
+    ).toMatchObject({
+      strategy: 'districts',
+      clusterIds: ['d-wuse'],
+      audienceType: 'walkins',
+    });
+    expect(
+      boostDraftToSaveInput({ ...boostDraft, audienceScope: 'nearby', areas }).audience,
+    ).not.toHaveProperty('clusterIds');
   });
 
   it('previews the real listing, schedule and wallet shortfall', () => {

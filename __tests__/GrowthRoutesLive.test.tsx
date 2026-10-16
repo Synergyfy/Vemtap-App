@@ -17,6 +17,7 @@ import {
   CreateCustomSegmentRoute,
   CustomerSegmentsRoute,
   BoostPreviewPaymentRoute,
+  BoostPerformanceRoute,
   BoostWalletRoute,
 } from '@navigation/growthRoutes';
 import { boostsApi } from '@api/boostsApi';
@@ -27,6 +28,7 @@ import { useCampaignDraftStore } from '@store/campaignDraftStore';
 import { draftToSaveInput } from '@features/business/utils/campaignMappers';
 
 const BRANCH_ID = '6f1c2b8e-4d3a-4b5c-9e7f-1a2b3c4d5e6f';
+const BOOST_ID = '0b9a4f1e-1c2d-4e5f-8a9b-0c1d2e3f4a5b';
 
 jest.mock('@features/business/hooks/useActiveBranch', () => ({
   useActiveBranch: () => ({
@@ -78,7 +80,14 @@ function moreStack(initialRouteName: string) {
       <More.Screen name="CampaignReviewLaunch" component={CampaignReviewLaunchRoute} />
       <More.Screen name="CampaignCreateObjective" component={Blank} />
       <More.Screen name="BoostPreviewPayment" component={BoostPreviewPaymentRoute} />
-      <More.Screen name="BoostPerformance" component={Blank} />
+      {/* Real only when a test opens it; elsewhere it is just a destination. */}
+      <More.Screen
+        name="BoostPerformance"
+        component={
+          initialRouteName === 'BoostPerformance' ? BoostPerformanceRoute : Blank
+        }
+        initialParams={{ kind: 'boost', id: BOOST_ID }}
+      />
       <More.Screen name="BoostWallet" component={BoostWalletRoute} />
       <More.Screen name="BoostEngine" component={Blank} />
     </More.Navigator>
@@ -190,8 +199,8 @@ describe('create custom segment (live)', () => {
     const { ref } = await renderRoutes('CreateCustomSegment');
     const builder = strings.campaignWizard.customSegment;
 
-    // Live builder starts empty and offers only criteria the API can evaluate.
-    expect(screen.queryByText('Saved deal to wallet but did not redeem')).toBeNull();
+    // Live builder starts empty and offers every designed criterion.
+    expect(screen.getByText('Saved deal to wallet but did not redeem')).toBeTruthy();
 
     await fireEvent.changeText(screen.getByLabelText(builder.nameLabel), 'Feast fans');
     await fireEvent.press(screen.getByText('Claimed a specific promotional deal'));
@@ -875,6 +884,99 @@ describe('boost wallet saved card, auto-reload and invoices (live)', () => {
     expect(csv.split('\r\n')[0]).toBe(live.invoices.headers.join(','));
     expect(csv).toContain(
       'INV-B-ABCD1234,2026-10-14,Lunch boost,Boost,Saved card,10000,Paid',
+    );
+  });
+});
+
+describe('boost performance add budget (live)', () => {
+  const perf = strings.boostWizard.performance.live;
+  const { showToast } = jest.requireMock('@components/shared/toast') as {
+    showToast: jest.Mock;
+  };
+  // ₦20,000 over 5 days: Add Budget offers two more days, ₦8,000.
+  const boost = {
+    id: BOOST_ID,
+    name: 'Lunch boost',
+    status: 'Active',
+    assets: [],
+    budget: 20_000,
+    spent: 4_000,
+    remaining: 16_000,
+    launchedAt: '2026-10-13T08:00:00Z',
+    startDate: '2026-10-13T08:00:00Z',
+    endDate: '2026-10-18T08:00:00Z',
+  } as Promotion;
+  const stats = {
+    id: BOOST_ID,
+    status: 'Active',
+    kpis: {
+      budget: 20_000,
+      spent: 4_000,
+      left: 16_000,
+      percentConsumed: 20,
+      redemptions: 0,
+      grossRevenue: 0,
+      reach: 0,
+      returnOnSpend: 0,
+    },
+    funnel: [],
+    rhythm: [],
+    byBranch: [],
+    series: [],
+  };
+  const wallet = (card: unknown) => ({
+    walletRef: 'VEM-WAL-ABC123',
+    balance: 1_000,
+    reserved: 0,
+    spendable: 1_000,
+    card,
+  });
+
+  beforeEach(() => {
+    jest.spyOn(boostsApi, 'list').mockResolvedValue({
+      data: [boost],
+      total: 1,
+      page: 1,
+      limit: 50,
+      hasNextPage: false,
+    } as never);
+    jest.spyOn(boostsApi, 'get').mockResolvedValue(boost);
+    jest.spyOn(boostsApi, 'stats').mockResolvedValue(stats as never);
+    showToast.mockClear();
+  });
+
+  it('adds two days of budget, charging the saved card for any shortfall', async () => {
+    jest
+      .spyOn(adWalletApi, 'getWallet')
+      .mockResolvedValue(wallet({ brand: 'visa', last4: '4242' }) as never);
+    const add = jest
+      .spyOn(boostsApi, 'addBudget')
+      .mockResolvedValue({ ...boost, budget: 28_000 });
+    await renderRoutes('BoostPerformance');
+
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText(perf.addBudget('₦8,000', 2)));
+      await settle(50);
+    });
+    expect(add).toHaveBeenCalledWith(BOOST_ID, { amount: 8_000, useSavedCard: true });
+    expect(showToast).toHaveBeenCalledWith(perf.budgetAdded('₦8,000'), 'success');
+  });
+
+  it('without a saved card, shows the API message about topping up', async () => {
+    jest.spyOn(adWalletApi, 'getWallet').mockResolvedValue(wallet(null) as never);
+    const add = jest
+      .spyOn(boostsApi, 'addBudget')
+      .mockRejectedValue(new Error('Top up your Boost Wallet: ₦7,000 more is needed'));
+    await renderRoutes('BoostPerformance');
+
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText(perf.addBudget('₦8,000', 2)));
+      await settle(50);
+    });
+    expect(add).toHaveBeenCalledWith(BOOST_ID, { amount: 8_000, useSavedCard: false });
+    expect(showToast).toHaveBeenCalledWith(
+      expect.stringContaining('Top up your Boost Wallet'),
+      'error',
     );
   });
 });

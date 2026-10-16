@@ -77,7 +77,7 @@ describe('create campaign — step 3 audience', () => {
       />,
     );
     expect(screen.getByText('Lapsed regulars')).toBeTruthy();
-    // Live mode drops the sample forecast and the district clusters.
+    // Live mode drops the sample forecast, and has no districts to offer here.
     expect(screen.queryByText(copy.step3.reachValue)).toBeNull();
     expect(screen.queryByText(copy.step3.clustersTitle)).toBeNull();
     await fireEvent.press(screen.getByLabelText(copy.step3.cta));
@@ -85,6 +85,28 @@ describe('create campaign — step 3 audience', () => {
     expect(selection.segmentIds).toEqual(['seg-1']);
     expect(selection.cohorts).toEqual([]);
     expect(selection.clusters).toEqual([]);
+  });
+
+  it('live: offers the real districts and reports the picked ids', async () => {
+    const onContinue = jest.fn();
+    await render(
+      <CampaignStep3AudienceScreen
+        onBack={noop}
+        onContinue={onContinue}
+        live
+        branchOptions={[{ id: 'br-1', name: 'Wuse', address: '' }]}
+        districtOptions={[
+          { id: 'd-wuse', name: 'Wuse 2' },
+          { id: 'd-cbd', name: 'Central Business District' },
+        ]}
+      />,
+    );
+    expect(screen.getByText(copy.step3.clustersTitle)).toBeTruthy();
+    // No sample clusters in live mode, and nothing picked until the owner does.
+    expect(screen.queryByText(copy.step3.clusters[0])).toBeNull();
+    await fireEvent.press(screen.getByLabelText('Central Business District'));
+    await fireEvent.press(screen.getByLabelText(copy.step3.cta));
+    expect(onContinue.mock.calls[0][0].clusters).toEqual(['d-cbd']);
   });
 });
 
@@ -269,6 +291,41 @@ describe('create custom segment', () => {
     await render(<CreateCustomSegmentScreen onClose={noop} />);
     await fireEvent.press(screen.getByLabelText(copy.customSegment.criteria[1].title));
     expect(screen.getByText(copy.customSegment.criteria[0].picker[0])).toBeTruthy();
+  });
+
+  it('live: gives the district criterion real districts and truthful wording', async () => {
+    const district = copy.customSegment.criteria.find(c => c.id === 'district')!;
+    const live = strings.customerSegments.live.builder;
+    const onSelectionChange = jest.fn();
+    await render(
+      <CreateCustomSegmentScreen
+        onClose={noop}
+        initialSelection={{ criteria: [], pickers: {} }}
+        criterionIds={['district', 'points']}
+        pickerOptions={{
+          district: [
+            { id: 'd-apo', label: 'Apo' },
+            { id: 'd-wuse', label: 'Wuse 2' },
+          ],
+        }}
+        criterionOverrides={{
+          district: { body: live.districtBody, pickerLabel: live.districtLabel },
+        }}
+        onSelectionChange={onSelectionChange}
+      />,
+    );
+    // The design's "verified delivery" claim is not made.
+    expect(screen.getByText(live.districtBody)).toBeTruthy();
+    expect(screen.queryByText(district.body)).toBeNull();
+    expect(screen.queryByText('Wuse 2')).toBeNull();
+
+    await fireEvent.press(screen.getByLabelText(district.title));
+    expect(screen.getByText(live.districtLabel)).toBeTruthy();
+    await fireEvent.press(screen.getByText('Wuse 2'));
+    expect(onSelectionChange).toHaveBeenLastCalledWith({
+      criteria: ['district'],
+      pickers: { district: 1 },
+    });
   });
 
   it('clears every criterion from the clear-all action', async () => {

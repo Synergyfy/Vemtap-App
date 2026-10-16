@@ -24,6 +24,10 @@ export interface BoostDraft {
   goalId: string;
   /** `nearby` | `districts` | `clusters`. */
   audienceScope: string;
+  /** Districts or clusters for an area scope (names kept for the review step). */
+  areas: { id: string; name: string }[];
+  /** `regulars` | `walkins`; absent = everyone in the area. */
+  audienceType?: string;
   radiusKm: number;
   placements: string[];
   durationDays: number;
@@ -37,6 +41,7 @@ export interface BoostDraft {
 const initialDraft: BoostDraft = {
   goalId: 'claims',
   audienceScope: 'nearby',
+  areas: [],
   radiusKm: 3,
   placements: ['feed', 'home', 'push', 'search'],
   durationDays: 5,

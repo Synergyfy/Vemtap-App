@@ -69,6 +69,7 @@ import { tabBarTopShadow } from '@theme/shadows';
 import { typeMetrics } from '@theme/typography';
 import { TypeDensityProvider } from '@theme/TypeDensityProvider';
 import { useAuthStore } from '@store/authStore';
+import { useHomeDistrictSync } from '@features/home/hooks/useHomeDistrictSync';
 
 // A re-tap on the focused tab unwinds it to the screen its stack starts on. Each
 // tab supplies its own base screen, because that is where its stack lives; the
@@ -891,6 +892,8 @@ export function AccountStackNavigator() {
 
 export function TabNavigator() {
   const insets = useSafeAreaInsets();
+  // The consumer shell: keep the account's home district in step with the area.
+  useHomeDistrictSync();
   const isTabBarHidden = useTabBarStore(state => state.isTabBarHidden);
 
   const screenOptions = useMemo(

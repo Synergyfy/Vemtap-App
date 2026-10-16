@@ -45,6 +45,62 @@ describe('boost wizard step 1 — goal & audience', () => {
   });
 });
 
+describe('boost wizard step 1 — live districts and clusters', () => {
+  const live = (clusters = [{ id: 'cl-banex', name: 'Banex Plaza' }]) => ({
+    asset: { badge: 'Deal', business: 'Urban Grill', name: 'Jollof Combo', claims: '3' },
+    geofencePlace: 'Wuse • 3 km radius',
+    areas: {
+      districts: [
+        { id: 'd-wuse', name: 'Wuse 2' },
+        { id: 'd-maitama', name: 'Maitama' },
+      ],
+      clusters,
+    },
+  });
+
+  it('lists districts in place of the radius and sends the picked ones', async () => {
+    const onContinue = jest.fn();
+    await render(<BoostGoalAudienceScreen live={live()} onContinue={onContinue} />);
+    expect(screen.queryByText(copy.live.pickDistricts)).toBeNull();
+
+    await fireEvent.press(screen.getByLabelText(goal.audienceScopes[1]));
+    expect(screen.getByText(copy.live.pickDistricts)).toBeTruthy();
+    // The radius no longer applies inside a district.
+    expect(screen.queryByText(goal.radiusTitle)).toBeNull();
+
+    await fireEvent.press(screen.getByLabelText('Maitama'));
+    await fireEvent.press(screen.getByLabelText(goal.cta));
+    expect(onContinue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        audienceScope: goal.audienceScopes[1],
+        clusterIds: ['d-maitama'],
+      }),
+    );
+  });
+
+  it('will not continue with an area scope and no area', async () => {
+    const onContinue = jest.fn();
+    await render(<BoostGoalAudienceScreen live={live()} onContinue={onContinue} />);
+    await fireEvent.press(screen.getByLabelText(goal.audienceScopes[2]));
+    expect(screen.getByText(copy.live.pickClusters)).toBeTruthy();
+    await fireEvent.press(screen.getByLabelText(goal.cta));
+    expect(onContinue).not.toHaveBeenCalled();
+  });
+
+  it('hides the clusters scope when no branch is in a cluster', async () => {
+    await render(<BoostGoalAudienceScreen live={live([])} />);
+    expect(screen.getByLabelText(goal.audienceScopes[1])).toBeTruthy();
+    expect(screen.queryByLabelText(goal.audienceScopes[2])).toBeNull();
+  });
+
+  it('sends no areas for nearby', async () => {
+    const onContinue = jest.fn();
+    await render(<BoostGoalAudienceScreen live={live()} onContinue={onContinue} />);
+    await fireEvent.press(screen.getByLabelText(goal.cta));
+    expect(onContinue.mock.calls[0][0].clusterIds).toEqual([]);
+  });
+});
+
 describe('boost wizard step 2 — budget & schedule', () => {
   it('renders every budget tier and the paced forecast', async () => {
     await render(<BoostBudgetScheduleScreen />);

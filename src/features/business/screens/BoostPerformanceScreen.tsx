@@ -422,11 +422,12 @@ export function BoostPerformanceScreen({
             <View className="gap-2">
               {view.canAddBudget ? (
                 <Button
-                  label={perf.addBudget}
+                  label={view.addBudgetLabel ?? perf.addBudget}
                   labelVariant="button"
                   size="md"
                   className="min-h-[52px] rounded-xl"
                   leftIcon={<Icon name="bolt" size={18} color={colors.surface} />}
+                  disabled={busy}
                   onPress={onAddBudget}
                 />
               ) : null}

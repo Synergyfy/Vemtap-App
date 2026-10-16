@@ -23,6 +23,8 @@ export interface CampaignDraft {
   cohorts: string[];
   segmentIds: string[];
   branchIds: string[];
+  /** Districts the campaign is shown in; empty = within `radiusKm`. */
+  districtIds: string[];
   radiusKm: number;
   durationDays: number;
   instantLaunch: boolean;
@@ -45,6 +47,7 @@ const initialDraft: CampaignDraft = {
   cohorts: [],
   segmentIds: [],
   branchIds: [],
+  districtIds: [],
   radiusKm: 3,
   durationDays: 7,
   instantLaunch: true,

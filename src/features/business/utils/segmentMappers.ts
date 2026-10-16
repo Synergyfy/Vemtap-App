@@ -17,17 +17,17 @@ import type { IconName } from '@components/ui/Icon';
 const builderCopy = strings.campaignWizard.customSegment;
 const liveCopy = strings.customerSegments.live;
 
-/**
- * Builder criteria the API can evaluate. The others in the design ("saved but
- * not redeemed", district cluster, QR/chat interaction, loyalty points) have
- * no backing rule, so the live builder does not offer them.
- */
+/** Every builder criterion the design offers; the API evaluates them all. */
 export const LIVE_SEGMENT_CRITERIA = [
   'claimed',
+  'saved',
   'dishes',
   'ticket',
   'branch',
+  'district',
   'dormant',
+  'interacted',
+  'points',
 ] as const;
 export type LiveSegmentCriterion = (typeof LIVE_SEGMENT_CRITERIA)[number];
 
@@ -36,6 +36,12 @@ export const DORMANCY_DAYS = [30, 60, 90] as const;
 
 /** "High average ticket spend (> ₦20,000)". */
 export const HIGH_TICKET_MIN = 20_000;
+
+/** "Interacted via Table QR / Chat in 14 days". */
+export const INTERACTION_DAYS = 14;
+
+/** "Loyalty members with >500 unspent points". */
+export const MIN_UNSPENT_POINTS = 500;
 
 export interface SegmentPickerOption {
   id: string;
@@ -62,6 +68,7 @@ export function segmentPickerOptions(
     claimed: named(options?.deals),
     dishes: named(options?.menuItems),
     branch: named(options?.branches),
+    district: named(options?.districts),
     dormant: builderCopy.criteria
       .find(criterion => criterion.id === 'dormant')
       ?.picker?.map((label, index) => ({ id: String(DORMANCY_DAYS[index]), label })),
@@ -97,10 +104,25 @@ export function selectionToCriteria(
   const branch = on('branch') ? picked(selection, options, 'branch') : undefined;
   if (branch) criteria.location = { branchIds: [branch.id] };
 
+  // Saved-but-not-redeemed covers any deal; a picked deal stays a claim rule.
+  if (on('saved')) criteria.deals = { ...criteria.deals, savedNotRedeemed: true };
+
+  const district = on('district') ? picked(selection, options, 'district') : undefined;
+  if (district) {
+    criteria.location = { ...criteria.location, homeDistrictIds: [district.id] };
+  }
+
   if (on('ticket')) criteria.spend = { minAverageTicket: HIGH_TICKET_MIN };
+
+  if (on('interacted')) {
+    criteria.recency = { ...criteria.recency, interactedWithinDays: INTERACTION_DAYS };
+  }
+
+  if (on('points')) criteria.loyalty = { minPoints: MIN_UNSPENT_POINTS };
 
   if (on('dormant')) {
     criteria.recency = {
+      ...criteria.recency,
       notVisitedForDays:
         DORMANCY_DAYS[selection.pickers.dormant ?? 0] ?? DORMANCY_DAYS[0],
     };
@@ -122,9 +144,14 @@ export function criteriaToSelection(
   };
 
   if (criteria?.deals?.offerIds?.length) pick('claimed', criteria.deals.offerIds[0]);
+  if (criteria?.deals?.savedNotRedeemed) ids.push('saved');
   if (criteria?.menu?.itemIds.length) pick('dishes', criteria.menu.itemIds[0]);
-  if (criteria?.location?.branchIds.length)
+  if (criteria?.location?.branchIds?.length)
     pick('branch', criteria.location.branchIds[0]);
+  if (criteria?.location?.homeDistrictIds?.length)
+    pick('district', criteria.location.homeDistrictIds[0]);
+  if (criteria?.recency?.interactedWithinDays !== undefined) ids.push('interacted');
+  if (criteria?.loyalty?.minPoints !== undefined) ids.push('points');
   if (criteria?.spend?.minAverageTicket !== undefined) ids.push('ticket');
   const dormantDays = criteria?.recency?.notVisitedForDays;
   if (dormantDays !== undefined) {
@@ -153,11 +180,25 @@ export function formatDelta(fraction: number | null | undefined): string | undef
 /** Plain-language summary of a rule set, for a segment card's detail line. */
 export function describeCriteria(criteria: SegmentCriteria | null | undefined): string {
   const parts: string[] = [];
-  if (criteria?.deals) parts.push(liveCopy.rules.deals);
+  const { deals, location, recency } = criteria ?? {};
+  if (deals && (deals.offerIds?.length || !deals.savedNotRedeemed)) {
+    parts.push(liveCopy.rules.deals);
+  }
+  if (deals?.savedNotRedeemed) parts.push(liveCopy.rules.saved);
   if (criteria?.menu) parts.push(liveCopy.rules.menu);
-  if (criteria?.location) parts.push(liveCopy.rules.location);
+  if (location?.branchIds?.length) parts.push(liveCopy.rules.location);
+  if (location?.homeDistrictIds?.length) parts.push(liveCopy.rules.district);
   if (criteria?.spend) parts.push(liveCopy.rules.spend);
-  if (criteria?.recency) parts.push(liveCopy.rules.recency);
+  if (
+    recency &&
+    (recency.visitedWithinDays !== undefined ||
+      recency.notVisitedForDays !== undefined ||
+      recency.minVisits !== undefined)
+  ) {
+    parts.push(liveCopy.rules.recency);
+  }
+  if (recency?.interactedWithinDays !== undefined) parts.push(liveCopy.rules.interacted);
+  if (criteria?.loyalty) parts.push(liveCopy.rules.loyalty);
   return parts.length ? parts.join(' • ') : liveCopy.rules.everyone;
 }
 
