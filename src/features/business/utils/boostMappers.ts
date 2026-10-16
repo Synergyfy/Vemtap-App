@@ -304,3 +304,23 @@ export function boostDraftToPreviewView(
     cta: live.cta(total),
   };
 }
+
+/** Wallet transactions as statement rows (`wallet.live.statement.headers` order). */
+export function transactionsToStatementRows(
+  transactions: readonly AdWalletTransaction[],
+) {
+  return transactions.map(transaction => {
+    const type = transaction.type as keyof typeof walletLive.types;
+    const signed =
+      transaction.direction === 'debit' ? -transaction.amount : transaction.amount;
+    return [
+      transaction.createdAt.slice(0, 10),
+      walletLive.types[type] ?? transaction.type,
+      transaction.description ?? '',
+      transaction.reference ?? '',
+      signed,
+      transaction.balanceAfter,
+      transaction.reservedAfter,
+    ];
+  });
+}

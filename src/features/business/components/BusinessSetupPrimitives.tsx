@@ -618,6 +618,8 @@ export interface TextActionButtonProps {
   onPress?: () => void;
   icon?: IconName;
   tone?: 'secondary' | 'brand' | 'success';
+  /** Dimmed and inert while the action it starts is running. */
+  disabled?: boolean;
   className?: string;
 }
 
@@ -626,6 +628,7 @@ export function TextActionButton({
   onPress,
   icon,
   tone = 'secondary',
+  disabled = false,
   className,
 }: TextActionButtonProps) {
   const toneClass =
@@ -644,9 +647,12 @@ export function TextActionButton({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
+      accessibilityState={{ disabled }}
+      disabled={disabled}
       onPress={onPress}
       className={cn(
         'min-h-[44px] flex-row items-center justify-center gap-1.5 rounded-field px-4 active:bg-surface-container-low',
+        disabled && 'opacity-50',
         className,
       )}
     >

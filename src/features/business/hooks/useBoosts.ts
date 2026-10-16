@@ -1,7 +1,13 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as WebBrowser from 'expo-web-browser';
 import { boostsApi } from '@api/boostsApi';
-import { adWalletApi } from '@api/adWalletApi';
+import {
+  adWalletApi,
+  type AdWalletTransaction,
+  type AdWalletTransactionType,
+} from '@api/adWalletApi';
+import { strings } from '@constants/strings';
+import { datedFileName, shareCsv, toCsv } from '@utils/csvExport';
 import type { Promotion, PromotionForecastInput } from '@api/promotionsApi';
 import { PAYMENT_RETURN_URL } from '@features/business/hooks/useSubscriptions';
 import {
@@ -9,7 +15,10 @@ import {
   launchWithCheckout,
   sponsoredKeys,
 } from '@features/business/hooks/useCampaigns';
-import { boostDraftToSaveInput } from '@features/business/utils/boostMappers';
+import {
+  boostDraftToSaveInput,
+  transactionsToStatementRows,
+} from '@features/business/utils/boostMappers';
 import { useBoostDraftStore, type BoostDraft } from '@store/boostDraftStore';
 
 /** Boosts (`/boosts`) and the ad wallet that funds them. */
@@ -90,10 +99,10 @@ export function useLaunchBoost(branchId?: string) {
 /* Ad wallet                                                                  */
 /* -------------------------------------------------------------------------- */
 
-export function useAdWalletTransactions(limit: number) {
+export function useAdWalletTransactions(limit: number, type?: AdWalletTransactionType) {
   return useQuery({
-    queryKey: [...campaignKeys.wallet, 'transactions', limit],
-    queryFn: () => adWalletApi.listTransactions({ limit }),
+    queryKey: [...campaignKeys.wallet, 'transactions', type ?? 'all', limit],
+    queryFn: () => adWalletApi.listTransactions({ limit, ...(type ? { type } : {}) }),
     staleTime: 30_000,
     placeholderData: previous => previous,
   });
@@ -140,5 +149,33 @@ export function useWalletTopUp() {
       return { outcome, reference: topUp.reference };
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: campaignKeys.wallet }),
+  });
+}
+
+/** Every wallet transaction, page by page (a statement must be complete). */
+async function listAllTransactions(
+  page = 1,
+  collected: AdWalletTransaction[] = [],
+): Promise<AdWalletTransaction[]> {
+  const result = await adWalletApi.listTransactions({ page, limit: 100 });
+  const all = [...collected, ...result.data];
+  return result.hasNextPage && page < 100 ? listAllTransactions(page + 1, all) : all;
+}
+
+/** Export the full wallet statement as a CSV through the share sheet. */
+export function useExportWalletStatement() {
+  return useMutation({
+    mutationFn: async (): Promise<{ count: number }> => {
+      const transactions = await listAllTransactions();
+      if (transactions.length) {
+        const { statement } = strings.boostWizard.wallet.live;
+        await shareCsv(
+          datedFileName(statement.fileName),
+          toCsv(statement.headers, transactionsToStatementRows(transactions)),
+          statement.title,
+        );
+      }
+      return { count: transactions.length };
+    },
   });
 }

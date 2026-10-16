@@ -67,6 +67,10 @@ export interface BoostWalletScreenProps {
     minTopUp: number;
   };
   topUpPending?: boolean;
+  /** Label of the active history filter (live); `undefined` = all activity. */
+  activeFilterLabel?: string;
+  /** The statement CSV is being built. */
+  statementPending?: boolean;
   isLoading?: boolean;
   error?: string;
   onRetry?: () => void;
@@ -174,6 +178,8 @@ export function BoostWalletScreen({
   onTaxInvoices,
   live,
   topUpPending = false,
+  activeFilterLabel,
+  statementPending = false,
   isLoading = false,
   error,
   onRetry,
@@ -247,12 +253,13 @@ export function BoostWalletScreen({
           tone="brand"
           onPress={onBack}
         />
-        {live ? null : (
+        {live && !onStatement ? null : (
           <View className="min-w-0 flex-1">
             <TextActionButton
               label={wallet.statement}
               icon="receiptLong"
               tone="brand"
+              disabled={statementPending}
               onPress={onStatement}
             />
           </View>
@@ -508,9 +515,13 @@ export function BoostWalletScreen({
                   {wallet.historySubtitle}
                 </VemtapText>
               </View>
-              {live ? null : (
+              {live && !onFilterHistory ? null : (
                 <TextActionButton
-                  label={wallet.historyFilter}
+                  label={
+                    activeFilterLabel
+                      ? liveCopy.filter.active(activeFilterLabel)
+                      : wallet.historyFilter
+                  }
                   icon="tune"
                   tone="brand"
                   onPress={onFilterHistory}
@@ -520,7 +531,7 @@ export function BoostWalletScreen({
             <View className="gap-2">
               {live && live.transactions.length === 0 ? (
                 <VemtapText variant="caption" tone="tertiary">
-                  {liveCopy.historyEmpty}
+                  {activeFilterLabel ? liveCopy.filter.empty : liveCopy.historyEmpty}
                 </VemtapText>
               ) : null}
               {(live?.transactions ?? wallet.transactions).map(entry => (

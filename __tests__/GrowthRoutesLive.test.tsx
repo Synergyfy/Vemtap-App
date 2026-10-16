@@ -459,3 +459,75 @@ describe('boost wallet (live)', () => {
     expect(confirm).toHaveBeenCalledWith('ADW-1');
   });
 });
+
+describe('boost wallet history (live)', () => {
+  const page = (data: unknown[] = []) => ({
+    data,
+    total: data.length,
+    page: 1,
+    limit: 20,
+    hasNextPage: false,
+  });
+  const spend = {
+    id: 't1',
+    type: 'spend',
+    amount: 4000,
+    direction: 'debit',
+    description: 'Boost delivery: Jollof Combo',
+    reference: null,
+    campaignId: 'c1',
+    balanceAfter: 46000,
+    reservedAfter: 6000,
+    createdAt: '2026-10-15T09:00:00.000Z',
+  };
+
+  beforeEach(() => {
+    jest.spyOn(adWalletApi, 'listPrepacks').mockResolvedValue([]);
+  });
+
+  it('filters the history by type from the sheet', async () => {
+    const list = jest
+      .spyOn(adWalletApi, 'listTransactions')
+      .mockResolvedValue(page([spend]) as never);
+    await renderRoutes('BoostWallet');
+    expect(list).toHaveBeenLastCalledWith({ limit: 20 });
+
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText(strings.boostWizard.wallet.historyFilter));
+    });
+    await act(async () => {
+      // The sheet option, not the history row's "Ad spend" status.
+      fireEvent.press(screen.getByRole('radio', { name: 'Ad spend' }));
+      await settle(50);
+    });
+
+    expect(list).toHaveBeenLastCalledWith({ limit: 20, type: 'spend' });
+    expect(screen.getByText('Filter: Ad spend')).toBeTruthy();
+  });
+
+  it('exports the whole statement as a CSV', async () => {
+    jest.spyOn(adWalletApi, 'listTransactions').mockResolvedValue(page([spend]) as never);
+    await renderRoutes('BoostWallet');
+
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText(strings.boostWizard.wallet.statement));
+      await settle(50);
+    });
+
+    expect(adWalletApi.listTransactions).toHaveBeenLastCalledWith({
+      page: 1,
+      limit: 100,
+    });
+    expect(Sharing.shareAsync).toHaveBeenCalledWith(
+      expect.stringMatching(/ad-wallet-statement-\d{4}-\d{2}-\d{2}\.csv$/),
+      expect.objectContaining({ mimeType: 'text/csv' }),
+    );
+    const written = (globalThis as { __lastWrittenFile?: { content: string } })
+      .__lastWrittenFile;
+    const [header, row] = written?.content.split('\r\n') ?? [];
+    expect(header).toBe(strings.boostWizard.wallet.live.statement.headers.join(','));
+    expect(row).toBe(
+      '2026-10-15,Ad spend,Boost delivery: Jollof Combo,,-4000,46000,6000',
+    );
+  });
+});

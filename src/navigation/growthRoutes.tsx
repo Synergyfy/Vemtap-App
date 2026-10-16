@@ -60,8 +60,11 @@ import {
   useBoostSummary,
   useLaunchBoost,
   useSaveBoostDraft,
+  useExportWalletStatement,
   useWalletTopUp,
 } from '@features/business/hooks/useBoosts';
+import { WalletActivityFilterSheet } from '@features/business/components/WalletActivityFilterSheet';
+import type { AdWalletTransactionType } from '@api/adWalletApi';
 import {
   BOOST_AUDIENCE_SCOPE_IDS,
   boostAssetBadge,
@@ -1302,46 +1305,78 @@ export function BoostWalletRoute() {
   const wallet = useAdWallet();
   const prepacks = useAdWalletPrepacks();
   const [limit, setLimit] = useState(WALLET_PAGE);
-  const transactions = useAdWalletTransactions(limit);
+  const [filter, setFilter] = useState<AdWalletTransactionType | undefined>();
+  const [filtering, setFiltering] = useState(false);
+  const transactions = useAdWalletTransactions(limit, filter);
   const topUp = useWalletTopUp();
+  const statement = useExportWalletStatement();
   const { data } = wallet;
+  const filterLabel = walletCopy.filter.options.find(
+    option => option.id === filter,
+  )?.label;
 
   return (
-    <BoostWalletScreen
-      onBack={navigation.goBack}
-      onViewLedger={() => setLimit(current => Math.min(100, current + WALLET_PAGE))}
-      onTopUp={(prepackId, amount) =>
-        topUp.mutate(amount !== undefined ? { amount } : { prepackId }, {
-          onSuccess: ({ outcome }) =>
-            showToast(
-              {
-                completed: walletCopy.topUpDone,
-                pending: walletCopy.topUpPending,
-                cancelled: walletCopy.topUpCancelled,
-              }[outcome],
-              outcome === 'cancelled' ? 'error' : 'success',
-            ),
-          onError: error => showToast(messageOf(error, walletCopy.topUpFailed), 'error'),
-        })
-      }
-      live={
-        data
-          ? {
-              walletRef: data.walletRef,
-              balance: formatBoostNaira(data.balance),
-              reserved: formatBoostNaira(data.reserved),
-              spendable: formatBoostNaira(data.spendable),
-              prepacks: (prepacks.data ?? []).map(prepackToCard),
-              transactions: (transactions.data?.data ?? []).map(transactionToRow),
-              hasMore: Boolean(transactions.data?.hasNextPage) && limit < 100,
-              minTopUp: 2000,
-            }
-          : undefined
-      }
-      topUpPending={topUp.isPending}
-      isLoading={wallet.isLoading}
-      error={wallet.isError ? messageOf(wallet.error, walletCopy.loadFailed) : undefined}
-      onRetry={() => wallet.refetch()}
-    />
+    <>
+      <BoostWalletScreen
+        onBack={navigation.goBack}
+        onViewLedger={() => setLimit(current => Math.min(100, current + WALLET_PAGE))}
+        onFilterHistory={() => setFiltering(true)}
+        activeFilterLabel={filterLabel}
+        statementPending={statement.isPending}
+        onStatement={() =>
+          statement.mutate(undefined, {
+            onSuccess: result => {
+              if (result.count === 0) showToast(walletCopy.statement.empty, 'error');
+            },
+            onError: error =>
+              showToast(messageOf(error, walletCopy.statement.failed), 'error'),
+          })
+        }
+        onTopUp={(prepackId, amount) =>
+          topUp.mutate(amount !== undefined ? { amount } : { prepackId }, {
+            onSuccess: ({ outcome }) =>
+              showToast(
+                {
+                  completed: walletCopy.topUpDone,
+                  pending: walletCopy.topUpPending,
+                  cancelled: walletCopy.topUpCancelled,
+                }[outcome],
+                outcome === 'cancelled' ? 'error' : 'success',
+              ),
+            onError: error =>
+              showToast(messageOf(error, walletCopy.topUpFailed), 'error'),
+          })
+        }
+        live={
+          data
+            ? {
+                walletRef: data.walletRef,
+                balance: formatBoostNaira(data.balance),
+                reserved: formatBoostNaira(data.reserved),
+                spendable: formatBoostNaira(data.spendable),
+                prepacks: (prepacks.data ?? []).map(prepackToCard),
+                transactions: (transactions.data?.data ?? []).map(transactionToRow),
+                hasMore: Boolean(transactions.data?.hasNextPage) && limit < 100,
+                minTopUp: 2000,
+              }
+            : undefined
+        }
+        topUpPending={topUp.isPending}
+        isLoading={wallet.isLoading}
+        error={
+          wallet.isError ? messageOf(wallet.error, walletCopy.loadFailed) : undefined
+        }
+        onRetry={() => wallet.refetch()}
+      />
+      <WalletActivityFilterSheet
+        visible={filtering}
+        onClose={() => setFiltering(false)}
+        value={filter}
+        onChange={next => {
+          setFilter(next);
+          setLimit(WALLET_PAGE);
+        }}
+      />
+    </>
   );
 }
