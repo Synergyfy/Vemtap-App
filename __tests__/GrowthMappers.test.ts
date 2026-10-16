@@ -123,6 +123,28 @@ describe('segment criteria mapping', () => {
     expect(view.privacyTitle).toBeUndefined();
   });
 
+  it('shows the opt-out notice with the real count when someone is excluded', () => {
+    const view = insightToDetailsView({
+      segmentId: 's1',
+      name: 'Lapsed',
+      type: 'dynamic',
+      size: 10,
+      reachableByPush: 6,
+      reachableBySms: 5,
+      reachableByEmail: 2,
+      excludedFromPromotions: 3,
+      totalSpend: 0,
+      avgOrderValue: 0,
+      visitFrequency: 0,
+      spendDelta: null,
+      aovDelta: null,
+      branchSplit: [],
+      favourites: [],
+      samplePatrons: [],
+    });
+    expect(view.privacyTitle).toBe('3 customers excluded from promotional broadcasts');
+  });
+
   it('formats elapsed time compactly', () => {
     const now = Date.parse('2026-10-15T12:00:00Z');
     expect(relativeAgo('2026-10-15T11:59:50Z', now)).toBe('just now');

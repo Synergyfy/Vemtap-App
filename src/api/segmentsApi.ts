@@ -65,6 +65,8 @@ export const segmentReachSchema = z.object({
   reachableByPush: z.number(),
   reachableBySms: z.number(),
   reachableByEmail: z.number(),
+  /** Members out of promotions (opted out, or marketing off); newer API only. */
+  excludedFromPromotions: z.number().optional(),
 });
 export type SegmentReach = z.infer<typeof segmentReachSchema>;
 

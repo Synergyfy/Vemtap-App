@@ -309,6 +309,10 @@ export function insightToDetailsView(
       meta: '',
       count: formatCount(item.orders),
     })),
+    // Shown only when someone is excluded (the design's opt-out notice).
+    privacyTitle: insight.excludedFromPromotions
+      ? detailsCopy.excluded(insight.excludedFromPromotions)
+      : undefined,
     sampleMeta: detailsCopy.sampleMeta(insight.samplePatrons.length, insight.size),
     patrons: insight.samplePatrons.map(patron => ({
       id: patron.userId,

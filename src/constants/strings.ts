@@ -8507,6 +8507,8 @@ export const strings = {
           sms: 'SMS',
           email: 'Email',
         },
+        excluded: (count: number) =>
+          `${count.toLocaleString('en-NG')} ${count === 1 ? 'customer' : 'customers'} excluded from promotional broadcasts`,
         emptyBranches: 'No visits recorded yet',
         emptyFavourites: 'No orders from this segment yet',
         emptyPatrons: 'No customers match this segment yet',
