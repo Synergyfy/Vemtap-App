@@ -6,6 +6,8 @@ import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
 import { colors } from '@theme/colors';
 import { EmptyState } from '@components/shared/EmptyState';
+import { ErrorState } from '@components/shared/ErrorState';
+import { LoadingState } from '@components/shared/LoadingState';
 import {
   BusinessActionDock,
   BusinessScreenLayout,
@@ -28,6 +30,7 @@ import {
   campaignStatusMeta,
   growthSubTabIcon,
   growthSubTabs,
+  type CampaignCard,
   type CampaignStatus,
 } from '@features/business/data/businessGrowthData';
 
@@ -53,11 +56,25 @@ const campaignToneIcon: Record<string, string> = {
   secondary: colors.secondary,
 };
 
+/** Filter tab per status; drafts appear under All only. */
 const filterForStatus: Record<CampaignStatus, number> = {
   live: 1,
+  paused: 1,
   scheduled: 2,
   completed: 3,
+  draft: -1,
 };
+
+/** Live header figures for the hub. */
+export interface CampaignsHubMetrics {
+  liveBadge: string;
+  reach: string;
+  reachNote: string;
+  conversions: string;
+  conversionsNote: string;
+  gmv: string;
+  gmvNote: string;
+}
 
 export interface CampaignsHubScreenProps {
   onBack?: () => void;
@@ -71,6 +88,19 @@ export interface CampaignsHubScreenProps {
   onOpenRetentionPlaybook?: () => void;
   onExport?: () => void;
   onViewCampaign?: (campaignId: string) => void;
+  /** Live campaigns; the design's sample campaigns show when absent. */
+  campaigns?: readonly CampaignCard[];
+  metrics?: CampaignsHubMetrics;
+  /** Filter tab labels with live counts. */
+  tabs?: readonly string[];
+  upcomingBadge?: string;
+  /** Live win-back nudge; `null` hides the playbook (nothing to win back). */
+  playbook?: { subtitle: string; body: string } | null;
+  /** Campaign ids with a pause/resume/launch request in flight. */
+  busyIds?: readonly string[];
+  isLoading?: boolean;
+  error?: string;
+  onRetry?: () => void;
 }
 
 /**
@@ -90,18 +120,25 @@ export function CampaignsHubScreen({
   onOpenRetentionPlaybook,
   onExport,
   onViewCampaign,
+  campaigns: liveCampaigns,
+  metrics,
+  tabs = copy.tabs,
+  upcomingBadge = copy.upcomingBadge,
+  playbook,
+  busyIds = [],
+  isLoading = false,
+  error,
+  onRetry,
 }: CampaignsHubScreenProps) {
   const [filter, setFilter] = useState(0);
   const [subTab, setSubTab] = useState(growthSubTabs[0]);
 
-  const status: CampaignStatus =
-    filter === 1 ? 'live' : filter === 2 ? 'scheduled' : 'completed';
+  const live = liveCampaigns !== undefined;
+  const source = liveCampaigns ?? campaigns;
   const visible =
     filter === 0
-      ? campaigns
-      : campaigns.filter(
-          campaign => filterForStatus[campaign.status] === filterForStatus[status],
-        );
+      ? source
+      : source.filter(campaign => filterForStatus[campaign.status] === filter);
 
   return (
     <BusinessScreenLayout
@@ -122,21 +159,23 @@ export function CampaignsHubScreen({
             onPress={onCreateCampaign}
             leftIcon={<Icon name="plus" size={18} color={colors.surface} />}
           />
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={copy.exportCta}
-            onPress={onExport}
-            className="min-h-10 flex-row items-center justify-center gap-1.5"
-          >
-            <Icon name="download" size={17} color={colors.primary} />
-            <VemtapText
-              variant="labelSm"
-              className="font-sans-semibold text-primary"
-              numberOfLines={1}
+          {live ? null : (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={copy.exportCta}
+              onPress={onExport}
+              className="min-h-10 flex-row items-center justify-center gap-1.5"
             >
-              {copy.exportCta}
-            </VemtapText>
-          </Pressable>
+              <Icon name="download" size={17} color={colors.primary} />
+              <VemtapText
+                variant="labelSm"
+                className="font-sans-semibold text-primary"
+                numberOfLines={1}
+              >
+                {copy.exportCta}
+              </VemtapText>
+            </Pressable>
+          )}
         </BusinessActionDock>
       }
     >
@@ -158,41 +197,64 @@ export function CampaignsHubScreen({
         className="mt-3"
         title={copy.liveNowTitle}
         icon="sensors"
-        badge={copy.liveNowBadge}
+        badge={metrics?.liveBadge ?? copy.liveNowBadge}
         badgeTone="success"
       >
         <BusinessMetricGrid
-          cells={[
-            {
-              label: copy.reachLabel,
-              value: copy.reachValue,
-              note: copy.reachDelta,
-              noteIcon: 'trendingUp',
-              noteTone: 'success',
-              icon: 'group',
-            },
-            {
-              label: copy.conversionsLabel,
-              value: copy.conversionsValue,
-              note: copy.conversionsSub,
-              icon: 'pointOfSale',
-            },
-            {
-              label: copy.gmvLabel,
-              value: copy.gmvValue,
-              note: copy.gmvDelta,
-              noteIcon: 'trendingUp',
-              noteTone: 'success',
-              icon: 'payments',
-            },
-          ]}
+          cells={
+            metrics
+              ? [
+                  {
+                    label: copy.reachLabel,
+                    value: metrics.reach,
+                    note: metrics.reachNote,
+                    icon: 'group',
+                  },
+                  {
+                    label: copy.live.conversionsLabel,
+                    value: metrics.conversions,
+                    note: metrics.conversionsNote,
+                    icon: 'pointOfSale',
+                  },
+                  {
+                    label: copy.live.gmvLabel,
+                    value: metrics.gmv,
+                    note: metrics.gmvNote,
+                    icon: 'payments',
+                  },
+                ]
+              : [
+                  {
+                    label: copy.reachLabel,
+                    value: copy.reachValue,
+                    note: copy.reachDelta,
+                    noteIcon: 'trendingUp',
+                    noteTone: 'success',
+                    icon: 'group',
+                  },
+                  {
+                    label: copy.conversionsLabel,
+                    value: copy.conversionsValue,
+                    note: copy.conversionsSub,
+                    icon: 'pointOfSale',
+                  },
+                  {
+                    label: copy.gmvLabel,
+                    value: copy.gmvValue,
+                    note: copy.gmvDelta,
+                    noteIcon: 'trendingUp',
+                    noteTone: 'success',
+                    icon: 'payments',
+                  },
+                ]
+          }
           columns={3}
           variant="bare"
         />
       </BusinessPanel>
 
       <BusinessChipScroller className="mt-3">
-        {copy.tabs.map((tab, index) => (
+        {tabs.map((tab, index) => (
           <BusinessCountChip
             key={tab}
             label={tab}
@@ -205,9 +267,14 @@ export function CampaignsHubScreen({
         ))}
       </BusinessChipScroller>
 
+      {isLoading ? <LoadingState /> : null}
+      {!isLoading && error ? <ErrorState description={error} onRetry={onRetry} /> : null}
+
       <View className="mt-3 gap-2">
-        {visible.map(campaign => {
+        {(isLoading || error ? [] : visible).map(campaign => {
           const meta = campaignStatusMeta[campaign.status];
+          const busy = busyIds.includes(campaign.id);
+          const showEdit = !live || campaign.status === 'draft';
           return (
             <View
               key={campaign.id}
@@ -300,10 +367,16 @@ export function CampaignsHubScreen({
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel={campaign.cta}
+                    accessibilityState={{ disabled: busy }}
+                    disabled={busy}
                     onPress={() => onPauseCampaign?.(campaign.id)}
-                    className="min-h-9 flex-1 flex-row items-center justify-center gap-1.5 rounded-field bg-surface-container px-3 active:scale-95"
+                    className={`min-h-9 flex-1 flex-row items-center justify-center gap-1.5 rounded-field bg-surface-container px-3 active:scale-95 ${busy ? 'opacity-50' : ''}`}
                   >
-                    <Icon name="pauseCircle" size={15} color={colors.text} />
+                    <Icon
+                      name={campaign.status === 'paused' ? 'playCircle' : 'pauseCircle'}
+                      size={15}
+                      color={colors.text}
+                    />
                     <VemtapText
                       variant="labelSm"
                       className="font-sans-semibold"
@@ -313,36 +386,40 @@ export function CampaignsHubScreen({
                     </VemtapText>
                   </Pressable>
                 ) : null}
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={copy.editSetupCta}
-                  onPress={() => onEditSetup?.(campaign.id)}
-                  className="min-h-9 flex-1 flex-row items-center justify-center gap-1.5 rounded-field bg-surface-container px-3 active:scale-95"
-                >
-                  <Icon name="edit" size={15} color={colors.text} />
-                  <VemtapText
-                    variant="labelSm"
-                    className="font-sans-semibold"
-                    numberOfLines={1}
+                {showEdit ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={live ? copy.live.continueCta : copy.editSetupCta}
+                    onPress={() => onEditSetup?.(campaign.id)}
+                    className="min-h-9 flex-1 flex-row items-center justify-center gap-1.5 rounded-field bg-surface-container px-3 active:scale-95"
                   >
-                    {copy.editSetupCta}
-                  </VemtapText>
-                </Pressable>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={copy.previewPushCta}
-                  onPress={() => onPreviewPush?.(campaign.id)}
-                  className="min-h-9 flex-1 flex-row items-center justify-center gap-1.5 rounded-field bg-primary px-3 active:scale-95"
-                >
-                  <Icon name="visibility" size={15} color={colors.surface} />
-                  <VemtapText
-                    variant="labelSm"
-                    className="font-sans-semibold text-surface"
-                    numberOfLines={1}
+                    <Icon name="edit" size={15} color={colors.text} />
+                    <VemtapText
+                      variant="labelSm"
+                      className="font-sans-semibold"
+                      numberOfLines={1}
+                    >
+                      {live ? copy.live.continueCta : copy.editSetupCta}
+                    </VemtapText>
+                  </Pressable>
+                ) : null}
+                {live ? null : (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={copy.previewPushCta}
+                    onPress={() => onPreviewPush?.(campaign.id)}
+                    className="min-h-9 flex-1 flex-row items-center justify-center gap-1.5 rounded-field bg-primary px-3 active:scale-95"
                   >
-                    {copy.previewPushCta}
-                  </VemtapText>
-                </Pressable>
+                    <Icon name="visibility" size={15} color={colors.surface} />
+                    <VemtapText
+                      variant="labelSm"
+                      className="font-sans-semibold text-surface"
+                      numberOfLines={1}
+                    >
+                      {copy.previewPushCta}
+                    </VemtapText>
+                  </Pressable>
+                )}
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={campaign.name}
@@ -357,7 +434,7 @@ export function CampaignsHubScreen({
         })}
       </View>
 
-      {visible.length === 0 ? (
+      {!isLoading && !error && visible.length === 0 ? (
         <EmptyState
           icon="campaign"
           variant="contained"
@@ -370,10 +447,10 @@ export function CampaignsHubScreen({
         className="mt-3"
         title={copy.upcomingTitle}
         icon="schedule"
-        badge={copy.upcomingBadge}
+        badge={upcomingBadge}
         badgeTone="neutral"
       >
-        {campaigns
+        {source
           .filter(campaign => campaign.status === 'scheduled')
           .map(campaign => (
             <BusinessAnalyticsRow
@@ -388,68 +465,72 @@ export function CampaignsHubScreen({
           ))}
       </BusinessPanel>
 
-      <BusinessPanel
-        className="mt-3"
-        title={copy.playbookTitle}
-        icon="autoAwesome"
-        badge="AI Recommendation"
-        badgeTone="brand"
-      >
-        <VemtapText variant="labelMd" className="font-sans-semibold" numberOfLines={2}>
-          {campaignRetention.subtitle}
-        </VemtapText>
-        <BusinessInsightCard
-          className="mt-2"
-          title={campaignRetention.title}
-          body={campaignRetention.body}
-          icon={campaignRetention.icon}
-        />
-        <View className="mt-2 flex-row flex-wrap gap-2">
-          <View className="min-w-[45%] flex-1 gap-1 rounded-field bg-surface-subtle p-2.5">
-            <VemtapText variant="micro" tone="tertiary" numberOfLines={1}>
-              {copy.playbookOfferLabel}
-            </VemtapText>
+      {playbook === null ? null : (
+        <BusinessPanel
+          className="mt-3"
+          title={copy.playbookTitle}
+          icon="autoAwesome"
+          badge="AI Recommendation"
+          badgeTone="brand"
+        >
+          <VemtapText variant="labelMd" className="font-sans-semibold" numberOfLines={2}>
+            {playbook?.subtitle ?? campaignRetention.subtitle}
+          </VemtapText>
+          <BusinessInsightCard
+            className="mt-2"
+            title={campaignRetention.title}
+            body={playbook?.body ?? campaignRetention.body}
+            icon={campaignRetention.icon}
+          />
+          {playbook ? null : (
+            <View className="mt-2 flex-row flex-wrap gap-2">
+              <View className="min-w-[45%] flex-1 gap-1 rounded-field bg-surface-subtle p-2.5">
+                <VemtapText variant="micro" tone="tertiary" numberOfLines={1}>
+                  {copy.playbookOfferLabel}
+                </VemtapText>
+                <VemtapText
+                  variant="labelMd"
+                  className="font-sans-semibold"
+                  numberOfLines={2}
+                >
+                  {campaignRetention.offer}
+                </VemtapText>
+              </View>
+              <View className="min-w-[45%] flex-1 gap-1 rounded-field bg-badge-discount-bg p-2.5">
+                <VemtapText
+                  variant="micro"
+                  className="text-badge-discount-text"
+                  numberOfLines={1}
+                >
+                  {copy.playbookValueLabel}
+                </VemtapText>
+                <VemtapText
+                  variant="labelMd"
+                  className="font-sans-bold text-badge-discount-text"
+                  numberOfLines={2}
+                >
+                  {campaignRetention.value}
+                </VemtapText>
+              </View>
+            </View>
+          )}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={playbook?.subtitle ?? campaignRetention.subtitle}
+            onPress={onOpenRetentionPlaybook}
+            className="mt-2 min-h-10 flex-row items-center justify-center gap-1.5 rounded-field bg-primary active:scale-95"
+          >
+            <Icon name="rocket" size={16} color={colors.surface} />
             <VemtapText
-              variant="labelMd"
-              className="font-sans-semibold"
-              numberOfLines={2}
-            >
-              {campaignRetention.offer}
-            </VemtapText>
-          </View>
-          <View className="min-w-[45%] flex-1 gap-1 rounded-field bg-badge-discount-bg p-2.5">
-            <VemtapText
-              variant="micro"
-              className="text-badge-discount-text"
+              variant="labelSm"
+              className="font-sans-semibold text-surface"
               numberOfLines={1}
             >
-              {copy.playbookValueLabel}
+              {playbook?.subtitle ?? campaignRetention.subtitle}
             </VemtapText>
-            <VemtapText
-              variant="labelMd"
-              className="font-sans-bold text-badge-discount-text"
-              numberOfLines={2}
-            >
-              {campaignRetention.value}
-            </VemtapText>
-          </View>
-        </View>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={campaignRetention.subtitle}
-          onPress={onOpenRetentionPlaybook}
-          className="mt-2 min-h-10 flex-row items-center justify-center gap-1.5 rounded-field bg-primary active:scale-95"
-        >
-          <Icon name="rocket" size={16} color={colors.surface} />
-          <VemtapText
-            variant="labelSm"
-            className="font-sans-semibold text-surface"
-            numberOfLines={1}
-          >
-            {campaignRetention.subtitle}
-          </VemtapText>
-        </Pressable>
-      </BusinessPanel>
+          </Pressable>
+        </BusinessPanel>
+      )}
 
       <View className="mt-3 flex-row items-center gap-1.5 rounded-field bg-surface-subtle p-2.5">
         <Icon name="sync" size={14} color={colors.textTertiary} />

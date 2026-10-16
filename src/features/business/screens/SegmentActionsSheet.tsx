@@ -14,9 +14,21 @@ import {
 
 const copy = strings.campaignWizard.segmentActions;
 
+/** Live figures for the segment header; the design's sample shows when absent. */
+export interface SegmentActionsSummary {
+  meta: string;
+  spend: string;
+  body: string;
+  pushReady: string;
+  messageReady: string;
+}
+
 export interface SegmentActionsSheetProps {
   visible: boolean;
+  /** The segment the actions apply to; handed to every action callback. */
+  segmentId?: string;
   segmentName?: string;
+  summary?: SegmentActionsSummary;
   onClose: () => void;
   onCreateCampaign?: (segmentId: string) => void;
   onComposeMessage?: (segmentId: string) => void;
@@ -35,7 +47,9 @@ export interface SegmentActionsSheetProps {
  */
 export function SegmentActionsSheet({
   visible,
+  segmentId,
   segmentName = 'Returning Customers',
+  summary,
   onClose,
   onCreateCampaign,
   onComposeMessage,
@@ -46,7 +60,7 @@ export function SegmentActionsSheet({
     <BottomSheet
       visible={visible}
       onClose={onClose}
-      title={copy.title}
+      title={summary ? copy.liveTitle(segmentName) : copy.title}
       titleVariant="headingXl"
       titleClassName="text-heading-xl"
     >
@@ -63,12 +77,14 @@ export function SegmentActionsSheet({
           <View className="flex-row items-center gap-1">
             <View className="h-1.5 w-1.5 rounded-full bg-success" />
             <VemtapText variant="labelMd" tone="secondary" numberOfLines={1}>
-              {copy.meta}
+              {summary?.meta ?? copy.meta}
             </VemtapText>
           </View>
-          <VemtapText variant="labelMd" tone="tertiary" numberOfLines={1}>
-            {`\u2022 ${copy.rate}`}
-          </VemtapText>
+          {summary ? null : (
+            <VemtapText variant="labelMd" tone="tertiary" numberOfLines={1}>
+              {`\u2022 ${copy.rate}`}
+            </VemtapText>
+          )}
         </View>
 
         <SetupSectionCard tone="low" className="gap-2 p-4">
@@ -97,24 +113,24 @@ export function SegmentActionsSheet({
                 className="font-sans-bold"
                 numberOfLines={1}
               >
-                {copy.spend}
+                {summary?.spend ?? copy.spend}
               </VemtapText>
             </View>
           </View>
           <VemtapText variant="caption" tone="secondary">
-            {copy.body}
+            {summary?.body ?? copy.body}
           </VemtapText>
           <View className="flex-row flex-wrap items-center gap-x-3 gap-y-1 rounded-lg bg-surface p-2.5">
             <View className="flex-row items-center gap-1.5">
               <Icon name="sensors" size={13} color={colors.textSecondary} />
               <VemtapText variant="micro" tone="secondary" numberOfLines={1}>
-                {copy.pushReady}
+                {summary?.pushReady ?? copy.pushReady}
               </VemtapText>
             </View>
             <View className="flex-row items-center gap-1.5">
               <Icon name="message" size={13} color={colors.textSecondary} />
               <VemtapText variant="micro" tone="secondary" numberOfLines={1}>
-                {copy.messageReady}
+                {summary?.messageReady ?? copy.messageReady}
               </VemtapText>
             </View>
           </View>
@@ -204,11 +220,14 @@ export function SegmentActionsSheet({
                   accessibilityLabel={action.cta}
                   className={crm ? 'min-h-[40px] self-start px-4' : 'min-h-[48px]'}
                   onPress={() => {
-                    if (action.id === 'campaign') onCreateCampaign?.(segmentName);
-                    if (action.id === 'message') onComposeMessage?.(segmentName);
-                    if (action.id === 'deal') onPromoteDeal?.(segmentName);
-                    if (action.id === 'crm') onOpenCrm?.(segmentName);
+                    // Close first: an action that navigates must not be undone
+                    // by the sheet popping itself afterwards.
                     onClose();
+                    const id = segmentId ?? segmentName;
+                    if (action.id === 'campaign') onCreateCampaign?.(id);
+                    if (action.id === 'message') onComposeMessage?.(id);
+                    if (action.id === 'deal') onPromoteDeal?.(id);
+                    if (action.id === 'crm') onOpenCrm?.(id);
                   }}
                 />
               </SetupSectionCard>

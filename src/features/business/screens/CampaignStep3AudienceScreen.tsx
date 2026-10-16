@@ -26,13 +26,25 @@ const step = copy.step3;
 export interface CampaignStep3AudienceScreenProps {
   onBack: () => void;
   onContinue: (selection: CampaignAudienceSelection) => void;
-  /** Segment id handed over from a segment's "Use This Segment" sheet. */
-  presetSegmentId?: string;
+  onSaveDraft?: () => void;
+  /** Starting choices; the design's sample selection when absent. */
+  initialSelection?: Partial<CampaignAudienceSelection>;
+  /** Live branches; the design's sample outlets show when absent. */
+  branchOptions?: readonly { id: string; name: string; address: string }[];
+  /** The business's saved segments, offered beside the built-in cohorts. */
+  segmentOptions?: readonly { id: string; name: string; size: number }[];
+  /**
+   * Live mode drops what has no live source: district clusters, the sample
+   * reach forecast and the sample cohort sizes.
+   */
+  live?: boolean;
 }
 
 export interface CampaignAudienceSelection {
   strategy: string;
   cohorts: string[];
+  /** Saved segment ids (from `/segments`). */
+  segmentIds: string[];
   branches: string[];
   clusters: string[];
   radius: string;
@@ -45,24 +57,35 @@ export interface CampaignAudienceSelection {
 export function CampaignStep3AudienceScreen({
   onBack,
   onContinue,
-  presetSegmentId,
+  onSaveDraft,
+  initialSelection,
+  branchOptions,
+  segmentOptions = [],
+  live = false,
 }: CampaignStep3AudienceScreenProps) {
-  const [strategy, setStrategy] = useState<string>(step.strategies[1].id);
-  const [cohorts, setCohorts] = useState<string[]>(
-    presetSegmentId
-      ? [presetSegmentId]
-      : [step.cohorts[0].id, step.cohorts[1].id, step.cohorts[2].id],
+  const outlets = branchOptions ?? step.branches;
+  const [strategy, setStrategy] = useState<string>(
+    initialSelection?.strategy ?? step.strategies[1].id,
   );
-  const [branches, setBranches] = useState<string[]>([
-    step.branches[0].id,
-    step.branches[1].id,
-  ]);
-  const [clusters, setClusters] = useState<string[]>([
-    step.clusters[0],
-    step.clusters[1],
-    step.clusters[2],
-  ]);
-  const [radius, setRadius] = useState<string>(step.radii[1].id);
+  const [cohorts, setCohorts] = useState<string[]>(
+    initialSelection?.cohorts ?? [
+      step.cohorts[0].id,
+      step.cohorts[1].id,
+      step.cohorts[2].id,
+    ],
+  );
+  const [segmentIds, setSegmentIds] = useState<string[]>(
+    initialSelection?.segmentIds ?? [],
+  );
+  const [branches, setBranches] = useState<string[]>(
+    initialSelection?.branches ?? [step.branches[0].id, step.branches[1].id],
+  );
+  const [clusters, setClusters] = useState<string[]>(
+    initialSelection?.clusters ?? [step.clusters[0], step.clusters[1], step.clusters[2]],
+  );
+  const [radius, setRadius] = useState<string>(
+    initialSelection?.radius ?? step.radii[1].id,
+  );
 
   function toggle(list: string[], setList: (next: string[]) => void, id: string) {
     setList(list.includes(id) ? list.filter(item => item !== id) : [...list, id]);
@@ -75,59 +98,76 @@ export function CampaignStep3AudienceScreen({
       hero={step.hero}
       heroBody={step.heroBody}
       onBack={onBack}
-      onNext={() => onContinue({ strategy, cohorts, branches, clusters, radius })}
+      onNext={() =>
+        onContinue({
+          strategy,
+          cohorts,
+          segmentIds,
+          branches,
+          clusters: live ? [] : clusters,
+          radius,
+        })
+      }
       nextLabel={step.cta}
       backLabel={step.back}
+      draftLabel={onSaveDraft ? copy.saveDraft : undefined}
+      onSaveDraft={onSaveDraft}
     >
-      <SetupSectionCard tone="container" className="gap-3 p-4">
-        <View className="flex-row items-center justify-between gap-2">
-          <View className="flex-row items-center gap-1.5">
-            <View className="h-1.5 w-1.5 rounded-full bg-success" />
-            <VemtapText variant="caption" className="font-sans-semibold text-success">
-              {step.forecastBadge}
-            </VemtapText>
-          </View>
-          <Icon name="radar" size={20} color={colors.primary} />
-        </View>
-        <VemtapText variant="caption" tone="tertiary">
-          {step.reachLabel}
-        </VemtapText>
-        <View className="flex-row flex-wrap items-baseline gap-1.5">
-          <VemtapText variant="headingLg" className="font-sans-bold" numberOfLines={1}>
-            {step.reachValue}
-          </VemtapText>
-          <VemtapText variant="bodyMd" tone="secondary">
-            {step.reachUnit}
-          </VemtapText>
-        </View>
-        <View className="flex-row items-center justify-between gap-2">
-          <VemtapText variant="labelSm" className="font-sans-semibold" numberOfLines={1}>
-            {step.mixTitle}
-          </VemtapText>
-          <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-            {step.mixMeta}
-          </VemtapText>
-        </View>
-        <View className="h-2 w-full flex-row gap-0.5 overflow-hidden rounded-full">
-          {step.mix.map((slice, index) => (
-            <View
-              key={slice.id}
-              className={index === 0 ? 'h-full bg-primary' : 'h-full bg-primary-fixed'}
-              style={{ width: `${slice.percent}%` }}
-            />
-          ))}
-        </View>
-        <View className="flex-row flex-wrap items-center gap-x-3 gap-y-1">
-          {step.mix.map(slice => (
-            <View key={slice.id} className="flex-row items-center gap-1">
-              <View className="h-1.5 w-1.5 rounded-full bg-primary" />
-              <VemtapText variant="micro" tone="secondary" numberOfLines={1}>
-                {slice.label}
+      {live ? null : (
+        <SetupSectionCard tone="container" className="gap-3 p-4">
+          <View className="flex-row items-center justify-between gap-2">
+            <View className="flex-row items-center gap-1.5">
+              <View className="h-1.5 w-1.5 rounded-full bg-success" />
+              <VemtapText variant="caption" className="font-sans-semibold text-success">
+                {step.forecastBadge}
               </VemtapText>
             </View>
-          ))}
-        </View>
-      </SetupSectionCard>
+            <Icon name="radar" size={20} color={colors.primary} />
+          </View>
+          <VemtapText variant="caption" tone="tertiary">
+            {step.reachLabel}
+          </VemtapText>
+          <View className="flex-row flex-wrap items-baseline gap-1.5">
+            <VemtapText variant="headingLg" className="font-sans-bold" numberOfLines={1}>
+              {step.reachValue}
+            </VemtapText>
+            <VemtapText variant="bodyMd" tone="secondary">
+              {step.reachUnit}
+            </VemtapText>
+          </View>
+          <View className="flex-row items-center justify-between gap-2">
+            <VemtapText
+              variant="labelSm"
+              className="font-sans-semibold"
+              numberOfLines={1}
+            >
+              {step.mixTitle}
+            </VemtapText>
+            <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
+              {step.mixMeta}
+            </VemtapText>
+          </View>
+          <View className="h-2 w-full flex-row gap-0.5 overflow-hidden rounded-full">
+            {step.mix.map((slice, index) => (
+              <View
+                key={slice.id}
+                className={index === 0 ? 'h-full bg-primary' : 'h-full bg-primary-fixed'}
+                style={{ width: `${slice.percent}%` }}
+              />
+            ))}
+          </View>
+          <View className="flex-row flex-wrap items-center gap-x-3 gap-y-1">
+            {step.mix.map(slice => (
+              <View key={slice.id} className="flex-row items-center gap-1">
+                <View className="h-1.5 w-1.5 rounded-full bg-primary" />
+                <VemtapText variant="micro" tone="secondary" numberOfLines={1}>
+                  {slice.label}
+                </VemtapText>
+              </View>
+            ))}
+          </View>
+        </SetupSectionCard>
+      )}
 
       <View className="gap-3">
         <SetupSectionHeading title={step.strategyTitle} />
@@ -158,18 +198,48 @@ export function CampaignStep3AudienceScreen({
               title={cohort.name}
               subtitle={cohort.sub}
               trailing={
-                <VemtapText
-                  variant="labelSm"
-                  className="font-sans-semibold text-primary"
-                  numberOfLines={1}
-                >
-                  {cohort.figure}
-                </VemtapText>
+                live ? undefined : (
+                  <VemtapText
+                    variant="labelSm"
+                    className="font-sans-semibold text-primary"
+                    numberOfLines={1}
+                  >
+                    {cohort.figure}
+                  </VemtapText>
+                )
               }
               selected={cohorts.includes(cohort.id)}
               onPress={() => toggle(cohorts, setCohorts, cohort.id)}
             />
           ))}
+          {segmentOptions.length ? (
+            <>
+              <VemtapText
+                variant="labelSm"
+                className="font-sans-semibold text-text-secondary"
+              >
+                {step.liveSegmentsTitle}
+              </VemtapText>
+              {segmentOptions.map(segment => (
+                <BusinessCheckRow
+                  key={segment.id}
+                  type="checkbox"
+                  title={segment.name}
+                  trailing={
+                    <VemtapText
+                      variant="labelSm"
+                      className="font-sans-semibold text-primary"
+                      numberOfLines={1}
+                    >
+                      {step.liveSegmentFigure(segment.size)}
+                    </VemtapText>
+                  }
+                  selected={segmentIds.includes(segment.id)}
+                  onPress={() => toggle(segmentIds, setSegmentIds, segment.id)}
+                />
+              ))}
+            </>
+          ) : null}
         </View>
       ) : null}
 
@@ -177,10 +247,10 @@ export function CampaignStep3AudienceScreen({
         <View className="flex-row items-center justify-between gap-2">
           <SetupSectionHeading title={step.geoTitle} className="min-w-0 flex-1" />
           <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-            {`${branches.length} of ${step.branches.length} Branches`}
+            {step.liveBranchesCount(branches.length, outlets.length)}
           </VemtapText>
         </View>
-        {step.branches.map(branch => (
+        {outlets.map(branch => (
           <BusinessScopeCard
             key={branch.id}
             type="checkbox"
@@ -191,20 +261,27 @@ export function CampaignStep3AudienceScreen({
             onPress={() => toggle(branches, setBranches, branch.id)}
           />
         ))}
-        <VemtapText variant="labelSm" className="font-sans-semibold text-text-secondary">
-          {step.clustersTitle}
-        </VemtapText>
-        <HorizontallyScrollableRow>
-          {step.clusters.map(cluster => (
-            <BusinessSelectionChip
-              key={cluster}
-              label={cluster}
-              showCheck
-              selected={clusters.includes(cluster)}
-              onPress={() => toggle(clusters, setClusters, cluster)}
-            />
-          ))}
-        </HorizontallyScrollableRow>
+        {live ? null : (
+          <>
+            <VemtapText
+              variant="labelSm"
+              className="font-sans-semibold text-text-secondary"
+            >
+              {step.clustersTitle}
+            </VemtapText>
+            <HorizontallyScrollableRow>
+              {step.clusters.map(cluster => (
+                <BusinessSelectionChip
+                  key={cluster}
+                  label={cluster}
+                  showCheck
+                  selected={clusters.includes(cluster)}
+                  onPress={() => toggle(clusters, setClusters, cluster)}
+                />
+              ))}
+            </HorizontallyScrollableRow>
+          </>
+        )}
       </View>
 
       <View className="gap-3">
@@ -237,11 +314,15 @@ export function CampaignStep3AudienceScreen({
             );
           })}
         </View>
-        <BusinessProgressMeter
-          label={step.reachLabel}
-          value={step.reachValue}
-          percent={Number(step.radii.find(option => option.id === radius)?.id ?? 1) * 10}
-        />
+        {live ? null : (
+          <BusinessProgressMeter
+            label={step.reachLabel}
+            value={step.reachValue}
+            percent={
+              Number(step.radii.find(option => option.id === radius)?.id ?? 1) * 10
+            }
+          />
+        )}
       </View>
     </CampaignWizardStepLayout>
   );

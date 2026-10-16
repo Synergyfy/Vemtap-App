@@ -161,47 +161,20 @@ export type BusinessStackParamList = {
   BoostPerformance: undefined;
   BoostWallet: undefined;
   /** Create Campaign wizard — one stack entry per step, per AGENTS rule 21. */
+  /**
+   * Create Campaign wizard. The choices live in `campaignDraftStore` (so any
+   * step can save a draft and the review launches it), not in route params.
+   */
   CampaignCreateObjective: undefined;
-  CampaignCreateContent: { objectiveId?: string } | undefined;
-  CampaignCreateAudience:
-    { objectiveId?: string; assetIds?: string[]; segmentId?: string } | undefined;
-  CampaignCreateSchedule:
-    | {
-        objectiveId?: string;
-        assetIds?: string[];
-        segmentId?: string;
-        radius?: string;
-      }
-    | undefined;
-  CampaignCreateBudget:
-    | {
-        objectiveId?: string;
-        assetIds?: string[];
-        segmentId?: string;
-        radius?: string;
-        durationDays?: number;
-      }
-    | undefined;
-  CampaignReviewLaunch:
-    | {
-        objectiveId?: string;
-        objectiveTitle?: string;
-        assetIds?: string[];
-        assetNames?: string[];
-        segmentId?: string;
-        cohortNames?: string[];
-        branchIds?: string[];
-        branchNames?: string[];
-        clusterNames?: string[];
-        radius?: string;
-        durationDays?: number;
-        total?: number;
-        daily?: number;
-      }
-    | undefined;
+  CampaignCreateContent: undefined;
+  CampaignCreateAudience: undefined;
+  CampaignCreateSchedule: undefined;
+  CampaignCreateBudget: undefined;
+  CampaignReviewLaunch: undefined;
   /** Segment surfaces. `SegmentActions` is the shared BottomSheet owner. */
   SegmentActions: { segmentId?: string; segmentName?: string } | undefined;
-  CreateCustomSegment: undefined;
+  /** New segment, or `segmentId` to edit a saved one's rules. */
+  CreateCustomSegment: { segmentId?: string } | undefined;
   SegmentAudienceDetails: { segmentId?: string } | undefined;
   /** QR & storefront discovery surfaces (More hub → QR & Storefront Discovery). */
   BusinessQr: undefined;

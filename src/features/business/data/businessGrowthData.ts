@@ -47,7 +47,8 @@ export interface CampaignLiveStat {
   note?: string;
 }
 
-export type CampaignStatus = 'live' | 'scheduled' | 'completed';
+/** `paused` and `draft` only occur on live campaigns from `/promotions`. */
+export type CampaignStatus = 'live' | 'scheduled' | 'completed' | 'paused' | 'draft';
 
 export interface CampaignCard {
   id: string;
@@ -75,6 +76,8 @@ const statusPill: Record<
   live: { tone: 'success', icon: 'timelapse' },
   scheduled: { tone: 'brand', icon: 'calendarTask' },
   completed: { tone: 'neutral', icon: 'checkBold' },
+  paused: { tone: 'neutral', icon: 'pauseCircle' },
+  draft: { tone: 'neutral', icon: 'edit' },
 };
 
 export const campaignStatusMeta = statusPill;

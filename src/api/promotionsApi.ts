@@ -1,20 +1,50 @@
 import { z } from 'zod';
 import { requestValidated } from '@api/client';
 import type { ApiRequestOptions } from '@app-types/api';
+import { decimal, nullableDecimal } from '@api/schemaHelpers';
 
-export const promotionAssetSchema = z.object({
-  type: z.enum(['deal', 'product', 'service', 'profile']),
+/**
+ * Promotion campaigns (`/promotions`): paid discovery-feed campaigns built by
+ * the Create Campaign wizard and funded from the ad wallet. Shapes follow
+ * `apps/backend/src/modules/promotions` (`SaveCampaignDto`, `view()`); `/boosts`
+ * is the same lifecycle with `kind: 'boost'`.
+ *
+ * Note this is not `/campaigns`, which is the WhatsApp/SMS message blast.
+ */
+
+export const PROMOTION_STATUSES = [
+  'Draft',
+  'Pending',
+  'Active',
+  'Paused',
+  'Ended',
+] as const;
+export const promotionStatusSchema = z.enum(PROMOTION_STATUSES);
+export type PromotionStatus = z.infer<typeof promotionStatusSchema>;
+
+export const promotionAssetTypeSchema = z.enum(['deal', 'product', 'service', 'profile']);
+export type PromotionAssetType = z.infer<typeof promotionAssetTypeSchema>;
+
+/** A listing the content step can feature (`GET /promotions/eligible-assets`). */
+export const promotionEligibleAssetSchema = z.object({
+  type: promotionAssetTypeSchema,
   id: z.string(),
-  title: z.string().optional(),
-  image: z.string().optional(),
-  price: z.number().optional(),
-  wasPrice: z.number().optional(),
-  priorClaims: z.number().optional(),
+  title: z.string(),
+  image: z.string().nullish(),
+  price: nullableDecimal(),
+  wasPrice: nullableDecimal(),
+  priorClaims: z.number().nullish(),
 });
-export type PromotionAsset = z.infer<typeof promotionAssetSchema>;
+export type PromotionEligibleAsset = z.infer<typeof promotionEligibleAssetSchema>;
+
+export const promotionAssetRefSchema = z.object({
+  type: promotionAssetTypeSchema,
+  id: z.string(),
+});
+export type PromotionAssetRef = z.infer<typeof promotionAssetRefSchema>;
 
 export const promotionAudienceSchema = z.object({
-  strategy: z.enum(['nearby', 'segments']).optional(),
+  strategy: z.string().optional(),
   segmentIds: z.array(z.string()).optional(),
   cohorts: z.array(z.string()).optional(),
   branchIds: z.array(z.string()).optional(),
@@ -24,100 +54,158 @@ export const promotionAudienceSchema = z.object({
 export type PromotionAudience = z.infer<typeof promotionAudienceSchema>;
 
 export const promotionScheduleSchema = z.object({
-  durationDays: z.number().optional(),
-  startAt: z.string().optional(),
+  durationDays: z.number().int().min(1),
   instantLaunch: z.boolean().optional(),
+  startAt: z.string().optional(),
   dayparting: z.boolean().optional(),
   windows: z.array(z.string()).optional(),
-  weekdays: z.array(z.number()).optional(),
+  /** 0 = Sunday … 6 = Saturday. */
+  weekdays: z.array(z.number().int().min(0).max(6)).optional(),
   autoRenew: z.boolean().optional(),
 });
 export type PromotionSchedule = z.infer<typeof promotionScheduleSchema>;
 
-export const promotionBudgetSchema = z.object({
-  mode: z.enum(['total', 'daily']).optional(),
-  total: z.number().optional(),
-  daily: z.number().optional(),
-  funding: z.enum(['wallet', 'card']).optional(),
-  autoDebit: z.boolean().optional(),
-});
-export type PromotionBudget = z.infer<typeof promotionBudgetSchema>;
+export const promotionBudgetModeSchema = z.enum(['total', 'daily']);
+export type PromotionBudgetMode = z.infer<typeof promotionBudgetModeSchema>;
 
-export const promotionForecastSchema = z.object({
-  reachMin: z.number(),
-  reachMax: z.number(),
-  claimsMin: z.number(),
-  claimsMax: z.number(),
-  estReturn: z.number(),
-  confidence: z.enum(['low', 'medium', 'high']).optional(),
+/** `SaveCampaignDto`: create a draft, or patch any step of one. */
+export const savePromotionInputSchema = z.object({
+  name: z.string().min(1).optional(),
+  objective: z.string().optional(),
+  assets: z.array(promotionAssetRefSchema).optional(),
+  audience: promotionAudienceSchema.optional(),
+  schedule: promotionScheduleSchema.optional(),
+  budgetMode: promotionBudgetModeSchema.optional(),
+  /** Total budget (₦) when `budgetMode` is `total`. */
+  budget: z.number().min(0).optional(),
+  /** Per-day budget (₦) when `budgetMode` is `daily`. */
+  dailyBudget: z.number().min(0).optional(),
+  branchId: z.string().uuid().optional(),
 });
-export type PromotionForecast = z.infer<typeof promotionForecastSchema>;
-
-export const promotionSummarySchema = z.object({
-  audienceReached: z.number().optional(),
-  claims: z.number().optional(),
-  revenue: z.number().optional(),
-  liveCount: z.number().optional(),
-});
-export type PromotionSummary = z.infer<typeof promotionSummarySchema>;
-
-export const promotionStatsSchema = z.object({
-  reach: z.number().optional(),
-  impressions: z.number().optional(),
-  taps: z.number().optional(),
-  claims: z.number().optional(),
-  spend: z.number().optional(),
-  revenue: z.number().optional(),
-  series: z
-    .array(
-      z.object({
-        date: z.string(),
-        views: z.number().optional(),
-        claims: z.number().optional(),
-        redeemed: z.number().optional(),
-      }),
-    )
-    .optional(),
-});
-export type PromotionStats = z.infer<typeof promotionStatsSchema>;
+export type SavePromotionInput = z.input<typeof savePromotionInputSchema>;
 
 export const promotionSchema = z.object({
   id: z.string(),
-  name: z.string().nullish(),
-  status: z.string().optional(),
-  objective: z.string().optional(),
-  audience: promotionAudienceSchema.optional(),
-  schedule: promotionScheduleSchema.optional(),
-  budget: promotionBudgetSchema.optional(),
-  assets: z.array(promotionAssetSchema).optional(),
+  kind: z.string().optional(),
+  name: z.string(),
+  status: promotionStatusSchema,
+  objective: z.string().nullish(),
+  assets: z.array(promotionAssetRefSchema).default([]),
+  audience: promotionAudienceSchema.nullish(),
+  schedule: promotionScheduleSchema.nullish(),
+  budgetMode: promotionBudgetModeSchema.nullish(),
+  budget: decimal(),
+  dailyBudget: nullableDecimal(),
+  spent: decimal(),
+  remaining: decimal(),
+  fundingSource: z.enum(['wallet', 'card']).nullish(),
+  awaitingPayment: z.boolean().optional(),
+  paymentReference: z.string().nullish(),
+  branchId: z.string().nullish(),
+  startDate: z.string().nullish(),
+  endDate: z.string().nullish(),
+  launchedAt: z.string().nullish(),
+  impressions: z.number().nullish(),
+  clicks: z.number().nullish(),
+  conversions: z.number().nullish(),
   createdAt: z.string().nullish(),
   updatedAt: z.string().nullish(),
 });
 export type Promotion = z.infer<typeof promotionSchema>;
 
-export const promotionCreateInputSchema = z.object({
-  name: z.string().optional(),
-  objective: z.string().optional(),
-  assets: z.array(promotionAssetSchema).optional(),
-  audience: promotionAudienceSchema.optional(),
-  schedule: promotionScheduleSchema.optional(),
-  budget: promotionBudgetSchema.optional(),
+export const promotionsPageSchema = z.object({
+  data: z.array(promotionSchema),
+  total: z.number(),
+  page: z.number(),
+  limit: z.number(),
+  hasNextPage: z.boolean(),
 });
-export type PromotionCreateInput = z.input<typeof promotionCreateInputSchema>;
+export type PromotionsPage = z.infer<typeof promotionsPageSchema>;
+
+/** Hub header numbers (`GET /promotions/summary`). */
+export const promotionSummarySchema = z.object({
+  live: z.number(),
+  scheduled: z.number(),
+  paused: z.number(),
+  drafts: z.number(),
+  ended: z.number(),
+  totalBudget: decimal(),
+  totalSpent: decimal(),
+  audienceReached: z.number(),
+  claims: z.number(),
+  redemptions: z.number(),
+  revenue: decimal(),
+});
+export type PromotionSummary = z.infer<typeof promotionSummarySchema>;
+
+/** Reach and claims estimate for a budget; an estimate, never a promise. */
+export const promotionForecastSchema = z.object({
+  budget: decimal(),
+  durationDays: z.number(),
+  dailyPace: decimal(),
+  radiusKm: z.number(),
+  reachMin: z.number(),
+  reachMax: z.number(),
+  claimsMin: z.number(),
+  claimsMax: z.number(),
+  audienceCapped: z.boolean(),
+  isEstimate: z.boolean().optional(),
+});
+export type PromotionForecast = z.infer<typeof promotionForecastSchema>;
+
+export const promotionForecastInputSchema = z.object({
+  budget: z.number().min(0).optional(),
+  dailyBudget: z.number().min(0).optional(),
+  durationDays: z.number().int().min(1).optional(),
+  radiusKm: z.number().optional(),
+});
+export type PromotionForecastInput = z.input<typeof promotionForecastInputSchema>;
+
+/** The Paystack checkout a card-funded launch opens for the wallet shortfall. */
+export const promotionCheckoutSchema = z.object({
+  reference: z.string(),
+  amount: decimal(),
+  bonus: decimal().optional(),
+  accessCode: z.string().nullish(),
+  authorizationUrl: z.string().nullish(),
+});
+export type PromotionCheckout = z.infer<typeof promotionCheckoutSchema>;
+
+export const launchedPromotionSchema = promotionSchema.extend({
+  checkout: promotionCheckoutSchema.optional(),
+});
+export type LaunchedPromotion = z.infer<typeof launchedPromotionSchema>;
+
+export const promotionStatsSchema = z.object({
+  id: z.string(),
+  status: promotionStatusSchema,
+  kpis: z.object({
+    budget: decimal(),
+    spent: decimal(),
+    left: decimal(),
+    percentConsumed: z.number(),
+    redemptions: z.number(),
+    grossRevenue: decimal(),
+    reach: z.number(),
+    returnOnSpend: nullableDecimal(),
+  }),
+  funnel: z.array(z.object({ id: z.string(), label: z.string(), value: z.number() })),
+  rhythm: z.array(z.object({ hour: z.number(), claims: z.number() })),
+  byBranch: z.array(
+    z.object({ branchId: z.string(), name: z.string(), claims: z.number() }),
+  ),
+  series: z.array(z.object({ date: z.string(), spend: decimal(), claims: z.number() })),
+});
+export type PromotionStats = z.infer<typeof promotionStatsSchema>;
 
 export const promotionsApi = {
   async listPromotions(
-    params: { status?: string; branchId?: string; page?: number; limit?: number } = {},
+    params: { status?: PromotionStatus; page?: number; limit?: number } = {},
     options: ApiRequestOptions = {},
-  ): Promise<Promotion[]> {
-    return requestValidated<Promotion[]>(
-      {
-        method: 'GET',
-        url: '/promotions',
-        params,
-        ...options,
-      },
-      z.array(promotionSchema),
+  ): Promise<PromotionsPage> {
+    return requestValidated<PromotionsPage>(
+      { method: 'GET', url: '/promotions', params, ...options },
+      promotionsPageSchema,
     );
   },
 
@@ -129,14 +217,14 @@ export const promotionsApi = {
   },
 
   async createPromotion(
-    input: PromotionCreateInput,
+    input: SavePromotionInput,
     options: ApiRequestOptions = {},
   ): Promise<Promotion> {
     return requestValidated<Promotion>(
       {
         method: 'POST',
         url: '/promotions',
-        data: promotionCreateInputSchema.parse(input),
+        data: savePromotionInputSchema.parse(input),
         ...options,
       },
       promotionSchema,
@@ -155,33 +243,38 @@ export const promotionsApi = {
 
   async updatePromotion(
     promotionId: string,
-    input: Partial<PromotionCreateInput>,
+    input: SavePromotionInput,
     options: ApiRequestOptions = {},
   ): Promise<Promotion> {
     return requestValidated<Promotion>(
       {
         method: 'PATCH',
         url: `/promotions/${promotionId}`,
-        data: promotionCreateInputSchema.partial().parse(input),
+        data: savePromotionInputSchema.parse(input),
         ...options,
       },
       promotionSchema,
     );
   },
 
+  /**
+   * Reserve the budget from the ad wallet and go live (or scheduled). With
+   * `card`, a wallet shortfall comes back as a Paystack `checkout`; the paid
+   * top-up launches the campaign server-side.
+   */
   async launchPromotion(
     promotionId: string,
-    payload: Record<string, unknown> = {},
+    input: { fundingSource?: 'wallet' | 'card'; callbackUrl?: string } = {},
     options: ApiRequestOptions = {},
-  ): Promise<Promotion> {
-    return requestValidated<Promotion>(
+  ): Promise<LaunchedPromotion> {
+    return requestValidated<LaunchedPromotion>(
       {
         method: 'POST',
         url: `/promotions/${promotionId}/launch`,
-        data: payload,
+        data: input,
         ...options,
       },
-      promotionSchema,
+      launchedPromotionSchema,
     );
   },
 
@@ -225,26 +318,24 @@ export const promotionsApi = {
     );
   },
 
-  async listEligibleAssets(options: ApiRequestOptions = {}): Promise<PromotionAsset[]> {
-    return requestValidated<PromotionAsset[]>(
+  async listEligibleAssets(
+    options: ApiRequestOptions = {},
+  ): Promise<PromotionEligibleAsset[]> {
+    return requestValidated<PromotionEligibleAsset[]>(
       { method: 'GET', url: '/promotions/eligible-assets', ...options },
-      z.array(promotionAssetSchema),
+      z.array(promotionEligibleAssetSchema),
     );
   },
 
   async forecastPromotion(
-    input: {
-      audience?: PromotionAudience;
-      budget?: PromotionBudget;
-      schedule?: PromotionSchedule;
-    },
+    input: PromotionForecastInput,
     options: ApiRequestOptions = {},
   ): Promise<PromotionForecast> {
     return requestValidated<PromotionForecast>(
       {
         method: 'POST',
         url: '/promotions/forecast',
-        data: input,
+        data: promotionForecastInputSchema.parse(input),
         ...options,
       },
       promotionForecastSchema,

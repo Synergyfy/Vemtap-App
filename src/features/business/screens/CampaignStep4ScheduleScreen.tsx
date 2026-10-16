@@ -34,7 +34,26 @@ const WEEKDAYS = [
 export interface CampaignStep4ScheduleScreenProps {
   onBack: () => void;
   onContinue: (selection: CampaignScheduleSelection) => void;
+  onSaveDraft?: () => void;
   initialDays?: number;
+  /** Starting choices; the design's sample schedule when absent. */
+  initialSelection?: Partial<CampaignScheduleSelection>;
+  /**
+   * Live mode shows real start/end dates and drops the design's sample dates,
+   * the weekend-weighting claim and the testimonial.
+   */
+  live?: boolean;
+  /** Clock for the live dates (tests pin it). */
+  now?: Date;
+}
+
+function formatDay(date: Date): string {
+  return date.toLocaleDateString('en-NG', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
 }
 
 export interface CampaignScheduleSelection {
@@ -53,16 +72,31 @@ export interface CampaignScheduleSelection {
 export function CampaignStep4ScheduleScreen({
   onBack,
   onContinue,
+  onSaveDraft,
   initialDays = 7,
+  initialSelection,
+  live = false,
+  now,
 }: CampaignStep4ScheduleScreenProps) {
-  const [duration, setDuration] = useState<string>(String(initialDays));
-  const [instant, setInstant] = useState(true);
-  const [dayparting, setDayparting] = useState(true);
-  const [windows, setWindows] = useState<string[]>(['lunch', 'dinner']);
-  const [weekdays, setWeekdays] = useState<string[]>(['fri', 'sat', 'sun']);
-  const [autoRenew, setAutoRenew] = useState(false);
+  const [duration, setDuration] = useState<string>(
+    String(initialSelection?.durationDays ?? initialDays),
+  );
+  const [instant, setInstant] = useState(initialSelection?.instantLaunch ?? true);
+  const [dayparting, setDayparting] = useState(initialSelection?.dayparting ?? true);
+  const [windows, setWindows] = useState<string[]>(
+    initialSelection?.windows ?? ['lunch', 'dinner'],
+  );
+  const [weekdays, setWeekdays] = useState<string[]>(
+    initialSelection?.weekdays ?? ['fri', 'sat', 'sun'],
+  );
+  const [autoRenew, setAutoRenew] = useState(initialSelection?.autoRenew ?? false);
 
   const days = Number.parseInt(duration, 10) || 7;
+  const start = now ?? new Date();
+  const startValue = live ? step.liveStartNow(formatDay(start)) : step.startValue;
+  const endValue = live
+    ? formatDay(new Date(start.getTime() + days * 86_400_000))
+    : step.endValue;
   const totalDays = step.durations.find(option => option.id === duration);
 
   return (
@@ -84,6 +118,8 @@ export function CampaignStep4ScheduleScreen({
       }
       nextLabel={step.cta}
       backLabel={step.back}
+      draftLabel={onSaveDraft ? copy.saveDraft : undefined}
+      onSaveDraft={onSaveDraft}
       trackerExtra={
         <View className="flex-row items-center justify-between gap-2">
           <VemtapText
@@ -172,7 +208,7 @@ export function CampaignStep4ScheduleScreen({
               className="shrink-0 font-sans-semibold"
               numberOfLines={1}
             >
-              {step.startValue}
+              {startValue}
             </VemtapText>
             <View className="shrink-0 rounded-full bg-badge-discount-bg px-2 py-0.5">
               <VemtapText
@@ -198,7 +234,7 @@ export function CampaignStep4ScheduleScreen({
               className="font-sans-semibold"
               numberOfLines={1}
             >
-              {step.endValue}
+              {endValue}
             </VemtapText>
           </View>
           <View className="h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-container">
@@ -320,31 +356,35 @@ export function CampaignStep4ScheduleScreen({
             );
           })}
         </View>
-        <SetupCallout
-          icon="autoAwesome"
-          title={step.weekendNote}
-          body={step.weekendBody}
-          tone="tint"
-          bodyVariant="caption"
-        />
+        {live ? null : (
+          <SetupCallout
+            icon="autoAwesome"
+            title={step.weekendNote}
+            body={step.weekendBody}
+            tone="tint"
+            bodyVariant="caption"
+          />
+        )}
       </View>
 
       <SetupSectionCard tone="lowest" className="p-4 shadow-sm">
         <ToggleRow
           title={step.renewTitle}
-          body={step.renewBody}
+          body={live ? step.liveRenewBody : step.renewBody}
           value={autoRenew}
           onValueChange={setAutoRenew}
         />
       </SetupSectionCard>
 
-      <SetupCallout
-        icon="autoAwesome"
-        title={step.tipFrom}
-        body={step.tipBody}
-        tone="subtle"
-        bodyVariant="caption"
-      />
+      {live ? null : (
+        <SetupCallout
+          icon="autoAwesome"
+          title={step.tipFrom}
+          body={step.tipBody}
+          tone="subtle"
+          bodyVariant="caption"
+        />
+      )}
     </CampaignWizardStepLayout>
   );
 }

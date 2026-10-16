@@ -7581,6 +7581,62 @@ export const strings = {
       title: 'No campaigns yet',
       body: 'Create a campaign to start driving footfall.',
     },
+    /** Labels for campaigns read from `/promotions`. */
+    live: {
+      tabs: (counts: { all: number; live: number; scheduled: number; ended: number }) =>
+        [
+          `All (${counts.all})`,
+          `Active (${counts.live})`,
+          `Scheduled (${counts.scheduled})`,
+          `Completed (${counts.ended})`,
+        ] as const,
+      liveNowBadge: (count: number) => `${count} Running`,
+      reachNote: 'Feed impressions',
+      conversionsLabel: 'Claims',
+      conversionsNote: (redeemed: number) =>
+        `${redeemed.toLocaleString('en-NG')} redeemed`,
+      gmvLabel: 'Revenue Driven',
+      gmvNote: (spent: string) => `${spent} spent`,
+      upcomingBadge: (count: number) => `${count} queued`,
+      untitled: 'Campaign',
+      assetCount: (count: number) => `${count} ${count === 1 ? 'asset' : 'assets'}`,
+      priorClaims: (count: number) => `${count.toLocaleString('en-NG')} prior claims`,
+      audienceNearby: (radiusKm: number) => `Nearby customers (${radiusKm} km radius)`,
+      audienceSegments: (count: number, radiusKm: number) =>
+        `${count} ${count === 1 ? 'segment' : 'segments'} within ${radiusKm} km`,
+      resumeCta: 'Resume Campaign',
+      continueCta: 'Continue Setup',
+      stats: {
+        reach: 'Reach',
+        taps: 'Taps',
+        spent: 'Spent',
+        of: (budget: string) => `of ${budget}`,
+      },
+      status: {
+        active: 'Active',
+        activeLeft: (days: number) =>
+          `Active \u2022 ${days} ${days === 1 ? 'Day' : 'Days'} Left`,
+        scheduled: 'Scheduled',
+        scheduledFor: (date: string) => `Scheduled for ${date}`,
+        awaitingPayment: 'Awaiting payment',
+        paused: 'Paused',
+        draft: 'Draft',
+        ended: 'Ended',
+        endedOn: (date: string) => `Ended ${date}`,
+      },
+      assetTypes: {
+        deal: { eyebrow: 'Deal Pass', badge: 'Deal' },
+        product: { eyebrow: 'Product Item', badge: 'Product' },
+        service: { eyebrow: 'Service', badge: 'Service' },
+        profile: { eyebrow: 'Storefront Profile', badge: 'Profile' },
+      },
+      playbookSubtitle: (count: number) =>
+        `Win Back ${count.toLocaleString('en-NG')} Lapsed Customers`,
+      playbookBody: (count: number) =>
+        `${count.toLocaleString('en-NG')} customers haven't visited in 60+ days. Re-ignite visits with a campaign aimed at them.`,
+      loadFailed: 'Could not load campaigns.',
+      actionFailed: 'Could not update the campaign. Please try again.',
+    },
     error: {
       title: 'Could not load campaigns',
       body: 'Pull to refresh or try again in a moment.',
@@ -7607,6 +7663,19 @@ export const strings = {
     launchCta: 'Launch Campaign ({amount})',
     deploying: 'Deploying to VEMTAP Feeds...',
     liveCopy: 'Campaign Live in Abuja!',
+    liveLaunched: 'Campaign launched!',
+    liveScheduled: 'Campaign scheduled',
+    liveAwaitingPayment: 'Waiting for your card payment\u2026',
+    livePaymentCancelled:
+      'Payment not completed. The campaign is saved and waits for payment.',
+    liveDraftSaved: 'Campaign saved as a draft',
+    liveDraftFailed: 'Could not save the draft. Please try again.',
+    liveLoadFailed: 'Could not load this step. Please try again.',
+    liveRadius: (km: number) => `${km} km around your branches`,
+    liveDaily: (amount: string) => `${amount} / active day`,
+    liveSchedule: (days: number, instant: boolean) =>
+      `${days} ${days === 1 ? 'Day' : 'Days'} \u2022 ${instant ? 'Starts on launch' : 'Scheduled start'}`,
+    liveAllDay: 'All day',
     step1: {
       title: 'Create Campaign Objective',
       hero: 'Select Campaign Objective',
@@ -7726,6 +7795,17 @@ export const strings = {
       ] as const,
       selectedOne: '1 item selected for this campaign',
       selectedMany: '{count} items selected for this campaign',
+      /** Filter labels for live assets; counts are appended. */
+      liveFilters: {
+        all: 'All Eligible',
+        deals: 'Deals',
+        profile: 'Business Profile',
+        products: 'Products',
+        services: 'Services',
+      },
+      liveEmptyTitle: 'Nothing to feature yet',
+      liveEmptyBody:
+        'Publish a deal, product or service first, then come back to promote it.',
       cta: 'Continue to Audience (Step 3)',
       back: 'Back',
     },
@@ -7793,6 +7873,10 @@ export const strings = {
         { id: 'maitama', name: 'Maitama Heights', address: 'Gana Street Cluster' },
         { id: 'garki', name: 'Garki Express (Kiosk)', address: 'Area 11 Shopping Plaza' },
       ] as const,
+      liveSegmentsTitle: 'Your Saved Segments',
+      liveSegmentFigure: (count: number) => `${count.toLocaleString('en-NG')} customers`,
+      liveBranchesCount: (selected: number, total: number) =>
+        `${selected} of ${total} Branches`,
       clustersTitle: 'Target District Clusters',
       clusters: [
         'Wuse District',
@@ -7874,6 +7958,9 @@ export const strings = {
       tipFrom: 'Pro-tip from Nimbus Coffee House',
       tipBody:
         'Scheduling our 7-day deals specifically for Lunch Rush boosted our direct redemption claims by 68%.',
+      liveStartNow: (date: string) => `On launch \u2022 ${date}`,
+      liveRenewBody:
+        'Runs again for the same length when it ends, if your ad wallet can cover it.',
       cta: 'Continue to Budget (Step 5)',
       back: 'Back to Step 3: Audience',
     },
@@ -7947,6 +8034,15 @@ export const strings = {
       proofBy: 'Chef Tunde, Bistro 74 Victoria Island',
       summary: 'Summary: {days} Days @ {pace}',
       summaryTotal: 'Total: {total}',
+      liveTiersMeta: (days: number) => `${days}-day estimate`,
+      liveWalletAvailable: (amount: string) => `${amount} available`,
+      liveWalletLoading: 'Checking balance\u2026',
+      liveAutoDebitTitle: 'Pay the shortfall by card',
+      liveAutoDebitBody:
+        'Opens a secure Paystack checkout for whatever your wallet cannot cover.',
+      liveTopUpRequired: 'Turn on card payment or top up your ad wallet to launch.',
+      liveReach: 'Reach',
+      liveClaims: 'Claims',
       back: 'Previous Step',
     },
     step6: {
@@ -7956,6 +8052,16 @@ export const strings = {
         'Double-check all campaign parameters before deploying to local discovery feeds.',
       impactTitle: 'Estimated Reach & Impact',
       impactMeta: 'Projected 7-Day Performance Window',
+      liveImpactMeta: (days: number) => `Projected ${days}-Day Performance Window`,
+      liveImpactBadge: 'Estimate',
+      liveReachLabel: 'Local Reach',
+      liveClaimsLabel: 'Claims',
+      liveClaimsSub: 'vouchers',
+      liveAudience: (segments: number, branches: number) =>
+        `${segments} ${segments === 1 ? 'Segment' : 'Segments'} \u2022 ${branches} ${branches === 1 ? 'Branch' : 'Branches'}`,
+      liveAudienceNearby: 'All Nearby Customers',
+      liveCardLabel: 'Card (Paystack)',
+      liveLaunchFailed: 'Could not launch the campaign. Please try again.',
       impactBadge: '94% High Confidence',
       stats: [
         { label: 'Local Reach', value: '18k\u201326k', sub: '+34% pop.' },
@@ -7993,6 +8099,10 @@ export const strings = {
     },
     segmentActions: {
       title: 'Use Segment: Returning Customers',
+      liveTitle: (name: string) => `Use Segment: ${name}`,
+      liveMeta: (count: string) => `${count} customers`,
+      livePushReady: (count: string) => `${count} Push/Feed ready`,
+      liveMessageReady: (count: string) => `${count} SMS ready`,
       tag: 'Audience Activation',
       meta: '294 verified diners',
       rate: '68.2% repeat interaction rate',
@@ -8331,6 +8441,56 @@ export const strings = {
     error: {
       title: 'Could not load segments',
       body: 'Pull to refresh or try again in a moment.',
+    },
+    /** Labels for segments read from `/segments` (the prototype copy above stays for previews). */
+    live: {
+      smartTitle: 'Your Segments',
+      smartBadge: (count: number) => `${count} saved`,
+      footfallLabel: 'Customers Seen',
+      reachLabel: 'Reachable by Push',
+      dynamicBadge: 'Auto-updating',
+      staticBadge: 'Hand-picked',
+      staticInsight: 'Members added by your team',
+      cardCta: 'Create Campaign',
+      retry: 'Try again',
+      rules: {
+        deals: 'Claimed a deal',
+        menu: 'Ordered a menu item',
+        location: 'Visited a branch',
+        spend: 'High average ticket',
+        recency: 'Lapsed visitors',
+        everyone: 'Every customer you have served',
+      },
+      details: {
+        size: (count: number) => `${count.toLocaleString('en-NG')} Customers`,
+        frequency: (visits: number) => `${visits} visits`,
+        frequencyNote: 'per customer',
+        sampleMeta: (shown: number, total: number) =>
+          `${shown} of ${total.toLocaleString('en-NG')}`,
+        branchesMeta: 'Share of visits and orders',
+        updated: (when: string) => `Updated ${when}`,
+        justNow: 'just now',
+        minutesAgo: (minutes: number) => `${minutes}m ago`,
+        hoursAgo: (hours: number) => `${hours}h ago`,
+        daysAgo: (days: number) => `${days}d ago`,
+        patronMeta: (spend: string, lastSeen?: string) =>
+          lastSeen ? `${spend} spent • Last seen ${lastSeen}` : `${spend} spent`,
+        channels: {
+          push: 'Push Notification',
+          sms: 'SMS',
+          email: 'Email',
+        },
+        emptyBranches: 'No visits recorded yet',
+        emptyFavourites: 'No orders from this segment yet',
+        emptyPatrons: 'No customers match this segment yet',
+        loadFailed: 'Could not load this segment.',
+      },
+      builder: {
+        sizingNote:
+          'Counted from POS sales, orders, visits and deal claims at your business.',
+        noOptions: 'Nothing to pick yet',
+        saveFailed: 'Could not save the segment. Please try again.',
+      },
     },
   },
   boostEngine: {

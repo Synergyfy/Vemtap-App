@@ -158,8 +158,6 @@ import {
 } from '@features/business/utils/catalogueHubRowMappers';
 import { endSession } from '@features/auth/endSession';
 import { navigationRef } from '@navigation/navigationRef';
-import { CampaignsHubScreen } from '@features/business/screens/CampaignsHubScreen';
-import { CustomerSegmentsScreen } from '@features/business/screens/CustomerSegmentsScreen';
 import { BoostEngineScreen } from '@features/business/screens/BoostEngineScreen';
 import {
   BusinessAnalyticsVemtapIntelligenceScreen,
@@ -174,15 +172,6 @@ import {
   BoostPreviewPaymentScreen,
   BoostPerformanceScreen,
   BoostWalletScreen,
-  CampaignStep1ObjectiveScreen,
-  CampaignStep2ContentScreen,
-  CampaignStep3AudienceScreen,
-  CampaignStep4ScheduleScreen,
-  CampaignStep5BudgetScreen,
-  CampaignStep6ReviewScreen,
-  SegmentActionsSheet,
-  CreateCustomSegmentScreen,
-  SegmentAudienceDetailsScreen,
 } from '@features/business/screens';
 import { AddServiceAvailabilityRulesScreen } from '@features/business/screens/AddServiceAvailabilityRulesScreen';
 import { AddServiceBasicsMediaScreen } from '@features/business/screens/AddServiceBasicsMediaScreen';
@@ -252,6 +241,19 @@ import type { BillingPlanSummary } from '@features/business/screens/BusinessSubs
 import { formatDay } from '@features/business/verificationDisplay';
 import { formatCurrency } from '@utils/formatters';
 import { useVerificationStatus } from '@features/business/hooks/useVerification';
+import {
+  CampaignCreateAudienceRoute,
+  CampaignCreateBudgetRoute,
+  CampaignCreateContentRoute,
+  CampaignCreateObjectiveRoute,
+  CampaignCreateScheduleRoute,
+  CampaignReviewLaunchRoute,
+  CampaignsHubRoute,
+  CreateCustomSegmentRoute,
+  CustomerSegmentsRoute,
+  SegmentActionsRoute,
+  SegmentAudienceDetailsRoute,
+} from './growthRoutes';
 import { useBusinessNavigation } from './useBusinessNavigation';
 import type { BusinessTabParamList } from './types';
 
@@ -2484,52 +2486,6 @@ function SwitchToCustomerRoute() {
 /* Growth & QR routes                                                         */
 /* -------------------------------------------------------------------------- */
 
-function CampaignsHubRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <CampaignsHubScreen
-      onBack={navigation.goBack}
-      onOpenNotifications={() => navigation.navigate('BusinessNotifications')}
-      onCreateCampaign={() => navigation.navigate('CampaignCreateObjective')}
-      onApplyFilter={() => undefined}
-      onOpenSubTab={tabKey => {
-        if (tabKey === 'Boost') navigation.navigate('BoostEngine');
-        if (tabKey === 'Segments') navigation.navigate('CustomerSegments');
-        if (tabKey === 'Insights') navigation.navigate('BusinessPerformanceAnalytics');
-      }}
-      onPauseCampaign={() => navigation.navigate('BoostPerformance')}
-      onEditSetup={() => navigation.navigate('BoostGoalAudience')}
-      onPreviewPush={() => navigation.navigate('BoostPreviewPayment')}
-      onOpenRetentionPlaybook={() => navigation.navigate('CustomerSegments')}
-      onExport={() => undefined}
-      onViewCampaign={() => navigation.navigate('BoostPerformance')}
-    />
-  );
-}
-
-function CustomerSegmentsRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <CustomerSegmentsScreen
-      onBack={navigation.goBack}
-      onOpenNotifications={() => navigation.navigate('BusinessNotifications')}
-      onNewSegment={() => navigation.navigate('CreateCustomSegment')}
-      onOpenSubTab={tabKey => {
-        if (tabKey === 'Boost') navigation.navigate('BoostEngine');
-        if (tabKey === 'Campaigns') navigation.navigate('CampaignsHub');
-        if (tabKey === 'Insights') navigation.navigate('BusinessPerformanceAnalytics');
-      }}
-      onChangeScope={() => undefined}
-      onChangeWindow={() => undefined}
-      onOpenSegment={() => navigation.navigate('SegmentAudienceDetails')}
-      onRunSegmentAction={() => navigation.navigate('SegmentActions')}
-      onConfigureMatrix={() => undefined}
-      onSaveCohort={() => undefined}
-      onOpenProfile={() => undefined}
-    />
-  );
-}
-
 function BoostEngineRoute() {
   const navigation = useBusinessNavigation();
   return (
@@ -2787,173 +2743,9 @@ function BoostWalletRoute() {
 /* Create Campaign wizard routes                                              */
 /* -------------------------------------------------------------------------- */
 
-function CampaignCreateObjectiveRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <CampaignStep1ObjectiveScreen
-      onBack={navigation.goBack}
-      onContinue={objectiveId =>
-        navigation.navigate('CampaignCreateContent', { objectiveId })
-      }
-      onSaveDraft={() => navigation.navigate('CampaignsHub')}
-    />
-  );
-}
-
-function CampaignCreateContentRoute() {
-  const navigation = useBusinessNavigation();
-  const route = useRoute<RouteProp<BusinessTabParamList, 'CampaignCreateContent'>>();
-  return (
-    <CampaignStep2ContentScreen
-      onBack={navigation.goBack}
-      onContinue={assetIds =>
-        navigation.navigate('CampaignCreateAudience', {
-          objectiveId: route.params?.objectiveId,
-          assetIds,
-        })
-      }
-      onSaveDraft={() => navigation.navigate('CampaignsHub')}
-    />
-  );
-}
-
-function CampaignCreateAudienceRoute() {
-  const navigation = useBusinessNavigation();
-  const route = useRoute<RouteProp<BusinessTabParamList, 'CampaignCreateAudience'>>();
-  const { objectiveId, assetIds, segmentId } = route.params ?? {};
-  return (
-    <CampaignStep3AudienceScreen
-      onBack={navigation.goBack}
-      presetSegmentId={segmentId}
-      onContinue={selection =>
-        navigation.navigate('CampaignCreateSchedule', {
-          objectiveId,
-          assetIds,
-          segmentId,
-          radius: selection.radius,
-        })
-      }
-    />
-  );
-}
-
-function CampaignCreateScheduleRoute() {
-  const navigation = useBusinessNavigation();
-  const route = useRoute<RouteProp<BusinessTabParamList, 'CampaignCreateSchedule'>>();
-  const { objectiveId, assetIds, segmentId, radius } = route.params ?? {};
-  return (
-    <CampaignStep4ScheduleScreen
-      onBack={navigation.goBack}
-      onContinue={schedule =>
-        navigation.navigate('CampaignCreateBudget', {
-          objectiveId,
-          assetIds,
-          segmentId,
-          radius,
-          durationDays: schedule.durationDays,
-        })
-      }
-    />
-  );
-}
-
-function CampaignCreateBudgetRoute() {
-  const navigation = useBusinessNavigation();
-  const route = useRoute<RouteProp<BusinessTabParamList, 'CampaignCreateBudget'>>();
-  const { objectiveId, assetIds, segmentId, radius, durationDays } = route.params ?? {};
-  return (
-    <CampaignStep5BudgetScreen
-      onBack={navigation.goBack}
-      initialDays={durationDays}
-      onContinue={budget =>
-        navigation.navigate('CampaignReviewLaunch', {
-          objectiveId,
-          assetIds,
-          segmentId,
-          radius,
-          total: budget.total,
-          daily: budget.daily,
-          durationDays,
-        })
-      }
-    />
-  );
-}
-
-function CampaignReviewLaunchRoute() {
-  const navigation = useBusinessNavigation();
-  const route = useRoute<RouteProp<BusinessTabParamList, 'CampaignReviewLaunch'>>();
-  const params = route.params ?? {};
-  return (
-    <CampaignStep6ReviewScreen
-      onBack={navigation.goBack}
-      onLaunch={() => navigation.replace('CampaignsHub')}
-      onSaveDraft={() => navigation.navigate('CampaignsHub')}
-      objectiveId={params.objectiveId}
-      objectiveTitle={
-        params.objectiveTitle ??
-        strings.campaignWizard.step1.objectives.find(
-          option => option.id === params.objectiveId,
-        )?.title
-      }
-      radiusLabel={
-        params.radius
-          ? `${params.radius} km around Flagship`
-          : `${strings.campaignWizard.step3.radii[1].label} around Flagship`
-      }
-      totalLabel={params.total ? `₦${params.total.toLocaleString('en-NG')}` : undefined}
-      dailyLabel={
-        params.daily ? `₦${params.daily.toLocaleString('en-NG')} / active day` : undefined
-      }
-    />
-  );
-}
-
 /* -------------------------------------------------------------------------- */
 /* Segment routes                                                             */
 /* -------------------------------------------------------------------------- */
-
-function SegmentActionsRoute() {
-  const navigation = useBusinessNavigation();
-  const route = useRoute<RouteProp<BusinessTabParamList, 'SegmentActions'>>();
-  return (
-    <SegmentActionsSheet
-      visible
-      segmentName={route.params?.segmentName}
-      onClose={navigation.goBack}
-      onCreateCampaign={segmentId =>
-        navigation.replace('CampaignCreateAudience', { segmentId })
-      }
-      onComposeMessage={() => navigation.navigate('BusinessMessagesHome')}
-      onPromoteDeal={() => navigation.navigate('CentralDealsManagement')}
-      onOpenCrm={() => navigation.navigate('CustomerCrmDirectory')}
-    />
-  );
-}
-
-function CreateCustomSegmentRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <CreateCustomSegmentScreen
-      onClose={navigation.goBack}
-      onCancel={navigation.goBack}
-      onSave={() => navigation.replace('CustomerSegments')}
-    />
-  );
-}
-
-function SegmentAudienceDetailsRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <SegmentAudienceDetailsScreen
-      onClose={navigation.goBack}
-      onUseSegment={() => navigation.navigate('SegmentActions')}
-      onEditRules={() => navigation.navigate('CreateCustomSegment')}
-      onOpenCustomer={() => navigation.navigate('CustomerProfileDossier')}
-      onOpenCrm={() => navigation.navigate('CustomerCrmDirectory')}
-    />
-  );
-}
 
 function BusinessQrRoute() {
   const navigation = useBusinessNavigation();

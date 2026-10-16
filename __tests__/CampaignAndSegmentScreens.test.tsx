@@ -64,17 +64,27 @@ describe('create campaign — step 3 audience', () => {
     expect(screen.queryByText(copy.step3.cohorts[0].name)).toBeNull();
   });
 
-  it('seeds cohorts from a handed-over segment', async () => {
+  it('carries a handed-over saved segment as a segment id, not a cohort', async () => {
     const onContinue = jest.fn();
     await render(
       <CampaignStep3AudienceScreen
         onBack={noop}
         onContinue={onContinue}
-        presetSegmentId={copy.step3.cohorts[3].id}
+        live
+        initialSelection={{ strategy: 'segments', cohorts: [], segmentIds: ['seg-1'] }}
+        segmentOptions={[{ id: 'seg-1', name: 'Lapsed regulars', size: 42 }]}
+        branchOptions={[{ id: 'br-1', name: 'Wuse', address: '' }]}
       />,
     );
+    expect(screen.getByText('Lapsed regulars')).toBeTruthy();
+    // Live mode drops the sample forecast and the district clusters.
+    expect(screen.queryByText(copy.step3.reachValue)).toBeNull();
+    expect(screen.queryByText(copy.step3.clustersTitle)).toBeNull();
     await fireEvent.press(screen.getByLabelText(copy.step3.cta));
-    expect(onContinue.mock.calls[0][0].cohorts).toEqual([copy.step3.cohorts[3].id]);
+    const selection = onContinue.mock.calls[0][0];
+    expect(selection.segmentIds).toEqual(['seg-1']);
+    expect(selection.cohorts).toEqual([]);
+    expect(selection.clusters).toEqual([]);
   });
 });
 

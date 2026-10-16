@@ -16,7 +16,11 @@ import {
   BusinessMetricGrid,
 } from '@features/business/components/BusinessAnalyticsPrimitives';
 import { BusinessOptionGrid } from '@features/business/components/BusinessPosPrimitives';
+import { EmptyState } from '@components/shared/EmptyState';
+import { ErrorState } from '@components/shared/ErrorState';
+import { LoadingState } from '@components/shared/LoadingState';
 import {
+  type CustomerSegmentCard,
   customerSegments,
   growthSubTabIcon,
   growthSubTabs,
@@ -57,6 +61,20 @@ export interface CustomerSegmentsScreenProps {
   onConfigureMatrix?: () => void;
   onSaveCohort?: () => void;
   onOpenProfile?: () => void;
+  /** Live segments; the design's sample cohorts show when absent. */
+  segments?: readonly CustomerSegmentCard[];
+  /** Live header figures: customers seen and how many push can reach. */
+  metrics?: { footfall: string; reach: string };
+  /** Branch the segments belong to. */
+  scopeLabel?: string;
+  /**
+   * The prototype's district picker, spend floor and time window have no live
+   * source; live callers hide them and build audiences in the builder instead.
+   */
+  showPrototypeFilters?: boolean;
+  isLoading?: boolean;
+  error?: string;
+  onRetry?: () => void;
 }
 
 /**
@@ -76,7 +94,16 @@ export function CustomerSegmentsScreen({
   onConfigureMatrix,
   onSaveCohort,
   onOpenProfile,
+  segments,
+  metrics,
+  scopeLabel = copy.scopeLabel,
+  showPrototypeFilters = true,
+  isLoading = false,
+  error,
+  onRetry,
 }: CustomerSegmentsScreenProps) {
+  const live = segments !== undefined;
+  const cards = segments ?? customerSegments;
   const [subTab, setSubTab] = useState(growthSubTabs[0]);
   const [district, setDistrict] = useState<string>(copy.targetDistricts[0]);
 
@@ -125,7 +152,7 @@ export function CustomerSegmentsScreen({
       <View className="mt-3 flex-row gap-2">
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={copy.scopeLabel}
+          accessibilityLabel={scopeLabel}
           onPress={onChangeScope}
           className="min-h-11 min-w-0 flex-1 flex-row items-center gap-2 rounded-field bg-surface px-3 shadow-sm active:bg-surface-subtle"
         >
@@ -135,45 +162,63 @@ export function CustomerSegmentsScreen({
             className="min-w-0 flex-1 font-sans-semibold"
             numberOfLines={1}
           >
-            {copy.scopeLabel}
+            {scopeLabel}
           </VemtapText>
           <Icon name="expandMore" size={18} color={colors.textTertiary} />
         </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={copy.windowLabel}
-          onPress={onChangeWindow}
-          className="min-h-11 min-w-0 flex-1 flex-row items-center gap-2 rounded-field bg-surface px-3 shadow-sm active:bg-surface-subtle"
-        >
-          <Icon name="calendarTask" size={17} color={colors.primary} />
-          <VemtapText
-            variant="labelSm"
-            className="min-w-0 flex-1 font-sans-semibold"
-            numberOfLines={1}
+        {showPrototypeFilters ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={copy.windowLabel}
+            onPress={onChangeWindow}
+            className="min-h-11 min-w-0 flex-1 flex-row items-center gap-2 rounded-field bg-surface px-3 shadow-sm active:bg-surface-subtle"
           >
-            {copy.windowLabel}
-          </VemtapText>
-          <Icon name="expandMore" size={18} color={colors.textTertiary} />
-        </Pressable>
+            <Icon name="calendarTask" size={17} color={colors.primary} />
+            <VemtapText
+              variant="labelSm"
+              className="min-w-0 flex-1 font-sans-semibold"
+              numberOfLines={1}
+            >
+              {copy.windowLabel}
+            </VemtapText>
+            <Icon name="expandMore" size={18} color={colors.textTertiary} />
+          </Pressable>
+        ) : null}
       </View>
 
       <BusinessPanel className="mt-3" icon="donutLarge">
         <BusinessMetricGrid
-          cells={[
-            {
-              label: copy.footfallLabel,
-              value: copy.footfallValue,
-              note: copy.footfallUnit,
-              icon: 'group',
-            },
-            {
-              label: copy.segmentationLabel,
-              value: copy.segmentationValue,
-              noteIcon: 'checkCircle',
-              noteTone: 'success',
-              icon: 'insights',
-            },
-          ]}
+          cells={
+            metrics
+              ? [
+                  {
+                    label: copy.live.footfallLabel,
+                    value: metrics.footfall,
+                    note: copy.footfallUnit,
+                    icon: 'group',
+                  },
+                  {
+                    label: copy.live.reachLabel,
+                    value: metrics.reach,
+                    icon: 'notificationsActive',
+                  },
+                ]
+              : [
+                  {
+                    label: copy.footfallLabel,
+                    value: copy.footfallValue,
+                    note: copy.footfallUnit,
+                    icon: 'group',
+                  },
+                  {
+                    label: copy.segmentationLabel,
+                    value: copy.segmentationValue,
+                    noteIcon: 'checkCircle',
+                    noteTone: 'success',
+                    icon: 'insights',
+                  },
+                ]
+          }
           columns={2}
           variant="bare"
         />
@@ -181,13 +226,25 @@ export function CustomerSegmentsScreen({
 
       <BusinessPanel
         className="mt-3"
-        title={copy.smartTitle}
+        title={live ? copy.live.smartTitle : copy.smartTitle}
         icon="autoAwesome"
-        badge={copy.smartBadge}
+        badge={live ? copy.live.smartBadge(cards.length) : copy.smartBadge}
         badgeTone="brand"
       >
+        {isLoading ? <LoadingState /> : null}
+        {!isLoading && error ? (
+          <ErrorState title={copy.error.title} description={error} onRetry={onRetry} />
+        ) : null}
+        {!isLoading && !error && cards.length === 0 ? (
+          <EmptyState
+            icon="group"
+            variant="contained"
+            title={copy.empty.title}
+            description={copy.empty.body}
+          />
+        ) : null}
         <View className="gap-2">
-          {customerSegments.map(segment => (
+          {(isLoading || error ? [] : cards).map(segment => (
             <View key={segment.id} className="gap-2 rounded-field bg-surface-subtle p-3">
               <View className="flex-row items-center gap-2.5">
                 <View
@@ -317,88 +374,90 @@ export function CustomerSegmentsScreen({
         </View>
       </BusinessPanel>
 
-      <BusinessPanel
-        className="mt-3"
-        title={copy.customTitle}
-        icon="tune"
-        badge={copy.customSubtitle}
-        badgeTone="neutral"
-      >
-        <View className="flex-row flex-wrap gap-2">
-          {copy.customFilters.map(filter => (
-            <View
-              key={filter.id}
-              className="min-h-9 min-w-[45%] flex-1 flex-row items-center gap-2 rounded-field bg-surface-subtle px-2.5"
-            >
-              <Icon
-                name={segmentCustomFilterIcon[filter.id]}
-                size={15}
-                color={colors.primary}
-              />
-              <VemtapText
-                variant="caption"
-                tone="secondary"
-                className="min-w-0 flex-1"
-                numberOfLines={1}
-              >
-                {filter.label}
-              </VemtapText>
-            </View>
-          ))}
-        </View>
-
-        <View className="mt-2 gap-1.5">
-          <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-            {copy.targetDistrictLabel}
-          </VemtapText>
-          <BusinessOptionGrid
-            options={copy.targetDistricts.map(name => ({
-              id: name,
-              title: name,
-              value: '',
-            }))}
-            value={district}
-            onChange={setDistrict}
-            columns={3}
-            layout="row"
-            accessibilityLabel={copy.targetDistrictLabel}
-          />
-        </View>
-
-        <View className="mt-2 flex-row items-center justify-between gap-2 rounded-field bg-surface-subtle p-2.5">
-          <VemtapText
-            variant="caption"
-            tone="secondary"
-            className="min-w-0 flex-1"
-            numberOfLines={1}
-          >
-            {copy.minSpendLabel}
-          </VemtapText>
-          <VemtapText
-            variant="labelMd"
-            className="shrink-0 font-sans-semibold"
-            numberOfLines={1}
-          >
-            {copy.minSpendValue}
-          </VemtapText>
-        </View>
-
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={copy.saveCohortCta}
-          onPress={onSaveCohort}
-          className="mt-2 min-h-10 flex-row items-center justify-center gap-1.5 rounded-field bg-primary active:scale-95"
+      {showPrototypeFilters ? (
+        <BusinessPanel
+          className="mt-3"
+          title={copy.customTitle}
+          icon="tune"
+          badge={copy.customSubtitle}
+          badgeTone="neutral"
         >
-          <Icon name="save" size={16} color={colors.surface} />
-          <VemtapText
-            variant="labelSm"
-            className="font-sans-semibold text-surface"
-            numberOfLines={1}
+          <View className="flex-row flex-wrap gap-2">
+            {copy.customFilters.map(filter => (
+              <View
+                key={filter.id}
+                className="min-h-9 min-w-[45%] flex-1 flex-row items-center gap-2 rounded-field bg-surface-subtle px-2.5"
+              >
+                <Icon
+                  name={segmentCustomFilterIcon[filter.id]}
+                  size={15}
+                  color={colors.primary}
+                />
+                <VemtapText
+                  variant="caption"
+                  tone="secondary"
+                  className="min-w-0 flex-1"
+                  numberOfLines={1}
+                >
+                  {filter.label}
+                </VemtapText>
+              </View>
+            ))}
+          </View>
+
+          <View className="mt-2 gap-1.5">
+            <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
+              {copy.targetDistrictLabel}
+            </VemtapText>
+            <BusinessOptionGrid
+              options={copy.targetDistricts.map(name => ({
+                id: name,
+                title: name,
+                value: '',
+              }))}
+              value={district}
+              onChange={setDistrict}
+              columns={3}
+              layout="row"
+              accessibilityLabel={copy.targetDistrictLabel}
+            />
+          </View>
+
+          <View className="mt-2 flex-row items-center justify-between gap-2 rounded-field bg-surface-subtle p-2.5">
+            <VemtapText
+              variant="caption"
+              tone="secondary"
+              className="min-w-0 flex-1"
+              numberOfLines={1}
+            >
+              {copy.minSpendLabel}
+            </VemtapText>
+            <VemtapText
+              variant="labelMd"
+              className="shrink-0 font-sans-semibold"
+              numberOfLines={1}
+            >
+              {copy.minSpendValue}
+            </VemtapText>
+          </View>
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={copy.saveCohortCta}
+            onPress={onSaveCohort}
+            className="mt-2 min-h-10 flex-row items-center justify-center gap-1.5 rounded-field bg-primary active:scale-95"
           >
-            {copy.saveCohortCta}
-          </VemtapText>
-        </Pressable>
-      </BusinessPanel>
+            <Icon name="save" size={16} color={colors.surface} />
+            <VemtapText
+              variant="labelSm"
+              className="font-sans-semibold text-surface"
+              numberOfLines={1}
+            >
+              {copy.saveCohortCta}
+            </VemtapText>
+          </Pressable>
+        </BusinessPanel>
+      ) : null}
 
       <View className="mt-3 flex-row items-start gap-1.5 rounded-field bg-surface-subtle p-2.5">
         <Icon name="verifiedUser" size={14} color={colors.textTertiary} />
