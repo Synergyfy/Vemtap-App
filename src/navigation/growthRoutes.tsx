@@ -34,7 +34,9 @@ import {
   useSponsoredCampaigns,
   useSponsoredStats,
   useTogglePromotion,
+  useExportCampaignLedger,
 } from '@features/business/hooks/useCampaigns';
+import { CampaignPushPreviewSheet } from '@features/business/components/CampaignPushPreviewSheet';
 import { statsToPerformanceView } from '@features/business/utils/campaignPerformanceMappers';
 import { BoostPerformanceScreen } from '@features/business/screens/BoostPerformanceScreen';
 import {
@@ -75,6 +77,7 @@ import {
   estimateRange,
   formatNaira as formatCampaignNaira,
   objectiveTitle,
+  promotionPushPreview,
   promotionToCampaignCard,
 } from '@features/business/utils/campaignMappers';
 import { LoadingState } from '@components/shared/LoadingState';
@@ -372,83 +375,115 @@ export function CampaignsHubRoute() {
     cards.filter(card => statuses.includes(card.status)).length;
   const totals = summary.data;
   const lapsedCount = lapsed.data?.size ?? 0;
+  const exportLedger = useExportCampaignLedger();
+  const eligible = useEligibleAssets();
+  const business = useMyBusiness();
+  const [previewId, setPreviewId] = useState<string | null>(null);
+  const previewed = promotions.data?.data.find(promotion => promotion.id === previewId);
+  const push = previewed
+    ? promotionPushPreview(
+        previewed,
+        eligible.data?.find(asset => asset.id === previewed.assets[0]?.id),
+        business.data?.name ?? '',
+      )
+    : undefined;
 
   return (
-    <CampaignsHubScreen
-      onBack={navigation.goBack}
-      onOpenNotifications={() => navigation.navigate('BusinessNotifications')}
-      onCreateCampaign={() => {
-        startDraft();
-        navigation.navigate('CampaignCreateObjective');
-      }}
-      onOpenSubTab={tabKey => {
-        if (tabKey === 'Boost') navigation.navigate('BoostEngine');
-        if (tabKey === 'Segments') navigation.navigate('CustomerSegments');
-        if (tabKey === 'Insights') navigation.navigate('BusinessPerformanceAnalytics');
-      }}
-      onPauseCampaign={id => {
-        const card = cards.find(candidate => candidate.id === id);
-        if (!card) return;
-        toggle.mutate(
-          { id, pause: card.status === 'live' },
-          {
+    <>
+      <CampaignsHubScreen
+        onBack={navigation.goBack}
+        onOpenNotifications={() => navigation.navigate('BusinessNotifications')}
+        onCreateCampaign={() => {
+          startDraft();
+          navigation.navigate('CampaignCreateObjective');
+        }}
+        onOpenSubTab={tabKey => {
+          if (tabKey === 'Boost') navigation.navigate('BoostEngine');
+          if (tabKey === 'Segments') navigation.navigate('CustomerSegments');
+          if (tabKey === 'Insights') navigation.navigate('BusinessPerformanceAnalytics');
+        }}
+        onPauseCampaign={id => {
+          const card = cards.find(candidate => candidate.id === id);
+          if (!card) return;
+          toggle.mutate(
+            { id, pause: card.status === 'live' },
+            {
+              onError: error =>
+                showToast(messageOf(error, hubCopy.live.actionFailed), 'error'),
+            },
+          );
+        }}
+        onEditSetup={id => {
+          loadDraftIntoWizard(id)
+            .then(() => navigation.navigate('CampaignCreateObjective'))
+            .catch(error =>
+              showToast(messageOf(error, hubCopy.live.loadFailed), 'error'),
+            );
+        }}
+        onOpenRetentionPlaybook={() => {
+          // Aim a new campaign at the lapsed cohort the playbook counted.
+          startDraft();
+          updateDraft({ strategy: 'segments', cohorts: ['dormant'] });
+          navigation.navigate('CampaignCreateObjective');
+        }}
+        onViewCampaign={id =>
+          navigation.navigate('BoostPerformance', { kind: 'promotion', id })
+        }
+        onPreviewPush={setPreviewId}
+        exporting={exportLedger.isPending}
+        onExport={() =>
+          exportLedger.mutate(undefined, {
+            onSuccess: result => {
+              if (result.count === 0) showToast(hubCopy.live.ledger.empty, 'error');
+            },
             onError: error =>
-              showToast(messageOf(error, hubCopy.live.actionFailed), 'error'),
-          },
-        );
-      }}
-      onEditSetup={id => {
-        loadDraftIntoWizard(id)
-          .then(() => navigation.navigate('CampaignCreateObjective'))
-          .catch(error => showToast(messageOf(error, hubCopy.live.loadFailed), 'error'));
-      }}
-      onOpenRetentionPlaybook={() => {
-        // Aim a new campaign at the lapsed cohort the playbook counted.
-        startDraft();
-        updateDraft({ strategy: 'segments', cohorts: ['dormant'] });
-        navigation.navigate('CampaignCreateObjective');
-      }}
-      onViewCampaign={id =>
-        navigation.navigate('BoostPerformance', { kind: 'promotion', id })
-      }
-      campaigns={cards}
-      metrics={
-        totals
-          ? {
-              liveBadge: hubCopy.live.liveNowBadge(totals.live),
-              reach: totals.audienceReached.toLocaleString('en-NG'),
-              reachNote: hubCopy.live.reachNote,
-              conversions: totals.claims.toLocaleString('en-NG'),
-              conversionsNote: hubCopy.live.conversionsNote(totals.redemptions),
-              gmv: formatCampaignNaira(totals.revenue),
-              gmvNote: hubCopy.live.gmvNote(formatCampaignNaira(totals.totalSpent)),
-            }
-          : undefined
-      }
-      tabs={hubCopy.live.tabs({
-        all: cards.length,
-        live: count(['live', 'paused']),
-        scheduled: count(['scheduled']),
-        ended: count(['completed']),
-      })}
-      upcomingBadge={hubCopy.live.upcomingBadge(count(['scheduled']))}
-      playbook={
-        lapsedCount > 0
-          ? {
-              subtitle: hubCopy.live.playbookSubtitle(lapsedCount),
-              body: hubCopy.live.playbookBody(lapsedCount),
-            }
-          : null
-      }
-      busyIds={toggle.isPending && toggle.variables ? [toggle.variables.id] : []}
-      isLoading={promotions.isPending}
-      error={
-        promotions.isError
-          ? messageOf(promotions.error, hubCopy.live.loadFailed)
-          : undefined
-      }
-      onRetry={() => promotions.refetch()}
-    />
+              showToast(messageOf(error, hubCopy.live.ledger.failed), 'error'),
+          })
+        }
+        campaigns={cards}
+        metrics={
+          totals
+            ? {
+                liveBadge: hubCopy.live.liveNowBadge(totals.live),
+                reach: totals.audienceReached.toLocaleString('en-NG'),
+                reachNote: hubCopy.live.reachNote,
+                conversions: totals.claims.toLocaleString('en-NG'),
+                conversionsNote: hubCopy.live.conversionsNote(totals.redemptions),
+                gmv: formatCampaignNaira(totals.revenue),
+                gmvNote: hubCopy.live.gmvNote(formatCampaignNaira(totals.totalSpent)),
+              }
+            : undefined
+        }
+        tabs={hubCopy.live.tabs({
+          all: cards.length,
+          live: count(['live', 'paused']),
+          scheduled: count(['scheduled']),
+          ended: count(['completed']),
+        })}
+        upcomingBadge={hubCopy.live.upcomingBadge(count(['scheduled']))}
+        playbook={
+          lapsedCount > 0
+            ? {
+                subtitle: hubCopy.live.playbookSubtitle(lapsedCount),
+                body: hubCopy.live.playbookBody(lapsedCount),
+              }
+            : null
+        }
+        busyIds={toggle.isPending && toggle.variables ? [toggle.variables.id] : []}
+        isLoading={promotions.isPending}
+        error={
+          promotions.isError
+            ? messageOf(promotions.error, hubCopy.live.loadFailed)
+            : undefined
+        }
+        onRetry={() => promotions.refetch()}
+      />
+      <CampaignPushPreviewSheet
+        visible={previewId !== null}
+        onClose={() => setPreviewId(null)}
+        push={push}
+      />
+    </>
   );
 }
 

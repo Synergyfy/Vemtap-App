@@ -25,6 +25,7 @@ import {
   BusinessSegmentTabs,
   type BusinessSegmentTab,
 } from '@features/business/components/BusinessOpsPrimitives';
+import { PushNotificationPreview } from '@features/business/components/PushNotificationPreview';
 import {
   prototypeBoostPreviewView,
   type BoostPreviewView,
@@ -327,41 +328,12 @@ export function BoostPreviewPaymentScreen({
           ) : null}
 
           {tab === 'push' ? (
-            <View className="flex-row gap-2.5 rounded-card bg-surface p-3">
-              <View className="h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary">
-                <VemtapText
-                  variant="labelMd"
-                  className="font-sans-bold text-primary-foreground"
-                >
-                  V
-                </VemtapText>
-              </View>
-              <View className="min-w-0 flex-1 gap-1">
-                <View className="flex-row items-center gap-1.5">
-                  <VemtapText
-                    variant="labelSm"
-                    className="font-sans-semibold"
-                    numberOfLines={1}
-                  >
-                    {step.pushApp}
-                  </VemtapText>
-                  <VemtapText variant="caption" tone="tertiary" className="shrink-0">
-                    {step.pushTime}
-                  </VemtapText>
-                </View>
-                <VemtapText
-                  variant="labelSm"
-                  className="font-sans-semibold"
-                  numberOfLines={2}
-                >
-                  {view.push.title}
-                </VemtapText>
-                <VemtapText variant="caption" tone="secondary">
-                  {view.push.body}
-                </VemtapText>
-              </View>
-              <View className="h-12 w-12 shrink-0 rounded-field bg-surface-subtle" />
-            </View>
+            <PushNotificationPreview
+              app={step.pushApp}
+              time={step.pushTime}
+              title={view.push.title}
+              body={view.push.body}
+            />
           ) : null}
         </PreviewShell>
         {view.trustNote ? (

@@ -258,3 +258,47 @@ export function compactCount(value: number): string {
 export function estimateRange(min: number, max: number): string {
   return min === max ? compactCount(min) : `${compactCount(min)} – ${compactCount(max)}`;
 }
+
+/** Campaigns as ledger rows, in `strings.campaignsHub.live.ledger.headers` order. */
+export function promotionsToLedgerRows(promotions: readonly Promotion[]) {
+  const day = (iso: string | null | undefined) => (iso ? iso.slice(0, 10) : '');
+  return promotions.map(promotion => [
+    promotion.name,
+    promotion.status,
+    objectiveTitle(promotion.objective) ?? promotion.objective ?? '',
+    day(promotion.startDate),
+    day(promotion.endDate),
+    promotion.budget,
+    promotion.spent,
+    promotion.remaining,
+    promotion.impressions ?? 0,
+    promotion.clicks ?? 0,
+    promotion.conversions ?? 0,
+    promotion.fundingSource ?? '',
+  ]);
+}
+
+/** The push notification a campaign sends, from its lead listing. */
+export function promotionPushPreview(
+  promotion: Promotion,
+  asset: PromotionEligibleAsset | undefined,
+  businessName: string,
+): { title: string; body: string } {
+  const copy = strings.boostWizard.live;
+  const distance = strings.boostEngine.live.previewDistance(
+    promotion.audience?.radiusKm ?? 3,
+  );
+  const price = asset?.price ?? undefined;
+  const discount =
+    asset?.wasPrice && price && asset.wasPrice > price
+      ? `${Math.round((1 - price / asset.wasPrice) * 100)}% OFF`
+      : undefined;
+  return {
+    title: copy.pushTitle(discount, businessName),
+    body: copy.pushBody(
+      asset?.title ?? promotion.name,
+      price !== undefined ? formatNaira(price) : undefined,
+      distance,
+    ),
+  };
+}

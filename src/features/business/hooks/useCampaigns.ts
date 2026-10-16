@@ -11,7 +11,10 @@ import { PAYMENT_RETURN_URL } from '@features/business/hooks/useSubscriptions';
 import {
   WEEKDAY_NUMBER,
   draftToSaveInput,
+  promotionsToLedgerRows,
 } from '@features/business/utils/campaignMappers';
+import { strings } from '@constants/strings';
+import { datedFileName, shareCsv, toCsv } from '@utils/csvExport';
 import { useCampaignDraftStore, type CampaignDraft } from '@store/campaignDraftStore';
 
 /** Promotion campaigns (`/promotions`) for the Campaigns hub and wizard. */
@@ -252,6 +255,37 @@ export function useSponsoredAction(kind: SponsoredKind) {
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: sponsoredKeys(kind) });
       queryClient.invalidateQueries({ queryKey: campaignKeys.wallet });
+    },
+  });
+}
+
+/**
+ * Every campaign, page by page: the ledger must not stop at the first page.
+ * Pages are fetched one after another (each says whether another follows).
+ */
+async function listAllPromotions(
+  page = 1,
+  collected: Promotion[] = [],
+): Promise<Promotion[]> {
+  const result = await promotionsApi.list({ page, limit: 100 });
+  const all = [...collected, ...result.data];
+  return result.hasNextPage && page < 50 ? listAllPromotions(page + 1, all) : all;
+}
+
+/** Export every campaign as a CSV ledger through the share sheet. */
+export function useExportCampaignLedger() {
+  return useMutation({
+    mutationFn: async (): Promise<{ count: number }> => {
+      const promotions = await listAllPromotions();
+      if (promotions.length) {
+        const { ledger } = strings.campaignsHub.live;
+        await shareCsv(
+          datedFileName(ledger.fileName),
+          toCsv(ledger.headers, promotionsToLedgerRows(promotions)),
+          ledger.title,
+        );
+      }
+      return { count: promotions.length };
     },
   });
 }

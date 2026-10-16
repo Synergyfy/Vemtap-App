@@ -96,6 +96,8 @@ export interface CampaignsHubScreenProps {
   upcomingBadge?: string;
   /** Live win-back nudge; `null` hides the playbook (nothing to win back). */
   playbook?: { subtitle: string; body: string } | null;
+  /** The ledger export is being built. */
+  exporting?: boolean;
   /** Campaign ids with a pause/resume/launch request in flight. */
   busyIds?: readonly string[];
   isLoading?: boolean;
@@ -126,6 +128,7 @@ export function CampaignsHubScreen({
   upcomingBadge = copy.upcomingBadge,
   playbook,
   busyIds = [],
+  exporting = false,
   isLoading = false,
   error,
   onRetry,
@@ -159,12 +162,14 @@ export function CampaignsHubScreen({
             onPress={onCreateCampaign}
             leftIcon={<Icon name="plus" size={18} color={colors.surface} />}
           />
-          {live ? null : (
+          {live && !onExport ? null : (
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={copy.exportCta}
+              accessibilityState={{ disabled: exporting, busy: exporting }}
+              disabled={exporting}
               onPress={onExport}
-              className="min-h-10 flex-row items-center justify-center gap-1.5"
+              className={`min-h-10 flex-row items-center justify-center gap-1.5 ${exporting ? 'opacity-50' : ''}`}
             >
               <Icon name="download" size={17} color={colors.primary} />
               <VemtapText
@@ -403,7 +408,7 @@ export function CampaignsHubScreen({
                     </VemtapText>
                   </Pressable>
                 ) : null}
-                {live ? null : (
+                {live && !onPreviewPush ? null : (
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel={copy.previewPushCta}

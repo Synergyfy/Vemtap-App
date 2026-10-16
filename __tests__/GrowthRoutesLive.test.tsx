@@ -22,6 +22,7 @@ import {
 import { boostsApi } from '@api/boostsApi';
 import { useBoostDraftStore } from '@store/boostDraftStore';
 import * as WebBrowser from 'expo-web-browser';
+import * as Sharing from 'expo-sharing';
 import { useCampaignDraftStore } from '@store/campaignDraftStore';
 import { draftToSaveInput } from '@features/business/utils/campaignMappers';
 
@@ -301,6 +302,17 @@ describe('campaigns hub (live)', () => {
       redemptions: 4,
       revenue: 42_000,
     });
+    jest.spyOn(promotionsApi, 'eligibleAssets').mockResolvedValue([
+      {
+        type: 'deal',
+        id: 'd1',
+        title: 'Lunch Combo',
+        image: null,
+        price: 4000,
+        wasPrice: 5000,
+        priorClaims: 3,
+      },
+    ]);
     const pause = jest
       .spyOn(promotionsApi, 'pause')
       .mockResolvedValue({ ...savedPromotion, status: 'Paused' });
@@ -314,6 +326,33 @@ describe('campaigns hub (live)', () => {
       fireEvent.press(screen.getByLabelText(strings.campaignsHub.pauseCta));
     });
     expect(pause).toHaveBeenCalledWith(savedPromotion.id);
+
+    // Preview Push: the campaign's real push text, on the shared sheet.
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText(strings.campaignsHub.previewPushCta));
+      await settle(50);
+    });
+    expect(screen.getByText(strings.campaignsHub.live.push.title)).toBeTruthy();
+    expect(screen.getByText('Lunch Combo is just ₦4,000, within 3 km.')).toBeTruthy();
+
+    // Export: every page of campaigns, as a CSV file through the share sheet.
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText(strings.campaignsHub.exportCta));
+      await settle(50);
+    });
+    expect(promotionsApi.list).toHaveBeenLastCalledWith({ page: 1, limit: 100 });
+    expect(Sharing.shareAsync).toHaveBeenCalledWith(
+      expect.stringMatching(/campaign-ledger-\d{4}-\d{2}-\d{2}\.csv$/),
+      expect.objectContaining({ mimeType: 'text/csv' }),
+    );
+    const written = (globalThis as { __lastWrittenFile?: { content: string } })
+      .__lastWrittenFile;
+    expect(written?.content.split('\r\n')[0]).toBe(
+      strings.campaignsHub.live.ledger.headers.join(','),
+    );
+    expect(written?.content).toContain(
+      'Promote a Deal: Lunch Combo,Active,Promote a Deal',
+    );
   });
 });
 

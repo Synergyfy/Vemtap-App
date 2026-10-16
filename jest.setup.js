@@ -373,6 +373,32 @@ jest.mock('expo-document-picker', () => ({
 // The selfie check and Paystack checkout open in an auth session. Like the
 // pickers, the real module loads expo-modules-core and dies in jest; tests that
 // care about the outcome override `openAuthSessionAsync`.
+// CSV export (`@utils/csvExport`): a real file + share sheet on device.
+jest.mock('expo-sharing', () => ({
+  isAvailableAsync: jest.fn(async () => true),
+  shareAsync: jest.fn(async () => undefined),
+}));
+jest.mock('expo-file-system', () => {
+  class File {
+    constructor(directory, name) {
+      this.uri = `file:///cache/${name}`;
+      this.exists = false;
+      this.content = '';
+    }
+    create() {
+      this.exists = true;
+    }
+    delete() {
+      this.exists = false;
+    }
+    write(content) {
+      this.content = content;
+      globalThis.__lastWrittenFile = { uri: this.uri, content };
+    }
+  }
+  return { File, Paths: { cache: { uri: 'file:///cache/' } } };
+});
+
 jest.mock('expo-web-browser', () => ({
   openAuthSessionAsync: jest.fn(async () => ({ type: 'dismiss' })),
   openBrowserAsync: jest.fn(async () => ({ type: 'dismiss' })),
