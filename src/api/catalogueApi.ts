@@ -34,6 +34,55 @@ export const catalogueCategorySchema = z.object({
 });
 export type CatalogueCategory = z.infer<typeof catalogueCategorySchema>;
 
+/** When a bookable service can be booked; narrows the branch's hours. */
+export const bookingRulesObjectSchema = z.object({
+  days: z.array(z.number().int().min(0).max(6)).max(7).optional(),
+  from: z
+    .string()
+    .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
+    .optional(),
+  to: z
+    .string()
+    .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
+    .optional(),
+  bufferMinutes: z.number().int().min(0).max(240).optional(),
+  leadMinutes: z.number().int().min(0).max(10_080).optional(),
+  horizonDays: z.number().int().min(1).max(365).optional(),
+  capacity: z.number().int().min(1).max(50).optional(),
+  requiresConfirmation: z.boolean().optional(),
+  /** Dates the service cannot be booked. */
+  blockouts: z
+    .array(
+      z.object({
+        date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        reason: z.string().max(80).optional(),
+      }),
+    )
+    .max(100)
+    .optional(),
+  /** A branch's own days/hours, replacing the service-wide ones there. */
+  branchSchedules: z
+    .array(
+      z.object({
+        branchId: z.string().uuid(),
+        days: z.array(z.number().int().min(0).max(6)).max(7).optional(),
+        from: z
+          .string()
+          .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
+          .optional(),
+        to: z
+          .string()
+          .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
+          .optional(),
+      }),
+    )
+    .max(50)
+    .optional(),
+});
+
+export const bookingRulesSchema = bookingRulesObjectSchema.optional();
+export type BookingRules = z.infer<typeof bookingRulesObjectSchema>;
+
 export const catalogueItemSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -60,6 +109,8 @@ export const catalogueItemSchema = z.object({
   priceRangeMax: money,
   /** Service duration, e.g. "1.5 hours". */
   duration: z.string().nullable().optional(),
+  /** When a bookable service can be booked (services only). */
+  bookingRules: bookingRulesObjectSchema.nullish(),
   /** `customer`, `location` or `flexible`. */
   serviceMode: z.string().nullable().optional(),
   isBookable: z.boolean().nullish(),
@@ -412,53 +463,6 @@ const catalogueItemVariantsSchema = z
       z.object({ type: z.string(), value: z.string() }),
     ]),
   )
-  .optional();
-/** When a bookable service can be booked; narrows the branch's hours. */
-export const bookingRulesSchema = z
-  .object({
-    days: z.array(z.number().int().min(0).max(6)).max(7).optional(),
-    from: z
-      .string()
-      .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
-      .optional(),
-    to: z
-      .string()
-      .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
-      .optional(),
-    bufferMinutes: z.number().int().min(0).max(240).optional(),
-    leadMinutes: z.number().int().min(0).max(10_080).optional(),
-    horizonDays: z.number().int().min(1).max(365).optional(),
-    capacity: z.number().int().min(1).max(50).optional(),
-    requiresConfirmation: z.boolean().optional(),
-    /** Dates the service cannot be booked. */
-    blockouts: z
-      .array(
-        z.object({
-          date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-          reason: z.string().max(80).optional(),
-        }),
-      )
-      .max(100)
-      .optional(),
-    /** A branch's own days/hours, replacing the service-wide ones there. */
-    branchSchedules: z
-      .array(
-        z.object({
-          branchId: z.string().uuid(),
-          days: z.array(z.number().int().min(0).max(6)).max(7).optional(),
-          from: z
-            .string()
-            .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
-            .optional(),
-          to: z
-            .string()
-            .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
-            .optional(),
-        }),
-      )
-      .max(50)
-      .optional(),
-  })
   .optional();
 const catalogueItemPricingModeSchema = z.enum(['uniform', 'per_branch']).optional();
 const catalogueItemFulfillmentModesSchema = z

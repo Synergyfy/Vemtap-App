@@ -253,8 +253,10 @@ import {
 import {
   ServiceAvailabilityStep,
   ServiceBasicsStep,
+  ServiceBookingRulesFlow,
   ServicePricingStep,
   ServiceReviewStep,
+  type ServiceBookingRulesFlowProps,
   type ServiceFlowNavigation,
 } from './serviceFlowRoutes';
 import { useBusinessNavigation } from './useBusinessNavigation';
@@ -1297,6 +1299,7 @@ function ServicesCategoriesRoute() {
     price: string;
   } | null>(null);
   const [reordering, setReordering] = useState(false);
+  const [rulesFor, setRulesFor] = useState<ServiceBookingRulesFlowProps['service']>(null);
   const serviceItems = services.data?.data ?? [];
   const categoryItems = (categories.data ?? []).map(c => ({ id: c.id, name: c.name }));
   return (
@@ -1342,6 +1345,15 @@ function ServicesCategoriesRoute() {
                 onError: () => showError('Could not pause the service.'),
               },
             );
+          } else if (actionId === 'calendarEdit') {
+            const service = serviceItems.find(candidate => candidate.id === serviceId);
+            if (service) {
+              setRulesFor({
+                id: service.id,
+                name: service.name,
+                bookingRules: service.bookingRules,
+              });
+            }
           } else {
             showError('This service action is not yet available.');
           }
@@ -1447,6 +1459,7 @@ function ServicesCategoriesRoute() {
           );
         }}
       />
+      <ServiceBookingRulesFlow service={rulesFor} onClose={() => setRulesFor(null)} />
     </>
   );
 }

@@ -28,6 +28,7 @@ import {
   parseTime,
   shortDateLabel,
   toClock,
+  weekdaysLabel,
 } from '@features/business/utils/serviceSchedule';
 
 cssInterop(Pressable, { className: 'style' });
@@ -46,16 +47,13 @@ export interface ReviewServiceSummaryScreenProps {
 }
 
 const reviewCopy = strings.serviceFlow.review;
-const DAY_LABEL = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 function naira(value: string | undefined): string {
   return `\u20a6${(Number((value ?? '').replace(/[^0-9.]/g, '')) || 0).toLocaleString('en-NG')}`;
 }
 
 function daysLabel(days: number[] | undefined): string {
-  return !days || days.length === 7
-    ? reviewCopy.everyDay
-    : days.map(day => DAY_LABEL[day]).join(', ');
+  return weekdaysLabel(days, reviewCopy.everyDay);
 }
 
 /** A branch's own schedule, when it has one. */

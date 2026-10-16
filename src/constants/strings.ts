@@ -6143,6 +6143,7 @@ export const strings = {
     ] as const,
     serviceActions: [
       { icon: 'edit', title: 'Edit Details', tone: 'default' },
+      { icon: 'calendarEdit', title: 'Booking Rules', tone: 'default' },
       { icon: 'copy', title: 'Duplicate', tone: 'default' },
       { icon: 'delete', title: 'Archive Service', tone: 'destructive' },
     ] as const,
@@ -8544,6 +8545,18 @@ export const strings = {
       save: 'Save Blocked Dates',
       summary: (count: number) =>
         count ? `${count} ${count === 1 ? 'date' : 'dates'} blocked` : 'No dates blocked',
+    },
+    bookingRulesSheet: {
+      title: 'Booking Rules',
+      action: 'Booking Rules',
+      weekly: 'Weekly schedule',
+      weeklyTitle: 'Weekly Schedule',
+      blockouts: 'Blocked dates',
+      branchesTitle: 'Branch schedules',
+      sameAsService: 'Service schedule',
+      loadingBranches: 'Loading branches\u2026',
+      saved: 'Booking rules saved.',
+      failed: 'Could not save the booking rules. Please try again.',
     },
     locationSchedule: {
       title: (branch: string) => `Location Schedule \u2014 ${branch}`,

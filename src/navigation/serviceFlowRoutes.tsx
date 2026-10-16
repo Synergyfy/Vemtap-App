@@ -1,5 +1,5 @@
-import React from 'react';
-import { showError } from '@components/shared';
+import React, { useEffect, useState } from 'react';
+import { showError, showSuccess } from '@components/shared';
 import { LoadingState } from '@components/shared/LoadingState';
 import { strings } from '@constants/strings';
 import { AddServiceBasicsMediaScreen } from '@features/business/screens/AddServiceBasicsMediaScreen';
@@ -10,8 +10,17 @@ import { useActiveBranch } from '@features/business/hooks/useActiveBranch';
 import { useMyBusiness } from '@features/business/hooks/useBusinessDashboardData';
 import {
   useBusinessBranches,
+  useItemBranchPricing,
   usePublishCatalogueItem,
+  useUpdateServiceBookingRules,
 } from '@features/business/hooks/useCatalogueMutations';
+import type { BookingRules } from '@api/catalogueApi';
+import { ServiceBookingRulesSheet } from '@features/business/components/ServiceBookingRulesSheet';
+import { ServiceBlockoutsSheet } from '@features/business/components/ServiceBlockoutsSheet';
+import {
+  LocationScheduleSheet,
+  type WeeklyHours,
+} from '@features/business/components/LocationScheduleSheet';
 import { useCatalogueDraftStore, type ServiceDraft } from '@store/catalogueDraftStore';
 
 /**
@@ -249,5 +258,127 @@ export function ServiceReviewStep({ nav }: { nav: ServiceFlowNavigation }) {
       onPublish={() => submit('active')}
       onSaveDraft={() => submit('inactive')}
     />
+  );
+}
+
+type RulesView = 'menu' | 'weekly' | 'blockouts' | { id: string; name: string } | null;
+
+export interface ServiceBookingRulesFlowProps {
+  /** The service whose rules are edited; `null` = closed. */
+  service: { id: string; name: string; bookingRules?: BookingRules | null } | null;
+  onClose: () => void;
+}
+
+/**
+ * Booking Rules for an existing service, from Services & Categories: a menu
+ * sheet, then one editor at a time (weekly schedule, blocked dates, a
+ * branch's schedule). Each save PATCHes the merged rules and returns to the
+ * menu.
+ */
+export function ServiceBookingRulesFlow({
+  service,
+  onClose,
+}: ServiceBookingRulesFlowProps) {
+  const [view, setView] = useState<RulesView>(null);
+  const [rules, setRules] = useState<BookingRules>({});
+  const branches = useItemBranchPricing(service?.id);
+  const save = useUpdateServiceBookingRules();
+
+  useEffect(() => {
+    setView(service ? 'menu' : null);
+    setRules(service?.bookingRules ?? {});
+  }, [service]);
+
+  if (!service) return null;
+  const sheetCopy = copy.bookingRulesSheet;
+  const weekly: WeeklyHours = {
+    days: rules.days ?? DEFAULT_SERVICE_DAYS,
+    from: rules.from ?? DEFAULT_SERVICE_HOURS.from,
+    to: rules.to ?? DEFAULT_SERVICE_HOURS.to,
+  };
+  const close = () => {
+    setView(null);
+    onClose();
+  };
+  const persist = (next: BookingRules) => {
+    setRules(next);
+    save.mutate(
+      { itemId: service.id, rules: next },
+      {
+        onSuccess: () => {
+          showSuccess(sheetCopy.saved);
+          setView('menu');
+        },
+        onError: error => {
+          showError(messageOf(error, sheetCopy.failed));
+          setView('menu');
+        },
+      },
+    );
+  };
+  const branch = typeof view === 'object' ? view : null;
+  const ownSchedule = branch
+    ? rules.branchSchedules?.find(entry => entry.branchId === branch.id)
+    : undefined;
+
+  return (
+    <>
+      <ServiceBookingRulesSheet
+        visible={view === 'menu'}
+        onClose={close}
+        serviceName={service.name}
+        rules={rules}
+        branches={branches.data?.branches
+          .filter(row => row.isAvailable)
+          .map(row => ({ id: row.branchId, name: row.branchName }))}
+        onEditWeekly={() => setView('weekly')}
+        onEditBlockouts={() => setView('blockouts')}
+        onEditBranch={next => setView(next)}
+      />
+      <LocationScheduleSheet
+        visible={view === 'weekly'}
+        onClose={() => setView('menu')}
+        branchName={service.name}
+        title={sheetCopy.weeklyTitle}
+        alwaysCustom
+        serviceSchedule={weekly}
+        value={weekly}
+        onSave={next => next && persist({ ...rules, ...next })}
+      />
+      <ServiceBlockoutsSheet
+        visible={view === 'blockouts'}
+        onClose={() => setView('menu')}
+        value={rules.blockouts ?? []}
+        onSave={next => persist({ ...rules, blockouts: next })}
+      />
+      <LocationScheduleSheet
+        visible={branch !== null}
+        onClose={() => setView('menu')}
+        branchName={branch?.name ?? ''}
+        serviceSchedule={weekly}
+        value={
+          ownSchedule
+            ? {
+                days: ownSchedule.days ?? weekly.days,
+                from: ownSchedule.from ?? weekly.from,
+                to: ownSchedule.to ?? weekly.to,
+              }
+            : undefined
+        }
+        onSave={next => {
+          if (!branch) return;
+          const others = (rules.branchSchedules ?? []).filter(
+            entry => entry.branchId !== branch.id,
+          );
+          const branchSchedules = next
+            ? [...others, { branchId: branch.id, ...next }]
+            : others;
+          persist({
+            ...rules,
+            branchSchedules: branchSchedules.length ? branchSchedules : undefined,
+          });
+        }}
+      />
+    </>
   );
 }

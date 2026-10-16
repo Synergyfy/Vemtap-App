@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { catalogueApi } from '@api/catalogueApi';
 import type {
+  BookingRules,
   UpdatedCatalogueItem,
   CatalogueCategory,
   CatalogueOfferDetail,
@@ -310,5 +311,26 @@ export function useCatalogueCategories() {
     queryKey: ['business-catalogue-categories'],
     queryFn: () => catalogueApi.listCatalogueCategories(),
     staleTime: 60_000,
+  });
+}
+
+/** Branches carrying an item, with their prices (`GET …/branch-pricing`). */
+export function useItemBranchPricing(itemId: string | undefined) {
+  return useQuery({
+    queryKey: ['catalogue', 'branch-pricing', itemId ?? ''],
+    queryFn: () => catalogueApi.getItemBranchPricing(itemId!),
+    enabled: Boolean(itemId),
+    staleTime: 60_000,
+  });
+}
+
+/** Save an existing service's booking rules (merged by the caller). */
+export function useUpdateServiceBookingRules() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ itemId, rules }: { itemId: string; rules: BookingRules }) =>
+      catalogueApi.updateCatalogueItem(itemId, { bookingRules: rules }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ['catalogue', 'business'] }),
   });
 }

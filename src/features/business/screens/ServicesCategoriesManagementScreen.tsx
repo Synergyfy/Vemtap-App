@@ -221,6 +221,8 @@ export function ServicesCategoriesManagementScreen({
         visible={Boolean(sheetService)}
         onClose={() => setSheetService(null)}
         title={copy.servicesTitle}
+        titleVariant="headingXl"
+        titleClassName="text-heading-xl"
       >
         <View className="gap-1 px-6 pb-4">
           {copy.serviceActions.map(action => (

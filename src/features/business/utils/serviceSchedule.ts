@@ -103,3 +103,21 @@ export function shortDateLabel(key: string): string {
 export function monthLabel(date: Date): string {
   return date.toLocaleDateString('en-NG', { month: 'long', year: 'numeric' });
 }
+
+const DAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+/** `Mon, Tue, Wed` (API weekdays), or `everyDay` for all seven / none set. */
+export function weekdaysLabel(days: number[] | undefined, everyDay: string): string {
+  return !days || days.length === 0 || days.length === 7
+    ? everyDay
+    : [...days]
+        .sort((a, b) => a - b)
+        .map(day => DAY_SHORT[day])
+        .join(', ');
+}
+
+/** `HH:mm` → `9:00 AM`, or the fallback when unset/invalid. */
+export function clockLabel(value: string | undefined, fallback: string): string {
+  const minutes = parseTime(value ?? '');
+  return minutes === null ? fallback : toClock(minutes);
+}

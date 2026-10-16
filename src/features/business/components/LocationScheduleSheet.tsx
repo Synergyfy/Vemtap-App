@@ -39,6 +39,13 @@ export interface LocationScheduleSheetProps {
   value?: WeeklyHours;
   /** `undefined` = follow the service schedule. */
   onSave: (next: WeeklyHours | undefined) => void;
+  /** Overrides the "Location Schedule — {branch}" title. */
+  title?: string;
+  /**
+   * Edit the hours directly, without the same/custom choice: the
+   * service-wide weekly schedule uses the same editor.
+   */
+  alwaysCustom?: boolean;
 }
 
 /**
@@ -53,6 +60,8 @@ export function LocationScheduleSheet({
   serviceSchedule,
   value,
   onSave,
+  title,
+  alwaysCustom = false,
 }: LocationScheduleSheetProps) {
   const [custom, setCustom] = useState(Boolean(value));
   const [days, setDays] = useState<Set<string>>(new Set());
@@ -64,7 +73,7 @@ export function LocationScheduleSheet({
   useEffect(() => {
     if (!visible) return;
     const start = value ?? serviceSchedule;
-    setCustom(Boolean(value));
+    setCustom(alwaysCustom || Boolean(value));
     setDays(new Set(serviceWeekdays.filter(day => start.days.includes(DAY_NUMBER[day]))));
     setFrom(start.from);
     setTo(start.to);
@@ -108,28 +117,30 @@ export function LocationScheduleSheet({
     <BottomSheet
       visible={visible}
       onClose={onClose}
-      title={copy.title(branchName)}
+      title={title ?? copy.title(branchName)}
       titleVariant="headingXl"
       titleClassName="text-heading-xl"
     >
       <ScrollView className="flex-shrink" keyboardShouldPersistTaps="handled">
         <View className="gap-3 pb-2">
-          <View accessibilityRole="radiogroup" className="gap-2">
-            <BusinessCheckRow
-              type="radio"
-              title={copy.same}
-              subtitle={copy.sameBody}
-              selected={!custom}
-              onPress={() => setCustom(false)}
-            />
-            <BusinessCheckRow
-              type="radio"
-              title={copy.custom}
-              subtitle={copy.customBody}
-              selected={custom}
-              onPress={() => setCustom(true)}
-            />
-          </View>
+          {alwaysCustom ? null : (
+            <View accessibilityRole="radiogroup" className="gap-2">
+              <BusinessCheckRow
+                type="radio"
+                title={copy.same}
+                subtitle={copy.sameBody}
+                selected={!custom}
+                onPress={() => setCustom(false)}
+              />
+              <BusinessCheckRow
+                type="radio"
+                title={copy.custom}
+                subtitle={copy.customBody}
+                selected={custom}
+                onPress={() => setCustom(true)}
+              />
+            </View>
+          )}
           {custom ? (
             <ServiceWeeklySchedule
               activeDays={days}
