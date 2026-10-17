@@ -12,7 +12,6 @@ import { EmptyState } from '@components/shared/EmptyState';
 import { strings } from '@constants/strings';
 import { colors } from '@theme/colors';
 import { useDealDetail } from '@features/dealDetail/hooks/useDealDetail';
-import { resolveDeal } from '@features/dealDetail/data/dealResolver';
 import { formatOfferEndDate } from '@features/deals/utils/offerMapper';
 import type { AppStackParamList } from '@navigation/types';
 import { HowToClaimStepCard } from '../components/HowToClaimStepCard';
@@ -31,21 +30,11 @@ export function HowToClaimScreen({ route, navigation }: Props) {
   const insets = useSafeAreaInsets();
   const detail = useDealDetail(route.params.dealId);
   const deal = detail.status === 'resolved' ? detail.deal : undefined;
-  /**
-   * The bundled walkthrough keeps its scripted success screen; a real offer
-   * sends the reader back to the deal, where claiming actually happens —
-   * this button used to fake a claim that never reached any endpoint.
-   */
-  const isSeed = resolveDeal(route.params.dealId) !== undefined;
-
+  /** Claiming happens on the deal page, which verifies and issues the code. */
   const handleClaim = useCallback(() => {
     if (!deal) return;
-    if (isSeed) {
-      navigation.navigate('DealClaimedSuccess', { dealId: deal.id });
-      return;
-    }
     navigation.navigate('DealDetail', { dealId: deal.id });
-  }, [deal, isSeed, navigation]);
+  }, [deal, navigation]);
 
   const handleShare = useCallback(() => {
     if (!deal) return;
@@ -86,9 +75,7 @@ export function HowToClaimScreen({ route, navigation }: Props) {
   }
 
   const { merchant, location: area } = deal;
-  const deadline = isSeed
-    ? strings.howToClaim.seedDeadline
-    : (formatOfferEndDate(deal.endDate) ?? undefined);
+  const deadline = formatOfferEndDate(deal.endDate) ?? undefined;
 
   return (
     <View className="flex-1 bg-surface">

@@ -4,7 +4,6 @@ export * from './components/BusinessAnalyticsPrimitives';
 export * from './components/BusinessOpsPrimitives';
 export * from './components/BusinessPosPrimitives';
 export * from './components/BusinessLocationPrimitives';
-export * from './data/businessAnalyticsData';
 export * from './screens/BranchAvailabilityLocationPricingScreen';
 export * from './components/BusinessNetworkPrimitives';
 export * from './data/businessGrowthData';

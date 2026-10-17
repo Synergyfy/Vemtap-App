@@ -8,6 +8,7 @@ import { Icon, type IconName } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
 import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
+import { useLocationStore } from '@store/locationStore';
 import { usePullToRefresh } from '@hooks/usePullToRefresh';
 import { useLoyaltyAnalytics } from '@features/accountHub/hooks/useLoyalty';
 import { useSavedTotals } from '@features/accountHub/hooks/useSavedHub';
@@ -150,6 +151,7 @@ export function AccountHomeScreen({
   onSignOut,
 }: AccountHomeScreenProps) {
   const me = useCurrentUserDisplay();
+  const area = useLocationStore(state => state.area);
   const analytics = useLoyaltyAnalytics();
   const savedTotals = useSavedTotals();
   const activeClaims = useActiveClaimsCount();
@@ -384,7 +386,7 @@ export function AccountHomeScreen({
             <AccountRow
               icon="locationOn"
               title={copy.delivery}
-              meta={copy.deliveryMeta}
+              meta={area}
               onPress={onOpenDelivery}
             />
             <AccountRow

@@ -65,6 +65,10 @@ export const myBusinessSchema = z.looseObject({
   uniqueCode: nullableText(),
   description: nullableText(),
   status: nullableText(),
+  /** `unverified` · `needs_review` · `verified`. */
+  verificationStatus: nullableText(),
+  /** False while the owner has paused the storefront. */
+  isVisible: nullableFlag(true),
   category: z.looseObject({ id: z.string().optional(), name: nullableText() }).nullish(),
   subcategory: z
     .looseObject({ id: z.string().optional(), name: nullableText() })

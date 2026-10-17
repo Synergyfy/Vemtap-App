@@ -358,9 +358,93 @@ export const updateDealReviewSchema = z.object({
 });
 export type UpdateDealReviewInput = z.infer<typeof updateDealReviewSchema>;
 
+/** Moderation state of a review; the same three values the public routes use. */
+export type BusinessReviewStatus = 'pending' | 'approved' | 'rejected';
+
+/**
+ * Business-side review rows.
+ *
+ * Unlike the public rows these carry the moderation state, the offer they were
+ * written against and the author id, because the merchant screen is a moderation
+ * queue first: `status` decides which actions are offered.
+ *
+ * `rating` is nullable (a reviewer may leave a comment with no score), `ipHash`
+ * is returned but meaningless to the UI, and `createdAt` arrives as an ISO
+ * string.
+ */
+export const businessReviewSchema = z.object({
+  id: z.string(),
+  offerId: z.string(),
+  offerName: z.string().nullable().optional(),
+  reviewerName: z.string().nullable().optional(),
+  comment: z.string().nullable().optional(),
+  rating: z.number().nullable().optional(),
+  likesCount: nullableNumber(0),
+  status: z.string().nullable().optional(),
+  userId: z.string().nullable().optional(),
+  ipHash: z.string().nullable().optional(),
+  /** The business's public reply, when it has answered the review. */
+  merchantReply: z.string().nullable().optional(),
+  repliedAt: z.string().nullable().optional(),
+  createdAt: z.string(),
+});
+export type BusinessReview = z.infer<typeof businessReviewSchema>;
+
+/**
+ * `GET /deals/business/reviews` echoes `limit` alongside `page`; the public list
+ * omits it. `status` filters server-side, so the chips can be honest about what
+ * they show instead of pretending to filter what the server already sent.
+ */
+export const businessReviewsPageSchema = z.object({
+  reviews: z.array(businessReviewSchema),
+  total: z.number(),
+  page: z.number().nullable().optional(),
+  limit: z.number().nullable().optional(),
+});
+export type BusinessReviewsPage = z.infer<typeof businessReviewsPageSchema>;
+
+/**
+ * Score + counts for the merchant's reputation panel. `ratingDistribution` is the
+ * fixed 1–5 bucket map the server returns; unrated approved reviews contribute to
+ * nothing.
+ */
+export const businessReviewsSummarySchema = z.object({
+  totalReviews: z.number(),
+  averageRating: z.number().nullable().optional(),
+  pendingReviews: z.number().nullable().optional(),
+  ratingDistribution: z
+    .object({
+      1: z.number(),
+      2: z.number(),
+      3: z.number(),
+      4: z.number(),
+      5: z.number(),
+    })
+    .nullable()
+    .optional(),
+});
+export type BusinessReviewsSummary = z.infer<typeof businessReviewsSummarySchema>;
+
 export type ReactionType = 'like' | 'dislike';
 
 export const dealsApi = {
+  /** Active offers at one branch (`GET /catalogue/offers/public/:branchId`). */
+  async listBranchOffers(
+    branchId: string,
+    query: { limit?: number } = {},
+    options: ApiRequestOptions = {},
+  ): Promise<OfferFeed> {
+    return requestValidated<OfferFeed>(
+      {
+        method: 'GET',
+        url: `/catalogue/offers/public/${branchId}`,
+        params: { limit: query.limit },
+        ...options,
+      },
+      offerFeedSchema,
+    );
+  },
+
   async listPublicOffers(
     query: PaginatedQuery = {},
     options: ApiRequestOptions = {},
@@ -588,6 +672,123 @@ export const dealsApi = {
     await request<unknown>({
       method: 'DELETE',
       url: `/deals/${offerId}/reviews/${reviewId}`,
+      ...options,
+    });
+  },
+
+  /**
+   * The merchant's own reviews, newest first.
+   *
+   * `status` is the server-side filter the moderation chips use — sending it
+   * means a "Pending" chip really shows the moderation queue, not a slice of the
+   * last page the client happened to fetch.
+   */
+  async listBusinessReviews(
+    query: {
+      status?: BusinessReviewStatus;
+      offerId?: string;
+      page?: number;
+      limit?: number;
+    } = {},
+    options: ApiRequestOptions = {},
+  ): Promise<BusinessReviewsPage> {
+    return requestValidated<BusinessReviewsPage>(
+      {
+        method: 'GET',
+        url: '/deals/business/reviews',
+        params: {
+          status: query.status,
+          offerId: query.offerId,
+          page: query.page,
+          limit: query.limit,
+        },
+        ...options,
+      },
+      businessReviewsPageSchema,
+    );
+  },
+
+  /** Score, approved/pending counts and the star distribution for one business. */
+  async getBusinessReviewsSummary(
+    options: ApiRequestOptions = {},
+  ): Promise<BusinessReviewsSummary> {
+    return requestValidated<BusinessReviewsSummary>(
+      { method: 'GET', url: '/deals/business/reviews/summary', ...options },
+      businessReviewsSummarySchema,
+    );
+  },
+
+  /** Publish a pending review; answers with the review's new state. */
+  async approveBusinessReview(
+    reviewId: string,
+    options: ApiRequestOptions = {},
+  ): Promise<{ id: string; status: string }> {
+    return requestValidated<{ id: string; status: string }>(
+      {
+        method: 'POST',
+        url: `/deals/business/reviews/${reviewId}/approve`,
+        ...options,
+      },
+      z.object({ id: z.string(), status: z.string() }),
+    );
+  },
+
+  /** Take a review back down; answers with the review's new state. */
+  async rejectBusinessReview(
+    reviewId: string,
+    options: ApiRequestOptions = {},
+  ): Promise<{ id: string; status: string }> {
+    return requestValidated<{ id: string; status: string }>(
+      {
+        method: 'POST',
+        url: `/deals/business/reviews/${reviewId}/reject`,
+        ...options,
+      },
+      z.object({ id: z.string(), status: z.string() }),
+    );
+  },
+
+  /** Set or replace the business's public reply (trimmed, 1–1000 chars). */
+  async replyToBusinessReview(
+    reviewId: string,
+    reply: string,
+    options: ApiRequestOptions = {},
+  ): Promise<{ id: string; merchantReply: string | null; repliedAt?: string | null }> {
+    return requestValidated(
+      {
+        method: 'POST',
+        url: `/deals/business/reviews/${reviewId}/reply`,
+        data: { reply },
+        ...options,
+      },
+      z.object({
+        id: z.string(),
+        merchantReply: z.string().nullable(),
+        repliedAt: z.string().nullable().optional(),
+      }),
+    );
+  },
+
+  /** Remove the business's reply; answers `204`. */
+  async removeBusinessReviewReply(
+    reviewId: string,
+    options: ApiRequestOptions = {},
+  ): Promise<void> {
+    await request<unknown>({
+      method: 'DELETE',
+      url: `/deals/business/reviews/${reviewId}/reply`,
+      ...options,
+    });
+  },
+
+  /** Delete a review outright; answers `204` with no body. */
+  async deleteBusinessReview(
+    reviewId: string,
+    options: ApiRequestOptions = {},
+  ): Promise<void> {
+    await request<unknown>({
+      method: 'DELETE',
+      url: `/deals/business/reviews/${reviewId}`,
       ...options,
     });
   },

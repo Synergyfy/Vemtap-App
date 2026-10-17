@@ -3,6 +3,7 @@ import { Clipboard, Pressable, StyleSheet, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Button } from '@components/ui/Button';
+import { AppModal } from '@components/ui/Modal';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { colors } from '@theme/colors';
@@ -13,10 +14,7 @@ import {
   BusinessScreenLayout,
 } from '@features/business/components/BusinessPrimitives';
 import { BusinessQrGraphic } from '@features/business/components/BusinessProductContent';
-import {
-  businessMedia,
-  businessQrIdentity,
-} from '@features/business/data/businessSetupData';
+import type { QrReadyView } from '@features/business/utils/qrMappers';
 
 cssInterop(View, { className: 'style' });
 cssInterop(LinearGradient, { className: 'style' });
@@ -24,6 +22,9 @@ cssInterop(LinearGradient, { className: 'style' });
 const copy = strings.businessQrReady;
 
 export interface YourVemtapBusinessQrIsReadyScreenProps {
+  view?: QrReadyView;
+  isError?: boolean;
+  onRetry?: () => void;
   onBack: () => void;
   onShare?: () => void;
   onSupport?: () => void;
@@ -37,6 +38,9 @@ export interface YourVemtapBusinessQrIsReadyScreenProps {
 }
 
 export function YourVemtapBusinessQrIsReadyScreen({
+  view,
+  isError,
+  onRetry,
   onBack,
   onShare,
   onSupport,
@@ -48,6 +52,7 @@ export function YourVemtapBusinessQrIsReadyScreen({
   onOpenReferrals,
 }: YourVemtapBusinessQrIsReadyScreenProps) {
   const [copied, setCopied] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
   const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(
@@ -58,8 +63,9 @@ export function YourVemtapBusinessQrIsReadyScreen({
   );
 
   const copyLink = () => {
-    Clipboard.setString(businessQrIdentity.fullLink);
-    onCopyLink?.(businessQrIdentity.fullLink);
+    if (!view) return;
+    Clipboard.setString(view.url);
+    onCopyLink?.(view.url);
     setCopied(true);
     if (resetTimer.current) clearTimeout(resetTimer.current);
     resetTimer.current = setTimeout(() => setCopied(false), 2200);
@@ -155,13 +161,30 @@ export function YourVemtapBusinessQrIsReadyScreen({
             </VemtapText>
           </View>
         </View>
-        <BusinessQrGraphic />
+        {view ? (
+          <BusinessQrGraphic svg={view.svg} accessibilityLabel={view.displayUrl} />
+        ) : (
+          <View className="aspect-square w-[72%] max-w-[224px] items-center justify-center gap-2 rounded-xl bg-surface-subtle p-3">
+            <VemtapText variant="caption" tone="secondary" className="text-center">
+              {isError ? copy.error : copy.loading}
+            </VemtapText>
+            {isError ? (
+              <Button
+                label={copy.retry}
+                labelVariant="labelSm"
+                size="sm"
+                fullWidth={false}
+                onPress={onRetry}
+              />
+            ) : null}
+          </View>
+        )}
         <View className="mt-4 w-full items-center">
           <VemtapText variant="headingSm" className="font-sans-semibold">
-            {businessQrIdentity.businessName}
+            {view?.businessName ?? ''}
           </VemtapText>
           <VemtapText variant="caption" tone="secondary" className="mt-1 text-center">
-            {businessQrIdentity.descriptor}
+            {view?.descriptor ?? ''}
           </VemtapText>
           <Pressable
             accessibilityRole="button"
@@ -171,7 +194,7 @@ export function YourVemtapBusinessQrIsReadyScreen({
           >
             <Icon name="link" size={15} color={colors.primary} />
             <VemtapText variant="labelSm" className="font-sans-medium">
-              {businessQrIdentity.publicLink}
+              {view?.displayUrl ?? ''}
             </VemtapText>
             <Icon
               name={copied ? 'check' : 'copy'}
@@ -196,7 +219,11 @@ export function YourVemtapBusinessQrIsReadyScreen({
           variant="secondary"
           className="min-h-12 min-w-0 flex-1 border-0 bg-surface-container-high px-2"
           leftIcon={<Icon name="fullscreen" size={18} color={colors.text} />}
-          onPress={onPresentFullscreen}
+          disabled={!view}
+          onPress={() => {
+            setFullscreen(true);
+            onPresentFullscreen?.();
+          }}
         />
         <Button
           label={copy.downloadCta}
@@ -226,7 +253,7 @@ export function YourVemtapBusinessQrIsReadyScreen({
         <View className="overflow-hidden rounded-2xl bg-surface shadow-md">
           <View className="relative h-28 w-full overflow-hidden">
             <BusinessProductImage
-              source={businessMedia.customerPassPreview}
+              source={{ uri: view?.logoUrl ?? undefined }}
               alt={copy.previewImageAlt}
               className="h-full w-full"
             />
@@ -239,10 +266,10 @@ export function YourVemtapBusinessQrIsReadyScreen({
             <View className="absolute inset-x-3 bottom-2 flex-row items-end justify-between gap-3">
               <View className="min-w-0 flex-1">
                 <VemtapText variant="labelSm" className="text-inverse font-sans-semibold">
-                  {businessQrIdentity.businessName}
+                  {view?.businessName ?? ''}
                 </VemtapText>
-                <VemtapText variant="caption" className="text-inverse">
-                  {copy.previewStatus}
+                <VemtapText variant="caption" className="text-inverse" numberOfLines={1}>
+                  {view?.descriptor ?? ''}
                 </VemtapText>
               </View>
               <View className="shrink-0 flex-row items-center gap-1 rounded bg-surface/20 px-2 py-0.5">
@@ -376,6 +403,29 @@ export function YourVemtapBusinessQrIsReadyScreen({
           onPress={onShare}
         />
       </View>
+      <AppModal
+        visible={fullscreen && Boolean(view)}
+        onClose={() => setFullscreen(false)}
+        title={view?.businessName ?? copy.headerTitle}
+      >
+        {view ? (
+          <View className="items-center gap-3 pb-2">
+            <BusinessQrGraphic
+              svg={view.svg}
+              accessibilityLabel={view.displayUrl}
+              sizeClassName="w-full max-w-[320px]"
+            />
+            <VemtapText variant="labelMd" className="font-sans-semibold">
+              {view.displayUrl}
+            </VemtapText>
+            <Button
+              label={copy.fullscreenClose}
+              variant="secondary"
+              onPress={() => setFullscreen(false)}
+            />
+          </View>
+        ) : null}
+      </AppModal>
     </BusinessScreenLayout>
   );
 }

@@ -1,10 +1,12 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   Alert,
   Clipboard,
   Image,
+  Linking,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   useWindowDimensions,
   View,
@@ -15,13 +17,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { RegistrationHeader } from '@components/auth/RegistrationHeader';
 import { LocationMapView } from '@components/shared/LocationMapView';
 import { Button } from '@components/ui/Button';
-import { Icon, type IconName } from '@components/ui/Icon';
+import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
 import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
 import { colors } from '@theme/colors';
 import { formatCurrency, formatWhen } from '@utils/formatters';
 import type { MyClaim } from '@api/claimApi';
+import { PRODUCT_FALLBACK_IMAGE } from '@features/home/utils/productMapper';
 import { ClaimPassQrCode } from '../components/ClaimPassQrCode';
 
 cssInterop(View, { className: 'style' });
@@ -33,97 +36,109 @@ cssInterop(ScrollView, {
 cssInterop(SafeAreaView, { className: 'style' });
 
 const copy = strings.claimedDealPass;
-const image =
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuDHNsQYzlQAh9oju3O9Pp7b2OqE4Q1w9NTs0_fLXsac8VzxG06oD2NcwkkT8F3q8guxDTRfKEplRfmk3C-S9j62uAZ-X3SG4rkR3dDcngRx8sOpiwe5UeKWYk-lyy81904uUukw2Do3wMAOVj0Vg_7dv90NC6KTvhmoR0HFL6aPR56jOI4gZrX7w67mzbdQcgA44gm5lNRoAe6oGg6V1rNX8nBhjhfYCCBlRIssV7QqZImEOkPqpYnQDw';
-const region = {
-  latitude: 9.0765,
-  longitude: 7.3986,
-  latitudeDelta: 0.012,
-  longitudeDelta: 0.012,
-};
+
+/** Map zoom around the branch pin. */
+const MAP_DELTA = 0.012;
 
 export interface ClaimedDealDetailPassScreenProps {
-  /**
-   * The customer's claim row from `GET /me/claims`. When provided, the pass
-   * renders the real code, expiry, offer, prices and branch; the bundled demo
-   * (no claim) keeps the designed sample content.
-   */
-  claim?: MyClaim;
+  /** The customer's claim row from `GET /me/claims`. */
+  claim: MyClaim;
+  /** The server-generated QR for the claim code; a spinner shows until it arrives. */
+  qrSvg?: string | null;
   onBack?: () => void;
-  onShare?: () => void;
-  onMore?: () => void;
-  onUseDeal?: () => void;
   onOpenChat?: () => void;
-  onGetDirections?: () => void;
-  onCallBranch?: () => void;
-  onReview?: () => void;
-  onCancel?: () => void;
+  /** Opens the deal page, where the terms and reviews live. */
+  onOpenDeal?: () => void;
+  onOpenTerms?: () => void;
+  /** Releases the claim; asked to confirm first. */
+  onRelease?: () => void;
+  isReleasing?: boolean;
 }
 
+/**
+ * A claimed deal pass, built only from the claim: the code and its QR, the
+ * status and expiry the server computed, the offer's prices and the branch.
+ * Redemption is done by the business entering or scanning the code, so the pass
+ * shows the code rather than pretending to redeem itself.
+ */
 export function ClaimedDealDetailPassScreen({
   claim,
+  qrSvg,
   onBack,
-  onShare,
-  onMore,
-  onUseDeal,
   onOpenChat,
-  onGetDirections,
-  onCallBranch,
-  onReview,
-  onCancel,
+  onOpenDeal,
+  onOpenTerms,
+  onRelease,
+  isReleasing = false,
 }: ClaimedDealDetailPassScreenProps) {
   const { width } = useWindowDimensions();
   const me = useCurrentUserDisplay();
   const [copied, setCopied] = useState(false);
   const qrSize = Math.min(width - 104, 192);
+  const { offer } = claim;
 
-  const isActive = claim ? claim.status === 'ACTIVE' : true;
-  const statusLabel = claim
-    ? claim.status === 'ACTIVE'
+  const isActive = claim.status === 'ACTIVE';
+  const statusLabel =
+    claim.status === 'ACTIVE'
       ? copy.active
       : claim.status === 'REDEEMED'
         ? copy.redeemedStatus
-        : copy.expiredStatus
-    : copy.active;
-  const expiryLabel = claim
-    ? copy.expiresOnValue(formatWhen(claim.expiresAt))
-    : copy.expires;
-  const businessName = claim?.offer.businessName ?? copy.business;
-  const dealName = claim?.offer.name ?? copy.deal;
-  const address =
-    claim && (claim.offer.branchName || claim.offer.branchAddress)
-      ? [claim.offer.branchName, claim.offer.branchAddress].filter(Boolean).join(' • ')
-      : copy.address;
-  const priceLabel = claim ? formatCurrency(claim.offer.calculatedPrice) : copy.price;
-  const regularLabel = claim
-    ? copy.regularValue(formatCurrency(claim.offer.originalPrice))
-    : copy.regular;
-  const savings = claim ? claim.offer.originalPrice - claim.offer.calculatedPrice : 0;
-  const saveLabel =
-    claim && savings > 0 ? strings.deals.saveN(formatCurrency(savings)) : copy.save;
-  const discountLabel = claim
-    ? strings.deals.percentOff(claim.offer.discountPercent)
-    : copy.saved;
-  const reference = claim
-    ? copy.referenceFor(claim.id.slice(0, 8).toUpperCase())
-    : copy.reference;
+        : copy.expiredStatus;
+  const timeLabel =
+    claim.status === 'REDEEMED' && claim.redeemedAt
+      ? copy.redeemedOnValue(formatWhen(claim.redeemedAt))
+      : copy.expiresOnValue(formatWhen(claim.expiresAt));
+  const branchLine = [offer.branchName, offer.branchAddress].filter(Boolean).join(' • ');
+  const price = formatCurrency(offer.calculatedPrice);
+  const savings = offer.originalPrice - offer.calculatedPrice;
+  const { branchLatitude, branchLongitude } = offer;
+  const coordinates = useMemo(
+    () =>
+      branchLatitude != null && branchLongitude != null
+        ? { latitude: branchLatitude, longitude: branchLongitude }
+        : null,
+    [branchLatitude, branchLongitude],
+  );
+  const steps = [
+    copy.steps.visit(offer.businessName, offer.branchName ?? ''),
+    copy.steps.show(claim.claimCode),
+    copy.steps.pay(price),
+  ];
 
   const copyCode = useCallback(() => {
-    Clipboard.setString(claim?.claimCode ?? copy.code);
+    Clipboard.setString(claim.claimCode);
     setCopied(true);
-  }, [claim?.claimCode]);
-  const requestUse = useCallback(() => {
-    Alert.alert(copy.useNow, copy.present, [
-      { text: strings.common.cancel, style: 'cancel' },
-      { text: copy.useNow, onPress: onUseDeal },
+    setTimeout(() => setCopied(false), 2000);
+  }, [claim.claimCode]);
+
+  const share = useCallback(() => {
+    Share.share({
+      message: `${copy.shareMessage(offer.name, offer.businessName)}\nhttps://vemtap.com/deals/${offer.id}`,
+    }).catch(() => undefined);
+  }, [offer.businessName, offer.id, offer.name]);
+
+  const openDirections = useCallback(() => {
+    const query = coordinates
+      ? `${coordinates.latitude},${coordinates.longitude}`
+      : (offer.branchAddress ?? '');
+    Linking.openURL(
+      `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`,
+    ).catch(() => undefined);
+  }, [coordinates, offer.branchAddress]);
+
+  const callBranch = useCallback(() => {
+    if (!offer.branchPhone) return;
+    Linking.openURL(`tel:${offer.branchPhone}`).catch(() => undefined);
+  }, [offer.branchPhone]);
+
+  const confirmRelease = useCallback(() => {
+    Alert.alert(copy.cancelTitle, copy.cancelBody, [
+      { text: copy.keep, style: 'cancel' },
+      { text: copy.cancelConfirm, style: 'destructive', onPress: onRelease },
     ]);
-  }, [onUseDeal]);
-  const requestCancel = useCallback(() => {
-    Alert.alert(copy.cancel, copy.present, [
-      { text: strings.common.cancel, style: 'cancel' },
-      { text: copy.cancel, style: 'destructive', onPress: onCancel },
-    ]);
-  }, [onCancel]);
+  }, [onRelease]);
+
+  const canDirect = Boolean(coordinates || offer.branchAddress);
 
   return (
     <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-background">
@@ -131,13 +146,11 @@ export function ClaimedDealDetailPassScreen({
         title={copy.title}
         onBack={onBack ?? (() => undefined)}
         showShareAction
-        onShare={onShare}
-        showMoreAction
-        onMore={onMore}
+        onShare={share}
       />
       <ScrollView
         className="flex-1"
-        contentContainerClassName="gap-4 px-4 pb-28 pt-3"
+        contentContainerClassName="gap-4 px-4 pb-10 pt-3"
         showsVerticalScrollIndicator={false}
       >
         <View className="overflow-hidden rounded-card-lg bg-surface shadow-xl">
@@ -164,14 +177,14 @@ export function ClaimedDealDetailPassScreen({
             <View className="min-w-0 flex-row items-center gap-1">
               <Icon name="hourglass" size={16} color={colors.tertiary} />
               <VemtapText variant="caption" tone="secondary">
-                {expiryLabel}
+                {timeLabel}
               </VemtapText>
             </View>
           </View>
           <View className="gap-4 p-4">
-            <View className="relative h-44 overflow-hidden rounded-field">
+            <View className="relative h-44 overflow-hidden rounded-field bg-surface-container">
               <Image
-                source={{ uri: image }}
+                source={{ uri: offer.mainImage || PRODUCT_FALLBACK_IMAGE }}
                 className="h-full w-full"
                 resizeMode="cover"
               />
@@ -179,29 +192,38 @@ export function ClaimedDealDetailPassScreen({
                 colors={['transparent', colors.surfaceDark]}
                 className="absolute inset-0"
               />
-              <View className="absolute bottom-2 left-2 flex-row items-center gap-1 rounded-full bg-surface px-2 py-0.5">
-                <Icon name="fire" size={16} color={colors.primary} />
-                <VemtapText variant="labelSm" tone="brand" className="font-sans-semibold">
-                  {discountLabel}
-                </VemtapText>
-              </View>
+              {offer.discountPercent > 0 ? (
+                <View className="absolute bottom-2 left-2 flex-row items-center gap-1 rounded-full bg-surface px-2 py-0.5">
+                  <Icon name="fire" size={16} color={colors.primary} />
+                  <VemtapText
+                    variant="labelSm"
+                    tone="brand"
+                    className="font-sans-semibold"
+                  >
+                    {strings.deals.percentOff(offer.discountPercent)}
+                  </VemtapText>
+                </View>
+              ) : null}
             </View>
             <View>
-              <View className="flex-row items-center gap-1">
-                <VemtapText variant="labelMd" className="font-sans-semibold">
-                  {businessName}
-                </VemtapText>
-                <Icon name="verified" size={16} color={colors.primary} />
-              </View>
-              <VemtapText variant="bodyMd" className="mt-0.5 font-sans-semibold">
-                {dealName}
+              <VemtapText variant="labelMd" className="font-sans-semibold">
+                {offer.businessName}
               </VemtapText>
-              <View className="mt-1 flex-row items-start gap-1">
-                <Icon name="pin" size={16} color={colors.primary} />
-                <VemtapText variant="caption" tone="secondary" className="min-w-0 flex-1">
-                  {address}
-                </VemtapText>
-              </View>
+              <VemtapText variant="bodyMd" className="mt-0.5 font-sans-semibold">
+                {offer.name}
+              </VemtapText>
+              {branchLine ? (
+                <View className="mt-1 flex-row items-start gap-1">
+                  <Icon name="pin" size={16} color={colors.primary} />
+                  <VemtapText
+                    variant="caption"
+                    tone="secondary"
+                    className="min-w-0 flex-1"
+                  >
+                    {branchLine}
+                  </VemtapText>
+                </View>
+              ) : null}
             </View>
             <View className="flex-row items-center justify-between rounded-card bg-surface-tint-blue p-3">
               <View>
@@ -209,17 +231,19 @@ export function ClaimedDealDetailPassScreen({
                   {copy.discounted}
                 </VemtapText>
                 <VemtapText variant="labelMd" className="font-sans-bold text-primary">
-                  {priceLabel}
+                  {price}
                 </VemtapText>
               </View>
-              <View className="items-end">
-                <VemtapText variant="caption" tone="tertiary" className="line-through">
-                  {regularLabel}
-                </VemtapText>
-                <VemtapText variant="labelSm" className="text-badge-discount-text">
-                  {saveLabel}
-                </VemtapText>
-              </View>
+              {savings > 0 ? (
+                <View className="items-end">
+                  <VemtapText variant="caption" tone="tertiary" className="line-through">
+                    {copy.regularValue(formatCurrency(offer.originalPrice))}
+                  </VemtapText>
+                  <VemtapText variant="labelSm" className="text-badge-discount-text">
+                    {strings.deals.saveN(formatCurrency(savings))}
+                  </VemtapText>
+                </View>
+              ) : null}
             </View>
           </View>
           <View className="my-1 flex-row items-center justify-center">
@@ -227,152 +251,49 @@ export function ClaimedDealDetailPassScreen({
             <View className="mx-4 flex-1 border-t-2 border-dashed border-outline" />
             <View className="-mr-3 h-6 w-6 rounded-full bg-background" />
           </View>
-          <PassCodes
-            qrSize={qrSize}
-            copied={copied}
-            onCopy={copyCode}
-            code={claim?.claimCode ?? copy.code}
-            showPin={!claim}
-          />
-        </View>
-        {isActive ? (
-          <Button
-            label={copy.useNow}
-            labelVariant="labelMd"
-            leftIcon={<Icon name="checkCircle" size={18} color={colors.surface} />}
-            onPress={requestUse}
-          />
-        ) : null}
-        <View className="flex-row gap-2">
-          <Button
-            label={copy.chat}
-            variant="secondary"
-            size="sm"
-            labelVariant="labelSm"
-            fullWidth={false}
-            className="min-w-0 flex-1"
-            leftIcon={<Icon name="message" size={16} color={colors.primary} />}
-            onPress={onOpenChat}
-          />
-          <Button
-            label={copy.directions}
-            variant="secondary"
-            size="sm"
-            labelVariant="labelSm"
-            fullWidth={false}
-            className="min-w-0 flex-1"
-            leftIcon={<Icon name="nearMe" size={16} color={colors.primary} />}
-            onPress={onGetDirections}
-          />
-        </View>
-        <DetailCard
-          title={copy.verification}
-          badge={reference}
-          rows={[
-            [copy.claimedOn, claim ? formatWhen(claim.claimedAt) : copy.claimedOnValue],
-            [copy.holder, me.fullName],
-            [copy.payment, copy.paymentValue],
-            [copy.allocation, copy.personal],
-          ]}
-        />
-        <View className="gap-4 rounded-card-lg bg-surface p-4 shadow-sm">
-          <View className="flex-row items-center gap-2">
-            <View className="h-8 w-8 items-center justify-center rounded-full bg-secondary-fixed">
-              <Icon name="verified" size={18} color={colors.primary} />
-            </View>
-            <View>
-              <VemtapText variant="bodyMd" className="font-sans-semibold">
-                {copy.how}
-              </VemtapText>
-              <VemtapText variant="caption" tone="secondary">
-                {copy.howSub}
-              </VemtapText>
-            </View>
-          </View>
-          <View className="gap-3">
-            {copy.steps.map((step, index) => (
-              <View key={step[0]} className="flex-row items-start gap-3">
-                <View className="h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary">
-                  <VemtapText variant="labelSm" className="text-primary-foreground">
-                    {index + 1}
-                  </VemtapText>
-                </View>
-                <View className="min-w-0 flex-1">
-                  <VemtapText variant="bodyMd" className="font-sans-medium">
-                    {step[0]}
-                  </VemtapText>
-                  <VemtapText variant="caption" tone="secondary">
-                    {step[1]}
-                  </VemtapText>
-                </View>
+          <View className="items-center gap-3 bg-surface-subtle p-4">
+            {isActive ? (
+              <View className="items-center rounded-card-lg bg-surface p-3 shadow-sm">
+                <ClaimPassQrCode svg={qrSvg} size={qrSize} label={copy.scan} />
+                <VemtapText variant="caption" tone="secondary" className="mt-2">
+                  {qrSvg ? copy.scan : copy.qrLoading}
+                </VemtapText>
               </View>
-            ))}
+            ) : null}
+            <View className="w-full items-center rounded-card bg-surface p-2">
+              <VemtapText variant="caption" tone="secondary">
+                {copy.claimCode}
+              </VemtapText>
+              <View className="flex-row items-center gap-1">
+                <VemtapText variant="labelMd" className="font-sans-bold">
+                  {claim.claimCode}
+                </VemtapText>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={copied ? copy.copied : copy.claimCode}
+                  onPress={copyCode}
+                  hitSlop={8}
+                >
+                  <Icon
+                    name={copied ? 'check' : 'copy'}
+                    size={16}
+                    color={colors.primary}
+                  />
+                </Pressable>
+              </View>
+            </View>
+            {isActive ? (
+              <VemtapText variant="caption" tone="secondary" className="text-center">
+                {copy.present}
+              </VemtapText>
+            ) : null}
           </View>
         </View>
-        <View className="gap-2 rounded-card-lg bg-surface p-4 shadow-sm">
-          <VemtapText variant="bodyMd" className="font-sans-semibold">
-            {copy.rules}
-          </VemtapText>
-          {copy.rulesList.map((rule, index) => (
-            <View key={rule} className="flex-row items-start gap-2">
-              <Icon
-                name={
-                  (['eventAvailable', 'restaurant', 'voucher', 'block'] as IconName[])[
-                    index
-                  ]
-                }
-                size={16}
-                color={colors.primary}
-              />
-              <VemtapText variant="caption" tone="secondary" className="min-w-0 flex-1">
-                {rule}
-              </VemtapText>
-            </View>
-          ))}
-        </View>
-        <View className="gap-3 rounded-card-lg bg-surface p-4 shadow-sm">
-          <View className="flex-row items-center gap-2">
-            <View className="h-10 w-10 items-center justify-center rounded-field bg-surface-container">
-              <VemtapText variant="labelMd" className="text-primary">
-                UG
-              </VemtapText>
-            </View>
-            <View>
-              <VemtapText variant="labelMd" className="font-sans-semibold">
-                {copy.business}
-              </VemtapText>
-              <VemtapText variant="caption" className="text-badge-discount-text">
-                ● {copy.open}
-              </VemtapText>
-            </View>
-          </View>
-          <LocationMapView
-            region={region}
-            style={styles.map}
-            scrollEnabled={false}
-            zoomEnabled={false}
-            rotateEnabled={false}
-          >
-            <View className="absolute bottom-2 left-2 flex-row items-center gap-1 rounded-lg bg-surface px-2 py-1 shadow-sm">
-              <Icon name="locationOn" size={16} color={colors.primary} />
-              <VemtapText variant="caption" className="font-sans-semibold">
-                {copy.distance}
-              </VemtapText>
-            </View>
-          </LocationMapView>
-          <View className="flex-row gap-2">
+
+        <View className="flex-row gap-2">
+          {onOpenChat ? (
             <Button
-              label={copy.call}
-              variant="secondary"
-              size="sm"
-              labelVariant="labelSm"
-              fullWidth={false}
-              className="min-w-0 flex-1"
-              leftIcon={<Icon name="phone" size={16} color={colors.primary} />}
-              onPress={onCallBranch}
-            />
-            <Button
-              label={copy.inAppChat}
+              label={copy.chat}
               variant="secondary"
               size="sm"
               labelVariant="labelSm"
@@ -381,13 +302,136 @@ export function ClaimedDealDetailPassScreen({
               leftIcon={<Icon name="message" size={16} color={colors.primary} />}
               onPress={onOpenChat}
             />
-          </View>
+          ) : null}
+          {canDirect ? (
+            <Button
+              label={copy.directions}
+              variant="secondary"
+              size="sm"
+              labelVariant="labelSm"
+              fullWidth={false}
+              className="min-w-0 flex-1"
+              leftIcon={<Icon name="nearMe" size={16} color={colors.primary} />}
+              onPress={openDirections}
+            />
+          ) : null}
         </View>
+
+        <View className="gap-2 rounded-card-lg bg-surface p-4 shadow-sm">
+          <View className="flex-row items-center justify-between">
+            <VemtapText variant="labelMd" className="font-sans-semibold">
+              {copy.verification}
+            </VemtapText>
+            <View className="rounded-full bg-surface-container-high px-2 py-0.5">
+              <VemtapText variant="labelSm">
+                {copy.referenceFor(claim.id.slice(0, 8).toUpperCase())}
+              </VemtapText>
+            </View>
+          </View>
+          {[
+            [copy.claimedOn, formatWhen(claim.claimedAt)],
+            ...(me.fullName ? [[copy.holder, me.fullName]] : []),
+            [copy.payment, copy.paymentValue],
+          ].map(([label, value]) => (
+            <View
+              key={label}
+              className="flex-row items-center justify-between gap-3 py-1"
+            >
+              <VemtapText variant="caption" tone="secondary">
+                {label}
+              </VemtapText>
+              <VemtapText
+                variant="caption"
+                className="min-w-0 flex-1 text-right font-sans-medium"
+              >
+                {value}
+              </VemtapText>
+            </View>
+          ))}
+        </View>
+
+        {isActive ? (
+          <View className="gap-4 rounded-card-lg bg-surface p-4 shadow-sm">
+            <View className="flex-row items-center gap-2">
+              <View className="h-8 w-8 items-center justify-center rounded-full bg-secondary-fixed">
+                <Icon name="verified" size={18} color={colors.primary} />
+              </View>
+              <View>
+                <VemtapText variant="bodyMd" className="font-sans-semibold">
+                  {copy.how}
+                </VemtapText>
+                <VemtapText variant="caption" tone="secondary">
+                  {copy.howSub}
+                </VemtapText>
+              </View>
+            </View>
+            <View className="gap-3">
+              {steps.map(([title, body], index) => (
+                <View key={title} className="flex-row items-start gap-3">
+                  <View className="h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary">
+                    <VemtapText variant="labelSm" className="text-primary-foreground">
+                      {index + 1}
+                    </VemtapText>
+                  </View>
+                  <View className="min-w-0 flex-1">
+                    <VemtapText variant="bodyMd" className="font-sans-medium">
+                      {title}
+                    </VemtapText>
+                    <VemtapText variant="caption" tone="secondary">
+                      {body}
+                    </VemtapText>
+                  </View>
+                </View>
+              ))}
+            </View>
+            {onOpenTerms ? (
+              <Pressable
+                accessibilityRole="button"
+                onPress={onOpenTerms}
+                className="flex-row items-center gap-1 self-start"
+              >
+                <Icon name="info" size={16} color={colors.primary} />
+                <VemtapText variant="labelSm" tone="brand">
+                  {copy.viewTerms}
+                </VemtapText>
+              </Pressable>
+            ) : null}
+          </View>
+        ) : null}
+
+        {coordinates || offer.branchPhone ? (
+          <View className="gap-3 rounded-card-lg bg-surface p-4 shadow-sm">
+            {coordinates ? (
+              <LocationMapView
+                region={{
+                  ...coordinates,
+                  latitudeDelta: MAP_DELTA,
+                  longitudeDelta: MAP_DELTA,
+                }}
+                style={styles.map}
+                scrollEnabled={false}
+                zoomEnabled={false}
+                rotateEnabled={false}
+              />
+            ) : null}
+            {offer.branchPhone ? (
+              <Button
+                label={copy.call}
+                variant="secondary"
+                size="sm"
+                labelVariant="labelSm"
+                leftIcon={<Icon name="phone" size={16} color={colors.primary} />}
+                onPress={callBranch}
+              />
+            ) : null}
+          </View>
+        ) : null}
+
         <View className="items-center gap-2 pt-1">
           <View className="flex-row flex-wrap items-center justify-center gap-3">
             <Pressable
               accessibilityRole="button"
-              onPress={onShare}
+              onPress={share}
               className="flex-row items-center gap-1"
             >
               <Icon name="share" size={18} color={colors.primary} />
@@ -395,140 +439,36 @@ export function ClaimedDealDetailPassScreen({
                 {copy.sharePass}
               </VemtapText>
             </Pressable>
-            <View className="h-1 w-1 rounded-full bg-outline" />
+            {onOpenDeal ? (
+              <>
+                <View className="h-1 w-1 rounded-full bg-outline" />
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={onOpenDeal}
+                  className="flex-row items-center gap-1"
+                >
+                  <Icon name="message" size={18} color={colors.textSecondary} />
+                  <VemtapText variant="labelMd" tone="secondary">
+                    {copy.review}
+                  </VemtapText>
+                </Pressable>
+              </>
+            ) : null}
+          </View>
+          {isActive && onRelease ? (
             <Pressable
               accessibilityRole="button"
-              onPress={onReview}
-              className="flex-row items-center gap-1"
+              disabled={isReleasing}
+              onPress={confirmRelease}
             >
-              <Icon name="message" size={18} color={colors.textSecondary} />
-              <VemtapText variant="labelMd" tone="secondary">
-                {copy.review}
+              <VemtapText variant="caption" tone="tertiary" className="underline">
+                {isReleasing ? strings.common.loading : copy.cancel}
               </VemtapText>
             </Pressable>
-          </View>
-          <Pressable accessibilityRole="button" onPress={requestCancel}>
-            <VemtapText variant="caption" tone="tertiary" className="underline">
-              {copy.cancel}
-            </VemtapText>
-          </Pressable>
+          ) : null}
         </View>
       </ScrollView>
-      {isActive ? (
-        <View className="absolute inset-x-0 bottom-0 flex-row gap-2 border-t border-border bg-surface px-4 pb-2 pt-3">
-          <Button
-            label={copy.barcode}
-            variant="secondary"
-            labelVariant="labelSm"
-            fullWidth={false}
-            className="min-w-0 flex-1"
-            leftIcon={<Icon name="qrCodeScanner" size={17} color={colors.surfaceDark} />}
-            onPress={requestUse}
-          />
-          <Button
-            label={copy.useBarcode}
-            labelVariant="labelMd"
-            className="min-w-0 flex-[2]"
-            leftIcon={<Icon name="bolt" size={18} color={colors.surface} />}
-            onPress={requestUse}
-          />
-        </View>
-      ) : null}
     </SafeAreaView>
-  );
-}
-
-function PassCodes({
-  qrSize,
-  copied,
-  onCopy,
-  code,
-  showPin,
-}: {
-  qrSize: number;
-  copied: boolean;
-  onCopy: () => void;
-  code: string;
-  /** The claim API exposes no cashier PIN; only the bundled demo shows one. */
-  showPin: boolean;
-}) {
-  return (
-    <View className="items-center gap-3 bg-surface-subtle p-4">
-      <View className="items-center rounded-card-lg bg-surface p-3 shadow-sm">
-        <ClaimPassQrCode size={qrSize} />
-        <VemtapText variant="caption" tone="secondary" className="mt-2">
-          {copy.scan}
-        </VemtapText>
-      </View>
-      <View className="flex-row gap-2">
-        <View className="flex-1 items-center rounded-card bg-surface p-2">
-          <VemtapText variant="caption" tone="secondary">
-            {copy.merchantCode}
-          </VemtapText>
-          <View className="flex-row items-center gap-1">
-            <VemtapText variant="labelMd" className="font-sans-bold">
-              {code}
-            </VemtapText>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={copy.merchantCode}
-              onPress={onCopy}
-            >
-              <Icon name={copied ? 'check' : 'copy'} size={16} color={colors.primary} />
-            </Pressable>
-          </View>
-        </View>
-        {showPin ? (
-          <View className="flex-1 items-center rounded-card bg-surface p-2">
-            <VemtapText variant="caption" tone="secondary">
-              {copy.cashierPin}
-            </VemtapText>
-            <VemtapText variant="labelMd" tone="brand" className="font-sans-bold">
-              {copy.pin}
-            </VemtapText>
-          </View>
-        ) : null}
-      </View>
-      <VemtapText variant="caption" tone="secondary" className="text-center">
-        {copy.present}
-      </VemtapText>
-    </View>
-  );
-}
-
-function DetailCard({
-  title,
-  badge,
-  rows,
-}: {
-  title: string;
-  badge: string;
-  rows: string[][];
-}) {
-  return (
-    <View className="gap-2 rounded-card-lg bg-surface p-4 shadow-sm">
-      <View className="flex-row items-center justify-between">
-        <VemtapText variant="labelMd" className="font-sans-semibold">
-          {title}
-        </VemtapText>
-        <View className="rounded-full bg-surface-container-high px-2 py-0.5">
-          <VemtapText variant="labelSm">{badge}</VemtapText>
-        </View>
-      </View>
-      {rows.map(row => (
-        <View key={row[0]} className="flex-row items-center justify-between gap-3 py-1">
-          <VemtapText variant="caption" tone="secondary">
-            {row[0]}
-          </VemtapText>
-          <VemtapText
-            variant="caption"
-            className="min-w-0 flex-1 text-right font-sans-medium"
-          >
-            {row[1]}
-          </VemtapText>
-        </View>
-      ))}
-    </View>
   );
 }
 

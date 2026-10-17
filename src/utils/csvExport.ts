@@ -45,3 +45,32 @@ export async function shareCsv(
   }
   await Share.share({ title, message: csv });
 }
+
+const UTI_BY_MIME: Record<string, string> = {
+  'text/csv': 'public.comma-separated-values-text',
+  'application/pdf': 'com.adobe.pdf',
+};
+
+/**
+ * Share a file the API returned base64-encoded (an analytics report): written
+ * to the cache under its own name, then handed to the share sheet. Returns
+ * `false` when file sharing is unavailable on the device.
+ */
+export async function shareBase64File(
+  fileName: string,
+  base64: string,
+  mimeType: string,
+  title: string,
+): Promise<boolean> {
+  if (!(await Sharing.isAvailableAsync())) return false;
+  const file = new File(Paths.cache, fileName);
+  if (file.exists) file.delete();
+  file.create();
+  file.write(base64, { encoding: 'base64' });
+  await Sharing.shareAsync(file.uri, {
+    mimeType,
+    UTI: UTI_BY_MIME[mimeType],
+    dialogTitle: title,
+  });
+  return true;
+}

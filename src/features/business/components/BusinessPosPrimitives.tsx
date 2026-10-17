@@ -1,6 +1,7 @@
 import React, { useState, type ReactNode } from 'react';
 import { Pressable, View } from 'react-native';
 import { cssInterop } from 'nativewind';
+import { SvgXml } from 'react-native-svg';
 import { Icon, type IconName } from '@components/ui/Icon';
 import { Avatar } from '@components/ui/Avatar';
 import { VemtapText } from '@components/ui/Text';
@@ -22,6 +23,8 @@ export interface BusinessQrFrameProps {
   size?: 'sm' | 'md' | 'lg';
   /** Center glyph rendered inside the QR (brand mark or contactless). */
   glyph?: IconName;
+  /** Real QR artwork (SVG markup); without it the frame shows its placeholder. */
+  svg?: string;
   children?: ReactNode;
   className?: string;
 }
@@ -36,6 +39,7 @@ export function BusinessQrFrame({
   caption,
   size = 'md',
   glyph = 'contactless',
+  svg,
   children,
   className,
 }: BusinessQrFrameProps) {
@@ -51,29 +55,39 @@ export function BusinessQrFrame({
           {label}
         </VemtapText>
       ) : null}
-      <View className="relative items-center justify-center rounded-field bg-surface p-2">
+      {svg ? (
         <View
           accessibilityRole="image"
           accessibilityLabel={caption ?? label ?? 'QR code'}
-          className={cn('rounded-lg border border-border bg-surface', box)}
+          className={cn('rounded-lg bg-surface p-1', box)}
         >
-          <View className="flex-1 p-2">
-            {['left', 'right'].map(side => (
-              <View
-                key={side}
-                className={cn(
-                  'absolute h-9 w-9 rounded-lg bg-primary',
-                  side === 'left' ? 'left-2 top-2' : 'right-2 top-2',
-                )}
-              />
-            ))}
-            <View className="absolute bottom-2 left-2 h-9 w-9 rounded-lg bg-primary" />
+          <SvgXml xml={svg} width="100%" height="100%" />
+        </View>
+      ) : (
+        <View className="relative items-center justify-center rounded-field bg-surface p-2">
+          <View
+            accessibilityRole="image"
+            accessibilityLabel={caption ?? label ?? 'QR code'}
+            className={cn('rounded-lg border border-border bg-surface', box)}
+          >
+            <View className="flex-1 p-2">
+              {['left', 'right'].map(side => (
+                <View
+                  key={side}
+                  className={cn(
+                    'absolute h-9 w-9 rounded-lg bg-primary',
+                    side === 'left' ? 'left-2 top-2' : 'right-2 top-2',
+                  )}
+                />
+              ))}
+              <View className="absolute bottom-2 left-2 h-9 w-9 rounded-lg bg-primary" />
+            </View>
+          </View>
+          <View className="absolute h-11 w-11 items-center justify-center rounded-xl bg-primary shadow-md">
+            <Icon name={glyph} size={20} color={colors.surface} />
           </View>
         </View>
-        <View className="absolute h-11 w-11 items-center justify-center rounded-xl bg-primary shadow-md">
-          <Icon name={glyph} size={20} color={colors.surface} />
-        </View>
-      </View>
+      )}
       {children}
       {caption ? (
         <View className="mt-2 flex-row items-center gap-1.5">

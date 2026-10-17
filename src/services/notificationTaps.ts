@@ -147,6 +147,21 @@ function routeFromTarget(target: NonNullable<ReturnType<typeof resolveNotificati
     };
   }
 
+  // Reviews and comments are answered from the business app only.
+  if (target.kind === 'reviews') {
+    if (mode !== 'business') return null;
+    return {
+      name: 'BusinessTabs' as const,
+      params: {
+        screen: 'BusinessHub',
+        params: {
+          screen: 'BusinessReviewsReputation',
+          params: { source: target.source },
+        },
+      },
+    };
+  }
+
   if (mode === 'business') {
     if (target.kind === 'order') {
       return {

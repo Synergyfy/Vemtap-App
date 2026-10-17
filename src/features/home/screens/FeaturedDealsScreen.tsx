@@ -29,6 +29,7 @@ import { sponsoredTracker } from '@services/sponsoredTracker';
 import { useSavedFeed, useToggleDealSave } from '@features/accountHub/hooks/useSavedHub';
 import { discoveryOrigin } from '@utils/geo';
 import { useLocationStore } from '@store/locationStore';
+import { AREA_PILL_LABELS } from '@constants/locations';
 
 cssInterop(View, { className: 'style' });
 cssInterop(Pressable, { className: 'style' });
@@ -265,7 +266,7 @@ export function FeaturedDealsScreen({
             </View>
             <View className="flex-row items-center gap-1">
               <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-                {copy.locationLabel}
+                {copy.locationLabel(AREA_PILL_LABELS[area] ?? area)}
               </VemtapText>
               <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
                 {`\u00b7 ${copy.withinLabel(radiusKm)}`}
@@ -308,7 +309,7 @@ export function FeaturedDealsScreen({
                 numberOfLines={1}
                 onPress={onOpenLocation}
               >
-                {copy.locationLabel}
+                {copy.locationLabel(AREA_PILL_LABELS[area] ?? area)}
               </VemtapText>
               <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
                 {copy.within}

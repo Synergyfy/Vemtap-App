@@ -1,10 +1,14 @@
-import React from 'react';
-import { Image, Pressable, ScrollView, View } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { Clipboard, Linking, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useMutation } from '@tanstack/react-query';
 import { RegistrationHeader } from '@components/auth/RegistrationHeader';
 import { Button } from '@components/ui/Button';
 import { Icon, type IconName } from '@components/ui/Icon';
+import { Input } from '@components/ui/Input';
+import { AppModal } from '@components/ui/Modal';
 import { VemtapText } from '@components/ui/Text';
+import { showToast } from '@components/shared/toast';
 import { strings } from '@constants/strings';
 import {
   OrderLineItem,
@@ -15,49 +19,27 @@ import { ErrorState } from '@components/shared/ErrorState';
 import { LoadingState } from '@components/shared/LoadingState';
 import { OrderStatusTimelineRow } from '@features/order/components/OrderHubComponents';
 import { useCustomerOrderDetail } from '@features/order/hooks/useCustomerOrders';
-import type { CatalogueOrder } from '@api/ordersApi';
+import { ordersApi } from '@api/ordersApi';
+import { supportApi } from '@api/supportApi';
 import { statusLabel } from '@features/order/orderStatus';
-import { orderImages } from '@features/order/orderData';
 import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
+import type { OrderDraft } from '@navigation/types';
+import { shareBase64File } from '@utils/csvExport';
 import { formatCurrency, formatWhen } from '@utils/formatters';
 import { colors } from '@theme/colors';
 
-const itemImages = [orderImages.steak, orderImages.drink, orderImages.merchant];
-/**
- * The customer rows carry the signed-in user, so they are built per render from
- * `useCurrentUserDisplay` rather than frozen at module load.
- */
-const transactionRows = (
-  identity: { name: string; phone: string },
-  order?: CatalogueOrder,
-): Array<{
-  icon: IconName;
-  label: string;
-  value: string;
-  copyable?: boolean;
-}> => [
-  {
-    icon: 'badge',
-    label: strings.urbanOrderDetail.orderReference,
-    value: `${strings.ordersHub.orderNumberLabel}${(order?.id ?? '').slice(0, 8).toUpperCase()}`,
-    copyable: true,
-  },
-  {
-    icon: 'eventAvailable',
-    label: strings.urbanOrderDetail.dateTime,
-    value: formatWhen(order?.createdAt ?? ''),
-  },
-  {
-    icon: 'person',
-    label: strings.urbanOrderDetail.customer,
-    value: identity.name,
-  },
-  {
-    icon: 'phone',
-    label: strings.urbanOrderDetail.contact,
-    value: identity.phone,
-  },
-];
+const copy = strings.urbanOrderDetail;
+
+/** The reference customers and staff both see: the id's first eight characters. */
+function orderReference(id: string): string {
+  return `#${id.slice(0, 8).toUpperCase()}`;
+}
+
+function toNumber(value: string | number | null | undefined): number | null {
+  if (value == null) return null;
+  const parsed = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
 
 export interface UrbanOrderDetailScreenProps {
   /**
@@ -67,42 +49,66 @@ export interface UrbanOrderDetailScreenProps {
    */
   orderId?: string;
   onBack?: () => void;
-  onShare?: () => void;
-  onMore?: () => void;
-  onCopy?: (value: string) => void;
-  onCall?: () => void;
+  /** Hidden when absent: not every stack has a conversation to open. */
   onChat?: () => void;
-  onDirections?: () => void;
-  onReorder?: () => void;
-  onDownloadInvoice?: () => void;
-  onReportIssue?: () => void;
+  /** Opens checkout with the order's items at the same branch. */
+  onReorder?: (draft: OrderDraft) => void;
 }
 
+/**
+ * One of the customer's orders, read from `my-orders`. Every action works on
+ * the order itself: the pickup code is the order reference the business also
+ * sees, Call and Directions use the branch, the receipt is
+ * `GET /catalogue/orders/my-orders/:id/receipt`, and a report opens a support
+ * ticket that names the order.
+ */
 export function UrbanOrderDetailScreen({
   orderId,
   onBack,
-  onShare,
-  onMore,
-  onCopy,
-  onCall,
   onChat,
-  onDirections,
   onReorder,
-  onDownloadInvoice,
-  onReportIssue,
 }: UrbanOrderDetailScreenProps) {
   const insets = useSafeAreaInsets();
-  const copy = onCopy ?? (() => undefined);
   const me = useCurrentUserDisplay();
-
   const detail = useCustomerOrderDetail(orderId);
   const { order } = detail;
+  const [copiedRef, setCopiedRef] = useState(false);
+  const [issueOpen, setIssueOpen] = useState(false);
+  const [issueText, setIssueText] = useState('');
+
+  const receipt = useMutation({
+    mutationFn: (id: string) => ordersApi.getMyOrderReceipt(id),
+    onSuccess: async file => {
+      const shared = await shareBase64File(
+        file.filename,
+        file.contentBase64,
+        file.mimeType,
+        copy.invoice,
+      );
+      if (!shared) showToast(copy.invoiceUnavailable, 'error');
+    },
+    onError: () => showToast(copy.invoiceFailed, 'error'),
+  });
+
+  const report = useMutation({
+    mutationFn: (input: { ref: string; message: string }) =>
+      supportApi.createTicket({
+        subject: copy.issueSubject(input.ref),
+        category: copy.issueCategory,
+        message: input.message,
+      }),
+    onSuccess: () => {
+      setIssueOpen(false);
+      setIssueText('');
+      showToast(copy.issueSent, 'success');
+    },
+    onError: () => showToast(copy.issueFailed, 'error'),
+  });
 
   /**
-   * The timeline is derived from the single status the API returns instead of
-   * faking a step-by-step animation: a `completed` order marks every earlier
-   * stage done, one still `processing` leaves the final stage pending, and a
-   * terminal state (cancelled, refunded) stops at that stage.
+   * The timeline is derived from the single status the API returns: a
+   * `completed` order marks every earlier stage done, one still `processing`
+   * leaves the final stage pending, and a terminal state stops at that stage.
    */
   const STAGE_ORDER = ['new', 'processing', 'completed'];
   const currentStage = STAGE_ORDER.indexOf(order?.status ?? '');
@@ -122,21 +128,15 @@ export function UrbanOrderDetailScreen({
     (sum, line) => sum + (typeof line.totalPrice === 'number' ? line.totalPrice : 0),
     0,
   );
-  const total = typeof order?.totalAmount === 'number' ? order.totalAmount : null;
-
-  /**
-   * The API does not break out promo or fee — it returns line totals and an
-   * order total. When the order total is below the sum of its lines the
-   * difference is a discount; otherwise the lines already account for it and
-   * inventing a fee row would be fiction.
-   */
+  const total = toNumber(order?.totalAmount);
+  /** Only a total below its lines is a discount; nothing else is invented. */
   const discount = total == null ? 0 : Math.max(0, subtotal - total);
   const priceRows = [
-    { label: strings.urbanOrderDetail.subtotal, value: formatCurrency(subtotal) },
+    { label: copy.subtotal, value: formatCurrency(subtotal) },
     ...(discount > 0
       ? [
           {
-            label: strings.urbanOrderDetail.promo,
+            label: copy.discount,
             value: `-${formatCurrency(discount)}`,
             tone: 'success' as const,
           },
@@ -144,17 +144,98 @@ export function UrbanOrderDetailScreen({
       : []),
   ];
 
+  const branch = order?.branch;
+  const businessName = branch?.business?.name ?? order?.business?.name ?? '';
+  const ref = order ? orderReference(order.id) : '';
+
+  const reorderDraft = useMemo<OrderDraft | null>(() => {
+    if (!order?.branchId) return null;
+    const lines = (order.items ?? []).flatMap(line =>
+      line.itemId
+        ? [
+            {
+              itemId: line.itemId,
+              name: line.name ?? strings.ordersHub.orderItemFallback,
+              image: line.image,
+              unitPrice: toNumber(line.unitPrice) ?? 0,
+              quantity: line.quantity,
+            },
+          ]
+        : [],
+    );
+    if (lines.length === 0) return null;
+    return {
+      branchId: order.branchId,
+      businessName: businessName || undefined,
+      branchName: branch?.name ?? undefined,
+      items: lines,
+      instructions: '',
+    };
+  }, [branch?.name, businessName, order]);
+
+  const copyRef = () => {
+    Clipboard.setString(ref);
+    setCopiedRef(true);
+    setTimeout(() => setCopiedRef(false), 2000);
+  };
+
+  const branchActions: { label: string; icon: IconName; onPress: () => void }[] = [
+    ...(branch?.phone
+      ? [
+          {
+            label: copy.call,
+            icon: 'phone' as const,
+            onPress: () => {
+              Linking.openURL(`tel:${branch.phone}`).catch(() => undefined);
+            },
+          },
+        ]
+      : []),
+    ...(onChat ? [{ label: copy.chat, icon: 'comment' as const, onPress: onChat }] : []),
+    ...(branch?.address
+      ? [
+          {
+            label: copy.directions,
+            icon: 'nearMe' as const,
+            onPress: () => {
+              Linking.openURL(
+                `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(branch.address ?? '')}`,
+              ).catch(() => undefined);
+            },
+          },
+        ]
+      : []),
+  ];
+
+  const detailsRows: { icon: IconName; label: string; value: string }[] = order
+    ? [
+        {
+          icon: 'eventAvailable',
+          label: copy.dateTime,
+          value: formatWhen(order.createdAt ?? ''),
+        },
+        ...(me.fullName
+          ? [{ icon: 'person' as const, label: copy.customer, value: me.fullName }]
+          : []),
+        ...(me.phone
+          ? [{ icon: 'phone' as const, label: copy.contact, value: me.phone }]
+          : []),
+        ...(order.tableNumber
+          ? [{ icon: 'restaurant' as const, label: copy.table, value: order.tableNumber }]
+          : []),
+        ...(order.notes
+          ? [{ icon: 'editNote' as const, label: copy.note, value: order.notes }]
+          : []),
+      ]
+    : [];
+
   return (
     <View className="flex-1 bg-background">
       <View style={{ paddingTop: Math.max(insets.top, 8) }} className="bg-surface">
         <RegistrationHeader
-          title={strings.urbanOrderDetail.title}
+          title={copy.title}
           onBack={onBack ?? (() => undefined)}
           titleAlign="start"
-          showShareAction
-          onShare={onShare}
-          showMoreAction
-          onMore={onMore}
         />
       </View>
       <ScrollView
@@ -179,13 +260,13 @@ export function UrbanOrderDetailScreen({
                 <View className="flex-row items-center gap-2 rounded-full bg-tertiary-fixed px-3 py-1.5">
                   <View className="h-2 w-2 rounded-full bg-tertiary" />
                   <VemtapText variant="labelMd" className="font-sans-semibold">
-                    {statusLabel(order?.status)}
+                    {statusLabel(order.status)}
                   </VemtapText>
                 </View>
                 <View className="flex-row items-center gap-1">
                   <Icon name="schedule" size={17} color={colors.tertiary} />
                   <VemtapText variant="labelSm" className="font-sans-medium">
-                    {formatWhen(order?.createdAt ?? '')}
+                    {formatWhen(order.createdAt ?? '')}
                   </VemtapText>
                 </View>
               </View>
@@ -194,36 +275,36 @@ export function UrbanOrderDetailScreen({
                 variant="headingMd"
                 className="text-heading-md"
               >
-                {strings.urbanOrderDetail.heading}
+                {copy.headings[order.status ?? ''] ?? copy.headingFallback}
               </VemtapText>
               <VemtapText variant="bodyMd" tone="secondary" className="mt-1">
-                {strings.urbanOrderDetail.subheading}
+                {copy.subheading(businessName)}
               </VemtapText>
               <View className="mt-4 gap-4">
                 <OrderStatusTimelineRow
-                  title={strings.urbanOrderDetail.status.placed}
-                  body={strings.urbanOrderDetail.status.placedBody}
-                  meta={formatWhen(order?.createdAt ?? '')}
+                  title={copy.status.placed}
+                  body={copy.status.placedBody}
+                  meta={formatWhen(order.createdAt ?? '')}
                   state={stageState('new', false)}
                   icon="check"
                 />
                 <OrderStatusTimelineRow
-                  title={strings.urbanOrderDetail.status.preparing}
-                  body={strings.urbanOrderDetail.status.preparingBody}
+                  title={copy.status.preparing}
+                  body={copy.status.preparingBody}
                   meta={
                     currentStage >= 1
-                      ? formatWhen(order?.updatedAt ?? '')
+                      ? formatWhen(order.updatedAt ?? '')
                       : strings.ordersHub.orderNotStarted
                   }
                   state={stageState('processing', false)}
                   icon="restaurant"
                 />
                 <OrderStatusTimelineRow
-                  title={strings.urbanOrderDetail.status.ready}
-                  body={strings.urbanOrderDetail.status.readyBody}
+                  title={copy.status.ready}
+                  body={copy.status.readyBody}
                   meta={
                     currentStage >= 2
-                      ? formatWhen(order?.updatedAt ?? '')
+                      ? formatWhen(order.updatedAt ?? '')
                       : strings.ordersHub.orderNotStarted
                   }
                   state={stageState('completed', true)}
@@ -245,123 +326,96 @@ export function UrbanOrderDetailScreen({
                     className="font-sans-medium uppercase"
                     numberOfLines={1}
                   >
-                    {strings.urbanOrderDetail.expressPass}
+                    {copy.pickupTitle}
                   </VemtapText>
                   <VemtapText
                     variant="headingMd"
                     className="font-sans-bold text-heading-md tracking-widest"
                     numberOfLines={1}
                   >
-                    {strings.urbanOrderDetail.pickupPin}
+                    {ref}
                   </VemtapText>
                   <VemtapText variant="caption" tone="secondary" numberOfLines={2}>
-                    {strings.urbanOrderDetail.pickupHint}
+                    {copy.pickupHint}
                   </VemtapText>
                 </View>
               </View>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={strings.urbanOrderDetail.copy}
-                onPress={() => copy(strings.urbanOrderDetail.pickupPin)}
+                accessibilityLabel={copiedRef ? copy.copied : copy.copy}
+                onPress={copyRef}
                 className="h-8 max-w-[86px] shrink-0 flex-row items-center justify-center gap-1 self-center rounded-lg bg-surface px-2 shadow-sm active:scale-95"
               >
-                <Icon name="copy" size={15} color={colors.primary} />
+                <Icon
+                  name={copiedRef ? 'check' : 'copy'}
+                  size={15}
+                  color={colors.primary}
+                />
                 <VemtapText
                   variant="micro"
                   tone="brand"
                   className="shrink font-sans-semibold"
                   numberOfLines={1}
                 >
-                  {strings.urbanOrderDetail.copy}
+                  {copiedRef ? copy.copied : copy.copy}
                 </VemtapText>
               </Pressable>
             </View>
 
-            <View className="rounded-xl bg-surface p-4 shadow-sm">
-              <View className="flex-row items-start gap-3">
-                <Image
-                  source={{ uri: orderImages.merchant }}
-                  className="h-12 w-12 shrink-0 rounded-xl bg-surface-container"
-                />
-                <View className="min-w-0 flex-1">
-                  <View className="flex-row items-center gap-1">
+            {branch?.name || branch?.address || branchActions.length ? (
+              <View className="rounded-xl bg-surface p-4 shadow-sm">
+                <View className="flex-row items-start gap-3">
+                  <View className="h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-surface-container">
+                    <Icon name="storefront" size={22} color={colors.primary} />
+                  </View>
+                  <View className="min-w-0 flex-1">
                     <VemtapText
                       variant="labelMd"
                       numberOfLines={1}
-                      className="min-w-0 flex-1 font-sans-semibold"
+                      className="min-w-0 font-sans-semibold"
                     >
-                      {order?.branch?.name ?? strings.urbanProfile.name}
+                      {[businessName, branch?.name].filter(Boolean).join(' • ')}
                     </VemtapText>
-                    <Icon name="verified" size={18} color={colors.primary} />
+                    {branch?.address ? (
+                      <VemtapText variant="labelSm" tone="secondary" numberOfLines={2}>
+                        {branch.address}
+                      </VemtapText>
+                    ) : null}
                   </View>
-                  <VemtapText variant="labelSm" tone="secondary" numberOfLines={2}>
-                    {order?.branch?.address ?? strings.urbanOrderDetail.branch}
-                  </VemtapText>
-                  <VemtapText
-                    variant="caption"
-                    tone="brand"
-                    className="mt-0.5 font-sans-semibold"
-                  >
-                    {strings.urbanOrderDetail.openMeta}
-                  </VemtapText>
                 </View>
+                {branchActions.length ? (
+                  <View className="mt-3 flex-row gap-2">
+                    {branchActions.map(action => (
+                      <Pressable
+                        key={action.label}
+                        accessibilityRole="button"
+                        accessibilityLabel={action.label}
+                        onPress={action.onPress}
+                        className="min-h-[70px] flex-1 items-center justify-center rounded-xl bg-surface-subtle px-1 py-2"
+                      >
+                        <View className="mb-1 h-9 w-9 items-center justify-center rounded-full bg-surface-tint">
+                          <Icon name={action.icon} size={20} color={colors.primary} />
+                        </View>
+                        <VemtapText
+                          variant="labelSm"
+                          numberOfLines={1}
+                          className="text-center font-sans-medium"
+                        >
+                          {action.label}
+                        </VemtapText>
+                      </Pressable>
+                    ))}
+                  </View>
+                ) : null}
               </View>
-              <View className="mt-3 flex-row gap-2">
-                {[
-                  {
-                    label: strings.urbanOrderDetail.call,
-                    icon: 'phone' as const,
-                    action: onCall,
-                    active: false,
-                  },
-                  {
-                    label: strings.urbanOrderDetail.chat,
-                    icon: 'comment' as const,
-                    action: onChat,
-                    active: true,
-                  },
-                  {
-                    label: strings.urbanOrderDetail.directions,
-                    icon: 'nearMe' as const,
-                    action: onDirections,
-                    active: false,
-                  },
-                ].map(action => (
-                  <Pressable
-                    key={action.label}
-                    accessibilityRole="button"
-                    accessibilityLabel={action.label}
-                    onPress={action.action}
-                    className={`min-h-[70px] flex-1 items-center justify-center rounded-xl px-1 py-2 ${action.active ? 'bg-surface-tint' : 'bg-surface-subtle'}`}
-                  >
-                    <View
-                      className={`mb-1 h-9 w-9 items-center justify-center rounded-full ${action.active ? 'bg-primary shadow-sm' : 'bg-surface-tint'}`}
-                    >
-                      <Icon
-                        name={action.icon}
-                        size={20}
-                        color={action.active ? colors.surface : colors.primary}
-                      />
-                    </View>
-                    <VemtapText
-                      variant="labelSm"
-                      tone={action.active ? 'brand' : 'default'}
-                      numberOfLines={1}
-                      className={`text-center ${action.active ? 'font-sans-semibold' : 'font-sans-medium'}`}
-                    >
-                      {action.label}
-                    </VemtapText>
-                  </Pressable>
-                ))}
-              </View>
-            </View>
+            ) : null}
 
             <View className="rounded-xl bg-surface p-4 shadow-sm">
               <View className="mb-4 flex-row items-center justify-between">
                 <View className="flex-row items-center gap-1">
                   <Icon name="shoppingBag" size={20} color={colors.primary} />
                   <VemtapText variant="labelMd" className="font-sans-semibold">
-                    {strings.urbanOrderDetail.orderSummary}
+                    {copy.orderSummary}
                   </VemtapText>
                 </View>
                 <VemtapText
@@ -376,11 +430,7 @@ export function UrbanOrderDetailScreen({
                 {itemRows.map((line, index) => (
                   <OrderLineItem
                     key={line.id ?? line.itemId ?? index}
-                    image={
-                      line.image
-                        ? { uri: line.image }
-                        : { uri: itemImages[index % itemImages.length] }
-                    }
+                    image={line.image ? { uri: line.image } : undefined}
                     title={line.name ?? strings.ordersHub.orderItemFallback}
                     description=""
                     price={line.totalPrice == null ? '' : formatCurrency(line.totalPrice)}
@@ -391,8 +441,8 @@ export function UrbanOrderDetailScreen({
               <View className="mt-4">
                 <PriceBreakdown
                   rows={priceRows}
-                  totalLabel={strings.urbanOrderDetail.totalPaid}
-                  totalCaption={strings.urbanOrderDetail.visa}
+                  totalLabel={copy.totalPaid}
+                  totalCaption={copy.payAtCounter}
                   total={total == null ? '' : formatCurrency(total)}
                 />
               </View>
@@ -400,84 +450,117 @@ export function UrbanOrderDetailScreen({
 
             <View className="rounded-xl bg-surface p-4 shadow-sm">
               <VemtapText variant="labelMd" className="font-sans-semibold">
-                {strings.urbanOrderDetail.transaction}
+                {copy.transaction}
               </VemtapText>
               <View className="mt-2 gap-1">
-                {transactionRows({ name: me.fullName, phone: me.phone }, order).map(
-                  row => (
-                    <View
-                      key={row.label}
-                      className="flex-row items-center justify-between gap-3 py-1"
+                <View className="flex-row items-center justify-between gap-3 py-1">
+                  <View className="min-w-0 flex-1 flex-row items-center gap-2">
+                    <Icon name="badge" size={19} color={colors.outline} />
+                    <VemtapText
+                      variant="bodyMd"
+                      tone="secondary"
+                      className="min-w-0 flex-1"
                     >
-                      <View className="min-w-0 flex-1 flex-row items-center gap-2">
-                        <Icon name={row.icon} size={19} color={colors.outline} />
-                        <VemtapText
-                          variant="bodyMd"
-                          tone="secondary"
-                          className="min-w-0 flex-1"
-                        >
-                          {row.label}
-                        </VemtapText>
-                      </View>
-                      <Pressable
-                        accessibilityRole="button"
-                        disabled={!row.copyable}
-                        onPress={() => copy(row.value)}
-                        className="min-w-0 shrink-0 flex-row items-center gap-1"
-                      >
-                        <VemtapText
-                          variant="labelMd"
-                          className="font-sans-medium"
-                          numberOfLines={1}
-                        >
-                          {row.value}
-                        </VemtapText>
-                        {row.copyable ? (
-                          <Icon name="copy" size={16} color={colors.primary} />
-                        ) : null}
-                      </Pressable>
+                      {copy.orderReference}
+                    </VemtapText>
+                  </View>
+                  <VemtapText
+                    variant="labelMd"
+                    className="font-sans-medium"
+                    numberOfLines={1}
+                  >
+                    {ref}
+                  </VemtapText>
+                </View>
+                {detailsRows.map(row => (
+                  <View
+                    key={row.label}
+                    className="flex-row items-center justify-between gap-3 py-1"
+                  >
+                    <View className="min-w-0 flex-row items-center gap-2">
+                      <Icon name={row.icon} size={19} color={colors.outline} />
+                      <VemtapText variant="bodyMd" tone="secondary">
+                        {row.label}
+                      </VemtapText>
                     </View>
-                  ),
-                )}
+                    <VemtapText
+                      variant="labelMd"
+                      className="min-w-0 shrink text-right font-sans-medium"
+                      numberOfLines={2}
+                    >
+                      {row.value}
+                    </VemtapText>
+                  </View>
+                ))}
               </View>
             </View>
 
             <View className="gap-3 pt-1">
-              <Button
-                label={strings.urbanOrderDetail.contactRestaurant}
-                onPress={onCall}
-                leftIcon={<Icon name="phone" size={21} color={colors.surface} />}
-              />
-              <Button
-                label={strings.urbanOrderDetail.reorder}
-                variant="outline"
-                onPress={onReorder}
-                leftIcon={<Icon name="history" size={19} color={colors.primary} />}
-              />
+              {onReorder ? (
+                <Button
+                  label={copy.reorder}
+                  variant="outline"
+                  onPress={() =>
+                    reorderDraft
+                      ? onReorder(reorderDraft)
+                      : showToast(copy.reorderUnavailable, 'error')
+                  }
+                  leftIcon={<Icon name="history" size={19} color={colors.primary} />}
+                />
+              ) : null}
               <Pressable
                 accessibilityRole="button"
-                onPress={onDownloadInvoice}
+                accessibilityLabel={copy.invoice}
+                disabled={receipt.isPending}
+                onPress={() => receipt.mutate(order.id)}
                 className="flex-row items-center gap-1.5 py-1"
               >
-                <Icon name="arrowForward" size={18} color={colors.primary} />
+                <Icon name="download" size={18} color={colors.primary} />
                 <VemtapText variant="labelMd" tone="brand" className="font-sans-semibold">
-                  {strings.urbanOrderDetail.invoice}
+                  {receipt.isPending ? strings.common.loading : copy.invoice}
                 </VemtapText>
               </Pressable>
               <Pressable
                 accessibilityRole="button"
-                onPress={onReportIssue}
+                accessibilityLabel={copy.issue}
+                onPress={() => setIssueOpen(true)}
                 className="flex-row items-center gap-1 py-1"
               >
                 <Icon name="help" size={16} color={colors.textSecondary} />
                 <VemtapText variant="labelSm" tone="secondary">
-                  {strings.urbanOrderDetail.issue}
+                  {copy.issue}
                 </VemtapText>
               </Pressable>
             </View>
           </>
         )}
       </ScrollView>
+
+      <AppModal
+        visible={issueOpen}
+        onClose={() => setIssueOpen(false)}
+        title={copy.issueTitle}
+      >
+        <View className="gap-3">
+          <VemtapText variant="caption" tone="secondary">
+            {copy.issueHint(ref)}
+          </VemtapText>
+          <Input
+            value={issueText}
+            onChangeText={setIssueText}
+            placeholder={copy.issuePlaceholder}
+            accessibilityLabel={copy.issueTitle}
+            multiline
+            maxLength={2000}
+          />
+          <Button
+            label={copy.issueSend}
+            loading={report.isPending}
+            disabled={report.isPending || !issueText.trim()}
+            onPress={() => report.mutate({ ref, message: issueText.trim() })}
+          />
+        </View>
+      </AppModal>
     </View>
   );
 }

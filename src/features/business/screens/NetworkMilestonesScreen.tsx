@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { ErrorState, LoadingState } from '@components/shared';
 import { View } from 'react-native';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
@@ -13,10 +14,9 @@ import { BusinessAnalyticsNav } from '@features/business/components/BusinessAnal
 import { NetworkMilestoneCard } from '@features/business/components/BusinessNetworkPrimitives';
 import {
   milestoneSubTabs,
-  networkGrowth,
   networkSubTabIcon,
-  networkMilestones,
 } from '@features/business/data/businessNetworkData';
+import type { MilestoneCardView } from '@features/business/utils/networkMappers';
 
 const copy = strings.networkMilestones;
 
@@ -27,6 +27,9 @@ const tabs = milestoneSubTabs.map(label => ({
 }));
 
 export interface NetworkMilestonesScreenProps {
+  view?: { currentTier: string; verified: string; milestones: MilestoneCardView[] };
+  isError?: boolean;
+  onRetry?: () => void;
   onBack?: () => void;
   onOpenInfo?: () => void;
   onOpenProfile?: () => void;
@@ -40,6 +43,9 @@ export interface NetworkMilestonesScreenProps {
  * through the shared milestone card so this screen and the dashboard agree.
  */
 export function NetworkMilestonesScreen({
+  view,
+  isError,
+  onRetry,
   onBack,
   onOpenInfo,
   onOpenProfile,
@@ -94,39 +100,57 @@ export function NetworkMilestonesScreen({
         </VemtapText>
       </View>
 
-      <View className="mt-3 flex-row items-center gap-2.5 rounded-card bg-surface-tint p-3">
-        <BusinessIconWell icon="workspacePremium" tone="brand" size="lg" />
-        <View className="min-w-0 flex-1">
-          <VemtapText variant="caption" tone="tertiary" numberOfLines={1}>
-            {copy.currentStatusLabel}
-          </VemtapText>
-          <VemtapText variant="labelMd" className="font-sans-semibold" numberOfLines={1}>
-            {copy.currentStatusValue}
-          </VemtapText>
-        </View>
-        <BusinessStatusPill
-          label={`${networkGrowth.verifiedCount} ${copy.verifiedCountLabel}`}
-          tone="success"
-        />
-      </View>
-
-      <View className="mt-3 gap-2">
-        {networkMilestones.map(milestone => (
-          <NetworkMilestoneCard
-            key={milestone.id}
-            name={milestone.name}
-            threshold={milestone.threshold}
-            state={milestone.state}
-            icon={milestone.icon}
-            tierNote={milestone.tierNote}
-            progressNote={milestone.progressNote}
-            percent={milestone.percent}
-            verifiedCaption={milestone.verifiedCaption}
-            perks={milestone.perks}
-            onPress={() => onOpenMilestone?.(milestone.id)}
+      {!view ? (
+        isError ? (
+          <ErrorState
+            title={copy.error.title}
+            description={copy.error.body}
+            onRetry={onRetry}
           />
-        ))}
-      </View>
+        ) : (
+          <LoadingState label={copy.loading} />
+        )
+      ) : (
+        <>
+          <View className="mt-3 flex-row items-center gap-2.5 rounded-card bg-surface-tint p-3">
+            <BusinessIconWell icon="workspacePremium" tone="brand" size="lg" />
+            <View className="min-w-0 flex-1">
+              <VemtapText variant="caption" tone="tertiary" numberOfLines={1}>
+                {copy.currentStatusLabel}
+              </VemtapText>
+              <VemtapText
+                variant="labelMd"
+                className="font-sans-semibold"
+                numberOfLines={1}
+              >
+                {view.currentTier}
+              </VemtapText>
+            </View>
+            <BusinessStatusPill
+              label={`${view.verified} ${copy.verifiedCountLabel}`}
+              tone="success"
+            />
+          </View>
+
+          <View className="mt-3 gap-2">
+            {view.milestones.map(milestone => (
+              <NetworkMilestoneCard
+                key={milestone.id}
+                name={milestone.name}
+                threshold={milestone.threshold}
+                state={milestone.state}
+                icon={milestone.icon}
+                tierNote={milestone.tierNote}
+                progressNote={milestone.progressNote}
+                percent={milestone.percent}
+                verifiedCaption={milestone.verifiedCaption}
+                perks={milestone.perks}
+                onPress={() => onOpenMilestone?.(milestone.id)}
+              />
+            ))}
+          </View>
+        </>
+      )}
     </BusinessScreenLayout>
   );
 }

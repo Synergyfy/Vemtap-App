@@ -119,6 +119,17 @@ export const catalogueItemSchema = z.object({
   allowBackOrder: z.boolean().nullish(),
   isSuspended: nullableFlag(false),
   loyaltyPoints: z.number().nullish(),
+  /** The item detail carries the branches that stock it; lists may not. */
+  branches: z
+    .array(
+      z.looseObject({
+        id: z.string(),
+        name: z.string().nullish(),
+        isActive: z.boolean().nullish(),
+        isMainBranch: z.boolean().nullish(),
+      }),
+    )
+    .nullish(),
 });
 export type CatalogueItem = z.infer<typeof catalogueItemSchema>;
 

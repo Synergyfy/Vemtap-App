@@ -4,7 +4,10 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react-
 import { BusinessTabNavigator } from '@navigation/BusinessTabNavigator';
 import { strings } from '@constants/strings';
 import { catalogueApi } from '@api/catalogueApi';
+import { teamApi } from '@api/teamApi';
+import { businessCustomersApi } from '@api/businessCustomersApi';
 import { useCatalogueDraftStore } from '@store/catalogueDraftStore';
+import { directoryFixture } from './helpers/crmFixtures';
 
 const shell = strings.businessShell;
 const hub = strings.businessHub;
@@ -241,6 +244,28 @@ describe('business management surfaces are reachable', () => {
   });
 
   it('reaches CRM directory, loyalty programme, staff directory and invite', async () => {
+    jest.spyOn(businessCustomersApi, 'directory').mockResolvedValue(directoryFixture);
+    // The directory renders its actions once the team list has answered.
+    jest.spyOn(teamApi, 'list').mockResolvedValue([
+      {
+        id: 'owner-1',
+        firstName: 'Ada',
+        lastName: 'Obi',
+        email: 'ada@example.com',
+        phone: '',
+        jobTitle: '',
+        avatar: '',
+        roleTag: '',
+        role: 'Owner',
+        status: 'Active',
+        permissions: [],
+        branchId: '',
+        businessId: 'biz-1',
+        isOnline: false,
+        lastActive: null,
+        createdAt: null,
+      },
+    ]);
     await expectToReach([module('crm')], strings.customerCrm.headerTitle);
 
     await openBusinessTab();
@@ -259,6 +284,11 @@ describe('business management surfaces are reachable', () => {
       screen.getAllByText(strings.staffDirectory.headerTitle).length,
     ).toBeGreaterThan(0);
 
+    await act(async () => {
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 50);
+      });
+    });
     await act(async () => {
       fireEvent.press(screen.getByLabelText(staff.invite));
     });

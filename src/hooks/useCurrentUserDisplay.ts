@@ -30,11 +30,14 @@ export interface CurrentUserDisplay {
   emailVerified: boolean;
   /** Saved gender, or undefined when the profile has never chosen one. */
   gender?: string;
+  /** When the account was created (ISO), if the session carries it. */
+  createdAt?: string;
 }
 
-const placeholderName = strings.accountScreens.moreHub.name;
-const placeholderEmail = strings.accountScreens.moreHub.email;
-const placeholderPhone = strings.accountScreens.moreHub.phone;
+/** Shown only when the session has no name; never a made-up person. */
+const placeholderName = strings.accountScreens.moreHub.nameFallback;
+const placeholderEmail = '';
+const placeholderPhone = '';
 
 function initialsOf(fullName: string): string {
   return fullName
@@ -53,9 +56,9 @@ export function useCurrentUserDisplay(): CurrentUserDisplay {
   const rawLast = user?.lastName?.trim() ?? '';
   const hasName = Boolean(rawFirst || rawLast);
 
-  const [placeholderFirst, ...placeholderRest] = placeholderName.split(' ');
-  const firstName = hasName ? rawFirst : placeholderFirst;
-  const lastName = hasName ? rawLast : placeholderRest.join(' ');
+  // No name on the session: greetings drop the name, rows say "VemTap member".
+  const firstName = hasName ? rawFirst : '';
+  const lastName = hasName ? rawLast : '';
   const fullName = [firstName, lastName].filter(Boolean).join(' ') || placeholderName;
 
   return {
@@ -68,5 +71,6 @@ export function useCurrentUserDisplay(): CurrentUserDisplay {
     avatar: user?.avatar?.trim() || '',
     emailVerified: user?.emailVerified ?? false,
     gender: user?.gender ?? undefined,
+    createdAt: user?.createdAt ?? undefined,
   };
 }

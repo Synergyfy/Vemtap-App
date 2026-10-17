@@ -296,6 +296,8 @@ describe('business dashboard mappers', () => {
       id: 'biz-1',
       name: 'Aurora Grill',
       isVerified: true,
+      verificationStatus: 'verified',
+      isVisible: true,
       logoUrl: '',
       coverImage: '',
       city: '',

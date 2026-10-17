@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { Button } from '@components/ui/Button';
@@ -19,21 +19,39 @@ import {
 import { PlanFeatureRow } from '@features/business/components/VerificationPrimitives';
 import {
   FieldInput,
-  FieldSelect,
   PhonePrefix,
   SetupCallout,
 } from '@features/business/components/BusinessSetupPrimitives';
+import type { InviteStaffForm, InviteRoleId } from '@features/business/utils/teamMappers';
 
 cssInterop(Pressable, { className: 'style' });
 
 const copy = strings.inviteStaff;
 
-const roleIds = ['manager', 'cashier', 'service', 'custom'] as const;
+const roleIds: readonly InviteRoleId[] = ['manager', 'cashier', 'service', 'custom'];
+
+/**
+ * Deliberately looser than the API schema's `z.string().email()`: the form has
+ * to accept what the user is mid-way through typing, and the exact same address
+ * is validated again by `inviteStaffInput` before it is sent.
+ */
+const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export interface InviteStaffBranch {
+  id: string;
+  name: string;
+}
 
 export interface InviteStaffPermissionsScreenProps {
   onBack?: () => void;
   onMoreActions?: () => void;
-  onSend?: () => void;
+  /** Live branches; the invite is always scoped to exactly one. */
+  branches: readonly InviteStaffBranch[];
+  defaultBranchId?: string | null;
+  isSending?: boolean;
+  /** Server-side rejection (plan gate, duplicate email) shown above the dock. */
+  sendError?: string | null;
+  onSend?: (form: InviteStaffForm) => void;
   onCancel?: () => void;
   onChangeBranch?: (value: string) => void;
 }
@@ -41,18 +59,67 @@ export interface InviteStaffPermissionsScreenProps {
 /**
  * Staff invitation: contact details, invite channel, role preset, operating
  * branch and the enforced permission preview for the chosen role.
+ *
+ * Form state lives here; the route owns the mutation, so a rejection comes back
+ * as `sendError` and the entered values are never lost with it.
  */
 export function InviteStaffPermissionsScreen({
   onBack,
   onMoreActions,
+  branches,
+  defaultBranchId,
+  isSending,
+  sendError,
   onSend,
   onCancel,
   onChangeBranch,
 }: InviteStaffPermissionsScreenProps) {
-  const [fullName, setFullName] = useState<string>(copy.fullNameValue);
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [channel, setChannel] = useState<'email' | 'sms'>('email');
-  const [role, setRole] = useState<string>('cashier');
-  const [branch, setBranch] = useState('wuse');
+  const [role, setRole] = useState<InviteRoleId>('cashier');
+  const [branch, setBranch] = useState<string>(defaultBranchId ?? '');
+  const [localError, setLocalError] = useState<string | null>(null);
+
+  // Adopt the active branch once the list has loaded, without clobbering a
+  // branch the invitee already picked.
+  useEffect(() => {
+    setBranch(current => current || defaultBranchId || branches[0]?.id || '');
+  }, [defaultBranchId, branches]);
+
+  const selectBranch = (branchId: string) => {
+    setBranch(branchId);
+    setLocalError(null);
+    onChangeBranch?.(branchId);
+  };
+
+  const handleSend = () => {
+    const parts = fullName.trim().split(/\s+/).filter(Boolean);
+    let error: string | null = null;
+
+    if (parts.length < 2) error = copy.errors.name;
+    else if (!EMAIL_SHAPE.test(email.trim())) error = copy.errors.email;
+    else if (channel === 'sms' && phone.replace(/\D/g, '').length < 7)
+      error = copy.errors.phone;
+    else if (!branch) error = copy.errors.branch;
+
+    if (error) {
+      setLocalError(error);
+      return;
+    }
+
+    setLocalError(null);
+    onSend?.({
+      fullName: fullName.trim(),
+      email: email.trim(),
+      phone: phone.trim(),
+      roleId: role,
+      branchId: branch,
+    });
+  };
+
+  const error = sendError ?? localError;
 
   return (
     <BusinessScreenLayout
@@ -65,10 +132,22 @@ export function InviteStaffPermissionsScreen({
       contentContainerClassName="pb-8"
       footer={
         <BusinessActionDock>
+          {error ? (
+            <VemtapText
+              accessibilityRole="alert"
+              variant="caption"
+              tone="error"
+              className="text-center"
+            >
+              {error}
+            </VemtapText>
+          ) : null}
           <Button
-            label={copy.send}
+            label={isSending ? copy.sending : copy.send}
             labelVariant="labelMd"
-            onPress={onSend}
+            disabled={isSending}
+            loading={isSending}
+            onPress={handleSend}
             rightIcon={<Icon name="arrowForward" size={19} color={colors.surface} />}
           />
           <Pressable
@@ -108,11 +187,19 @@ export function InviteStaffPermissionsScreen({
         <FieldInput
           label={copy.fullName}
           value={fullName}
-          onChangeText={setFullName}
+          onChangeText={value => {
+            setFullName(value);
+            setLocalError(null);
+          }}
           placeholder={copy.fullNamePlaceholder}
           accessibilityLabel={copy.fullName}
+          autoCapitalize="words"
           trailingIcon="checkCircle"
-          trailingIconColor={colors.primary}
+          trailingIconColor={
+            fullName.trim().split(/\s+/).filter(Boolean).length >= 2
+              ? colors.primary
+              : colors.textTertiary
+          }
         />
         <View className="flex-row gap-2">
           {[
@@ -129,17 +216,19 @@ export function InviteStaffPermissionsScreen({
             </View>
           ))}
         </View>
-        <View className={channel === 'email' ? '' : 'opacity-60'}>
-          <FieldInput
-            label={copy.emailLabel}
-            value="babatunde.a@example.com"
-            onChangeText={() => undefined}
-            accessibilityLabel={copy.emailLabel}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            leadingIcon="alternateEmail"
-          />
-        </View>
+        <FieldInput
+          label={copy.emailLabel}
+          value={email}
+          onChangeText={value => {
+            setEmail(value);
+            setLocalError(null);
+          }}
+          placeholder={copy.emailPlaceholder}
+          accessibilityLabel={copy.emailLabel}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          leadingIcon="alternateEmail"
+        />
         <View className={channel === 'sms' ? '' : 'opacity-60'}>
           <VemtapText variant="caption" tone="secondary">
             {copy.phoneLabel}
@@ -150,8 +239,17 @@ export function InviteStaffPermissionsScreen({
               dialCode={copy.dialCode}
               accessibilityLabel={copy.phoneLabel}
             />
-            <View className="min-h-[52px] flex-1 justify-center rounded-field bg-surface-subtle px-3">
-              <VemtapText variant="bodyMd">{copy.phoneValue}</VemtapText>
+            <View className="min-w-0 flex-1">
+              <FieldInput
+                value={phone}
+                onChangeText={value => {
+                  setPhone(value);
+                  setLocalError(null);
+                }}
+                placeholder={copy.phonePlaceholder}
+                accessibilityLabel={copy.phoneLabel}
+                keyboardType="phone-pad"
+              />
             </View>
           </View>
         </View>
@@ -171,14 +269,15 @@ export function InviteStaffPermissionsScreen({
 
       <View className="mt-2 gap-2">
         {copy.roles.map((option, index) => {
-          const selected = role === roleIds[index];
+          const roleId = roleIds[index];
+          const selected = role === roleId;
           return (
             <Pressable
               key={option.title}
               accessibilityRole="radio"
               accessibilityState={{ selected }}
               accessibilityLabel={option.title}
-              onPress={() => setRole(roleIds[index])}
+              onPress={() => setRole(roleId)}
               className={`flex-row items-start gap-3 rounded-card p-4 shadow-sm active:scale-[0.99] ${
                 selected ? 'bg-surface-tint' : 'bg-surface'
               }`}
@@ -234,22 +333,20 @@ export function InviteStaffPermissionsScreen({
         subtitle={copy.branchSubtitle}
         icon="storefront"
       >
-        <FieldSelect
-          value={copy.branches.find(option => option.value === branch)?.label ?? ''}
-          onPress={() => onChangeBranch?.(branch)}
-          accessibilityLabel={copy.branchTitle}
-          leadingIcon="locationOn"
-        />
+        <View className="min-h-[52px] flex-row items-center gap-2 rounded-field bg-surface-subtle px-3">
+          <Icon name="locationOn" size={18} color={colors.textTertiary} />
+          <VemtapText variant="bodyMd" className="min-w-0 flex-1" numberOfLines={1}>
+            {branches.find(option => option.id === branch)?.name ??
+              copy.branchPlaceholder}
+          </VemtapText>
+        </View>
         <View className="flex-row flex-wrap gap-2">
-          {copy.branches.map(option => (
+          {branches.map(option => (
             <BusinessSelectionChip
-              key={option.value}
-              label={option.chip}
-              selected={branch === option.value}
-              onPress={() => {
-                setBranch(option.value);
-                onChangeBranch?.(option.value);
-              }}
+              key={option.id}
+              label={option.name}
+              selected={branch === option.id}
+              onPress={() => selectBranch(option.id)}
             />
           ))}
         </View>

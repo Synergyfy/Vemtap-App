@@ -131,3 +131,32 @@ export function useUsePointCode() {
     },
   });
 }
+
+/** Points at each business, for affordability on the rewards screen. */
+export function useLoyaltyWallet() {
+  return useQuery({
+    queryKey: ['loyalty', 'wallet'] as const,
+    queryFn: () => loyaltyApi.getWallet(),
+    staleTime: 60_000,
+  });
+}
+
+/** Rewards the customer has redeemed, with their codes. */
+export function useMyRedemptions() {
+  return useQuery({
+    queryKey: ['loyalty', 'redemptions', 'mine'] as const,
+    queryFn: () => loyaltyApi.getMyRedemptions(),
+    staleTime: 60_000,
+  });
+}
+
+/** Spends points on a reward, then refreshes every balance and list it moved. */
+export function useRedeemReward() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (rewardId: string) => loyaltyApi.redeemReward(rewardId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['loyalty'] });
+    },
+  });
+}

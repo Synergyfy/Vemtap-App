@@ -164,8 +164,25 @@ export const mockSavingsModule = (options: { empty?: boolean } = {}) => {
   };
 };
 
+/** A platform reward the Rewards screen lists (`useRewards`). */
+export const rewardFixture = {
+  id: 'reward-1',
+  name: 'Free dessert',
+  description: 'Any dessert on the menu',
+  pointsRequired: 500,
+  coverImage: null,
+  businessId: 'biz-1',
+  branchId: null,
+  business: { id: 'biz-1', name: 'Aurora Grill' },
+  branch: null,
+  isActive: true,
+};
+
 /** Loyalty figures behind the Savings hero and the dashboard Rewards card. */
-export const mockLoyaltyModule = () => ({
+export const mockLoyaltyModule = ({
+  balance = 0,
+  rewards = [] as unknown[],
+}: { balance?: number; rewards?: unknown[] } = {}) => ({
   useLoyaltyAnalytics: jest.fn(() =>
     okQuery({
       totals: {
@@ -184,7 +201,7 @@ export const mockLoyaltyModule = () => ({
       trends: null,
     }),
   ),
-  useLoyaltyBalance: jest.fn(() => okQuery(0)),
+  useLoyaltyBalance: jest.fn(() => okQuery(balance)),
   useLoyaltyTier: jest.fn(() =>
     okQuery({
       points: 0,
@@ -195,8 +212,21 @@ export const mockLoyaltyModule = () => ({
       thresholds: [{ name: 'Bronze', minPoints: 0 }],
     }),
   ),
-  useRewards: jest.fn(() => okQuery([])),
+  useRewards: jest.fn(() => okQuery(rewards)),
   useLoyaltyLogs: jest.fn(() => okQuery({ data: [], total: 0 })),
+  useLoyaltyWallet: jest.fn(() =>
+    okQuery(
+      balance
+        ? [{ businessId: 'biz-1', businessName: 'Aurora Grill', points: balance }]
+        : [],
+    ),
+  ),
+  useMyRedemptions: jest.fn(() => okQuery([])),
+  useRedeemReward: jest.fn(() => ({
+    mutate: jest.fn(),
+    isPending: false,
+    variables: undefined,
+  })),
 });
 
 export const mockSavedHubModule = () => ({

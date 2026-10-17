@@ -12,6 +12,7 @@ import { TypeDensityProvider } from '@theme/TypeDensityProvider';
 import type { TypeDensity } from '@theme/typography';
 import { cn } from '@utils/cn';
 import { StatusPill, type PillTone } from './BusinessSetupPrimitives';
+import { BusinessProductImage } from './BusinessPrimitives';
 
 cssInterop(View, { className: 'style' });
 cssInterop(Pressable, { className: 'style' });
@@ -1175,5 +1176,45 @@ export function ProcessingOverlay({
         ) : null}
       </View>
     </AppModal>
+  );
+}
+
+/**
+ * The business's own logo, or its initials when it has none. Never a stock
+ * storefront: a stand-in photo reads as somebody else's shop.
+ */
+export function BusinessLogo({
+  uri,
+  name,
+  className,
+}: {
+  uri?: string | null;
+  name?: string | null;
+  className?: string;
+}) {
+  if (uri) {
+    return (
+      <BusinessProductImage source={{ uri }} alt={name ?? ''} className={className} />
+    );
+  }
+  const initials = (name ?? '')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(word => word.charAt(0).toUpperCase())
+    .join('');
+  return (
+    <View
+      accessibilityLabel={name ?? undefined}
+      className={cn('items-center justify-center bg-surface-tint-blue', className)}
+    >
+      {initials ? (
+        <VemtapText variant="labelMd" tone="brand" className="font-sans-semibold">
+          {initials}
+        </VemtapText>
+      ) : (
+        <Icon name="storefront" size={22} color={colors.primary} />
+      )}
+    </View>
   );
 }

@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
+import { AppModal } from '@components/ui/Modal';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
 import { colors } from '@theme/colors';
 import { EmptyState } from '@components/shared/EmptyState';
+import { ErrorState, LoadingState } from '@components/shared';
 import {
   BusinessActionDock,
   BusinessScreenLayout,
@@ -19,65 +21,60 @@ import {
 } from '@features/business/components/BusinessOpsPrimitives';
 import {
   BusinessAnalyticsNav,
-  BusinessAnalyticsRow,
   BusinessMetricGrid,
 } from '@features/business/components/BusinessAnalyticsPrimitives';
 import { BusinessQrFrame } from '@features/business/components/BusinessPosPrimitives';
-import {
-  locationQrNetwork,
-  locationQrRules,
-  qrSubTabIcon,
-  qrSubTabs,
-  scanPoints,
-} from '@features/business/data/businessGrowthData';
+import { qrSubTabIcon, qrSubTabs } from '@features/business/data/businessGrowthData';
+import type { LocationQrView, QrCodeCard } from '@features/business/utils/qrMappers';
 
 const copy = strings.locationQr;
 
 const qrTabs = qrSubTabs.map(label => ({ key: label, label, icon: qrSubTabIcon[label] }));
 
 export interface LocationQrScreenProps {
+  view?: LocationQrView;
+  isError?: boolean;
+  onRetry?: () => void;
+  isKitBusy?: boolean;
+  notice?: { tone: 'success' | 'error'; text: string } | null;
   onBack?: () => void;
   onOpenNotifications?: () => void;
   onOpenSubTab?: (tabKey: string) => void;
-  onNewPoint?: () => void;
-  onFilterBranch?: (branchId: string) => void;
-  onOpenPoint?: (pointId: string) => void;
-  onViewTag?: (pointId: string) => void;
-  onPrintSticker?: (pointId: string) => void;
-  onShare?: (pointId: string) => void;
-  onSavePng?: (pointId: string) => void;
-  onExportAll?: () => void;
-  onOrderAcrylics?: () => void;
-  onOpenRule?: (ruleId: string) => void;
+  onFilterBranch?: (branchId: string | null) => void;
+  onShare?: (code: QrCodeCard) => void;
+  /** Print sheet for one branch (`branchId`) or every code (`null`). */
+  onPrintSheet?: (branchId: string | null) => void;
+  onRequestDevices?: () => void;
   onOpenProfile?: () => void;
 }
 
 /**
- * Location QR: branch-grouped scan points with their weekly traffic and
- * per-point actions, the network-wide live status, and the smart branch rules
- * (dynamic table numbering, off-hours redirect) plus bulk export/ordering.
+ * Location QR: every branch QR and tap device with its scans, a live status
+ * strip for the network, the full-size tag for scanning, and the print sheet.
  */
 export function LocationQrScreen({
+  view,
+  isError,
+  onRetry,
+  isKitBusy = false,
+  notice,
   onBack,
   onOpenNotifications,
   onOpenSubTab,
-  onNewPoint,
   onFilterBranch,
-  onOpenPoint,
-  onViewTag,
-  onPrintSticker,
   onShare,
-  onSavePng,
-  onExportAll,
-  onOrderAcrylics,
-  onOpenRule,
+  onPrintSheet,
+  onRequestDevices,
   onOpenProfile,
 }: LocationQrScreenProps) {
   const [subTab, setSubTab] = useState(qrSubTabs[1]);
-  const [branch, setBranch] = useState<string>(copy.branchGroups[0].id);
+  const [branch, setBranch] = useState<string | null>(null);
+  const [tag, setTag] = useState<QrCodeCard | null>(null);
 
-  const visible =
-    branch === 'all' ? scanPoints : scanPoints.filter(point => point.branchId === branch);
+  const inScope = <T extends { branchId: string }>(rows: readonly T[]) =>
+    branch ? rows.filter(row => row.branchId === branch) : rows;
+  const branchCodes = inScope(view?.branchCodes ?? []);
+  const points = inScope(view?.points ?? []);
 
   return (
     <BusinessScreenLayout
@@ -91,41 +88,39 @@ export function LocationQrScreen({
       }}
       contentContainerClassName="pb-8"
       footer={
-        <BusinessActionDock>
-          <Button
-            label={copy.newPointCta}
-            labelVariant="labelMd"
-            onPress={onNewPoint}
-            leftIcon={<Icon name="plus" size={18} color={colors.surface} />}
-          />
-          <View className="flex-row gap-2">
-            <View className="min-w-0 flex-1">
-              <Button
-                label={copy.exportCta}
-                labelVariant="labelSm"
-                variant="secondary"
-                onPress={onExportAll}
-              />
-            </View>
-            <View className="min-w-0 flex-1">
-              <Button
-                label={copy.acrylicCta}
-                labelVariant="labelSm"
-                variant="secondary"
-                onPress={onOrderAcrylics}
-              />
-            </View>
-          </View>
-        </BusinessActionDock>
+        view ? (
+          <BusinessActionDock>
+            <Button
+              label={
+                isKitBusy
+                  ? strings.businessIntelligence.exportReport.generating
+                  : copy.exportCta
+              }
+              labelVariant="labelMd"
+              loading={isKitBusy}
+              disabled={isKitBusy}
+              onPress={() => onPrintSheet?.(null)}
+              leftIcon={<Icon name="download" size={18} color={colors.surface} />}
+            />
+            <Button
+              label={copy.acrylicCta}
+              labelVariant="labelSm"
+              variant="secondary"
+              onPress={onRequestDevices}
+            />
+          </BusinessActionDock>
+        ) : undefined
       }
     >
       <View className="gap-1">
         <VemtapText variant="labelMd" className="font-sans-semibold" numberOfLines={1}>
           {copy.manageLabel}
         </VemtapText>
-        <VemtapText variant="caption" tone="secondary" numberOfLines={2}>
-          {copy.manageSubtitle}
-        </VemtapText>
+        {view ? (
+          <VemtapText variant="caption" tone="secondary" numberOfLines={2}>
+            {view.subtitle}
+          </VemtapText>
+        ) : null}
       </View>
 
       <BusinessAnalyticsNav
@@ -138,185 +133,214 @@ export function LocationQrScreen({
         className="-mx-6 mt-3"
       />
 
-      <BusinessChipScroller className="mt-3">
-        {copy.branchGroups.map(group => (
-          <BusinessCountChip
-            key={group.id}
-            label={group.label}
-            count={group.count}
-            selected={group.id === branch}
-            onPress={() => {
-              setBranch(group.id);
-              onFilterBranch?.(group.id);
-            }}
+      {!view ? (
+        isError ? (
+          <ErrorState
+            title={copy.error.title}
+            description={copy.error.body}
+            onRetry={onRetry}
           />
-        ))}
-      </BusinessChipScroller>
+        ) : (
+          <LoadingState label={copy.loading} />
+        )
+      ) : (
+        <>
+          {view.groups.length > 2 ? (
+            <BusinessChipScroller className="mt-3">
+              {view.groups.map(group => (
+                <BusinessCountChip
+                  key={group.id ?? 'all'}
+                  label={group.label}
+                  count={group.count}
+                  selected={group.id === branch}
+                  onPress={() => {
+                    setBranch(group.id);
+                    onFilterBranch?.(group.id);
+                  }}
+                />
+              ))}
+            </BusinessChipScroller>
+          ) : null}
 
-      <BusinessPanel
-        className="mt-3"
-        title={copy.networkTitle}
-        icon="trendingUp"
-        badge={copy.networkBadge}
-        badgeTone="brand"
-      >
-        <BusinessMetricGrid
-          cells={locationQrNetwork.map(item => ({
-            label: item.label,
-            value: item.value,
-            icon: item.icon,
-          }))}
-          columns={3}
-          variant="bare"
-        />
-      </BusinessPanel>
+          {notice ? (
+            <VemtapText
+              variant="caption"
+              className={
+                notice.tone === 'success'
+                  ? 'mt-3 text-badge-discount-text'
+                  : 'mt-3 text-error'
+              }
+            >
+              {notice.text}
+            </VemtapText>
+          ) : null}
 
-      <View className="mt-3 gap-2">
-        {visible.map(point => (
-          <View key={point.id} className="gap-2 rounded-card bg-surface p-3 shadow-sm">
-            <View className="flex-row items-center gap-2.5">
-              <BusinessIconWell icon={point.icon} tone="brand" />
-              <View className="min-w-0 flex-1">
-                <VemtapText
-                  variant="labelMd"
-                  className="font-sans-semibold"
-                  numberOfLines={1}
-                >
-                  {point.name}
-                </VemtapText>
-                <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-                  {`${point.branch} • ${point.branchCode}`}
-                </VemtapText>
-              </View>
-              <BusinessStatusPill label={point.status} tone="success" />
-            </View>
+          <BusinessPanel
+            className="mt-3"
+            title={copy.networkTitle}
+            icon="trendingUp"
+            badge={copy.networkBadge}
+            badgeTone="brand"
+          >
+            <BusinessMetricGrid cells={view.network} columns={2} variant="bare" />
+          </BusinessPanel>
 
-            {point.hero ? (
-              <View className="flex-row items-center gap-3 rounded-field bg-surface-subtle p-2.5">
-                <View className="shrink-0">
-                  <BusinessQrFrame size="sm" glyph="contactless" caption={point.meta} />
-                </View>
-                <View className="min-w-0 flex-1 gap-1">
-                  <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-                    {point.meta}
-                  </VemtapText>
-                  <View className="flex-row items-center gap-1.5">
-                    <Icon name="checkCircle" size={14} color={colors.badgeDiscountText} />
+          <View className="mt-3 gap-2">
+            {branchCodes.map(code => (
+              <View key={code.id} className="gap-2 rounded-card bg-surface p-3 shadow-sm">
+                <View className="flex-row items-center gap-2.5">
+                  <BusinessIconWell icon="storefront" tone="brand" />
+                  <View className="min-w-0 flex-1">
                     <VemtapText
-                      variant="caption"
-                      className="min-w-0 flex-1 text-badge-discount-text"
+                      variant="labelMd"
+                      className="font-sans-semibold"
                       numberOfLines={1}
                     >
-                      {copy.readyLabel}
+                      {code.name}
+                    </VemtapText>
+                    <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
+                      {code.scans}
                     </VemtapText>
                   </View>
-                  <VemtapText variant="micro" tone="tertiary" numberOfLines={1}>
-                    {point.weeklyScans}
+                  <BusinessStatusPill label={code.meta} tone="brand" />
+                </View>
+                <CodeActions
+                  code={code}
+                  onView={() => setTag(code)}
+                  onShare={() => onShare?.(code)}
+                  onPrint={() => onPrintSheet?.(code.branchId)}
+                />
+              </View>
+            ))}
+
+            {points.map(point => (
+              <View
+                key={point.id}
+                className="gap-2 rounded-card bg-surface p-3 shadow-sm"
+              >
+                <View className="flex-row items-center gap-2.5">
+                  <BusinessIconWell icon={point.icon} tone="brand" />
+                  <View className="min-w-0 flex-1">
+                    <VemtapText
+                      variant="labelMd"
+                      className="font-sans-semibold"
+                      numberOfLines={1}
+                    >
+                      {point.name}
+                    </VemtapText>
+                    <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
+                      {point.meta}
+                    </VemtapText>
+                  </View>
+                  <BusinessStatusPill label={point.status} tone={point.tone} />
+                </View>
+                <View className="flex-row items-center justify-between gap-2">
+                  <VemtapText
+                    variant="caption"
+                    className="font-sans-semibold text-primary"
+                  >
+                    {point.weekly}
+                  </VemtapText>
+                  <VemtapText variant="micro" tone="tertiary">
+                    {point.total}
                   </VemtapText>
                 </View>
+                <CodeActions
+                  code={point}
+                  onView={() => setTag(point)}
+                  onShare={() => onShare?.(point)}
+                  onPrint={() => onPrintSheet?.(point.branchId)}
+                />
               </View>
-            ) : (
-              <View className="flex-row items-center gap-1.5">
-                <Icon name="insights" size={14} color={colors.textTertiary} />
-                <VemtapText
-                  variant="caption"
-                  tone="secondary"
-                  className="min-w-0 flex-1"
-                  numberOfLines={1}
-                >
-                  {point.weeklyScans}
-                </VemtapText>
-              </View>
-            )}
+            ))}
 
-            <View className="flex-row flex-wrap gap-1.5">
-              {point.badges.map(badge => (
-                <View
-                  key={badge}
-                  className="rounded-full bg-surface-container px-2.5 py-1"
-                >
-                  <VemtapText
-                    variant="micro"
-                    className="text-text-secondary"
-                    numberOfLines={1}
-                  >
-                    {badge}
-                  </VemtapText>
-                </View>
-              ))}
-            </View>
-
-            <View className="flex-row flex-wrap gap-2">
-              {point.ctas.map(cta => (
-                <Pressable
-                  key={cta}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${cta}: ${point.name}`}
-                  onPress={() => {
-                    if (cta === copy.viewTagCta) onViewTag?.(point.id);
-                    else if (cta === copy.printStickerCta) onPrintSticker?.(point.id);
-                    else if (cta === copy.shareCta) onShare?.(point.id);
-                    else if (cta === copy.savePngCta) onSavePng?.(point.id);
-                    else onOpenPoint?.(point.id);
-                  }}
-                  className={`min-h-9 flex-1 flex-row items-center justify-center gap-1.5 rounded-field px-3 active:scale-95 ${
-                    cta === copy.viewTagCta ? 'bg-primary' : 'bg-surface-container'
-                  }`}
-                >
-                  <Icon
-                    name={
-                      cta === copy.viewTagCta
-                        ? 'qrCode'
-                        : cta === copy.printStickerCta
-                          ? 'printReceipt'
-                          : cta === copy.shareCta
-                            ? 'share'
-                            : 'download'
-                    }
-                    size={15}
-                    color={cta === copy.viewTagCta ? colors.surface : colors.text}
-                  />
-                  <VemtapText
-                    variant="labelSm"
-                    className={
-                      cta === copy.viewTagCta
-                        ? 'font-sans-semibold text-surface'
-                        : 'font-sans-semibold'
-                    }
-                    numberOfLines={1}
-                  >
-                    {cta}
-                  </VemtapText>
-                </Pressable>
-              ))}
-            </View>
+            {points.length === 0 ? (
+              <EmptyState
+                icon="qrCodeScanner"
+                variant="contained"
+                title={copy.empty.title}
+                description={copy.empty.body}
+              />
+            ) : null}
           </View>
-        ))}
-      </View>
+        </>
+      )}
 
-      {visible.length === 0 ? (
-        <EmptyState
-          icon="qrCodeScanner"
-          variant="contained"
-          title={copy.empty.title}
-          description={copy.empty.body}
-        />
-      ) : null}
-
-      <BusinessPanel className="mt-3" title={copy.rulesTitle} icon="bolt">
-        <View className="gap-2">
-          {locationQrRules.map(rule => (
-            <BusinessAnalyticsRow
-              key={rule.id}
-              title={rule.title}
-              subtitle={rule.body}
-              icon={rule.icon}
-              chevron
-              onPress={() => onOpenRule?.(rule.id)}
+      <AppModal visible={Boolean(tag)} onClose={() => setTag(null)} title={copy.tagTitle}>
+        {tag ? (
+          <View className="items-center gap-3 pb-2">
+            <BusinessQrFrame size="lg" label={tag.name} caption={tag.url} svg={tag.svg} />
+            <VemtapText variant="caption" tone="secondary" className="text-center">
+              {copy.readyLabel}
+            </VemtapText>
+            <Button
+              label={copy.tagClose}
+              variant="secondary"
+              onPress={() => setTag(null)}
             />
-          ))}
-        </View>
-      </BusinessPanel>
+          </View>
+        ) : null}
+      </AppModal>
     </BusinessScreenLayout>
+  );
+}
+
+function CodeActions({
+  code,
+  onView,
+  onShare,
+  onPrint,
+}: {
+  code: QrCodeCard;
+  onView: () => void;
+  onShare: () => void;
+  onPrint: () => void;
+}) {
+  const actions = [
+    {
+      id: 'view',
+      label: copy.viewTagCta,
+      icon: 'qrCodeScanner' as const,
+      onPress: onView,
+    },
+    { id: 'share', label: copy.shareCta, icon: 'share' as const, onPress: onShare },
+    {
+      id: 'print',
+      label: copy.printStickerCta,
+      icon: 'printReceipt' as const,
+      onPress: onPrint,
+    },
+  ];
+  return (
+    <View className="flex-row flex-wrap gap-1.5">
+      {actions.map(action => (
+        <Pressable
+          key={action.id}
+          accessibilityRole="button"
+          accessibilityLabel={`${action.label} ${code.name}`}
+          onPress={action.onPress}
+          className={`min-h-9 flex-row items-center gap-1 rounded-full px-3 active:scale-95 ${
+            action.id === 'view' ? 'bg-primary' : 'bg-surface-container'
+          }`}
+        >
+          <Icon
+            name={action.icon}
+            size={14}
+            color={action.id === 'view' ? colors.surface : colors.text}
+          />
+          <VemtapText
+            variant="labelSm"
+            className={
+              action.id === 'view'
+                ? 'font-sans-semibold text-primary-foreground'
+                : 'font-sans-semibold'
+            }
+            numberOfLines={1}
+          >
+            {action.label}
+          </VemtapText>
+        </Pressable>
+      ))}
+    </View>
   );
 }

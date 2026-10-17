@@ -17,6 +17,8 @@ export interface UpdateBusinessProfileInput {
   address?: string;
   city?: string;
   state?: string;
+  /** Pause (`false`) or resume the storefront. */
+  isVisible?: boolean;
 }
 
 /**

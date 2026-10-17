@@ -22,8 +22,11 @@ import { LoadingState } from '@components/shared/LoadingState';
 import { ErrorState } from '@components/shared/ErrorState';
 import { EmptyState } from '@components/shared/EmptyState';
 import { useBranchCatalogue } from '@features/business/hooks/useBranchCatalogue';
-import { toAmount } from '@features/deals/utils/offerMapper';
+import { discountLabel, priceLabels, toAmount } from '@features/deals/utils/offerMapper';
+import { isOpenNow } from '@features/dealDetail/utils/openingHours';
+import { useBranchOffers } from '@features/discover/hooks/useBranchOffers';
 import { formatCurrency } from '@utils/formatters';
+import { discountedPrice } from '@features/order/utils/productDetailMapper';
 import { usePublicBusinessProfile } from '@features/discover/hooks/usePublicBusinessProfile';
 import {
   useBusinessSaveStatus,
@@ -67,7 +70,23 @@ export interface BusinessProfileScreenProps {
     businessName?: string;
     branchName?: string;
   }) => void;
+  /** Opens one of the branch's products, priced for that branch. */
+  onOpenProduct?: (target: {
+    productId: string;
+    branchId?: string;
+    businessName?: string;
+    branchName?: string;
+  }) => void;
+  /** Opens the branch's full product list. */
+  onOpenProducts?: (target: {
+    branchId: string;
+    businessName?: string;
+    branchName?: string;
+  }) => void;
 }
+
+/** Products shown on the profile before "See all". */
+const PRODUCT_PREVIEW = 4;
 
 const mapRegion = {
   latitude: 9.0765,
@@ -83,6 +102,8 @@ export function BusinessProfileScreen({
   onOpenDeal = () => undefined,
   onOpenInApp = () => undefined,
   onOpenService,
+  onOpenProduct,
+  onOpenProducts,
 }: BusinessProfileScreenProps) {
   const [bundledBookmarked, setBundledBookmarked] = useState(false);
   const [following, setFollowing] = useState(false);
@@ -143,6 +164,23 @@ export function BusinessProfileScreen({
   });
   const serviceItems = services.data?.data ?? [];
   const bookableServices = serviceItems.filter(service => service.isBookable !== false);
+  // The first few of the branch's products; the rest live on the products page.
+  const products = useBranchCatalogue(activeBranchId ?? null, {
+    itemType: 'product',
+    limit: PRODUCT_PREVIEW,
+  });
+  const productItems = (products.data?.data ?? []).filter(
+    item => item.itemType === 'product',
+  );
+  const branchOffers = useBranchOffers(activeBranchId ?? null);
+  const offers = branchOffers.data?.data ?? [];
+  const offerTotal = branchOffers.data?.total ?? offers.length;
+  /** The steepest discount leads the profile's offer bar. */
+  const bestOffer = offers.reduce<(typeof offers)[number] | null>(
+    (best, offer) =>
+      !best || (offer.discountPercent ?? 0) > (best.discountPercent ?? 0) ? offer : best,
+    null,
+  );
 
   // Loading and failure come before the page so a merchant with no data yet
   // shows an honest state rather than a blank profile.
@@ -184,10 +222,10 @@ export function BusinessProfileScreen({
    * plausible number. The bundled Discover businesses keep both.
    */
   const hasRating = business.rating !== '';
-  const hasActiveDeals = business.activeDealLabel !== '';
 
   /** A real merchant's own contact details; the bundled ones are hardcoded. */
   const livePhone = business.phone ?? business.whatsappNumber;
+  const openNow = isOpenNow(business.openingHours);
 
   /** Centre the map on the merchant when it has real coordinates. */
   const region =
@@ -306,12 +344,25 @@ export function BusinessProfileScreen({
                   </VemtapText>
                 </View>
               ) : null}
-              <View className="flex-row items-center gap-1 rounded-lg bg-badge-discount-bg px-2.5 py-1">
-                <View className="h-1.5 w-1.5 rounded-full bg-badge-discount-text" />
-                <VemtapText variant="labelSm" className="text-badge-discount-text">
-                  {strings.urbanProfile.openNow}
-                </VemtapText>
-              </View>
+              {openNow === null ? null : (
+                <View
+                  className={`flex-row items-center gap-1 rounded-lg px-2.5 py-1 ${openNow ? 'bg-badge-discount-bg' : 'bg-surface-container'}`}
+                >
+                  <View
+                    className={`h-1.5 w-1.5 rounded-full ${openNow ? 'bg-badge-discount-text' : 'bg-text-tertiary'}`}
+                  />
+                  <VemtapText
+                    variant="labelSm"
+                    className={
+                      openNow ? 'text-badge-discount-text' : 'text-text-secondary'
+                    }
+                  >
+                    {openNow
+                      ? strings.urbanProfile.openNowShort
+                      : strings.urbanProfile.closedNowShort}
+                  </VemtapText>
+                </View>
+              )}
             </View>
             <View className="flex-row items-center gap-1.5">
               <Icon name="distance" size={18} color={colors.primary} />
@@ -323,12 +374,12 @@ export function BusinessProfileScreen({
         </View>
 
         <View className="mt-4 flex-row gap-3 px-6">
-          {hasActiveDeals ? (
+          {bestOffer ? (
             <Button
-              label={business.activeDealLabel}
+              label={strings.urbanProfile.viewDeals(offerTotal)}
               className="min-w-0 flex-[1.4] shadow-md"
               leftIcon={<Icon name="localOffer" size={20} color={colors.surface} />}
-              onPress={() => onOpenDeal(business.id)}
+              onPress={() => onOpenDeal(bestOffer.id)}
             />
           ) : null}
           <Button
@@ -450,6 +501,73 @@ export function BusinessProfileScreen({
           </View>
         ) : null}
 
+        {/* The branch's products, from the same public catalogue as the
+            services above. Hidden until the branch actually lists one. */}
+        {activeBranchId && productItems.length > 0 ? (
+          <View className="mt-7 gap-3 px-6">
+            <View className="flex-row items-center justify-between gap-2">
+              <VemtapText variant="headingSm" className="text-text">
+                {strings.businessProducts.sectionTitle}
+              </VemtapText>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={strings.businessProducts.seeAll}
+                onPress={() =>
+                  onOpenProducts?.({
+                    branchId: activeBranchId,
+                    businessName: business.name,
+                    branchName: activeBranchName,
+                  })
+                }
+                hitSlop={8}
+              >
+                <VemtapText variant="labelMd" tone="brand" className="font-sans-medium">
+                  {strings.businessProducts.seeAll}
+                </VemtapText>
+              </Pressable>
+            </View>
+            <View className="gap-2">
+              {productItems.map(product => (
+                <Pressable
+                  key={product.id}
+                  accessibilityRole="button"
+                  accessibilityLabel={product.name}
+                  onPress={() =>
+                    onOpenProduct?.({
+                      productId: product.id,
+                      branchId: activeBranchId,
+                      businessName: business.name,
+                      branchName: activeBranchName,
+                    })
+                  }
+                  className="flex-row items-center justify-between gap-3 rounded-2xl border border-border bg-surface-canvas p-3.5 shadow-md active:opacity-80"
+                >
+                  <View className="min-w-0 flex-1">
+                    <VemtapText
+                      variant="labelMd"
+                      className="font-sans-semibold text-text"
+                      numberOfLines={1}
+                    >
+                      {product.name}
+                    </VemtapText>
+                    {product.category?.name ? (
+                      <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
+                        {product.category.name}
+                      </VemtapText>
+                    ) : null}
+                  </View>
+                  <View className="shrink-0 flex-row items-center gap-2">
+                    <VemtapText variant="labelMd" className="font-sans-bold text-primary">
+                      {formatCurrency(discountedPrice(product).unit)}
+                    </VemtapText>
+                    <Icon name="arrowForward" size={18} color={colors.textSecondary} />
+                  </View>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        ) : null}
+
         <View className="mt-6 px-6">
           <View className="rounded-2xl border border-border bg-surface-canvas p-4 shadow-md">
             <VemtapText variant="headingSm" className="text-text">
@@ -477,53 +595,57 @@ export function BusinessProfileScreen({
           </View>
         </View>
 
-        <View className="mt-7 gap-3 px-6">
-          <View className="flex-row items-center justify-between gap-2">
+        {/* The branch's live offers. Hidden when it has none, rather than a
+            heading over an empty list. */}
+        {offers.length > 0 ? (
+          <View className="mt-7 gap-3 px-6">
             <View className="flex-row items-center gap-2">
               <VemtapText variant="headingSm" className="text-text">
                 {strings.urbanProfile.activeDeals}
               </VemtapText>
               <View className="rounded-full bg-primary px-2 py-0.5">
                 <VemtapText variant="caption" tone="inverse">
-                  1
+                  {offerTotal}
                 </VemtapText>
               </View>
             </View>
-            <Pressable accessibilityRole="button" onPress={() => onOpenDeal(business.id)}>
-              <VemtapText variant="labelMd" tone="brand" className="font-sans-semibold">
-                {strings.urbanProfile.seeAllDeals(1)}
-              </VemtapText>
-            </Pressable>
+            {offers.map(offer => (
+              <Pressable
+                key={offer.id}
+                accessibilityRole="button"
+                accessibilityLabel={offer.name}
+                onPress={() => onOpenDeal(offer.id)}
+                className="flex-row items-center justify-between gap-3 rounded-2xl border border-border bg-surface-canvas p-3.5 shadow-md active:opacity-80"
+              >
+                <View className="min-w-0 flex-1">
+                  <VemtapText
+                    variant="labelMd"
+                    className="font-sans-semibold text-text"
+                    numberOfLines={1}
+                  >
+                    {offer.name}
+                  </VemtapText>
+                  <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
+                    {[discountLabel(offer), priceLabels(offer).price]
+                      .filter(Boolean)
+                      .join(' \u2022 ')}
+                  </VemtapText>
+                </View>
+                <Icon name="offer" size={20} color={colors.primary} />
+              </Pressable>
+            ))}
           </View>
-          {hasActiveDeals ? (
-            <View className="flex-row items-center justify-between rounded-2xl border border-border bg-surface-canvas p-3.5 shadow-md">
-              <View className="min-w-0 flex-1">
-                <VemtapText variant="labelMd" className="font-sans-semibold text-text">
-                  {business.activeDealLabel}
-                </VemtapText>
-                <VemtapText variant="caption" tone="secondary">
-                  {strings.discoverFeed.realTimePerks}
-                </VemtapText>
-              </View>
-              <Icon name="offer" size={20} color={colors.primary} />
-            </View>
-          ) : null}
-        </View>
+        ) : null}
 
         <View className="mt-7 px-6">
           <ContactActionGrid
-            phone={livePhone ?? '+2348000000000'}
-            whatsappUrl={
-              livePhone
-                ? `https://wa.me/${livePhone.replace(/[^\d]/g, '')}`
-                : 'https://wa.me'
-            }
+            phone={livePhone ?? undefined}
+            website={business.website ?? undefined}
             onInApp={onOpenInApp}
-            onWebsite={() => undefined}
           />
         </View>
         <View className="mt-6 px-6">
-          <HoursList />
+          <HoursList hours={business.openingHours} />
         </View>
 
         <View className="mt-6 gap-3 px-6">
@@ -597,12 +719,14 @@ export function BusinessProfileScreen({
           </View>
         ) : null}
       </ScrollView>
-      <DetailActionDockBar
-        eyebrow={strings.urbanProfile.specialOffer}
-        value={strings.urbanProfile.upToOff}
-        action={strings.urbanProfile.claimDeal}
-        onAction={() => onOpenDeal(business.id)}
-      />
+      {bestOffer ? (
+        <DetailActionDockBar
+          eyebrow={bestOffer.name}
+          value={discountLabel(bestOffer)}
+          action={strings.urbanProfile.claimDeal}
+          onAction={() => onOpenDeal(bestOffer.id)}
+        />
+      ) : null}
     </SafeAreaView>
   );
 }

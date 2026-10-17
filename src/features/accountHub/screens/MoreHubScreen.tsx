@@ -11,6 +11,14 @@ import {
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
 import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
+import {
+  useLoyaltyAnalytics,
+  useLoyaltyBalance,
+  useLoyaltyTier,
+} from '@features/accountHub/hooks/useLoyalty';
+import { useSavedTotals } from '@features/accountHub/hooks/useSavedHub';
+import { useUnreadNotificationsCount } from '@features/accountHub/hooks/useNotifications';
+import { formatCurrency } from '@utils/formatters';
 
 const copy = strings.accountScreens.moreHub;
 
@@ -42,6 +50,18 @@ export function MoreHubScreen({
   onSignOut,
 }: MoreHubScreenProps) {
   const me = useCurrentUserDisplay();
+  const balance = useLoyaltyBalance(null);
+  const tier = useLoyaltyTier();
+  const analytics = useLoyaltyAnalytics('allTime');
+  const saved = useSavedTotals();
+  const unread = useUnreadNotificationsCount();
+  const points = Number(balance.data ?? 0).toLocaleString('en-NG');
+  const memberSince = me.createdAt
+    ? new Date(me.createdAt).toLocaleDateString('en-NG', {
+        month: 'short',
+        year: 'numeric',
+      })
+    : null;
   return (
     <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-background">
       <AccountHeader
@@ -51,17 +71,9 @@ export function MoreHubScreen({
         actionIcon="tune"
       />
       <PageScroll>
-        <View className="flex-row items-center justify-between">
-          <View className="flex-row items-center gap-2">
-            <View className="h-2 w-2 rounded-full bg-badge-discount-text" />
-            <VemtapText variant="labelSm" tone="secondary">
-              {copy.connected}
-            </VemtapText>
-          </View>
-          <VemtapText variant="labelSm" tone="tertiary">
-            {copy.settings}
-          </VemtapText>
-        </View>
+        <VemtapText variant="labelSm" tone="tertiary" className="self-end">
+          {copy.settings}
+        </VemtapText>
         <View className="gap-3 rounded-card bg-surface p-4 shadow-md">
           <View className="flex-row items-center gap-3">
             <View className="h-16 w-16 items-center justify-center rounded-full bg-surface-container-high">
@@ -77,15 +89,19 @@ export function MoreHubScreen({
             <View className="min-w-0 flex-1">
               <View className="flex-row items-center gap-2">
                 <VemtapText variant="headingSm">{me.fullName}</VemtapText>
-                <View className="rounded-full bg-surface-tint px-2 py-0.5">
-                  <VemtapText variant="labelSm" tone="brand">
-                    Gold
-                  </VemtapText>
-                </View>
+                {tier.data?.tier ? (
+                  <View className="rounded-full bg-surface-tint px-2 py-0.5">
+                    <VemtapText variant="labelSm" tone="brand">
+                      {tier.data.tier}
+                    </VemtapText>
+                  </View>
+                ) : null}
               </View>
-              <VemtapText variant="caption" tone="secondary">
-                {copy.memberSince}
-              </VemtapText>
+              {memberSince ? (
+                <VemtapText variant="caption" tone="secondary">
+                  {copy.memberSince(memberSince)}
+                </VemtapText>
+              ) : null}
               <VemtapText variant="caption" tone="tertiary" numberOfLines={1}>
                 {me.email}
               </VemtapText>
@@ -113,51 +129,20 @@ export function MoreHubScreen({
           </View>
         </View>
         <View className="flex-row gap-3">
-          <StatCard
-            icon="loyalty"
-            value={copy.pointsValue}
-            label={copy.points}
-            tone="tertiary"
-          />
+          <StatCard icon="loyalty" value={points} label={copy.points} tone="tertiary" />
           <StatCard
             icon="savings"
-            value={copy.savingsValue}
+            value={formatCurrency(analytics.data?.totals?.netSavings ?? 0)}
             label={copy.savings}
             tone="success"
             onPress={onOpenSavings}
           />
         </View>
-        <View className="flex-row items-center gap-3 rounded-card bg-primary p-4">
-          <View className="h-10 w-10 items-center justify-center rounded-xl bg-white/20">
-            <VemtapText variant="headingSm" className="text-primary-foreground">
-              ▣
-            </VemtapText>
-          </View>
-          <View className="min-w-0 flex-1">
-            <VemtapText variant="labelMd" className="text-primary-foreground">
-              {copy.activeCart}{' '}
-              <VemtapText variant="caption" className="text-primary-foreground">
-                ({copy.cartItems})
-              </VemtapText>
-            </VemtapText>
-            <VemtapText
-              variant="caption"
-              className="text-primary-foreground"
-              numberOfLines={1}
-            >
-              {copy.cartMeta}
-            </VemtapText>
-          </View>
-          <VemtapText variant="labelSm" className="shrink-0 text-primary-foreground">
-            {copy.checkout} →
-          </VemtapText>
-        </View>
         <AccountSection title={copy.rewards}>
           <AccountMenuRow
             icon="loyalty"
             title={copy.rewardsTitle}
-            subtitle={copy.rewardsSubtitle}
-            badge={copy.available}
+            subtitle={copy.rewardsSubtitle(points)}
             onPress={onOpenRewards}
           />
           <AccountMenuRow
@@ -177,8 +162,8 @@ export function MoreHubScreen({
           <AccountMenuRow
             icon="bookmark"
             title={copy.savedTitle}
-            subtitle={copy.savedSubtitle}
-            badge={copy.total}
+            subtitle={copy.savedSubtitle(saved.deals ?? 0, saved.businesses ?? 0)}
+            badge={saved.isSuccess ? copy.total(saved.all ?? 0) : undefined}
             onPress={onOpenSaved}
           />
         </AccountSection>
@@ -195,7 +180,7 @@ export function MoreHubScreen({
             icon="notifications"
             title={copy.notifications}
             subtitle={copy.notificationsSubtitle}
-            badge={copy.unread}
+            badge={unread.data ? copy.unread(unread.data) : undefined}
             onPress={onOpenNotifications}
           />
         </AccountSection>

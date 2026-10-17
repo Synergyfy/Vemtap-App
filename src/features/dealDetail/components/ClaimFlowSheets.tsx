@@ -66,7 +66,7 @@ export function ClaimConfirmationSheet({
           </VemtapText>
         </View>
         <VemtapText variant="bodyMd" tone="secondary" className="mt-2">
-          {strings.deals.claimFlow.claimSubtitle}
+          {strings.deals.claimFlow.claimSubtitle(deal.badge)}
         </VemtapText>
         <View style={styles.dealCard}>
           <View style={styles.dealHero}>
@@ -262,14 +262,12 @@ export function ClaimIdentitySheet({
   onClose,
   onForMe,
   onGift,
-  onRecipient,
   deal,
 }: {
   visible: boolean;
   onClose: () => void;
   onForMe: () => void;
   onGift: () => void;
-  onRecipient: () => void;
   deal: ClaimDealData;
 }) {
   const claimant = useCurrentUserDisplay();
@@ -348,13 +346,6 @@ export function ClaimIdentitySheet({
           title={strings.deals.claimFlow.claimGift}
           subtitle={strings.deals.claimFlow.claimGiftSub}
           onPress={onGift}
-        />
-        <OptionRow
-          icon="person"
-          iconBackground={colors.surfaceContainer}
-          title={strings.deals.claimFlow.claimSomeoneElse}
-          subtitle={strings.deals.claimFlow.claimSomeoneElseSub}
-          onPress={onRecipient}
         />
         <View style={styles.guaranteeRow}>
           <Icon name="lock" size={14} color={colors.textTertiary} />
@@ -647,112 +638,6 @@ export function RecipientVerificationSheet({
         >
           <VemtapText variant="button" tone="secondary">
             {strings.deals.claimFlow.backRecipient}
-          </VemtapText>
-        </Pressable>
-      </ScrollView>
-    </BottomSheet>
-  );
-}
-
-export function RecipientSummarySheet({
-  visible,
-  onClose,
-  onContinue,
-  onEdit,
-  recipient,
-  deal,
-}: {
-  visible: boolean;
-  onClose: () => void;
-  onContinue: () => void;
-  onEdit: () => void;
-  recipient: RecipientData;
-  deal: ClaimDealData;
-}) {
-  return (
-    <BottomSheet
-      visible={visible}
-      onClose={onClose}
-      title={strings.deals.claimFlow.recipientSummary}
-      titleVariant="headingMd"
-    >
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
-        <VemtapText variant="bodyMd" tone="secondary" className="mt-1">
-          {strings.deals.claimFlow.recipientSummarySub}
-        </VemtapText>
-        <View style={styles.recipientCard}>
-          <View style={styles.recipientHeader}>
-            <View style={styles.recipientAvatar}>
-              <VemtapText className="font-sans-bold text-heading-md text-surface">
-                {recipient.firstName?.[0] ?? 'R'}
-                {recipient.lastName?.[0] ?? 'A'}
-              </VemtapText>
-            </View>
-            <View style={styles.flexCopy}>
-              <VemtapText variant="labelMd" className="font-sans-bold text-text">
-                {recipient.firstName} {recipient.lastName}
-              </VemtapText>
-              <View style={styles.verifiedPill}>
-                <Icon name="check" size={12} color={colors.badgeDiscountText} />
-                <VemtapText
-                  variant="caption"
-                  className="font-sans-semibold text-badge-discount-text"
-                >
-                  {strings.deals.claimFlow.verifiedEmail}
-                </VemtapText>
-              </View>
-            </View>
-            <View style={styles.personIcon}>
-              <Icon name="person" size={20} color={colors.primary} />
-            </View>
-          </View>
-          <ContactRow icon="mail" label="Email" value={recipient.email} />
-          <ContactRow icon="message" label="Phone" value={`+234 ${recipient.phone}`} />
-        </View>
-        <View style={styles.perkCard}>
-          <View style={styles.rowBetween}>
-            <VemtapText variant="caption" tone="secondary" className="uppercase">
-              {strings.deals.claimFlow.attachedPerk}
-            </VemtapText>
-            <View style={styles.discountPill}>
-              <VemtapText className="font-sans-bold text-caption text-badge-discount-text">
-                {deal.badge}
-              </VemtapText>
-            </View>
-          </View>
-          <View style={styles.row}>
-            <Image source={deal.image} style={styles.thumbnail} resizeMode="cover" />
-            <View style={styles.flexCopy}>
-              <VemtapText variant="headingSm" numberOfLines={1}>
-                {deal.merchant}
-              </VemtapText>
-              <VemtapText variant="bodyMd" tone="secondary">
-                Lunch Combo •{' '}
-                <VemtapText className="font-sans-bold text-text">{deal.price}</VemtapText>
-              </VemtapText>
-            </View>
-          </View>
-          <VemtapText variant="caption" tone="secondary" className="mt-3">
-            Claim voucher will be generated in {recipient.firstName} {recipient.lastName}
-            &apos;s name. Payment is settled upon redemption.
-          </VemtapText>
-        </View>
-        <Button
-          label={strings.deals.claimFlow.continueClaim}
-          rightIcon={<Icon name="arrowForward" size={18} color={colors.surface} />}
-          onPress={onContinue}
-        />
-        <Pressable
-          accessibilityRole="button"
-          onPress={onEdit}
-          style={styles.secondaryButton}
-        >
-          <VemtapText variant="bodyMd" tone="secondary" className="font-sans-medium">
-            {strings.deals.claimFlow.editRecipientDetails}
           </VemtapText>
         </Pressable>
       </ScrollView>
@@ -1087,219 +972,6 @@ export function GiftConfirmSheet({
   );
 }
 
-export function ClaimTermsSheet({
-  visible,
-  onClose,
-  onComplete,
-  deal,
-  claimingAs,
-}: {
-  visible: boolean;
-  onClose: () => void;
-  onComplete: () => void;
-  deal: ClaimDealData;
-  claimingAs: string;
-}) {
-  const [accepted, setAccepted] = useState(false);
-  const [infoSheet, setInfoSheet] = useState<'how' | 'terms' | null>(null);
-  return (
-    <>
-      <BottomSheet
-        visible={visible}
-        onClose={onClose}
-        title={strings.deals.claimFlow.confirmReservation}
-        titleVariant="headingMd"
-      >
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={styles.content}
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.reservedBadge}>
-            <Icon name="schedule" size={16} color={colors.badgeDiscountText} />
-            <VemtapText variant="labelSm" className="text-badge-discount-text">
-              {strings.deals.claimFlow.reservedFor}
-            </VemtapText>
-          </View>
-          <VemtapText variant="headingXl" className="mt-4 text-heading-xl text-text">
-            {strings.deals.claimFlow.confirmReservation}
-          </VemtapText>
-          <VemtapText variant="bodyMd" tone="secondary" className="mt-1">
-            {strings.deals.claimFlow.reservationSubtitle}
-          </VemtapText>
-          <View style={styles.reservationCard}>
-            <View style={styles.row}>
-              <Image source={deal.image} style={styles.thumbnail} resizeMode="cover" />
-              <View style={styles.flexCopy}>
-                <VemtapText variant="labelSm" tone="secondary">
-                  {deal.merchant}
-                </VemtapText>
-                <VemtapText variant="headingSm" numberOfLines={1}>
-                  {deal.title}
-                </VemtapText>
-              </View>
-            </View>
-            <View style={styles.priceBox}>
-              <View style={styles.rowBetween}>
-                <VemtapText variant="labelSm" tone="secondary">
-                  {strings.deals.claimFlow.payAtVenue}
-                </VemtapText>
-                <View style={styles.row}>
-                  <VemtapText variant="headingSm" className="font-sans-bold text-text">
-                    {deal.price}
-                  </VemtapText>
-                  <View style={styles.discountPill}>
-                    <VemtapText className="font-sans-semibold text-caption text-badge-discount-text">
-                      {deal.save}
-                    </VemtapText>
-                  </View>
-                </View>
-              </View>
-              <View style={styles.rowBetween}>
-                <VemtapText variant="caption" tone="tertiary">
-                  {strings.deals.claimFlow.claimingAs}
-                </VemtapText>
-                <VemtapText variant="labelSm" className="font-sans-medium text-text">
-                  {claimingAs}
-                </VemtapText>
-              </View>
-            </View>
-          </View>
-          <Pressable
-            accessibilityRole="checkbox"
-            accessibilityState={{ checked: accepted }}
-            onPress={() => setAccepted(value => !value)}
-            style={styles.consent}
-          >
-            <View style={[styles.checkbox, accepted && styles.checkboxChecked]}>
-              {accepted ? <Icon name="check" size={16} color={colors.surface} /> : null}
-            </View>
-            <View style={styles.flexCopy}>
-              <VemtapText
-                variant="bodyMd"
-                style={styles.consentText}
-                className="text-text"
-              >
-                {strings.deals.claimFlow.understandConditions}
-              </VemtapText>
-              <View style={styles.linkRow}>
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={() => setInfoSheet('how')}
-                  style={styles.linkButton}
-                >
-                  <VemtapText
-                    variant="labelSm"
-                    tone="brand"
-                    className="font-sans-semibold"
-                  >
-                    {strings.deals.claimFlow.howToClaim}
-                  </VemtapText>
-                  <Icon name="arrowForward" size={14} color={colors.primary} />
-                </Pressable>
-                <VemtapText variant="caption" tone="tertiary">
-                  •
-                </VemtapText>
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={() => setInfoSheet('terms')}
-                  style={styles.linkButton}
-                >
-                  <VemtapText
-                    variant="labelSm"
-                    tone="brand"
-                    className="font-sans-semibold"
-                  >
-                    {strings.deals.claimFlow.dealTerms}
-                  </VemtapText>
-                  <Icon name="arrowForward" size={14} color={colors.primary} />
-                </Pressable>
-              </View>
-            </View>
-          </Pressable>
-          <Button
-            label={strings.deals.claimFlow.confirmReserve}
-            disabled={!accepted}
-            onPress={onComplete}
-            leftIcon={<Icon name="badge" size={20} color={colors.surface} />}
-          />
-          <Pressable
-            accessibilityRole="button"
-            onPress={onClose}
-            style={styles.secondaryButton}
-          >
-            <VemtapText variant="button" tone="secondary">
-              {strings.deals.claimFlow.cancelNotNow}
-            </VemtapText>
-          </Pressable>
-          <View style={styles.guaranteeRow}>
-            <Icon name="verifiedUser" size={16} color={colors.badgeDiscountText} />
-            <VemtapText variant="caption" tone="secondary" className="text-center">
-              {strings.deals.claimFlow.zeroUpfront}
-            </VemtapText>
-          </View>
-        </ScrollView>
-      </BottomSheet>
-      <BottomSheet
-        visible={infoSheet === 'how'}
-        onClose={() => setInfoSheet(null)}
-        title={strings.deals.claimFlow.howToClaim}
-      >
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={styles.content}
-          showsVerticalScrollIndicator={false}
-        >
-          <Step
-            number="1"
-            text="Tap Confirm to instantly obtain your one-time digital dynamic QR code pass."
-          />
-          <Step
-            number="2"
-            text="Arrive at Urban Grill & Bistro during lunch hours (12:00 PM – 4:00 PM)."
-          />
-          <Step
-            number="3"
-            text="Present the QR screen before requesting the bill to deduct 20% right away."
-          />
-          <Button
-            label={strings.deals.claimFlow.understood}
-            variant="outline"
-            onPress={() => setInfoSheet(null)}
-          />
-        </ScrollView>
-      </BottomSheet>
-      <BottomSheet
-        visible={infoSheet === 'terms'}
-        onClose={() => setInfoSheet(null)}
-        title={strings.deals.claimFlow.dealTerms}
-      >
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={styles.content}
-          showsVerticalScrollIndicator={false}
-        >
-          {[
-            'Valid strictly for dine-in patrons between Monday and Friday.',
-            'Cannot be combined with other ongoing happy hour promotions.',
-            'One claim allowed per party per table.',
-            'Reservation expires if unredeemed within the 48-hour voucher countdown window.',
-          ].map(text => (
-            <VemtapText key={text} variant="bodyMd" tone="secondary" className="mb-4">
-              • {text}
-            </VemtapText>
-          ))}
-          <Button
-            label={strings.deals.claimFlow.agree}
-            variant="outline"
-            onPress={() => setInfoSheet(null)}
-          />
-        </ScrollView>
-      </BottomSheet>
-    </>
-  );
-}
-
 function MetaCell({
   icon,
   label,
@@ -1430,21 +1102,6 @@ function ContactRow({
         numberOfLines={1}
       >
         {value || 'Not provided'}
-      </VemtapText>
-    </View>
-  );
-}
-
-function Step({ number, text }: { number: string; text: string }) {
-  return (
-    <View style={styles.step}>
-      <View style={styles.stepNumber}>
-        <VemtapText className="font-sans-semibold text-label-md text-primary">
-          {number}
-        </VemtapText>
-      </View>
-      <VemtapText variant="bodyMd" tone="secondary" className="flex-1">
-        {text}
       </VemtapText>
     </View>
   );
@@ -1690,12 +1347,6 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     minHeight: 32,
   },
-  recipientCard: {
-    gap: 12,
-    borderRadius: 16,
-    backgroundColor: colors.surfaceMuted,
-    padding: 16,
-  },
   recipientHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   recipientAvatar: {
     width: 48,
@@ -1704,24 +1355,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.primary,
-  },
-  personIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surfaceTint,
-  },
-  verifiedPill: {
-    alignSelf: 'flex-start',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    borderRadius: 999,
-    backgroundColor: colors.badgeDiscountBg,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
   },
   contactBox: { gap: 8, borderRadius: 12, backgroundColor: colors.surface, padding: 12 },
   contactRow: {
@@ -1814,50 +1447,5 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: colors.surfaceMuted,
     padding: 16,
-  },
-  reservedBadge: {
-    alignSelf: 'flex-start',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    borderRadius: 999,
-    backgroundColor: colors.badgeDiscountBg,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  reservationCard: {
-    gap: 12,
-    borderRadius: 16,
-    backgroundColor: colors.surfaceMuted,
-    padding: 16,
-  },
-  consentText: { flexShrink: 1 },
-  linkRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 },
-  consent: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-    borderRadius: 16,
-    backgroundColor: colors.surfaceTint,
-    padding: 16,
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surface,
-  },
-  checkboxChecked: { backgroundColor: colors.primary },
-  linkButton: { flexDirection: 'row', alignItems: 'center', gap: 3, minHeight: 24 },
-  step: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  stepNumber: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surfaceTint,
   },
 });

@@ -1,4 +1,5 @@
 import React from 'react';
+import { strings } from '@constants/strings';
 import { render } from '@testing-library/react-native';
 import { MessagesScreen } from '@features/merchantChat/screens/MessagesScreen';
 import { UrbanConversationScreen } from '@features/merchantChat/screens/UrbanConversationScreen';
@@ -47,7 +48,7 @@ const order: CatalogueOrder = {
   updatedAt: '2026-10-08T08:40:14.946Z',
   status: 'processing',
   totalAmount: 1000,
-  branch: { name: 'Urban Grill & Bistro', address: '12 Apo Boulevard, Abuja' },
+  branch: { name: 'Wuse', address: '12 Aminu Kano Crescent, Abuja' },
   items: [
     {
       id: 'line-1',
@@ -132,5 +133,5 @@ test('renders the four standalone messages and order screens', async () => {
   // thread that links a claim, so assert the always-present message instead.
   expect(conversation.getByText('Hi, thank you for reaching out.')).toBeTruthy();
   expect(hub.getByText('Orders And Bookings')).toBeTruthy();
-  expect(detail.getByText('Kitchen is crafting your meal')).toBeTruthy();
+  expect(detail.getByText(strings.urbanOrderDetail.headings.processing)).toBeTruthy();
 });

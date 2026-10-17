@@ -14,6 +14,8 @@ import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
 import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
+import { useLoyaltyTier } from '@features/accountHub/hooks/useLoyalty';
+import { useLocationStore } from '@store/locationStore';
 import { useUpdateProfile, useUploadAvatar } from '@features/profile/hooks/useProfile';
 import { showToast } from '@components/shared/toast';
 import { colors } from '@theme/colors';
@@ -34,6 +36,8 @@ export function EditProfileScreen({
   onChooseDistrict,
 }: EditProfileScreenProps) {
   const me = useCurrentUserDisplay();
+  const tier = useLoyaltyTier();
+  const area = useLocationStore(state => state.area);
   const updateProfile = useUpdateProfile();
   const uploadAvatar = useUploadAvatar();
   const [firstName, setFirstName] = useState(me.firstName);
@@ -143,19 +147,30 @@ export function EditProfileScreen({
                 className="font-sans-semibold"
                 numberOfLines={1}
               >
-                {copy.verifiedConsumer}
+                {me.emailVerified ? copy.verifiedConsumer : copy.member}
               </VemtapText>
-              <Icon name="checkCircle" size={16} color={colors.badgeDiscountText} />
+              {me.emailVerified ? (
+                <Icon name="checkCircle" size={16} color={colors.badgeDiscountText} />
+              ) : null}
             </View>
-            <VemtapText variant="caption" tone="secondary">
-              {copy.activeSince}
-            </VemtapText>
+            {me.createdAt ? (
+              <VemtapText variant="caption" tone="secondary">
+                {copy.activeSince(
+                  new Date(me.createdAt).toLocaleDateString('en-NG', {
+                    month: 'short',
+                    year: 'numeric',
+                  }),
+                )}
+              </VemtapText>
+            ) : null}
           </View>
-          <View className="shrink-0 rounded-full bg-badge-discount-bg px-2 py-1">
-            <VemtapText variant="labelSm" tone="success" numberOfLines={1}>
-              {copy.level}
-            </VemtapText>
-          </View>
+          {tier.data?.tier ? (
+            <View className="shrink-0 rounded-full bg-badge-discount-bg px-2 py-1">
+              <VemtapText variant="labelSm" tone="success" numberOfLines={1}>
+                {tier.data.tier}
+              </VemtapText>
+            </View>
+          ) : null}
         </View>
         <FormSection>
           <View className="flex-row gap-3">
@@ -184,16 +199,11 @@ export function EditProfileScreen({
             <View className="min-w-0 flex-row items-center gap-2">
               <Icon name="locationOn" size={20} color={colors.primary} />
               <VemtapText variant="bodyMd" numberOfLines={1}>
-                {copy.districtValue}
+                {area}
               </VemtapText>
             </View>
             <Icon name="forward" size={20} color={colors.textTertiary} />
           </Pressable>
-          <ProfileField
-            label={`${copy.birthday} (${copy.optional})`}
-            value={copy.birthdayValue}
-            icon="eventAvailable"
-          />
           <View className="gap-2">
             <VemtapText variant="labelSm" tone="secondary">
               {copy.gender}

@@ -5,11 +5,7 @@ import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { colors } from '@theme/colors';
-import {
-  paymentSuccessCopy as copy,
-  verificationImages,
-} from '@features/business/verificationCopy';
-import { BusinessProductImage } from '@features/business/components/BusinessPrimitives';
+import { paymentSuccessCopy as copy } from '@features/business/verificationCopy';
 import {
   PrimaryActionButton,
   SetupSectionCard,
@@ -19,6 +15,7 @@ import {
   VerificationPage,
   VerificationSeal,
   VerificationSummaryRow,
+  BusinessLogo,
 } from '@features/business/components/VerificationPrimitives';
 import type { BillingPeriod } from '@api/subscriptionsApi';
 
@@ -135,11 +132,7 @@ export function PaymentSuccessVemtapGrowthScreen({
 
       <View className="flex-row items-center gap-3.5 rounded-card bg-surface-subtle p-3 shadow-sm">
         <View className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-surface-container">
-          <BusinessProductImage
-            source={{ uri: logoUrl ?? verificationImages.successStorefront }}
-            alt={businessName ?? ''}
-            className="h-full w-full"
-          />
+          <BusinessLogo uri={logoUrl} name={businessName} className="h-full w-full" />
           <LinearGradient
             colors={['transparent', 'rgba(17, 24, 39, 0.7)']}
             start={{ x: 0.5, y: 0 }}

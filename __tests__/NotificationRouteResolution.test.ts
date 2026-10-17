@@ -56,6 +56,26 @@ describe('resolveNotificationUrl', () => {
   });
 });
 
+describe('review links', () => {
+  it('opens product comments when the link asks for them', () => {
+    expect(resolveNotificationUrl('/business/reviews?source=products')).toEqual({
+      kind: 'reviews',
+      source: 'products',
+    });
+  });
+
+  it('defaults to deal reviews', () => {
+    expect(resolveNotificationUrl('/business/reviews')).toEqual({
+      kind: 'reviews',
+      source: 'deals',
+    });
+    expect(resolveNotificationUrl('/business/reviews/?source=other')).toEqual({
+      kind: 'reviews',
+      source: 'deals',
+    });
+  });
+});
+
 describe('matchSegment', () => {
   it('extracts the segment', () => {
     expect(matchSegment('/orders/abc', 'orders')).toBe('abc');

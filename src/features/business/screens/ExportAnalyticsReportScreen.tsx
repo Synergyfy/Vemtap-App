@@ -24,16 +24,31 @@ const formatTabs: BusinessSegmentTab[] = [
   { key: copy.formats[1].id, label: copy.formats[1].name, icon: 'pdfFile' },
 ];
 
+export interface ExportAnalyticsReportScope {
+  /** `1 Oct – 30 Oct 2026`. */
+  timeframe: string;
+  /** `30 days`. */
+  timeframeMeta: string;
+  /** `All Locations` or the branch name. */
+  branch: string;
+}
+
 export interface ExportAnalyticsReportScreenProps {
+  scope: ExportAnalyticsReportScope;
+  isExporting?: boolean;
+  /** Result line after an export: success, or why it failed. */
+  message?: { tone: 'success' | 'error'; text: string } | null;
   onClose?: () => void;
   onExport?: (payload: ExportAnalyticsReportPayload) => void;
 }
 
 export interface ExportAnalyticsReportPayload {
-  format: string;
-  modules: string[];
-  destination: string;
+  format: ExportFormatId;
+  modules: ExportModuleId[];
 }
+
+export type ExportFormatId = (typeof copy.formats)[number]['id'];
+export type ExportModuleId = (typeof copy.modules)[number]['id'];
 
 /**
  * Export Analytics Report.
@@ -41,18 +56,21 @@ export interface ExportAnalyticsReportPayload {
  * action bar, no scrim), hosted by the shared Business Operations header owner.
  */
 export function ExportAnalyticsReportScreen({
+  scope,
+  isExporting = false,
+  message,
   onClose,
   onExport,
 }: ExportAnalyticsReportScreenProps) {
-  const [format, setFormat] = useState<string>(copy.formats[0].id);
-  const [modules, setModules] = useState<string[]>(copy.modules.map(module => module.id));
-  const [destination, setDestination] = useState<string>(copy.destinations[0].id);
-  const [generating, setGenerating] = useState(false);
+  const [format, setFormat] = useState<ExportFormatId>(copy.formats[0].id);
+  const [modules, setModules] = useState<ExportModuleId[]>(
+    copy.modules.map(module => module.id),
+  );
 
   const formatLabel =
     copy.formats.find(option => option.id === format)?.name ?? copy.formats[0].name;
 
-  function toggleModule(id: string) {
+  function toggleModule(id: ExportModuleId) {
     setModules(current =>
       current.includes(id) ? current.filter(item => item !== id) : [...current, id],
     );
@@ -116,11 +134,11 @@ export function ExportAnalyticsReportScreen({
                 className="font-sans-semibold"
                 numberOfLines={1}
               >
-                {copy.timeframeValue}
+                {scope.timeframe}
               </VemtapText>
             </View>
             <VemtapText variant="micro" className="shrink-0 text-primary">
-              {copy.timeframeMeta}
+              {scope.timeframeMeta}
             </VemtapText>
           </View>
           <View className="flex-row items-center gap-2 rounded-field bg-surface-subtle p-2.5">
@@ -134,23 +152,9 @@ export function ExportAnalyticsReportScreen({
                 className="font-sans-semibold"
                 numberOfLines={1}
               >
-                {copy.branchValue}
+                {scope.branch}
               </VemtapText>
             </View>
-            <VemtapText variant="micro" className="shrink-0 text-primary">
-              {copy.branchMeta}
-            </VemtapText>
-          </View>
-          <View className="flex-row items-center gap-2">
-            <Icon name="databaseLocal" size={14} color={colors.textSecondary} />
-            <VemtapText
-              variant="micro"
-              tone="secondary"
-              className="min-w-0 flex-1"
-              numberOfLines={2}
-            >
-              {copy.volume}
-            </VemtapText>
           </View>
         </BusinessPanel>
 
@@ -166,7 +170,7 @@ export function ExportAnalyticsReportScreen({
           <BusinessSegmentTabs
             tabs={formatTabs}
             value={format}
-            onChange={setFormat}
+            onChange={key => setFormat(key as ExportFormatId)}
             accessibilityLabel={copy.formatTitle}
           />
           {copy.formats.map(option => (
@@ -245,37 +249,50 @@ export function ExportAnalyticsReportScreen({
           <VemtapText variant="labelMd" className="font-sans-semibold">
             {copy.deliveryTitle}
           </VemtapText>
-          {copy.destinations.map(option => (
-            <BusinessAnalyticsRow
-              key={option.id}
-              title={option.name}
-              subtitle={option.meta}
-              icon={
-                option.id === 'device'
-                  ? 'download'
-                  : option.id === 'email'
-                    ? 'mail'
-                    : 'whatsapp'
-              }
-              trailing={option.id === destination ? copy.selected : undefined}
-              trailingTone="brand"
-              onPress={() => setDestination(option.id)}
-            />
-          ))}
+          <View className="flex-row items-center gap-2">
+            <Icon name="share" size={14} color={colors.textSecondary} />
+            <VemtapText variant="caption" tone="secondary" className="min-w-0 flex-1">
+              {copy.deliveryBody}
+            </VemtapText>
+          </View>
         </BusinessPanel>
+
+        {message ? (
+          <View
+            className={cn(
+              'flex-row items-center gap-2 rounded-field p-2.5',
+              message.tone === 'success' ? 'bg-badge-discount-bg' : 'bg-error-container',
+            )}
+          >
+            <Icon
+              name={message.tone === 'success' ? 'checkCircle' : 'alert'}
+              size={16}
+              color={message.tone === 'success' ? colors.badgeDiscountText : colors.error}
+            />
+            <VemtapText
+              variant="caption"
+              className={cn(
+                'min-w-0 flex-1',
+                message.tone === 'success' ? 'text-badge-discount-text' : 'text-error',
+              )}
+            >
+              {message.text}
+            </VemtapText>
+          </View>
+        ) : null}
 
         <Button
           label={
-            generating ? copy.generating : copy.generate.replace('{format}', formatLabel)
+            isExporting ? copy.generating : copy.generate.replace('{format}', formatLabel)
           }
           labelVariant="labelMd"
           size="md"
-          disabled={generating || modules.length === 0}
+          loading={isExporting}
+          disabled={isExporting || modules.length === 0}
           leftIcon={<Icon name="download" size={18} color={colors.surface} />}
           onPress={() => {
-            if (generating || modules.length === 0) return;
-            setGenerating(true);
-            onExport?.({ format, modules, destination });
+            if (isExporting || modules.length === 0) return;
+            onExport?.({ format, modules });
           }}
         />
 

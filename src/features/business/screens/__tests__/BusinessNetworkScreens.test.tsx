@@ -19,25 +19,26 @@ import { ReferralDetailScreen } from '@features/business/screens/ReferralDetailS
 import { BusinessNetworkActiveDashboardScreen } from '@features/business/screens/BusinessNetworkActiveDashboardScreen';
 import { InviteABusinessSheet } from '@features/business/screens/InviteABusinessSheet';
 import {
-  dashboardConnections,
   fairNetworkRules,
   guideTiers,
-  networkBadges,
-  networkGrowth,
-  networkMilestones,
-  networkPartners,
-  referralTimeline,
-  referrals,
 } from '@features/business/data/businessNetworkData';
+import {
+  toNetworkHubView,
+  toReferralDetailView,
+  toReferralsView,
+} from '@features/business/utils/networkMappers';
+import {
+  mockNetworkApis,
+  referralDetailFixture,
+  referralsFixture,
+  summaryFixture,
+} from '../../../../../__tests__/helpers/networkFixtures';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  jest.restoreAllMocks();
+});
 
-/**
- * Press a control and let its resulting render settle before the next
- * interaction. Two back-to-back presses with no flush in between leave React's
- * act queue unbalanced, which poisons every later test in the run — so
- * consecutive interactions go through here.
- */
 /** Press the first match, for labels that repeat across sibling controls. */
 async function pressFirst(view: Awaited<ReturnType<typeof render>>, label: string) {
   fireEvent.press(view.getAllByLabelText(label)[0]);
@@ -49,132 +50,109 @@ async function pressAndSettle(view: Awaited<ReturnType<typeof render>>, label: s
   await waitFor(() => expect(view.getByLabelText(label)).toBeTruthy());
 }
 
+const hub = toNetworkHubView(summaryFixture);
+
 describe('business network intro hub', () => {
   const copy = strings.businessNetworkIntroHub;
 
-  it('renders the hero, join count, benefits, tier perks and nearby merchants', async () => {
-    const view = await render(<BusinessNetworkIntroHubScreen />);
-
-    expect(view.getByText(copy.headerTitle)).toBeTruthy();
+  it('renders the live network, the next milestone and nearby merchants', async () => {
+    const view = await render(<BusinessNetworkIntroHubScreen view={hub} />);
     expect(view.getByText(copy.hero)).toBeTruthy();
-    expect(view.getByText(copy.betaBadge)).toBeTruthy();
-    expect(view.getByText(copy.joinedValue)).toBeTruthy();
-    expect(view.getByText(copy.milestoneHighlight)).toBeTruthy();
-    copy.benefits.forEach(benefit => {
-      expect(view.getAllByText(benefit.step).length).toBeGreaterThan(0);
-      expect(view.getAllByText(benefit.title).length).toBeGreaterThan(0);
-    });
-    copy.tierPerks.forEach(perk => {
-      expect(view.getAllByText(perk.perk).length).toBeGreaterThan(0);
-    });
+    expect(view.getByText(copy.joinedValue('14'))).toBeTruthy();
+    // The live count and the Network Partner threshold read the same.
+    expect(view.getAllByText(copy.networkValue(5)).length).toBeGreaterThan(0);
+    expect(view.getAllByText('Community Network Partner').length).toBeGreaterThan(0);
+    expect(view.getByText('Artisan Bean Roastery')).toBeTruthy();
+    expect(view.getByText('0.2 km away • Food & Beverage')).toBeTruthy();
   });
 
-  it('opens the referral link, the guide and a sub-tab', async () => {
+  it('shows loading and error states before the summary arrives', async () => {
+    const view = await render(
+      <BusinessNetworkIntroHubScreen isError onRetry={jest.fn()} />,
+    );
+    expect(view.getByText(copy.error.title)).toBeTruthy();
+  });
+
+  it('opens the referral link and the guide', async () => {
     const onGetReferralLink = jest.fn();
     const onReadMore = jest.fn();
-    const onOpenSubTab = jest.fn();
     const view = await render(
       <BusinessNetworkIntroHubScreen
+        view={hub}
         onGetReferralLink={onGetReferralLink}
         onReadMore={onReadMore}
-        onOpenSubTab={onOpenSubTab}
       />,
     );
-
-    await pressAndSettle(view, copy.getLinkCta);
-    expect(onGetReferralLink).toHaveBeenCalledTimes(1);
-
-    await pressAndSettle(view, copy.readMoreCta);
-    expect(onReadMore).toHaveBeenCalledTimes(1);
-
-    await pressAndSettle(view, 'Boost');
-    expect(onOpenSubTab).toHaveBeenCalledWith('Boost');
+    await pressFirst(view, copy.getLinkCta);
+    await pressFirst(view, copy.readMoreCta);
+    expect(onGetReferralLink).toHaveBeenCalled();
+    expect(onReadMore).toHaveBeenCalled();
   });
 });
 
 describe('my business network', () => {
   const copy = strings.myBusinessNetwork;
 
-  it('renders the link, share channels, growth summary and connected partners', async () => {
-    const view = await render(<MyBusinessNetworkScreen />);
-
-    expect(view.getByText(copy.headerTitle)).toBeTruthy();
-    expect(view.getAllByText(copy.referralLink).length).toBeGreaterThan(0);
-    copy.shareChannels.forEach(channel => {
-      expect(view.getByText(channel.label)).toBeTruthy();
-    });
-    expect(view.getByText(networkGrowth.currentTierName)).toBeTruthy();
-    networkPartners.forEach(partner => {
-      expect(view.getAllByText(partner.name).length).toBeGreaterThan(0);
-    });
+  it('renders the referral link, growth summary and recent referrals', async () => {
+    const view = await render(<MyBusinessNetworkScreen view={hub} />);
+    expect(view.getByText('vemtap.com/get-started?ref=URBAN0001')).toBeTruthy();
+    expect(view.getAllByText('Network Partner').length).toBeGreaterThan(0);
+    expect(
+      view.getByText(copy.nextMilestoneBody(5, 'Community Network Partner')),
+    ).toBeTruthy();
+    expect(view.getByText('ABC Electronics')).toBeTruthy();
+    expect(view.getByText('XYZ Phones')).toBeTruthy();
   });
 
-  it('copies, shares, opens milestones and a partner', async () => {
+  it('copies, shares, opens milestones and a referral', async () => {
     const onCopyLink = jest.fn();
     const onShareLink = jest.fn();
     const onOpenMilestones = jest.fn();
     const onOpenPartner = jest.fn();
     const view = await render(
       <MyBusinessNetworkScreen
+        view={hub}
         onCopyLink={onCopyLink}
         onShareLink={onShareLink}
         onOpenMilestones={onOpenMilestones}
         onOpenPartner={onOpenPartner}
       />,
     );
-
-    // "Copy Link" labels both the docked CTA and the link row.
     await pressFirst(view, copy.copyLinkCta);
-    expect(onCopyLink).toHaveBeenCalledTimes(1);
-
-    // "Share Link" labels both the docked CTA and the link row.
     await pressFirst(view, copy.shareLinkCta);
-    expect(onShareLink).toHaveBeenCalledTimes(1);
-
-    await pressAndSettle(view, copy.milestonesCta);
-    expect(onOpenMilestones).toHaveBeenCalledTimes(1);
-
-    await pressAndSettle(view, networkPartners[0].name);
-    expect(onOpenPartner).toHaveBeenCalledWith(networkPartners[0].id);
+    await pressFirst(view, copy.milestonesCta);
+    await pressFirst(view, 'ABC Electronics');
+    expect(onCopyLink).toHaveBeenCalled();
+    expect(onShareLink).toHaveBeenCalled();
+    expect(onOpenMilestones).toHaveBeenCalled();
+    expect(onOpenPartner).toHaveBeenCalledWith('biz-abc');
   });
 });
 
 describe('network milestones', () => {
   const copy = strings.networkMilestones;
+  const view = {
+    currentTier: 'Network Partner',
+    verified: hub.growth.verifiedCount,
+    milestones: hub.milestones,
+  };
 
-  it('renders the ladder and every milestone tier with its state', async () => {
-    const view = await render(<NetworkMilestonesScreen />);
-
-    expect(view.getByText(copy.headerTitle)).toBeTruthy();
-    expect(view.getByText(copy.ladderTitle)).toBeTruthy();
-    // The status card and the active tier card both read "Network Partner".
-    expect(view.getAllByText(copy.currentStatusValue).length).toBeGreaterThan(0);
-    networkMilestones.forEach(milestone => {
-      expect(view.getAllByText(milestone.name).length).toBeGreaterThan(0);
-      expect(view.getAllByText(milestone.threshold).length).toBeGreaterThan(0);
-    });
-    // The active tier surfaces its progress caption. "Network Partner" also
-    // heads the status card, so match the caption itself.
-    expect(
-      view.getAllByText(networkMilestones[2].verifiedCaption!).length,
-    ).toBeGreaterThan(0);
+  it('renders the ladder with each tier state and progress', async () => {
+    const screenView = await render(<NetworkMilestonesScreen view={view} />);
+    expect(screenView.getAllByText('Network Partner').length).toBeGreaterThan(0);
+    expect(screenView.getByText(`5 ${copy.verifiedCountLabel}`)).toBeTruthy();
+    expect(screenView.getByText(copy.activeNote(5, 5))).toBeTruthy();
+    expect(screenView.getByText(copy.remainingNote(5))).toBeTruthy();
+    expect(screenView.getByText(copy.verifiedCaption(5, 25))).toBeTruthy();
   });
 
-  it('opens a milestone and the info guide', async () => {
-    const onOpenMilestone = jest.fn();
+  it('opens the info guide', async () => {
     const onOpenInfo = jest.fn();
-    const view = await render(
-      <NetworkMilestonesScreen
-        onOpenMilestone={onOpenMilestone}
-        onOpenInfo={onOpenInfo}
-      />,
+    const screenView = await render(
+      <NetworkMilestonesScreen view={view} onOpenInfo={onOpenInfo} />,
     );
-
-    await pressAndSettle(view, copy.headerInfo);
+    await pressAndSettle(screenView, copy.headerInfo);
     expect(onOpenInfo).toHaveBeenCalledTimes(1);
-
-    await pressAndSettle(view, networkMilestones[0].name);
-    expect(onOpenMilestone).toHaveBeenCalledWith(networkMilestones[0].id);
   });
 });
 
@@ -182,7 +160,7 @@ describe('business network info guide', () => {
   const copy = strings.businessNetworkInfo;
 
   it('renders the ethos, figures, steps, tier perks, rules and FAQs', async () => {
-    const view = await render(<BusinessNetworkInfoScreen />);
+    const view = await render(<BusinessNetworkInfoScreen connectedCount={5} />);
 
     expect(view.getByText(copy.hero)).toBeTruthy();
     copy.stats.forEach(stat => {
@@ -197,6 +175,7 @@ describe('business network info guide', () => {
     fairNetworkRules.forEach(rule => {
       expect(view.getAllByText(rule.title).length).toBeGreaterThan(0);
     });
+    expect(view.getByText(copy.connectedNote(5))).toBeTruthy();
   });
 
   it('gets the link and returns to the network', async () => {
@@ -219,106 +198,97 @@ describe('business network info guide', () => {
 
 describe('my referrals', () => {
   const copy = strings.myReferrals;
+  const referrals = toReferralsView(referralsFixture, summaryFixture);
 
   it('renders growth, tier status, filters and the referral list', async () => {
-    const view = await render(<MyReferralsScreen />);
-
-    expect(view.getByText(copy.headerTitle)).toBeTruthy();
-    expect(view.getAllByText(copy.growthValue).length).toBeGreaterThan(0);
-    expect(view.getByText(copy.tierBadge)).toBeTruthy();
-    referrals.forEach(referral => {
-      expect(view.getAllByText(referral.name).length).toBeGreaterThan(0);
-    });
-    expect(view.getByText(copy.ledgerTitle)).toBeTruthy();
-  });
-
-  it('filters the directory to verified referrals only', async () => {
-    const onApplyFilter = jest.fn();
-    const view = await render(<MyReferralsScreen onApplyFilter={onApplyFilter} />);
-
-    await pressAndSettle(view, copy.filters.verified);
-    expect(onApplyFilter).toHaveBeenCalledWith('verified');
-
-    const verifiedCount = referrals.filter(item => item.status === 'verified').length;
+    const view = await render(<MyReferralsScreen view={referrals} />);
+    expect(view.getAllByText('5').length).toBeGreaterThan(0);
+    expect(view.getByText(copy.growthTotal.replace('{total}', '7'))).toBeTruthy();
     expect(
-      view.getByText(copy.resultsLabel.replace('{count}', String(verifiedCount))),
+      view.getByText(copy.tierRemaining(5, 'Community Network Partner')),
     ).toBeTruthy();
+    expect(view.getByText('ABC Electronics')).toBeTruthy();
+    expect(view.getByText(copy.statusLabel.pending)).toBeTruthy();
   });
 
-  it('opens a referral and invites another business', async () => {
+  it('reports filter, search, open and invite', async () => {
+    const onApplyFilter = jest.fn();
+    const onChangeSearch = jest.fn();
     const onOpenReferral = jest.fn();
     const onInvite = jest.fn();
     const view = await render(
-      <MyReferralsScreen onOpenReferral={onOpenReferral} onInvite={onInvite} />,
+      <MyReferralsScreen
+        view={referrals}
+        onApplyFilter={onApplyFilter}
+        onChangeSearch={onChangeSearch}
+        onOpenReferral={onOpenReferral}
+        onInvite={onInvite}
+      />,
     );
+    await pressFirst(view, copy.filters.verified);
+    await act(async () => {
+      fireEvent.changeText(view.getByLabelText(copy.searchLabel), 'abc');
+    });
+    await pressAndSettle(view, 'ABC Electronics');
+    await pressFirst(view, copy.inviteCta);
+    expect(onApplyFilter).toHaveBeenCalledWith('verified');
+    expect(onChangeSearch).toHaveBeenCalledWith('abc');
+    expect(onOpenReferral).toHaveBeenCalledWith('biz-abc');
+    expect(onInvite).toHaveBeenCalled();
+  });
 
-    await pressAndSettle(view, `${referrals[0].name} ${referrals[0].refId}`);
-    expect(onOpenReferral).toHaveBeenCalledWith(referrals[0].id);
-
-    await pressAndSettle(view, copy.inviteCta);
-    expect(onInvite).toHaveBeenCalledTimes(1);
+  it('shows the empty state when nothing matches', async () => {
+    const view = await render(
+      <MyReferralsScreen
+        view={toReferralsView({ ...referralsFixture, data: [], total: 0 })}
+      />,
+    );
+    expect(view.getByText(copy.empty.title)).toBeTruthy();
   });
 });
 
 describe('referral detail', () => {
   const copy = strings.referralDetail;
+  const detail = toReferralDetailView(referralDetailFixture);
 
-  it('renders the business identity, overview, timeline and perks', async () => {
-    const view = await render(<ReferralDetailScreen />);
-
-    expect(view.getByText(copy.headerTitle)).toBeTruthy();
-    expect(view.getAllByText(referrals[0].name).length).toBeGreaterThan(0);
-    expect(view.getByText(copy.overviewTitle)).toBeTruthy();
-    referralTimeline.forEach(step => {
-      expect(view.getAllByText(step.title).length).toBeGreaterThan(0);
-      // The timestamp shares a line with the link on the first step.
-      expect(
-        view.getAllByText(new RegExp(step.when.replace(/[,:]/g, '.'))).length,
-      ).toBeGreaterThan(0);
-    });
-    copy.perks.forEach(perk => {
-      expect(view.getAllByText(perk.title).length).toBeGreaterThan(0);
-    });
+  it('renders the overview, verification and onboarding timeline', async () => {
+    const view = await render(<ReferralDetailScreen view={detail} />);
+    expect(view.getByText('ABC Electronics')).toBeTruthy();
+    expect(view.getByText('#ABC123XYZ')).toBeTruthy();
+    expect(view.getByText('Urban Grill')).toBeTruthy();
+    expect(view.getByText(copy.milestoneYes)).toBeTruthy();
+    expect(view.getByText(copy.verificationTitle)).toBeTruthy();
+    expect(view.getByText(copy.timelineSteps.firstDeal)).toBeTruthy();
+    expect(view.getByText(copy.timelineProgress(4, 5))).toBeTruthy();
   });
 
-  it('renders the requested referral and routes message + view actions', async () => {
-    const target = referrals[1];
+  it('routes the message and view actions', async () => {
     const onSendMessage = jest.fn();
     const onViewBusiness = jest.fn();
     const view = await render(
       <ReferralDetailScreen
-        referralId={target.id}
+        view={detail}
         onSendMessage={onSendMessage}
         onViewBusiness={onViewBusiness}
       />,
     );
-
-    expect(view.getAllByText(target.name).length).toBeGreaterThan(0);
-
     await pressAndSettle(view, copy.messageCta);
-    expect(onSendMessage).toHaveBeenCalledWith(target.id);
-
     await pressAndSettle(view, copy.viewBusinessCta);
-    expect(onViewBusiness).toHaveBeenCalledWith(target.id);
+    expect(onSendMessage).toHaveBeenCalledWith('biz-abc');
+    expect(onViewBusiness).toHaveBeenCalledWith('biz-abc');
   });
 });
 
 describe('business network active dashboard', () => {
   const copy = strings.businessNetworkDashboard;
 
-  it('renders the count, progress, badges, connections and route cards', async () => {
-    const view = await render(<BusinessNetworkActiveDashboardScreen />);
-
-    expect(view.getByText(copy.headerTitle)).toBeTruthy();
-    expect(view.getByText(copy.statusBadge)).toBeTruthy();
-    networkBadges.forEach(badge => {
-      expect(view.getAllByText(badge.name).length).toBeGreaterThan(0);
-    });
-    dashboardConnections.forEach(connection => {
-      expect(view.getAllByText(connection.name).length).toBeGreaterThan(0);
-    });
-    expect(view.getByText(copy.milestonesCardTitle)).toBeTruthy();
-    expect(view.getByText(copy.footerNote)).toBeTruthy();
+  it('renders the count, progress, earned badges and recent connections', async () => {
+    const view = await render(<BusinessNetworkActiveDashboardScreen view={hub} />);
+    expect(view.getAllByText('5').length).toBeGreaterThan(0);
+    expect(view.getByText(copy.badgesCount.replace('{count}', '2'))).toBeTruthy();
+    expect(view.getAllByText('Network Starter').length).toBeGreaterThan(0);
+    expect(view.getByText('XYZ Phones')).toBeTruthy();
+    expect(view.getByText(copy.connectionsAction.replace('{count}', '7'))).toBeTruthy();
   });
 
   it('opens referrals, milestones and the guide from the route cards', async () => {
@@ -327,39 +297,40 @@ describe('business network active dashboard', () => {
     const onOpenHowItWorks = jest.fn();
     const view = await render(
       <BusinessNetworkActiveDashboardScreen
+        view={hub}
         onViewAllReferrals={onViewAllReferrals}
         onOpenMilestones={onOpenMilestones}
         onOpenHowItWorks={onOpenHowItWorks}
       />,
     );
-
+    await pressAndSettle(view, copy.referralCardTitle.replace('{count}', '5'));
     await pressAndSettle(view, copy.milestonesCardTitle);
-    expect(onOpenMilestones).toHaveBeenCalledTimes(1);
-
     await pressAndSettle(view, copy.howCardTitle);
-    expect(onOpenHowItWorks).toHaveBeenCalledTimes(1);
-
-    await pressAndSettle(
-      view,
-      copy.referralCardTitle.replace('{count}', networkGrowth.verifiedCount),
-    );
-    expect(onViewAllReferrals).toHaveBeenCalledTimes(1);
+    expect(onViewAllReferrals).toHaveBeenCalled();
+    expect(onOpenMilestones).toHaveBeenCalled();
+    expect(onOpenHowItWorks).toHaveBeenCalled();
   });
 });
 
 describe('invite a business sheet', () => {
   const copy = strings.inviteABusiness;
+  const link = summaryFixture.referralLink;
+  const message = strings.myBusinessNetwork.shareMessage(link);
+  const stats = [{ id: 'referrals', label: copy.stats.referrals, value: '7' }];
 
-  it('renders the message preview, link, share channels and the note', async () => {
-    const view = await render(<InviteABusinessSheet visible onClose={jest.fn()} />);
-
-    expect(view.getByText(copy.title)).toBeTruthy();
-    expect(view.getByText(copy.messagePreviewTitle)).toBeTruthy();
-    expect(view.getAllByText(copy.linkLabel).length).toBeGreaterThan(0);
-    copy.channels.forEach(channel => {
-      expect(view.getAllByText(channel.label).length).toBeGreaterThan(0);
-    });
-    expect(view.getByText(copy.verificationNote)).toBeTruthy();
+  it('renders the live stats, message preview and link', async () => {
+    const view = await render(
+      <InviteABusinessSheet
+        visible
+        onClose={jest.fn()}
+        referralLink={link}
+        message={message}
+        stats={stats}
+      />,
+    );
+    expect(view.getByText(copy.stats.referrals)).toBeTruthy();
+    expect(view.getByText(message)).toBeTruthy();
+    expect(view.getByText(link)).toBeTruthy();
   });
 
   it('copies the message, the link and a share channel', async () => {
@@ -370,20 +341,19 @@ describe('invite a business sheet', () => {
       <InviteABusinessSheet
         visible
         onClose={jest.fn()}
+        referralLink={link}
+        message={message}
+        stats={stats}
         onCopyMessage={onCopyMessage}
         onCopyLink={onCopyLink}
         onShareChannel={onShareChannel}
       />,
     );
-
     await pressAndSettle(view, copy.copyMessageCta);
-    expect(onCopyMessage).toHaveBeenCalledTimes(1);
-
-    // "Copy Link" labels both the docked CTA and the link row.
-    await pressFirst(view, copy.copyLinkCta);
-    expect(onCopyLink).toHaveBeenCalledTimes(1);
-
+    await pressAndSettle(view, copy.copyLinkCta);
     await pressAndSettle(view, copy.channels[0].label);
+    expect(onCopyMessage).toHaveBeenCalled();
+    expect(onCopyLink).toHaveBeenCalled();
     expect(onShareChannel).toHaveBeenCalledWith(copy.channels[0].id);
   });
 });
@@ -402,9 +372,17 @@ describe('business network navigation', () => {
     return found;
   }
 
-  afterEach(() => {
-    cleanup();
+  beforeEach(() => {
+    mockNetworkApis();
   });
+
+  async function settle() {
+    await act(async () => {
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 50);
+      });
+    });
+  }
 
   async function openMoreTab() {
     await render(
@@ -434,6 +412,7 @@ describe('business network navigation', () => {
     expect(
       screen.getAllByText(strings.myBusinessNetwork.headerTitle).length,
     ).toBeGreaterThan(0);
+    await settle();
 
     await act(async () => {
       fireEvent.press(screen.getByLabelText(strings.myBusinessNetwork.milestonesCta));
@@ -457,11 +436,10 @@ describe('business network navigation', () => {
     expect(screen.getAllByText(strings.myReferrals.headerTitle).length).toBeGreaterThan(
       0,
     );
+    await settle();
 
     await act(async () => {
-      fireEvent.press(
-        screen.getByLabelText(`${referrals[0].name} ${referrals[0].refId}`),
-      );
+      fireEvent.press(screen.getByLabelText('ABC Electronics'));
     });
     expect(
       screen.getAllByText(strings.referralDetail.headerTitle).length,

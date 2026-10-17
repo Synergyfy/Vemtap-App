@@ -14,7 +14,7 @@ import { useCustomerOrders } from '@features/order/hooks/useCustomerOrders';
 import { useMyBookings } from '@features/booking/hooks/useBookings';
 import type { Booking } from '@api/bookingsApi';
 import { isActiveStatus, statusLabel, statusToneFor } from '@features/order/orderStatus';
-import { orderImages } from '@features/order/orderData';
+import { PRODUCT_FALLBACK_IMAGE } from '@features/home/utils/productMapper';
 import { formatBookingSlot, formatCurrency, formatWhen } from '@utils/formatters';
 import { colors } from '@theme/colors';
 import { navbarBottomShadow } from '@theme/shadows';
@@ -259,9 +259,9 @@ export function OrdersBookingsHubScreen({
                   numberOfLines={1}
                   className="flex-1"
                 >
-                  {strings.ordersHub.nextBookingMerchant ||
-                    upcomingBooking.itemName ||
-                    upcomingBooking.branchName}
+                  {upcomingBooking.businessName ||
+                    upcomingBooking.branchName ||
+                    upcomingBooking.itemName}
                 </VemtapText>
               </View>
               <VemtapText variant="labelMd" className="mt-0.5 font-sans-semibold">
@@ -320,11 +320,12 @@ export function OrdersBookingsHubScreen({
           ) : (
             <View className="gap-4">
               {visibleOrders.map(order => {
-                const lineImage = order.items?.[0]?.image;
+                const lineImage =
+                  order.items?.[0]?.image ?? order.branch?.business?.logoUrl;
                 return (
                   <OrderHubCard
                     key={order.id}
-                    image={lineImage ? { uri: lineImage } : { uri: orderImages.merchant }}
+                    image={{ uri: lineImage || PRODUCT_FALLBACK_IMAGE }}
                     merchant={
                       order.branch?.name ?? strings.ordersHub.orderMerchantFallback
                     }
@@ -403,7 +404,7 @@ export function OrdersBookingsHubScreen({
             {visibleBookings.map((booking: Booking) => (
               <OrderHubCard
                 key={booking.id}
-                image={{ uri: orderImages.merchant }}
+                image={{ uri: PRODUCT_FALLBACK_IMAGE }}
                 actions={
                   booking.status === 'cancelled' || booking.status === 'completed'
                     ? [

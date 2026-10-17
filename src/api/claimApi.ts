@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { requestValidated, createIdempotencyKey } from '@api/client';
+import { request, requestValidated, createIdempotencyKey } from '@api/client';
 import { decimal, nullableText } from '@api/schemaHelpers';
 import type { ApiRequestOptions } from '@app-types/api';
 
@@ -91,6 +91,9 @@ export const myClaimOfferSchema = z.object({
   branchId: z.string().nullable().optional(),
   branchName: z.string().nullable().optional(),
   branchAddress: z.string().nullable().optional(),
+  branchPhone: z.string().nullable().optional(),
+  branchLatitude: z.number().nullable().optional(),
+  branchLongitude: z.number().nullable().optional(),
   endDate: z.string().nullable().optional(),
 });
 export type MyClaimOffer = z.infer<typeof myClaimOfferSchema>;
@@ -188,5 +191,25 @@ export const claimApi = {
       },
       myClaimsPageSchema,
     );
+  },
+
+  /** The pass QR: an SVG that encodes the claim code (`GET /me/claims/:id/qr`). */
+  async getClaimQr(
+    claimId: string,
+    options: ApiRequestOptions = {},
+  ): Promise<{ claimCode: string; svg: string }> {
+    return requestValidated(
+      { method: 'GET', url: `/me/claims/${claimId}/qr`, ...options },
+      z.object({ claimCode: z.string(), svg: z.string() }),
+    );
+  },
+
+  /** Gives an unused claim back (`DELETE /me/claims/:id`); answers 204. */
+  async releaseClaim(claimId: string, options: ApiRequestOptions = {}): Promise<void> {
+    await request<unknown>({
+      method: 'DELETE',
+      url: `/me/claims/${claimId}`,
+      ...options,
+    });
   },
 };

@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Clipboard, Pressable, ScrollView, View } from 'react-native';
+import React, { useCallback } from 'react';
+import { Pressable, ScrollView, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -9,7 +9,7 @@ import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
 import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
-import { dealsGrid } from '@features/deals/data/dealsFeed';
+import { useDealDetail } from '@features/dealDetail/hooks/useDealDetail';
 import type { AppStackParamList } from '@navigation/types';
 import { colors } from '@theme/colors';
 import { navbarBottomShadow } from '@theme/shadows';
@@ -19,36 +19,17 @@ cssInterop(Pressable, { className: 'style' });
 cssInterop(ScrollView, { className: 'style' });
 cssInterop(SafeAreaView, { className: 'style' });
 
-const CLAIM_CODE = '#VT-GIFT-83921';
-
 type Props = NativeStackScreenProps<AppStackParamList, 'GiftDealSentSuccess'>;
 
 export function GiftDealSentSuccessScreen({ route, navigation }: Props) {
   const display = useCurrentUserDisplay();
   const insets = useSafeAreaInsets();
-  const copyResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [copied, setCopied] = useState(false);
-  const deal = dealsGrid.find(item => item.id === route.params.dealId) ?? dealsGrid[0];
+  // The gifted offer itself. The recipient's claim code is issued when they
+  // accept the gift, so there is no code to show the sender here.
+  const detail = useDealDetail(route.params.dealId);
+  const deal = detail.status === 'resolved' ? detail.deal : undefined;
   const recipientName = `${route.params.recipient.firstName} ${route.params.recipient.lastName}`;
   const copy = strings.giftSuccess;
-
-  useEffect(
-    () => () => {
-      if (copyResetTimer.current) {
-        clearTimeout(copyResetTimer.current);
-      }
-    },
-    [],
-  );
-
-  const handleCopy = useCallback(() => {
-    Clipboard.setString(CLAIM_CODE);
-    setCopied(true);
-    if (copyResetTimer.current) {
-      clearTimeout(copyResetTimer.current);
-    }
-    copyResetTimer.current = setTimeout(() => setCopied(false), 2000);
-  }, []);
 
   const handleDone = useCallback(() => {
     navigation.navigate('Tabs', { screen: 'Deals' });
@@ -146,9 +127,11 @@ export function GiftDealSentSuccessScreen({ route, navigation }: Props) {
               </View>
               <View className="min-w-0 flex-1">
                 <View className="mb-1 flex-row flex-wrap items-center gap-1">
-                  <VemtapText className="rounded-full bg-badge-discount-bg px-1 py-0.5 font-sans-semibold text-caption text-badge-discount-text">
-                    {deal.leftBadge.label}
-                  </VemtapText>
+                  {deal?.badge ? (
+                    <VemtapText className="rounded-full bg-badge-discount-bg px-1 py-0.5 font-sans-semibold text-caption text-badge-discount-text">
+                      {deal.badge}
+                    </VemtapText>
+                  ) : null}
                   <VemtapText className="text-caption text-text-tertiary">
                     {copy.giftVoucher}
                   </VemtapText>
@@ -158,40 +141,18 @@ export function GiftDealSentSuccessScreen({ route, navigation }: Props) {
                   className="text-heading-sm text-text"
                   numberOfLines={1}
                 >
-                  {deal.title}
+                  {deal?.title ?? ''}
                 </VemtapText>
                 <VemtapText
                   className="text-caption text-text-secondary"
                   numberOfLines={1}
                 >
-                  {deal.merchant}
+                  {deal?.merchant ?? ''}
                 </VemtapText>
               </View>
             </View>
 
             <View className="gap-4 p-4">
-              <View className="flex-row items-center justify-between gap-3 rounded-lg bg-surface-subtle px-3 py-2">
-                <View className="min-w-0 flex-1">
-                  <VemtapText className="text-caption uppercase tracking-wider text-text-tertiary">
-                    {copy.claimCodeReserved}
-                  </VemtapText>
-                  <VemtapText className="font-sans-medium text-button-md tracking-wide text-text">
-                    {CLAIM_CODE}
-                  </VemtapText>
-                </View>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={copied ? copy.copied : copy.copy}
-                  onPress={handleCopy}
-                  className="shrink-0 flex-row items-center gap-1 rounded-lg bg-surface-tint-blue px-3 py-1.5 active:scale-95"
-                >
-                  <Icon name="copy" size={16} color={colors.primaryContainer} />
-                  <VemtapText className="text-label-sm text-primary-container">
-                    {copied ? copy.copied : copy.copy}
-                  </VemtapText>
-                </Pressable>
-              </View>
-
               <View className="flex-row items-start gap-3">
                 <View className="mt-0.5 h-8 w-8 shrink-0 items-center justify-center rounded-full bg-badge-discount-bg">
                   <Icon name="send" size={18} color={colors.badgeDiscountText} />

@@ -1,5 +1,8 @@
 import React from 'react';
-import { fireEvent, render } from '@testing-library/react-native';
+import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
+import { ordersApi } from '@api/ordersApi';
+import { supportApi } from '@api/supportApi';
+import * as csvExport from '@utils/csvExport';
 import { UrbanOrderDetailScreen } from '@features/order/screens/UrbanOrderDetailScreen';
 import { useCustomerOrderDetail } from '@features/order/hooks/useCustomerOrders';
 import { strings } from '@constants/strings';
@@ -15,7 +18,13 @@ const order: CatalogueOrder = {
   updatedAt: '2026-10-08T08:40:14.946Z',
   status: 'processing',
   totalAmount: 1000,
-  branch: { name: 'Urban Grill & Bistro', address: '12 Apo Boulevard, Abuja' },
+  branchId: 'branch-1',
+  branch: {
+    name: 'Wuse',
+    address: '12 Aminu Kano Crescent, Abuja',
+    phone: '+2348011112222',
+    business: { name: 'Aurora Grill' },
+  },
   items: [
     {
       id: 'line-1',
@@ -72,14 +81,97 @@ test('renders the order status, branch, items and total', async () => {
   const screen = await render(<UrbanOrderDetailScreen orderId={order.id} />);
 
   expect(screen.getByText('Preparing')).toBeTruthy();
-  expect(screen.getByText('Urban Grill & Bistro')).toBeTruthy();
-  expect(screen.getByText('12 Apo Boulevard, Abuja')).toBeTruthy();
+  expect(screen.getByText('Aurora Grill \u2022 Wuse')).toBeTruthy();
+  expect(screen.getByText('12 Aminu Kano Crescent, Abuja')).toBeTruthy();
   expect(screen.getByText('Soft Drinks')).toBeTruthy();
   expect(screen.getByText(strings.urbanOrderDetail.subtotal)).toBeTruthy();
   expect(screen.getByText(strings.urbanOrderDetail.totalPaid)).toBeTruthy();
   // Subtotal, line total and order total all read ₦1,000 for this one-line order.
   expect(screen.getAllByText('₦1,000')).toHaveLength(3);
-  expect(screen.getByText('Order #AC46BC8C')).toBeTruthy();
+  // The pickup code is the order reference the business also sees.
+  expect(screen.getAllByText('#AC46BC8C').length).toBeGreaterThanOrEqual(2);
+  // None of the old demo facts.
+  expect(screen.queryByText('6241')).toBeNull();
+  expect(screen.queryByText(/Visa ending/)).toBeNull();
+  expect(screen.queryByText(/Open until/)).toBeNull();
+});
+
+test('downloads the receipt and shares the PDF', async () => {
+  setDetail({ isLoading: false, isError: false, order });
+  const receipt = jest.spyOn(ordersApi, 'getMyOrderReceipt').mockResolvedValue({
+    filename: 'vemtap-receipt-ac46bc8c.pdf',
+    mimeType: 'application/pdf',
+    contentBase64: 'JVBERi0=',
+  });
+  const share = jest.spyOn(csvExport, 'shareBase64File').mockResolvedValue(true);
+
+  const screen = await render(<UrbanOrderDetailScreen orderId={order.id} />);
+  await act(async () => {
+    fireEvent.press(screen.getByLabelText(strings.urbanOrderDetail.invoice));
+  });
+
+  await waitFor(() => expect(share).toHaveBeenCalled());
+  expect(receipt).toHaveBeenCalledWith(order.id);
+  expect(share.mock.calls[0][0]).toBe('vemtap-receipt-ac46bc8c.pdf');
+  jest.restoreAllMocks();
+});
+
+test('reports an issue as a support ticket naming the order', async () => {
+  setDetail({ isLoading: false, isError: false, order });
+  const ticket = jest
+    .spyOn(supportApi, 'createTicket')
+    .mockResolvedValue({ id: 't1' } as never);
+
+  const screen = await render(<UrbanOrderDetailScreen orderId={order.id} />);
+  await act(async () => {
+    fireEvent.press(screen.getByLabelText(strings.urbanOrderDetail.issue));
+  });
+  await act(async () => {
+    fireEvent.changeText(
+      screen.getByLabelText(strings.urbanOrderDetail.issueTitle),
+      'Missing a drink',
+    );
+  });
+  await act(async () => {
+    fireEvent.press(screen.getByText(strings.urbanOrderDetail.issueSend));
+  });
+
+  await waitFor(() =>
+    expect(ticket).toHaveBeenCalledWith({
+      subject: strings.urbanOrderDetail.issueSubject('#AC46BC8C'),
+      category: strings.urbanOrderDetail.issueCategory,
+      message: 'Missing a drink',
+    }),
+  );
+  jest.restoreAllMocks();
+});
+
+test('reorders the same items at the same branch', async () => {
+  setDetail({ isLoading: false, isError: false, order });
+  const onReorder = jest.fn();
+
+  const screen = await render(
+    <UrbanOrderDetailScreen orderId={order.id} onReorder={onReorder} />,
+  );
+  await act(async () => {
+    fireEvent.press(screen.getByText(strings.urbanOrderDetail.reorder));
+  });
+
+  expect(onReorder).toHaveBeenCalledWith({
+    branchId: 'branch-1',
+    businessName: 'Aurora Grill',
+    branchName: 'Wuse',
+    items: [
+      {
+        itemId: 'item-1',
+        name: 'Soft Drinks',
+        image: null,
+        unitPrice: 1000,
+        quantity: 1,
+      },
+    ],
+    instructions: '',
+  });
 });
 
 test('marks timeline stages from the real status', async () => {

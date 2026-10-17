@@ -8,7 +8,10 @@ import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
-import { dealsGrid } from '@features/deals/data/dealsFeed';
+import { LoadingState } from '@components/shared/LoadingState';
+import { useDealDetail } from '@features/dealDetail/hooks/useDealDetail';
+import { formatOfferEndDate } from '@features/deals/utils/offerMapper';
+import { claimPassParams } from '@navigation/claimPassLink';
 import type { AppStackParamList } from '@navigation/types';
 import { colors } from '@theme/colors';
 
@@ -25,7 +28,12 @@ type Props = NativeStackScreenProps<AppStackParamList, 'DealClaimedSuccess'>;
 export function DealClaimedSuccessScreen({ route, navigation }: Props) {
   const [copied, setCopied] = useState(false);
   const { claimCode } = route.params;
-  const deal = dealsGrid.find(item => item.id === route.params.dealId) ?? dealsGrid[0];
+  const { dealId } = route.params;
+  // The offer the claim is for; the card waits for it rather than borrowing
+  // another deal's picture and price.
+  const detail = useDealDetail(dealId);
+  const deal = detail.status === 'resolved' ? detail.deal : undefined;
+  const validUntil = deal ? formatOfferEndDate(deal.endDate) : null;
 
   useEffect(() => {
     if (!copied) {
@@ -35,19 +43,16 @@ export function DealClaimedSuccessScreen({ route, navigation }: Props) {
     return () => clearTimeout(timer);
   }, [copied]);
 
-  /**
-   * Copies the code the API actually issued. When there is none — the app's
-   * fictional deals are never claimed server-side — the copy control is hidden
-   * rather than copying a placeholder, which used to be a hardcoded 'VT-48291'.
-   */
+  /** Copies the code the API issued; hidden when the route carries none. */
   const handleCopy = useCallback(() => {
     if (!claimCode) return;
     Clipboard.setString(claimCode);
     setCopied(true);
   }, [claimCode]);
+  // The live claim pass: code, QR and redemption steps for this offer.
   const handleViewDeal = useCallback(
-    () => navigation.navigate('MyClaimedDeal', { dealId: deal.id }),
-    [deal.id, navigation],
+    () => navigation.navigate('Tabs', claimPassParams(dealId)),
+    [dealId, navigation],
   );
   const handleContinue = useCallback(
     () => navigation.navigate('Tabs', { screen: 'Deals' }),
@@ -152,26 +157,28 @@ export function DealClaimedSuccessScreen({ route, navigation }: Props) {
                     className="font-sans-semibold text-text"
                     numberOfLines={1}
                   >
-                    {strings.claimSuccess.merchant}
+                    {deal?.merchant ?? ''}
                   </VemtapText>
                   <VemtapText
                     variant="headingSm"
                     className="font-sans-bold text-primary"
                     numberOfLines={2}
                   >
-                    {strings.claimSuccess.offer}
+                    {deal?.title ?? ''}
                   </VemtapText>
-                  <View className="mt-0.5 flex-row items-center gap-1">
-                    <Icon name="locationOn" size={14} color={colors.textSecondary} />
-                    <VemtapText
-                      variant="caption"
-                      tone="secondary"
-                      className="min-w-0 flex-1"
-                      numberOfLines={1}
-                    >
-                      {strings.claimSuccess.location}
-                    </VemtapText>
-                  </View>
+                  {deal?.location ? (
+                    <View className="mt-0.5 flex-row items-center gap-1">
+                      <Icon name="locationOn" size={14} color={colors.textSecondary} />
+                      <VemtapText
+                        variant="caption"
+                        tone="secondary"
+                        className="min-w-0 flex-1"
+                        numberOfLines={1}
+                      >
+                        {deal.location}
+                      </VemtapText>
+                    </View>
+                  ) : null}
                 </View>
               </View>
             </View>
@@ -182,60 +189,73 @@ export function DealClaimedSuccessScreen({ route, navigation }: Props) {
               <View className="-mr-2 h-6 w-4 rounded-l-full bg-background shadow-sm" />
             </View>
 
-            <View className="gap-3 p-4 pt-1">
-              <View className="flex-row gap-2 pt-1">
-                <View className="min-w-0 flex-1">
-                  <VemtapText variant="caption" tone="tertiary">
-                    {strings.claimSuccess.dealPrice}
-                  </VemtapText>
-                  <VemtapText
-                    variant="headingMd"
-                    className="mt-0.5 font-sans-bold text-text"
-                  >
-                    {deal.price}
-                  </VemtapText>
-                  <VemtapText
-                    variant="caption"
-                    className="font-sans-medium text-badge-discount-text"
-                  >
-                    {deal.save}
-                  </VemtapText>
-                </View>
-                <View className="min-w-0 flex-1 items-end">
-                  <VemtapText variant="caption" tone="tertiary">
-                    {strings.claimSuccess.validity}
-                  </VemtapText>
-                  <VemtapText
-                    variant="labelMd"
-                    className="mt-0.5 font-sans-semibold text-text"
-                  >
-                    20 Sep 2025
-                  </VemtapText>
-                  <VemtapText variant="caption" tone="secondary">
-                    {strings.claimSuccess.oneTime}
-                  </VemtapText>
-                </View>
-              </View>
-
-              <View className="mt-1 h-24 overflow-hidden rounded-xl">
-                <Image source={deal.image} className="h-full w-full" resizeMode="cover" />
-                <LinearGradient
-                  colors={['transparent', colors.surfaceDark]}
-                  locations={[0.35, 1]}
-                  className="absolute inset-x-0 bottom-0 h-14 items-start justify-end p-2"
-                >
-                  <View className="flex-row items-center gap-1.5">
-                    <Icon name="storefront" size={13} color={colors.surface} />
-                    <VemtapText
-                      variant="caption"
-                      className="font-sans-medium text-surface"
-                    >
-                      {strings.claimSuccess.dineInTakeaway}
+            {deal ? (
+              <View className="gap-3 p-4 pt-1">
+                <View className="flex-row gap-2 pt-1">
+                  <View className="min-w-0 flex-1">
+                    <VemtapText variant="caption" tone="tertiary">
+                      {strings.claimSuccess.dealPrice}
                     </VemtapText>
+                    <VemtapText
+                      variant="headingMd"
+                      className="mt-0.5 font-sans-bold text-text"
+                    >
+                      {deal.price}
+                    </VemtapText>
+                    {deal.save ? (
+                      <VemtapText
+                        variant="caption"
+                        className="font-sans-medium text-badge-discount-text"
+                      >
+                        {deal.save}
+                      </VemtapText>
+                    ) : null}
                   </View>
-                </LinearGradient>
+                  {validUntil ? (
+                    <View className="min-w-0 flex-1 items-end">
+                      <VemtapText variant="caption" tone="tertiary">
+                        {strings.claimSuccess.validity}
+                      </VemtapText>
+                      <VemtapText
+                        variant="labelMd"
+                        className="mt-0.5 font-sans-semibold text-text"
+                      >
+                        {validUntil}
+                      </VemtapText>
+                      <VemtapText variant="caption" tone="secondary">
+                        {strings.claimSuccess.oneTime}
+                      </VemtapText>
+                    </View>
+                  ) : null}
+                </View>
+
+                <View className="mt-1 h-24 overflow-hidden rounded-xl">
+                  <Image
+                    source={deal.image}
+                    className="h-full w-full"
+                    resizeMode="cover"
+                  />
+                  <LinearGradient
+                    colors={['transparent', colors.surfaceDark]}
+                    locations={[0.35, 1]}
+                    className="absolute inset-x-0 bottom-0 h-14 items-start justify-end p-2"
+                  >
+                    <View className="flex-row items-center gap-1.5">
+                      <Icon name="storefront" size={13} color={colors.surface} />
+                      <VemtapText
+                        variant="caption"
+                        className="font-sans-medium text-surface"
+                        numberOfLines={1}
+                      >
+                        {deal.merchant}
+                      </VemtapText>
+                    </View>
+                  </LinearGradient>
+                </View>
               </View>
-            </View>
+            ) : (
+              <LoadingState label={strings.common.loading} />
+            )}
           </View>
 
           <View className="mb-5 flex-row items-start gap-2 rounded-xl bg-surface-tint-blue p-3">

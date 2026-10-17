@@ -30,9 +30,9 @@ import { resolveNotificationUrl } from '@navigation/notificationRoutes';
 import { AccountSettingsSecurityScreen } from '@features/accountHub/screens/AccountSettingsSecurityScreen';
 import { EditProfileScreen } from '@features/accountHub/screens/EditProfileScreen';
 import { HelpCentreScreen } from '@features/accountHub/screens/HelpCentreScreen';
-import { ClaimedDealDetailPassScreen } from '@features/claimedDeal/screens/ClaimedDealDetailPassScreen';
 import { MyDealsHubScreen } from '@features/myDeals/screens/MyDealsHubScreen';
 import { useClaimPass } from '@features/myDeals/hooks/useMyClaims';
+import { ClaimPassView } from '@navigation/ClaimPassView';
 import { MessagesScreen } from '@features/merchantChat/screens/MessagesScreen';
 import { UrbanConversationScreen } from '@features/merchantChat/screens/UrbanConversationScreen';
 import { OrdersBookingsHubScreen } from '@features/order/screens/OrdersBookingsHubScreen';
@@ -204,7 +204,18 @@ function PersonalOrderDetailRoute() {
   const goBack = useHistoryBack();
 
   const route = useRoute<RouteProp<PersonalHubParamList, 'PersonalOrderDetail'>>();
-  return <UrbanOrderDetailScreen orderId={route.params?.orderId} onBack={goBack} />;
+  const navigation = useNavigation<HubNavigation>();
+  return (
+    <UrbanOrderDetailScreen
+      orderId={route.params?.orderId}
+      onBack={goBack}
+      onReorder={draft =>
+        (navigation.navigate as (name: string, params: object) => void)('OrderCheckout', {
+          draft,
+        })
+      }
+    />
+  );
 }
 
 function PersonalBookingDetailRoute() {
@@ -249,7 +260,20 @@ function PersonalRewardsRoute() {
 function PersonalActivityRoute() {
   const goBack = useHistoryBack();
 
-  return <MyActivityScreen onBack={goBack} />;
+  const navigation = useNavigation<HubNavigation>();
+  const toAppStack = navigation.navigate as (name: string, params: object) => void;
+  return (
+    <MyActivityScreen
+      onBack={goBack}
+      onOpenClaim={dealId => navigation.navigate('PersonalClaimedDealPass', { dealId })}
+      onOpenOrder={orderId => navigation.navigate('PersonalOrderDetail', { orderId })}
+      onOpenBooking={bookingId =>
+        navigation.navigate('PersonalBookingDetail', { bookingId })
+      }
+      onOpenDeal={dealId => toAppStack('DealDetail', { dealId })}
+      onOpenProduct={productId => toAppStack('ProductDetail', { productId })}
+    />
+  );
 }
 
 function PersonalSavingsRoute() {
@@ -341,10 +365,11 @@ function PersonalClaimedDealPassRoute() {
     navigation.navigate('PersonalConversation', params),
   );
   return (
-    <ClaimedDealDetailPassScreen
-      claim={pass.claim}
+    <ClaimPassView
+      pass={pass}
       onBack={goBack}
       onOpenChat={openChat}
+      navigate={navigation.navigate as (route: string, params: object) => void}
     />
   );
 }

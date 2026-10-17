@@ -5,7 +5,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { DealDetailScreen } from '@features/dealDetail/screens/DealDetailScreen';
 import { useDealDetail } from '@features/dealDetail/hooks/useDealDetail';
 import type { PublicOfferDetail } from '@api/dealsApi';
-import { resolveDeal } from '@features/dealDetail/data/dealResolver';
 import { useLocationStore } from '@store/locationStore';
 import { userSchema } from '@api/authApi';
 import { useAuthStore } from '@store/authStore';
@@ -14,10 +13,9 @@ import { strings } from '@constants/strings';
 /**
  * Resolving a deal id to the page's content.
  *
- * The regression these lock in: `resolveDeal` used to answer an unknown id with
- * `?? gridDeals[0]`, so tapping a real offer opened an unrelated fictional deal
- * — the wrong price for the wrong product, with no indication anything was
- * wrong. A miss must now surface as "not found".
+ * Every deal id is a real offer uuid now that the bundled demo deals are gone.
+ * A miss (or an old demo id) must surface as "not found", never as some other
+ * deal's price and picture.
  */
 
 const mockNavigate = jest.fn();
@@ -175,29 +173,12 @@ async function renderScreen(dealId: string) {
   );
 }
 
-describe('resolveDeal', () => {
-  test('still resolves the bundled fictional deals', () => {
-    const seed = resolveDeal('urban-grill-lunch');
-
-    expect(seed).toBeDefined();
-    expect(seed?.id).toBe('urban-grill-lunch');
-  });
-
-  test('no longer substitutes another deal for an unknown id', () => {
-    // The exact bug: this used to return gridDeals[0], so any unknown id — which
-    // is every real offer — silently rendered some other offer.
-    expect(resolveDeal(LIVE_ID)).toBeUndefined();
-  });
-});
-
 describe('useDealDetail', () => {
-  test('renders a bundled deal without touching the network', async () => {
+  test('treats an old demo id as not found without asking the server', async () => {
     const view = await renderProbe('urban-grill-lunch');
 
-    expect(view.getByTestId('resolved').props.children).toBe(
-      resolveDeal('urban-grill-lunch')!.title,
-    );
-    // A fictional id is a 400 on the server, so asking would be a bug.
+    expect(view.getByTestId('resolved').props.children).toBe('notFound');
+    // A non-uuid id is a 400 on the server, so asking would be a bug.
     expect(mockGetOfferDetails).not.toHaveBeenCalled();
   });
 
@@ -245,9 +226,6 @@ describe('useDealDetail', () => {
     await waitFor(() =>
       expect(view.getByTestId('resolved').props.children).toBe('notFound'),
     );
-    expect(view.getByTestId('resolved').props.children).not.toBe(
-      resolveDeal('urban-grill-lunch')!.title,
-    );
   });
 });
 
@@ -256,7 +234,6 @@ describe('DealDetailScreen', () => {
     const view = await renderScreen(LIVE_ID);
 
     await waitFor(() => expect(view.getByText(DETAIL.name)).toBeTruthy());
-    expect(view.queryByText(resolveDeal('urban-grill-lunch')!.title)).toBeNull();
   });
 
   test('says the offer is unavailable instead of inventing one', async () => {
@@ -313,17 +290,17 @@ describe('DealDetailScreen location and hours', () => {
     expect(region.longitude).toBe(DETAIL.business!.longitude);
   });
 
-  test('a bundled deal keeps the demo region it was designed with', async () => {
-    const view = await renderScreen('urban-grill-lunch');
+  test('shows the address without a map when the offer has no coordinates', async () => {
+    mockGetOfferDetails.mockResolvedValue({
+      ...DETAIL,
+      business: { ...DETAIL.business!, latitude: null, longitude: null },
+    });
 
-    await waitFor(() =>
-      expect(view.getByText(resolveDeal('urban-grill-lunch')!.title)).toBeTruthy(),
-    );
-    await waitFor(() => expect(mockMapRegions.length).toBeGreaterThan(0));
+    const view = await renderScreen(LIVE_ID);
 
-    const region = mockMapRegions[mockMapRegions.length - 1];
-    expect(region.latitude).toBeCloseTo(9.0765);
-    expect(region.longitude).toBeCloseTo(7.3986);
+    await waitFor(() => expect(view.getByText(DETAIL.name)).toBeTruthy());
+    expect(mockMapRegions).toHaveLength(0);
+    expect(view.getAllByText(/Dei-dei, Abuja/).length).toBeGreaterThan(0);
   });
 
   test('shows "Open Now" when the profile hours are open', async () => {
@@ -380,15 +357,6 @@ describe('DealDetailScreen location and hours', () => {
     await waitFor(() => expect(view.getByText(DETAIL.name)).toBeTruthy());
     expect(view.queryByText('Valid 12 PM - 4 PM weekdays only')).toBeNull();
   });
-
-  test('a bundled deal keeps its designed terms subtitle', async () => {
-    const view = await renderScreen('urban-grill-lunch');
-
-    await waitFor(() =>
-      expect(view.getByText(resolveDeal('urban-grill-lunch')!.title)).toBeTruthy(),
-    );
-    expect(view.getByText('Valid 12 PM - 4 PM weekdays only')).toBeTruthy();
-  });
 });
 
 /**
@@ -434,7 +402,7 @@ describe('DealDetailScreen claim identity', () => {
   });
 
   test('the identity card shows the signed-in customer, not a scripted profile', async () => {
-    const view = await openIdentitySheet('urban-grill-lunch');
+    const view = await openIdentitySheet(LIVE_ID);
 
     expect(view.getByText('Ada Okon')).toBeTruthy();
     expect(view.getByText('ada.okon@example.com')).toBeTruthy();
@@ -444,7 +412,7 @@ describe('DealDetailScreen claim identity', () => {
   });
 
   test('the verified badge follows the session flag', async () => {
-    const view = await openIdentitySheet('urban-grill-lunch');
+    const view = await openIdentitySheet(LIVE_ID);
 
     expect(view.getByLabelText(strings.deals.claimFlow.emailVerified)).toBeTruthy();
   });
@@ -455,24 +423,19 @@ describe('DealDetailScreen claim identity', () => {
       status: 'authenticated',
     });
 
-    const view = await openIdentitySheet('urban-grill-lunch');
+    const view = await openIdentitySheet(LIVE_ID);
 
     expect(view.getByText('ada.okon@example.com')).toBeTruthy();
     expect(view.queryByLabelText(strings.deals.claimFlow.emailVerified)).toBeNull();
   });
 
-  test('the claim copy is addressed to the signed-in email', async () => {
-    const view = await openIdentitySheet('urban-grill-lunch');
+  test('offers no fake "claim for someone else" path', async () => {
+    const view = await openIdentitySheet(LIVE_ID);
 
-    // Fictional deals keep the local walkthrough: "claim for me" lands on the
-    // terms sheet, which names who would be claiming.
-    await fireEvent.press(view.getByText(strings.deals.claimFlow.claimForMe));
-    await waitFor(() =>
-      expect(view.getByText(strings.deals.claimFlow.claimingAs)).toBeTruthy(),
-    );
-
-    expect(view.getByText('ada.okon@example.com')).toBeTruthy();
-    expect(view.queryByText('john@email.com')).toBeNull();
+    // Giving a deal to someone else is the gift flow; the old recipient path
+    // never reached the API.
+    expect(view.queryByText(strings.deals.claimFlow.claimSomeoneElse)).toBeNull();
+    expect(view.getByText(strings.deals.claimFlow.claimGift)).toBeTruthy();
   });
 
   test('the self-claim form opens prefilled from the session', async () => {

@@ -4,14 +4,6 @@
  * @constants/strings because these screens are not wired to navigation yet.
  */
 export const verificationImages = {
-  verifiedStorefront:
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuBeoDqzO4anB8Z-TU6M-cbD3FQJO-Ip7BzoIsvYZJaOZhcKc7ntuU4bR_ZugHITIMPdjNhg5aBnPkz1omKk8iA6CvNRqbSSfmiHjCMijjw2UANIVzgXlkrnYgguwiQqQY3BAZCu1PSUO1eKTPE0mqQYuTJJhCBd8k6dhqFzHiK-563AAUlOj-cm0UN0aU3l9U1SoGltJeYsMxuI07jAEz2GBpP48CkpTD01PKphMVZQn71RHylcoHyVWQ',
-  cacStorefront:
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuA0zii5gSszMBCXy4x3QIkdgB7Zixtmh9cDepHQcvEz5KC5VugAI-95LYUhMHatMF7msTNf4ZyIuQPHPey06MAX05cQHB2qUB-5obtIywYNXfjHMkAtIWCXQHm_i_5bIzkoQ2Afv8JxKvsX9s1BUO6MgCkFU_F0lkaJyh8_T0PZ8blgEEtNq31NC0gGpScmK0KbaRpRJpJ0FZOWm8WTFI5KMTqyRHVeA_OHm1yNoUBzRcumlsEnfyHsBA',
-  statusCenterLogo:
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuDJrd5hM47CGoRMa-U22chjZbV7YcR3uH_BbNcba1dcLRWwWEE-5jMtNp8eFVqsdqYcgJkbVqno04Oe9PcrlkCVd_ScXqOX2U5w40qAQvA7_CbYYkeQ9dEenFs9BSqTXlFXrwdbxdELvCfOLB_ui8LvPbPhplOsW1lQG_gQ4QuFiEnV1_KK2IWzytyLuTavKjEZDTI52nxf35QwfmG542bfybV9P49UH9hMIhBDf9-jkQdjtsMYmqK1jw',
-  endingStorefront:
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuCf1bbGzmyknuRv6JJjZob16_tE3Rl83Fln41x6CqCXX8OVvYrxsHkmLDBBx89eBWIpmX18hXeGHaxIYD6ydAk_ZlxHQE82eaGn76pyXv_pBIyg66F46WT1wkBg-MKWxOoOgGYeT15wOcB3A7r-jL4Lx64FAulOZQLYvRmn782nf7chBB0qof3mzi8yHrjHtslTRpb2k8P1NF36d8VSt8rIvZsuX_0QzeVoctjvJugy4flJq-BEgPmOwg',
   savedCatalog:
     'https://lh3.googleusercontent.com/aida-public/AB6AXuBPA0XxFKh69aQwtXHsVBJ5iVpv5jcrtCnttwgAR43od2GHvYcpvFrt9jXnYm2vHrTMy7_IplosEtgj6WX8YaSsMcsSUH-ltorP-3hzho9rA91cvFuOfTabR11C4snJaBaFb_ssdpJdC6OoEnujYHXxNPzdbyY1whQsZxpGbmdi6bHbqMk-HCONWzn6vdZd9EF_fjyLmQKw4o5QRRuwvFk0UfZNlF3dUQGXSWFCkm8KaCAWTQrmCYRYuQ',
   savedOutlet:
@@ -24,8 +16,6 @@ export const verificationImages = {
     'https://lh3.googleusercontent.com/aida-public/AB6AXuBz0_tK5vpPRI9uX6MPXOOI1t7EbV0dHh2VzsuxWkbi4KUox-rjZG3FDOE-du4TVdeDTveiPmxKC9kG0M4Lk9onafyLqjhnyYECvdObxee3ie7ogY7iXKOnPS4Z_l3nSjgmwpYaKtUb-qL6SqfNXEZU63EJ_pNJ_MHzNuZQbN00EK31nE0cdfCRWXX-TKFsFnMNh2Kak8Q74wFu-C0Cisj_4LvzyJgb1X9bMNL1LPBU8jawuYFFFxNKCA',
   merchantOwner:
     'https://lh3.googleusercontent.com/aida-public/AB6AXuAIBMNslXwC_lzD-mEs8J_Y2EBjgCR10rgvgK412xQyz6e1FjbSHVvz9MvfUDmlHky92VKTbZO88_vDAjjBRXMeq0J2Kwo5mxSLE7JvonE5bIPibLLoVq4mNAOPgNywJIqOFPlBp0bDhLnlQJ842No6L0jovywxv2jT7LLXzrj3wJeB03da5PocWwz5UEWPpb7sRYoDDOeo-yF99cmG5U9xgB03O1sTmRfUjqU1aNKVkwtl4dS-1wNV-w',
-  successStorefront:
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuBBS6f2StSn5jzvi7cW3Zwy6DxTkVU0VLWtEPEVLiBG8HnHEzNeN60vmytS1VD4pxHvNCrBXaztDntxLRpZsNGWmmV3aJMvDc64k2CRbcWH-fNRKZnC3T2yjxa640OuMxxpzOcI0nio10-A1grk9jj-C24CzgiGEk4836K1rSy3JpAymebH-FYW9z_X6ohGAyTGwGwVppNAiYGaSCHn4wRKAjc9g8jgpI1mnj7gUXranQWd-6PngMaDbQ',
 } as const;
 
 export const verifyBusinessCopy = {
@@ -694,6 +684,7 @@ export const vemtapAddOnsCopy = {
     'Optional paid services when your business needs extra reach or specialized tools.',
   addOns: [
     {
+      key: 'boost',
       icon: 'rocket',
       badge: 'Hyperlocal Reach',
       badgeTone: 'success',
@@ -702,17 +693,16 @@ export const vemtapAddOnsCopy = {
       image: 'boostDeal',
       imageAlt:
         'Modern coffee shop display showing high customer engagement metrics and an elevated ranking badge.',
-      stat: 'Up to 3.4x neighborhood impressions',
+      stat: null,
       statIcon: null,
       priceCaption: 'Starting from',
-      price: '₦2,000',
-      priceSuffix: null,
       action: 'Boost Deal',
       actionIcon: 'arrowForward',
       comingSoon: null,
       actionVariant: 'primary',
     },
     {
+      key: 'promote',
       icon: 'storefront',
       badge: 'Storefront Spotlight',
       badgeTone: 'brand',
@@ -721,17 +711,16 @@ export const vemtapAddOnsCopy = {
       image: 'promoteBusiness',
       imageAlt:
         'Map illustration with glowing location pins across a clean street layout showing local retail highlights.',
-      stat: 'Top pin placement across 5km radius',
-      statIcon: 'pinDrop',
+      stat: null,
+      statIcon: null,
       priceCaption: 'Starting from',
-      price: '₦3,500',
-      priceSuffix: null,
       action: 'Promote Business',
       actionIcon: 'arrowForward',
       comingSoon: null,
       actionVariant: 'primary',
     },
     {
+      key: 'sms',
       icon: 'sms',
       badge: 'Direct Marketing',
       badgeTone: 'neutral',
@@ -739,18 +728,17 @@ export const vemtapAddOnsCopy = {
       body: 'Send SMS campaigns and customer announcements when you need them.',
       image: null,
       imageAlt: null,
-      stat: 'Instant delivery to opt-in patrons',
-      statIcon: 'markChatRead',
-      statValue: '99.8% rate',
+      stat: null,
+      statIcon: null,
+      statValue: null,
       priceCaption: 'Bundles from',
-      price: '₦1,500',
-      priceSuffix: '/ 250 SMS',
       action: 'Buy SMS Credits',
       actionIcon: 'arrowForward',
       comingSoon: null,
       actionVariant: 'primary',
     },
     {
+      key: 'ai',
       icon: 'autoAwesome',
       badge: 'Smart Automation',
       badgeTone: 'neutral',
@@ -767,20 +755,18 @@ export const vemtapAddOnsCopy = {
         { icon: 'localOffer', label: 'Deals' },
       ],
       priceCaption: 'Bundles from',
-      price: '₦1,000',
-      priceSuffix: '/ 100 Credits',
       action: 'Buy AI Credits',
       actionIcon: 'arrowForward',
       comingSoon: null,
       actionVariant: 'primary',
     },
     {
+      key: 'pos',
       icon: 'pointOfSale',
       badge: 'In-Store Payments',
       badgeTone: 'neutral',
-      badgeSecondary: 'Coming Soon',
       title: 'POS Terminal & Hardware',
-      body: 'All-in-one smart terminal for contactless NFC card payments and instant QR redemptions.',
+      body: 'Pair card readers, receipt printers and scanners with VEMTAP POS at each branch.',
       image: 'posHardware',
       imageAlt:
         'Handheld point of sale card reader showing a contactless tap animation on a cafe counter.',
@@ -789,14 +775,24 @@ export const vemtapAddOnsCopy = {
       statValue: null,
       statLeadingLabel: 'Hardware Pack',
       priceCaption: null,
-      price: null,
-      priceSuffix: null,
-      action: 'Explore POS (Waitlist)',
-      actionIcon: 'notifications',
-      comingSoon: 'Coming Soon',
+      action: 'Set Up POS Hardware',
+      actionIcon: 'arrowForward',
+      comingSoon: null,
       actionVariant: 'secondary',
     },
   ] as const,
+  perSms: (count: string) => `/ ${count} SMS`,
+  perAi: (count: string) => `/ ${count} credits`,
+  noBundles: 'No bundles on sale yet',
+  pickBundleTitle: (channel: 'sms' | 'ai') =>
+    channel === 'sms' ? 'Choose an SMS bundle' : 'Choose an AI credit bundle',
+  bundleLine: (count: string, unit: string) => `${count} ${unit}`,
+  smsUnit: 'SMS',
+  aiUnit: 'AI credits',
+  buy: 'Buy',
+  purchaseCompleted: 'Credits added to your wallet',
+  purchasePending: 'Payment received. Credits will appear shortly.',
+  purchaseFailed: 'Could not complete the purchase. Please try again.',
   planAddOnsTitle: 'Plan Add-Ons',
   planAddOnsBody: 'Extra limits and services you can add when you subscribe.',
   durationLead: 'for ',

@@ -8,76 +8,15 @@ import {
   type ImageSourcePropType,
 } from 'react-native';
 import { cssInterop } from 'nativewind';
-import { Icon, type IconName } from '@components/ui/Icon';
+import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
 import { colors } from '@theme/colors';
-import { orderImages } from '@features/order/orderData';
+import { PRODUCT_FALLBACK_IMAGE } from '@features/home/utils/productMapper';
 
 cssInterop(Pressable, { className: 'style' });
 cssInterop(TextInput, { className: 'style' });
 cssInterop(View, { className: 'style' });
-
-export interface SelectionRowProps {
-  title: string;
-  description?: string;
-  selected: boolean;
-  multiple?: boolean;
-  value?: string;
-  onPress: () => void;
-}
-
-export function SelectionRow({
-  title,
-  description,
-  selected,
-  multiple = false,
-  value,
-  onPress,
-}: SelectionRowProps) {
-  return (
-    <Pressable
-      accessibilityRole={multiple ? 'checkbox' : 'radio'}
-      accessibilityState={{ checked: selected, selected }}
-      onPress={onPress}
-      className={`flex-row items-center gap-3 rounded-card p-3.5 shadow-sm ${
-        selected ? 'bg-surface-tint' : 'bg-surface'
-      }`}
-    >
-      <View
-        className={`h-5 w-5 shrink-0 items-center justify-center ${
-          multiple ? 'rounded-md' : 'rounded-full'
-        } ${selected ? 'bg-primary' : 'bg-surface-container-high'}`}
-      >
-        {selected ? (
-          multiple ? (
-            <Icon name="check" size={15} color={colors.surface} />
-          ) : (
-            <View className="h-2 w-2 rounded-full bg-surface" />
-          )
-        ) : null}
-      </View>
-      <View className="min-w-0 flex-1">
-        <VemtapText variant="labelMd" className="font-sans-semibold text-text">
-          {title}
-        </VemtapText>
-        {description ? (
-          <VemtapText variant="caption" tone="secondary" className="mt-0.5">
-            {description}
-          </VemtapText>
-        ) : null}
-      </View>
-      {value ? (
-        <VemtapText
-          variant="labelMd"
-          className="shrink-0 font-sans-semibold text-primary"
-        >
-          {value}
-        </VemtapText>
-      ) : null}
-    </Pressable>
-  );
-}
 
 export interface QuantityStepperProps {
   value: number;
@@ -128,7 +67,7 @@ export function OrderLineItem({
   quantity,
   badge,
 }: OrderLineItemProps) {
-  const source = image ?? { uri: orderImages.steak };
+  const source = image ?? { uri: PRODUCT_FALLBACK_IMAGE };
   return (
     <View className="flex-row gap-3">
       <Image source={source} style={styles.lineImage} resizeMode="cover" />
@@ -266,58 +205,6 @@ export function NumberedInstructions({ items }: { items: NumberedInstruction[] }
           </View>
         </View>
       ))}
-    </View>
-  );
-}
-
-export interface MerchantAction {
-  icon: IconName;
-  label: string;
-  onPress: () => void;
-  success?: boolean;
-}
-
-export function MerchantActions({ actions }: { actions: MerchantAction[] }) {
-  return (
-    <View className="flex-row gap-2">
-      {actions.map(action => (
-        <Pressable
-          key={action.label}
-          accessibilityRole="button"
-          accessibilityLabel={action.label}
-          onPress={action.onPress}
-          className="min-h-[72px] flex-1 items-center justify-center gap-1 rounded-lg bg-surface-subtle px-2 py-3 active:bg-surface-container"
-        >
-          <Icon
-            name={action.icon}
-            size={21}
-            color={action.success ? colors.badgeDiscountText : colors.primary}
-          />
-          <VemtapText
-            variant="labelSm"
-            className="text-center font-sans-semibold text-text"
-          >
-            {action.label}
-          </VemtapText>
-        </Pressable>
-      ))}
-    </View>
-  );
-}
-
-export function ContactField() {
-  return (
-    <View className="flex-row items-center gap-2 rounded-lg bg-surface-subtle px-4 py-3">
-      <Icon name="phone" size={20} color={colors.textTertiary} />
-      <VemtapText variant="bodyMd" className="min-w-0 flex-1 text-text">
-        {strings.productOrder.phone}
-      </VemtapText>
-      <View className="flex-row items-center gap-1">
-        <Icon name="lock" size={14} color={colors.primary} />
-        <VemtapText variant="labelSm" tone="brand">
-          {strings.productOrder.verified}
-        </VemtapText>
-      </View>
     </View>
   );
 }

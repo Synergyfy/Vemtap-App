@@ -7,11 +7,6 @@ import { strings } from '@constants/strings';
 import { colors } from '@theme/colors';
 import { BottomSheet } from '@components/shared/BottomSheet';
 import { BusinessIconWell } from '@features/business/components/BusinessOpsPrimitives';
-import {
-  inviteMerchantStats,
-  inviteMessage,
-  networkGrowth,
-} from '@features/business/data/businessNetworkData';
 
 cssInterop(ScrollView, {
   className: 'style',
@@ -23,6 +18,12 @@ const copy = strings.inviteABusiness;
 export interface InviteABusinessSheetProps {
   visible: boolean;
   onClose: () => void;
+  /** The business's referral link, shown and shared as-is. */
+  referralLink: string;
+  /** Pre-written invite message carrying the link. */
+  message: string;
+  /** The inviter's own network figures, e.g. referrals and verified count. */
+  stats: readonly { id: string; label: string; value: string }[];
   onCopyMessage?: () => void;
   onCopyLink?: () => void;
   onShareDevice?: () => void;
@@ -37,6 +38,9 @@ export interface InviteABusinessSheetProps {
 export function InviteABusinessSheet({
   visible,
   onClose,
+  referralLink,
+  message,
+  stats,
   onCopyMessage,
   onCopyLink,
   onShareDevice,
@@ -73,7 +77,7 @@ export function InviteABusinessSheet({
         </View>
 
         <View className="flex-row flex-wrap gap-2">
-          {inviteMerchantStats.map(stat => (
+          {stats.map(stat => (
             <View
               key={stat.id}
               className="min-w-[30%] flex-1 gap-0.5 rounded-field bg-surface-subtle p-2.5"
@@ -133,7 +137,7 @@ export function InviteABusinessSheet({
               className="leading-relaxed"
               numberOfLines={6}
             >
-              {inviteMessage}
+              {message}
             </VemtapText>
           </View>
         </View>
@@ -150,7 +154,7 @@ export function InviteABusinessSheet({
                 className="font-sans-semibold"
                 numberOfLines={1}
               >
-                {networkGrowth.referralLink}
+                {referralLink}
               </VemtapText>
             </View>
           </View>

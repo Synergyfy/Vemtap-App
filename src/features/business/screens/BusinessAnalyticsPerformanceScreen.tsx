@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { ErrorState, LoadingState } from '@components/shared';
 import { View } from 'react-native';
 import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
@@ -18,19 +19,25 @@ import {
   BusinessMetricGrid,
 } from '@features/business/components/BusinessAnalyticsPrimitives';
 import { BusinessInitialsAvatar } from '@features/business/components/BusinessPosPrimitives';
-import {
-  businessPerformanceNavTabs,
-  hourlyVolume,
-  performanceMetrics,
-  revenueChannels,
-  revenueSeries,
-  teamPerformance,
-  topPerformingItems,
-} from '@features/business/data/businessAnalyticsData';
+import type { BusinessAnalyticsTab } from '@features/business/components/BusinessAnalyticsPrimitives';
+import type { PerformanceView } from '@features/business/utils/analyticsMappers';
 
 const copy = strings.businessAnalyticsPerformance;
 
+const navTabs: readonly BusinessAnalyticsTab[] = [
+  { key: 'deals', label: copy.navTabs.deals, icon: 'localOffer' },
+  { key: 'business', label: copy.navTabs.business, icon: 'store' },
+  { key: 'customers', label: copy.navTabs.customers, icon: 'group' },
+  { key: 'locations', label: copy.navTabs.locations, icon: 'storefront' },
+  { key: 'pos', label: copy.navTabs.pos, icon: 'pointOfSale' },
+];
+
 export interface BusinessAnalyticsPerformanceScreenProps {
+  view?: PerformanceView;
+  isError?: boolean;
+  onRetry?: () => void;
+  range?: string;
+  onRangeChange?: (value: string) => void;
   onBack?: () => void;
   onMoreOptions?: () => void;
   onOpenTab?: (tabKey: string) => void;
@@ -45,6 +52,11 @@ export interface BusinessAnalyticsPerformanceScreenProps {
  * and per-team results.
  */
 export function BusinessAnalyticsPerformanceScreen({
+  view,
+  isError,
+  onRetry,
+  range = copy.dateRanges[2],
+  onRangeChange,
   onBack,
   onMoreOptions,
   onOpenTab,
@@ -52,10 +64,12 @@ export function BusinessAnalyticsPerformanceScreen({
   onOpenItem,
   onOpenStaff,
 }: BusinessAnalyticsPerformanceScreenProps) {
-  const [tab, setTab] = useState<string>(businessPerformanceNavTabs[0].key);
-  const [range, setRange] = useState<string>(copy.dateRanges[2]);
-  const maxRevenue = Math.max(...revenueSeries.map(point => point.value));
-  const maxHourly = Math.max(...hourlyVolume.map(point => point.value));
+  const revenueSeries = view?.revenueSeries ?? [];
+  const maxRevenue = Math.max(
+    1,
+    ...revenueSeries.map(point => Math.max(point.value, point.previous)),
+  );
+  const maxHourly = Math.max(1, ...(view?.hourly ?? []).map(point => point.value));
 
   return (
     <BusinessScreenLayout
@@ -80,205 +94,218 @@ export function BusinessAnalyticsPerformanceScreen({
       }
     >
       <BusinessAnalyticsNav
-        tabs={businessPerformanceNavTabs}
-        value={tab}
-        onChange={next => {
-          setTab(next);
-          onOpenTab?.(next);
-        }}
+        tabs={navTabs}
+        value="business"
+        onChange={next => onOpenTab?.(next)}
         className="-mx-6"
       />
 
       <BusinessDateRange
         value={range}
         options={copy.dateRanges}
-        onChange={setRange}
+        onChange={value => onRangeChange?.(value)}
         className="mt-3"
       />
 
-      <BusinessMetricGrid
-        cells={performanceMetrics.map(metric => ({
-          label: metric.label,
-          value: metric.value,
-          note: metric.delta,
-          noteIcon: 'trendingUp',
-          noteTone: 'success',
-          icon: metric.icon,
-        }))}
-        className="mt-3"
-      />
+      {!view ? (
+        isError ? (
+          <ErrorState
+            title={copy.error.title}
+            description={copy.error.body}
+            onRetry={onRetry}
+          />
+        ) : (
+          <LoadingState label={strings.businessIntelligence.loading} />
+        )
+      ) : (
+        <>
+          <BusinessMetricGrid
+            cells={view.metrics.map(metric => ({
+              label: metric.label,
+              value: metric.value,
+              note: metric.note,
+              noteIcon: metric.direction === 'down' ? 'trendingDown' : 'trendingUp',
+              noteTone: metric.direction === 'down' ? 'tertiary' : 'success',
+              icon: metric.icon,
+            }))}
+            className="mt-3"
+          />
 
-      <BusinessPanel className="mt-3" title={copy.revenueChartTitle} icon="insights">
-        <VemtapText variant="caption" tone="secondary" numberOfLines={2}>
-          {copy.revenueChartSubtitle}
-        </VemtapText>
-        <View className="mt-1 h-44 justify-end">
-          {revenueSeries.map((point, index) => (
-            <View
-              key={point.label}
-              accessibilityRole="image"
-              accessibilityLabel={`${point.label}: ${point.value}`}
-              className="flex-row items-center gap-2"
-            >
+          <BusinessPanel className="mt-3" title={copy.revenueChartTitle} icon="insights">
+            <VemtapText variant="caption" tone="secondary" numberOfLines={2}>
+              {copy.revenueChartSubtitle}
+            </VemtapText>
+            <View className="mt-1 justify-end gap-1">
+              {revenueSeries.map(point => (
+                <View
+                  key={point.label}
+                  accessibilityRole="image"
+                  accessibilityLabel={`${point.label}: ${point.amount}`}
+                  className="flex-row items-center gap-2"
+                >
+                  <VemtapText
+                    variant="micro"
+                    tone="tertiary"
+                    numberOfLines={1}
+                    className="w-7 shrink-0"
+                  >
+                    {point.label}
+                  </VemtapText>
+                  <View className="min-w-0 flex-1 gap-0.5">
+                    <View
+                      className="h-2.5 rounded-full bg-primary"
+                      style={{
+                        width: `${Math.max(1, (point.value / maxRevenue) * 100)}%`,
+                      }}
+                    />
+                    <View
+                      className="h-1.5 rounded-full bg-surface-container-high"
+                      style={{
+                        width: `${Math.max(1, (point.previous / maxRevenue) * 100)}%`,
+                      }}
+                    />
+                  </View>
+                  <VemtapText
+                    variant="micro"
+                    className="w-12 shrink-0 text-right"
+                    numberOfLines={1}
+                  >
+                    {point.amount}
+                  </VemtapText>
+                </View>
+              ))}
+            </View>
+            <View className="flex-row items-center gap-3">
+              <View className="flex-row items-center gap-1.5">
+                <View className="h-2.5 w-4 rounded-full bg-primary" />
+                <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
+                  {copy.revenueCurrent}
+                </VemtapText>
+              </View>
+              <View className="flex-row items-center gap-1.5">
+                <View className="h-1.5 w-4 rounded-full bg-surface-container-high" />
+                <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
+                  {copy.revenuePrevious}
+                </VemtapText>
+              </View>
+            </View>
+          </BusinessPanel>
+
+          <BusinessPanel className="mt-3" title={copy.channelTitle} icon="share">
+            <VemtapText variant="caption" tone="secondary" numberOfLines={2}>
+              {copy.channelSubtitle}
+            </VemtapText>
+            <BusinessCompareBars rows={view.channels} variant="titled" />
+          </BusinessPanel>
+
+          <BusinessPanel
+            className="mt-3"
+            title={copy.topProductsTitle}
+            icon="trophy"
+            badge={String(view.topItems.length)}
+            badgeTone="neutral"
+          >
+            <VemtapText variant="caption" tone="secondary" numberOfLines={2}>
+              {copy.topProductsSubtitle}
+            </VemtapText>
+            <View className="gap-2">
+              {view.topItems.length === 0 ? (
+                <VemtapText variant="caption" tone="tertiary">
+                  {copy.itemsEmpty}
+                </VemtapText>
+              ) : null}
+              {view.topItems.map((item, index) => (
+                <BusinessAnalyticsRow
+                  key={item.id}
+                  title={item.name}
+                  subtitle={item.meta}
+                  leading={
+                    <View className="h-7 w-7 shrink-0 items-center justify-center rounded-full bg-surface-tint">
+                      <VemtapText variant="micro" className="font-sans-bold text-primary">
+                        {String(index + 1)}
+                      </VemtapText>
+                    </View>
+                  }
+                  trailing={item.value}
+                  onPress={() => onOpenItem?.(item.id)}
+                />
+              ))}
+            </View>
+          </BusinessPanel>
+
+          <BusinessPanel className="mt-3" title={copy.hourlyTitle} icon="schedule">
+            <VemtapText variant="caption" tone="secondary" numberOfLines={2}>
+              {copy.hourlySubtitle}
+            </VemtapText>
+            <View className="mt-1 h-28 flex-row items-end justify-between gap-1.5">
+              {view.hourly.map(point => (
+                <View key={point.label} className="flex-1 items-center gap-1">
+                  <View
+                    className="w-full rounded-t bg-secondary"
+                    style={{ height: Math.max(6, (point.value / maxHourly) * 84) }}
+                  />
+                  <VemtapText variant="micro" tone="tertiary" numberOfLines={1}>
+                    {point.label}
+                  </VemtapText>
+                </View>
+              ))}
+            </View>
+          </BusinessPanel>
+
+          <BusinessPanel
+            className="mt-3"
+            title={copy.staffTitle}
+            icon="accountCircle"
+            badge={String(view.team.length)}
+            badgeTone="neutral"
+          >
+            <VemtapText variant="caption" tone="secondary" numberOfLines={2}>
+              {copy.staffSubtitle}
+            </VemtapText>
+            <View className="flex-row px-1">
               <VemtapText
                 variant="micro"
                 tone="tertiary"
+                className="min-w-0 flex-1"
                 numberOfLines={1}
-                className="w-7 shrink-0"
               >
-                {point.label}
+                {copy.staffOrders}
               </VemtapText>
-              <View className="min-w-0 flex-1 gap-0.5">
-                <View
-                  className="h-2.5 rounded-full bg-primary"
-                  style={{ width: `${(point.value / maxRevenue) * 100}%` }}
-                />
-                <View
-                  className="h-1.5 rounded-full bg-surface-container-high"
-                  style={{ width: `${(point.previous / maxRevenue) * 100}%` }}
-                />
-              </View>
               <VemtapText
                 variant="micro"
-                className="w-12 shrink-0 text-right"
+                tone="tertiary"
+                className="w-24 text-right"
                 numberOfLines={1}
               >
-                {`${index + 1}`}
+                {copy.staffSales}
               </VemtapText>
             </View>
-          ))}
-        </View>
-        <View className="flex-row items-center gap-3">
-          <View className="flex-row items-center gap-1.5">
-            <View className="h-2.5 w-4 rounded-full bg-primary" />
-            <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-              {range}
-            </VemtapText>
-          </View>
-          <View className="flex-row items-center gap-1.5">
-            <View className="h-1.5 w-4 rounded-full bg-surface-container-high" />
-            <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-              {copy.switchHint}
-            </VemtapText>
-          </View>
-        </View>
-      </BusinessPanel>
-
-      <BusinessPanel className="mt-3" title={copy.channelTitle} icon="share">
-        <VemtapText variant="caption" tone="secondary" numberOfLines={2}>
-          {copy.channelSubtitle}
-        </VemtapText>
-        <BusinessCompareBars
-          rows={revenueChannels.map(channel => ({
-            id: channel.id,
-            label: channel.label,
-            value: channel.value,
-            percent: channel.percent,
-          }))}
-          variant="titled"
-        />
-      </BusinessPanel>
-
-      <BusinessPanel
-        className="mt-3"
-        title={copy.topProductsTitle}
-        icon="trophy"
-        badge={String(topPerformingItems.length)}
-        badgeTone="neutral"
-      >
-        <VemtapText variant="caption" tone="secondary" numberOfLines={2}>
-          {copy.topProductsSubtitle}
-        </VemtapText>
-        <View className="gap-2">
-          {topPerformingItems.map((item, index) => (
-            <BusinessAnalyticsRow
-              key={item.id}
-              title={item.name}
-              subtitle={item.meta}
-              leading={
-                <View className="h-7 w-7 shrink-0 items-center justify-center rounded-full bg-surface-tint">
-                  <VemtapText variant="micro" className="font-sans-bold text-primary">
-                    {String(index + 1)}
-                  </VemtapText>
-                </View>
-              }
-              trailing={item.value}
-              onPress={() => onOpenItem?.(item.id)}
-            />
-          ))}
-        </View>
-      </BusinessPanel>
-
-      <BusinessPanel className="mt-3" title={copy.hourlyTitle} icon="schedule">
-        <VemtapText variant="caption" tone="secondary" numberOfLines={2}>
-          {copy.hourlySubtitle}
-        </VemtapText>
-        <View className="mt-1 h-28 flex-row items-end justify-between gap-1.5">
-          {hourlyVolume.map(point => (
-            <View key={point.label} className="flex-1 items-center gap-1">
-              <View
-                className="w-full rounded-t bg-secondary"
-                style={{ height: Math.max(6, (point.value / maxHourly) * 84) }}
-              />
-              <VemtapText variant="micro" tone="tertiary" numberOfLines={1}>
-                {point.label}
-              </VemtapText>
-            </View>
-          ))}
-        </View>
-      </BusinessPanel>
-
-      <BusinessPanel
-        className="mt-3"
-        title={copy.staffTitle}
-        icon="accountCircle"
-        badge={String(teamPerformance.length)}
-        badgeTone="neutral"
-      >
-        <VemtapText variant="caption" tone="secondary" numberOfLines={2}>
-          {copy.staffSubtitle}
-        </VemtapText>
-        <View className="flex-row px-1">
-          <VemtapText
-            variant="micro"
-            tone="tertiary"
-            className="min-w-0 flex-1"
-            numberOfLines={1}
-          >
-            {copy.staffOrders}
-          </VemtapText>
-          <VemtapText
-            variant="micro"
-            tone="tertiary"
-            className="w-24 text-right"
-            numberOfLines={1}
-          >
-            {copy.staffSales}
-          </VemtapText>
-        </View>
-        <View className="gap-2">
-          {teamPerformance.map(member => (
-            <BusinessAnalyticsRow
-              key={member.id}
-              title={member.name}
-              subtitle={member.role}
-              leading={
-                <BusinessInitialsAvatar
-                  initials={member.name
-                    .split(' ')
-                    .map(part => part[0])
-                    .join('')
-                    .slice(0, 2)}
-                  size="sm"
-                  tone="brand"
+            <View className="gap-2">
+              {view.team.length === 0 ? (
+                <VemtapText variant="caption" tone="tertiary">
+                  {copy.staffEmpty}
+                </VemtapText>
+              ) : null}
+              {view.team.map(member => (
+                <BusinessAnalyticsRow
+                  key={member.id}
+                  title={member.name}
+                  subtitle={member.role}
+                  leading={
+                    <BusinessInitialsAvatar
+                      initials={member.initials}
+                      size="sm"
+                      tone="brand"
+                    />
+                  }
+                  trailing={member.trailing}
+                  onPress={() => onOpenStaff?.(member.id)}
                 />
-              }
-              trailing={`${member.orders} · ${member.sales}`}
-              onPress={() => onOpenStaff?.(member.id)}
-            />
-          ))}
-        </View>
-      </BusinessPanel>
+              ))}
+            </View>
+          </BusinessPanel>
+        </>
+      )}
     </BusinessScreenLayout>
   );
 }

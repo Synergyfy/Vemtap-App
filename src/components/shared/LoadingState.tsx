@@ -8,14 +8,16 @@ export interface LoadingStateProps {
 }
 
 export function LoadingState({ label, className }: LoadingStateProps) {
-  return (
-    <Loader label={label} className={className} />
-  );
+  return <Loader label={label} className={className} />;
 }
 
 export function LoadingSkeletonList({ rows = 4 }: { rows?: number }) {
   return (
-    <VemtapText accessibilityRole="progressbar" accessibilityLabel="Loading" className="sr-only">
+    <VemtapText
+      accessibilityRole="progressbar"
+      accessibilityLabel="Loading"
+      className="sr-only"
+    >
       Loading {rows} items…
     </VemtapText>
   );

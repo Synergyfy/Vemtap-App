@@ -18,7 +18,6 @@ import { colors } from '@theme/colors';
 import { navbarBottomShadow, tabBarTopShadow } from '@theme/shadows';
 import { strings } from '@constants/strings';
 import { useDealDetail } from '@features/dealDetail/hooks/useDealDetail';
-import { resolveDeal } from '@features/dealDetail/data/dealResolver';
 import { usePublicBusinessProfile } from '@features/discover/hooks/usePublicBusinessProfile';
 import { hoursWindow } from '@features/dealDetail/utils/openingHours';
 import { formatOfferEndDate } from '@features/deals/utils/offerMapper';
@@ -36,7 +35,6 @@ type Props = NativeStackScreenProps<AppStackParamList, 'DealTermsConditions'>;
 
 export function DealTermsConditionsScreen({ route, navigation }: Props) {
   const insets = useSafeAreaInsets();
-  const [faqOpen, setFaqOpen] = useState(false);
   const [shareVisible, setShareVisible] = useState(false);
 
   const detail = useDealDetail(route.params.dealId);
@@ -110,10 +108,7 @@ export function DealTermsConditionsScreen({ route, navigation }: Props) {
    * validity line; a real offer words it from its actual `endDate`, and one
    * with no date simply drops the row rather than borrowing the demo's.
    */
-  const isSeed = resolveDeal(route.params.dealId) !== undefined;
-  const validityDate = isSeed
-    ? strings.dealTerms.validityDate
-    : formatOfferEndDate(deal.endDate);
+  const validityDate = formatOfferEndDate(deal.endDate);
   // Hoisted: a template literal as a direct child of a custom row component
   // trips the raw-text rule, and these two suffixes are text by any reading.
   const hoursDaysSuffix = window ? `, ${window.days}.` : '';
@@ -221,19 +216,11 @@ export function DealTermsConditionsScreen({ route, navigation }: Props) {
               </VemtapText>
             </View>
           </View>
-          <View className="ml-2 shrink-0 rounded-full bg-surface-container-highest px-2.5 py-1">
-            <VemtapText className="text-caption text-secondary">
-              {strings.dealTerms.readTime}
-            </VemtapText>
-          </View>
         </View>
 
         <DealTermsSection icon="schedule" title={strings.dealTerms.validityTitle} compact>
           {validityDate ? (
-            <DealTermsRow
-              icon="eventAvailable"
-              supportingText={strings.dealTerms.validitySecondary}
-            >
+            <DealTermsRow icon="eventAvailable">
               {strings.dealTerms.validityPrefix}
               <VemtapText className="font-sans-medium text-label-md text-primary">
                 {validityDate}
@@ -241,7 +228,7 @@ export function DealTermsConditionsScreen({ route, navigation }: Props) {
               {strings.dealTerms.validitySuffix}
             </DealTermsRow>
           ) : null}
-          <DealTermsRow icon="schedule" supportingText={strings.dealTerms.kitchenCutoff}>
+          <DealTermsRow icon="schedule">
             {window ? (
               <>
                 {strings.dealTerms.redeemableLivePrefix}
@@ -249,14 +236,6 @@ export function DealTermsConditionsScreen({ route, navigation }: Props) {
                   {window.window}
                 </VemtapText>
                 {hoursDaysSuffix}
-              </>
-            ) : isSeed ? (
-              <>
-                {strings.dealTerms.redeemablePrefix}
-                <VemtapText className="font-sans-medium text-label-md text-text">
-                  {strings.dealTerms.redeemableWindow}
-                </VemtapText>
-                {strings.dealTerms.redeemableDays}
               </>
             ) : (
               strings.dealTerms.hoursFallback
@@ -275,69 +254,20 @@ export function DealTermsConditionsScreen({ route, navigation }: Props) {
         ) : null}
 
         <DealTermsSection icon="rule" title={strings.dealTerms.redemptionTitle}>
-          <DealTermsRow icon="person">{strings.dealTerms.redemptionOne}</DealTermsRow>
-          <DealTermsRow
-            icon="locationOn"
-            supportingText={strings.dealTerms.redemptionLocationNote}
-          >
+          {deal.perCustomerLimit ? (
+            <DealTermsRow icon="person">
+              {strings.dealTerms.perCustomerLimit(deal.perCustomerLimit)}
+            </DealTermsRow>
+          ) : null}
+          <DealTermsRow icon="locationOn">
             {strings.dealTerms.locationPrefix}
             <VemtapText className="font-sans-medium text-label-md text-text">
               {deal.merchant}
             </VemtapText>
             {addressSuffix}
           </DealTermsRow>
-          <DealTermsRow icon="qrScan">
-            {strings.dealTerms.confirmationPrefix}
-            <VemtapText className="font-sans-medium text-label-md text-text">
-              {strings.dealTerms.confirmationEmphasis}
-            </VemtapText>
-            {strings.dealTerms.confirmationSuffix}
-          </DealTermsRow>
-          <DealTermsRow icon="roomService">
-            {strings.dealTerms.fulfilmentPrefix}
-            <VemtapText className="font-sans-medium text-label-md text-text">
-              {strings.dealTerms.fulfilmentEmphasis}
-            </VemtapText>
-            {strings.dealTerms.fulfilmentSuffix}
-          </DealTermsRow>
+          <DealTermsRow icon="qrScan">{strings.dealTerms.showCode}</DealTermsRow>
         </DealTermsSection>
-
-        <DealTermsSection icon="block" title={strings.dealTerms.exclusionsTitle}>
-          <DealTermsRow icon="doNotDisturb">
-            {strings.dealTerms.exclusionsOne}
-          </DealTermsRow>
-          <DealTermsRow icon="inventory">{strings.dealTerms.exclusionsTwo}</DealTermsRow>
-        </DealTermsSection>
-
-        <View className="mt-6 px-6">
-          <View className="rounded-xl bg-surface-container-low p-4">
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={strings.dealTerms.faqQuestion}
-              accessibilityState={{ expanded: faqOpen }}
-              onPress={() => setFaqOpen(value => !value)}
-              className="min-h-6 flex-row items-center justify-between"
-            >
-              <View className="min-w-0 flex-row items-center gap-2">
-                <Icon name="help" size={20} color={colors.secondary} />
-                <VemtapText className="min-w-0 flex-1 text-label-md text-text">
-                  {strings.dealTerms.faqQuestion}
-                </VemtapText>
-              </View>
-              <Icon
-                name="expandMore"
-                size={20}
-                color={colors.textTertiary}
-                style={faqOpen ? styles.chevronOpen : undefined}
-              />
-            </Pressable>
-            {faqOpen ? (
-              <VemtapText className="pt-2 text-body-md text-text-secondary">
-                {strings.dealTerms.faqAnswer}
-              </VemtapText>
-            ) : null}
-          </View>
-        </View>
 
         <View className="mx-6 mb-6 mt-4 flex-row items-center gap-3 rounded-lg bg-surface-canvas p-3 shadow-sm">
           <View className="h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary-fixed">
@@ -402,5 +332,4 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 12,
   },
-  chevronOpen: { transform: [{ rotate: '180deg' }] },
 });

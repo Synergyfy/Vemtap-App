@@ -55,7 +55,7 @@ export class ErrorBoundary extends React.Component<
     const { children } = this.props;
     if (hasError) {
       return (
-        <View className="flex-1 items-center justify-center bg-background px-6 gap-4">
+        <View className="flex-1 items-center justify-center gap-4 bg-background px-6">
           <VemtapText variant="headingMd" tone="error" className="text-center">
             Something went wrong
           </VemtapText>

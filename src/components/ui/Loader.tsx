@@ -17,7 +17,7 @@ export function Loader({ visible = true, label, className }: LoaderProps) {
     <View
       accessibilityRole="progressbar"
       accessibilityLabel={label ?? 'Loading'}
-      className={cn('items-center justify-center py-8 gap-2', className)}
+      className={cn('items-center justify-center gap-2 py-8', className)}
     >
       <ActivityIndicator size="large" color="#066CF4" />
       {label ? (

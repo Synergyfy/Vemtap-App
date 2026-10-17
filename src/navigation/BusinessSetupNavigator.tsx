@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Linking } from 'react-native';
+import { strings } from '@constants/strings';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -68,6 +70,18 @@ import { ForgotPinScreen } from '@features/auth/screens/ForgotPinScreen';
 import { TypeDensityProvider } from '@theme/TypeDensityProvider';
 import { useBusinessOnboardingStore } from '@store/businessOnboardingStore';
 import { useAuthStore, selectHasSession, selectIsAuthenticated } from '@store/authStore';
+import { CreditBundleSheet } from '@features/business/components/CreditBundleSheet';
+import {
+  plansFor,
+  useBuyCreditPlan,
+  useCreditPlans,
+  type CreditChannel,
+} from '@features/business/hooks/useCreditPlans';
+import type { CreditPlan } from '@api/creditPlansApi';
+import { useSponsoredOptions } from '@features/business/hooks/useCampaigns';
+import type { AddOnKey, AddOnPrice } from '@features/business/screens/VemtapAddOnsScreen';
+import * as WebBrowser from 'expo-web-browser';
+import { SUPPORT_EMAIL, TERMS_URL } from '@constants/webLinks';
 import { useCatalogueDraftStore } from '@store/catalogueDraftStore';
 import {
   useBusinessBranches,
@@ -102,9 +116,11 @@ import {
   formatVerifiedAt,
   idTypeLabel,
 } from '@features/business/verificationDisplay';
-import { youReVerifiedCopy } from '@features/business/verificationCopy';
+import { vemtapAddOnsCopy, youReVerifiedCopy } from '@features/business/verificationCopy';
 import type { YouReVerifiedPillar } from '@features/business/screens/YouReVerifiedScreen';
 import { useQueryClient } from '@tanstack/react-query';
+import { useBusinessQrSummary } from '@features/business/hooks/useBusinessQr';
+import { toQrReadyView } from '@features/business/utils/qrMappers';
 import {
   planPrice,
   subscriptionsApi,
@@ -125,6 +141,7 @@ import {
 import { subscriptionRef, trialProgress } from '@features/business/subscriptionDisplay';
 import { formatCurrency } from '@utils/formatters';
 import type { BusinessSetupStackParamList, RootStackParamList } from '@navigation/types';
+import { shareQrLink, useQrKitShare, useQrWindow } from './qrRoutes';
 import {
   ServiceAvailabilityStep,
   ServiceBasicsStep,
@@ -202,6 +219,42 @@ export function useBusinessDashboardEntry() {
 export function useBusinessNetworkEntry() {
   const navigation = useRootNavigation();
   return () => navigation.navigate('BusinessTabs', businessNetworkEntry);
+}
+
+type BusinessShellTab =
+  'BusinessOverview' | 'BusinessOrders' | 'BusinessHub' | 'BusinessMore';
+
+/** Business screens live in the business shell; setup reaches them from the root. */
+function useOpenBusinessScreen() {
+  const navigation = useRootNavigation();
+  return useCallback(
+    (tab: BusinessShellTab, screen: string) =>
+      (navigation.navigate as (name: string, params: object) => void)('BusinessTabs', {
+        screen: tab,
+        params: { screen },
+      }),
+    [navigation],
+  );
+}
+
+/**
+ * Help and support from a setup screen: the business support hub once there
+ * is a session, the support inbox before (setup runs signed out too).
+ */
+function useOpenSupport() {
+  const hasSession = useAuthStore(selectHasSession);
+  const openBusinessScreen = useOpenBusinessScreen();
+  return useCallback(() => {
+    if (hasSession) {
+      openBusinessScreen('BusinessMore', 'BusinessSupportHelp');
+      return;
+    }
+    Linking.openURL(`mailto:${SUPPORT_EMAIL}`).catch(() => undefined);
+  }, [hasSession, openBusinessScreen]);
+}
+
+function openTerms() {
+  WebBrowser.openBrowserAsync(TERMS_URL).catch(() => Linking.openURL(TERMS_URL));
 }
 
 function BusinessSetupGateRoute() {
@@ -1011,6 +1064,13 @@ function BusinessQrReadyRoute() {
   // The referral perk belongs to the business app, so it crosses to that shell
   // the same way the dashboard hand-off does.
   const openBusinessNetwork = useBusinessNetworkEntry();
+  const qrWindow = useQrWindow();
+  const qrSummary = useBusinessQrSummary(qrWindow);
+  const qrView = useMemo(
+    () => (qrSummary.data ? toQrReadyView(qrSummary.data) : undefined),
+    [qrSummary.data],
+  );
+  const kit = useQrKitShare();
   const handleContinue = useCallback(() => {
     // The setup wizard is done: promote the session out of `onboarding` and
     // make sure later launches restore the business side.
@@ -1034,13 +1094,18 @@ function BusinessQrReadyRoute() {
   }, [navigation, openBusinessDashboard, queryClient]);
   return (
     <YourVemtapBusinessQrIsReadyScreen
+      view={qrView}
+      isError={qrSummary.isError}
+      onRetry={() => void qrSummary.refetch()}
       onBack={navigation.goBack}
-      onShare={() => undefined}
-      onSupport={() => undefined}
-      onOrderKits={() => undefined}
-      onPresentFullscreen={() => undefined}
-      onDownloadKit={() => undefined}
-      onCopyLink={() => undefined}
+      onShare={() => {
+        if (qrView) void shareQrLink(qrView.businessName, qrView.url);
+      }}
+      onSupport={() =>
+        void Linking.openURL(`mailto:${strings.businessQrReady.supportEmail}`)
+      }
+      onOrderKits={() => void kit.shareKit()}
+      onDownloadKit={() => void kit.shareKit()}
       onOpenReferrals={openBusinessNetwork}
       onContinue={handleContinue}
     />
@@ -1199,6 +1264,7 @@ function CacVerificationRoute() {
 }
 
 function UnregisteredBusinessRoute() {
+  const openSupport = useOpenSupport();
   const navigation = useFlowNavigation();
   const { data: status } = useSetupVerificationStatus();
   const submit = useSubmitUnregisteredBusiness();
@@ -1226,7 +1292,7 @@ function UnregisteredBusinessRoute() {
         )
       }
       onLearnMore={() => navigation.navigate('VerifyYourBusiness')}
-      onHelp={() => undefined}
+      onHelp={openSupport}
     />
   );
 }
@@ -1261,6 +1327,7 @@ function CacVerificationSuccessRoute() {
 }
 
 function VerificationInProgressRoute() {
+  const openSupport = useOpenSupport();
   const navigation = useFlowNavigation();
   const openActivation = useActivationEntry();
   const { data: status } = useSetupVerificationStatus();
@@ -1274,13 +1341,15 @@ function VerificationInProgressRoute() {
           : openActivation()
       }
       onCheckLater={() => navigation.navigate('BusinessVerificationStatusCenter')}
-      onContactSupport={() => undefined}
-      onHelp={() => undefined}
+      onContactSupport={openSupport}
+      onHelp={openSupport}
     />
   );
 }
 
 function YouReVerifiedRoute() {
+  const openSupport = useOpenSupport();
+  const openBusinessScreen = useOpenBusinessScreen();
   const navigation = useFlowNavigation();
   const openActivation = useActivationEntry();
   const { data: status } = useSetupVerificationStatus();
@@ -1294,8 +1363,10 @@ function YouReVerifiedRoute() {
       pillars={pillars}
       onBack={navigation.goBack}
       onContinue={openActivation}
-      onPreviewStorefront={() => undefined}
-      onHelp={() => undefined}
+      onPreviewStorefront={() =>
+        openBusinessScreen('BusinessHub', 'BusinessProfilePreview')
+      }
+      onHelp={openSupport}
     />
   );
 }
@@ -1351,6 +1422,7 @@ function verifiedPillars(
 }
 
 function BusinessVerificationStatusCenterRoute() {
+  const openSupport = useOpenSupport();
   const navigation = useFlowNavigation();
   const openActivation = useActivationEntry();
   const { data: status } = useSetupVerificationStatus();
@@ -1369,7 +1441,7 @@ function BusinessVerificationStatusCenterRoute() {
       onOpenDashboard={openActivation}
       onUpdateVerification={() => navigation.navigate('VerifyYourBusiness')}
       onManageLocations={() => navigation.navigate('BusinessLocations')}
-      onHelp={() => undefined}
+      onHelp={openSupport}
     />
   );
 }
@@ -1409,6 +1481,7 @@ function useActivationEntry() {
 }
 
 function FreeTrialConfirmationRoute() {
+  const openSupport = useOpenSupport();
   const navigation = useFlowNavigation();
   const route =
     useRoute<RouteProp<BusinessSetupStackParamList, 'FreeTrialConfirmation'>>();
@@ -1439,12 +1512,13 @@ function FreeTrialConfirmationRoute() {
       onSubscribeInstead={() =>
         navigation.navigate('SubscribeNowPayment', { planId: plan?.id })
       }
-      onHelp={() => undefined}
+      onHelp={openSupport}
     />
   );
 }
 
 function BusinessPlanTrialOverviewRoute() {
+  const openSupport = useOpenSupport();
   const navigation = useFlowNavigation();
   const plans = usePlans();
   const { data: subscription } = useActiveSubscription();
@@ -1466,12 +1540,13 @@ function BusinessPlanTrialOverviewRoute() {
         navigation.navigate('SubscribeNowPayment', { planId: plan.id })
       }
       onViewAddOns={() => navigation.navigate('VemtapAddOns')}
-      onHelp={() => undefined}
+      onHelp={openSupport}
     />
   );
 }
 
 function TrialActiveStatusRoute() {
+  const openSupport = useOpenSupport();
   const navigation = useFlowNavigation();
   const openBusinessDashboard = useBusinessDashboardEntry();
   const { data: subscription } = useActiveSubscription();
@@ -1489,12 +1564,13 @@ function TrialActiveStatusRoute() {
       onSubscribeNow={() =>
         navigation.navigate('SubscribeNowPayment', { planId: subscription?.planId })
       }
-      onHelp={() => undefined}
+      onHelp={openSupport}
     />
   );
 }
 
 function SubscribeNowPaymentRoute() {
+  const openSupport = useOpenSupport();
   const navigation = useFlowNavigation();
   const route = useRoute<RouteProp<BusinessSetupStackParamList, 'SubscribeNowPayment'>>();
   const { data: plans } = usePlans();
@@ -1535,13 +1611,14 @@ function SubscribeNowPaymentRoute() {
           },
         );
       }}
-      onViewTerms={() => undefined}
-      onHelp={() => undefined}
+      onViewTerms={openTerms}
+      onHelp={openSupport}
     />
   );
 }
 
 function PaymentSuccessVemtapGrowthRoute() {
+  const openSupport = useOpenSupport();
   const navigation = useFlowNavigation();
   const route =
     useRoute<RouteProp<BusinessSetupStackParamList, 'PaymentSuccessVemtapGrowth'>>();
@@ -1575,12 +1652,13 @@ function PaymentSuccessVemtapGrowthRoute() {
       branchNames={business?.branches?.map(branch => branch.name)}
       onGoToDashboard={openBusinessDashboard}
       onExploreFeatures={() => navigation.navigate('VemtapAddOns')}
-      onContactSupport={() => undefined}
+      onContactSupport={openSupport}
     />
   );
 }
 
 function TrialEndingRenewGrowthRoute() {
+  const openSupport = useOpenSupport();
   const navigation = useFlowNavigation();
   const openBusinessDashboard = useBusinessDashboardEntry();
   const { data: subscription } = useActiveSubscription();
@@ -1601,12 +1679,13 @@ function TrialEndingRenewGrowthRoute() {
         navigation.navigate('SubscribeNowPayment', { planId: subscription?.planId })
       }
       onReviewBusiness={openBusinessDashboard}
-      onHelp={() => undefined}
+      onHelp={openSupport}
     />
   );
 }
 
 function TrialExpiredReactivateRoute() {
+  const openSupport = useOpenSupport();
   const navigation = useFlowNavigation();
   const openBusinessDashboard = useBusinessDashboardEntry();
   const { data: plans } = usePlans();
@@ -1621,25 +1700,123 @@ function TrialExpiredReactivateRoute() {
       onBack={navigation.goBack}
       onActivate={() => navigation.navigate('SubscribeNowPayment', { planId: plan?.id })}
       onViewBusiness={openBusinessDashboard}
-      onContactSupport={() => undefined}
-      onHelp={() => undefined}
+      onContactSupport={openSupport}
+      onHelp={openSupport}
     />
   );
 }
 
+/** "from ₦2,000" for boosts/promotions, "₦1,500 / 250 SMS" for credit bundles. */
+function addOnPrices(
+  boostMin: number | undefined,
+  promotionMin: number | undefined,
+  smsPlans: CreditPlan[],
+  aiPlans: CreditPlan[],
+): Partial<Record<AddOnKey, AddOnPrice>> {
+  const prices: Partial<Record<AddOnKey, AddOnPrice>> = {};
+  if (boostMin) prices.boost = { price: formatCurrency(boostMin) };
+  if (promotionMin) prices.promote = { price: formatCurrency(promotionMin) };
+  const [sms] = smsPlans;
+  if (sms) {
+    prices.sms = {
+      price: formatCurrency(sms.price, sms.currency ?? 'NGN'),
+      suffix: vemtapAddOnsCopy.perSms(sms.smsAmount.toLocaleString('en-NG')),
+    };
+  }
+  const [ai] = aiPlans;
+  if (ai) {
+    prices.ai = {
+      price: formatCurrency(ai.price, ai.currency ?? 'NGN'),
+      suffix: vemtapAddOnsCopy.perAi(ai.aiAmount.toLocaleString('en-NG')),
+    };
+  }
+  return prices;
+}
+
 function VemtapAddOnsRoute() {
   const navigation = useFlowNavigation();
+  const openSupport = useOpenSupport();
+  const openBusinessScreen = useOpenBusinessScreen();
+  const hasSession = useAuthStore(selectHasSession);
   const { data: addOns } = useAddons();
   const { data: subscription } = useActiveSubscription();
+  const boostOptions = useSponsoredOptions('boost');
+  const promotionOptions = useSponsoredOptions('promotion');
+  const creditPlans = useCreditPlans(hasSession);
+  const buy = useBuyCreditPlan();
+  const [channel, setChannel] = useState<CreditChannel | null>(null);
+  const [buyingId, setBuyingId] = useState<string | null>(null);
+
+  const smsPlans = plansFor(creditPlans.data, 'sms');
+  const aiPlans = plansFor(creditPlans.data, 'ai');
+  const unavailable: AddOnKey[] = creditPlans.isSuccess
+    ? [
+        ...(smsPlans.length ? [] : (['sms'] as const)),
+        ...(aiPlans.length ? [] : (['ai'] as const)),
+      ]
+    : ['sms', 'ai'];
+
+  const select = (key: AddOnKey) => {
+    switch (key) {
+      case 'boost':
+        openBusinessScreen('BusinessMore', 'BoostEngine');
+        return;
+      case 'promote':
+        openBusinessScreen('BusinessMore', 'CampaignsHub');
+        return;
+      case 'pos':
+        openBusinessScreen('BusinessOrders', 'PaymentHardwareSetup');
+        return;
+      case 'sms':
+      case 'ai':
+        setChannel(key);
+    }
+  };
+
+  const buyPlan = (plan: CreditPlan) => {
+    setBuyingId(plan.id);
+    buy.mutate(plan.id, {
+      onSuccess: outcome => {
+        if (outcome === 'cancelled') return;
+        setChannel(null);
+        showSuccess(
+          outcome === 'completed'
+            ? vemtapAddOnsCopy.purchaseCompleted
+            : vemtapAddOnsCopy.purchasePending,
+        );
+      },
+      onError: error =>
+        showError(
+          error instanceof Error ? error.message : vemtapAddOnsCopy.purchaseFailed,
+        ),
+      onSettled: () => setBuyingId(null),
+    });
+  };
+
   return (
-    <VemtapAddOnsScreen
-      planAddOns={addOns}
-      currentPlanName={subscription?.plan?.name}
-      onBack={navigation.goBack}
-      onHelp={() => undefined}
-      onSelectAddOn={() => undefined}
-      onJoinPosWaitlist={() => undefined}
-    />
+    <>
+      <VemtapAddOnsScreen
+        planAddOns={addOns}
+        currentPlanName={subscription?.plan?.name}
+        prices={addOnPrices(
+          boostOptions.data?.minBudget,
+          promotionOptions.data?.minBudget,
+          smsPlans,
+          aiPlans,
+        )}
+        unavailable={unavailable}
+        onBack={navigation.goBack}
+        onHelp={openSupport}
+        onSelectAddOn={select}
+      />
+      <CreditBundleSheet
+        channel={channel}
+        plans={channel === 'sms' ? smsPlans : channel === 'ai' ? aiPlans : []}
+        buyingId={buyingId}
+        onBuy={buyPlan}
+        onClose={() => setChannel(null)}
+      />
+    </>
   );
 }
 

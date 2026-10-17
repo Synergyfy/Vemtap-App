@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScrollView, View } from 'react-native';
+import { Alert, Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RegistrationHeader } from '@components/auth/RegistrationHeader';
 import { AccountSection } from '@features/accountHub/components/AccountScreensPrimitives';
@@ -9,6 +9,13 @@ import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
 import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
+import {
+  useLinkedDevices,
+  useRevokeLinkedDevice,
+} from '@features/accountHub/hooks/useLinkedDevices';
+import type { LinkedDevice } from '@api/linkedDevicesApi';
+import { showToast } from '@components/shared/toast';
+import { formatWhen } from '@utils/formatters';
 import { colors } from '@theme/colors';
 
 const copy = strings.accountSettingsSecurity;
@@ -45,6 +52,23 @@ export function AccountSettingsSecurityScreen({
   onPersonalizedDealsChange,
 }: AccountSettingsSecurityScreenProps) {
   const me = useCurrentUserDisplay();
+  const devices = useLinkedDevices();
+  const revoke = useRevokeLinkedDevice();
+  const active = (devices.data ?? [])
+    .filter(device => !device.revokedAt)
+    .sort((a, b) => Number(Boolean(b.isCurrent)) - Number(Boolean(a.isCurrent)));
+  const confirmRevoke = (device: LinkedDevice) =>
+    Alert.alert(copy.signOutDeviceTitle, copy.signOutDeviceBody(device.deviceName), [
+      { text: copy.cancel, style: 'cancel' },
+      {
+        text: copy.signOutDevice,
+        style: 'destructive',
+        onPress: () =>
+          revoke.mutate(device.id, {
+            onError: () => showToast(copy.signOutDeviceFailed, 'error'),
+          }),
+      },
+    ]);
   return (
     <SafeAreaView edges={['top']} className="flex-1 bg-background">
       <RegistrationHeader title={copy.title} onBack={() => onBack?.()} />
@@ -85,7 +109,6 @@ export function AccountSettingsSecurityScreen({
             icon="pin"
             title={copy.pin}
             subtitle={copy.pinSubtitle}
-            meta={copy.pinStatus}
             onPress={onSecurityPin}
           />
           <SecuritySettingRow
@@ -98,23 +121,55 @@ export function AccountSettingsSecurityScreen({
           <SecuritySettingRow
             icon="password"
             title={copy.changePassword}
-            subtitle={copy.passwordDate}
+            subtitle={copy.passwordSubtitle}
             onPress={onChangePassword}
             last
           />
         </AccountSection>
         <AccountSection title={copy.devices}>
           <View className="gap-4 p-4">
-            <DeviceRow
-              icon="phoneDevice"
-              name={copy.phoneName}
-              meta={copy.phoneMeta}
-              badge={copy.activeNow}
-            />
-            <View className="h-px w-full bg-surface-container" />
-            <DeviceRow icon="tablet" name={copy.tabletName} meta={copy.tabletMeta} />
+            {devices.isLoading ? (
+              <VemtapText variant="caption" tone="secondary">
+                {copy.devicesLoading}
+              </VemtapText>
+            ) : devices.isError ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={copy.retry}
+                onPress={() => devices.refetch()}
+              >
+                <VemtapText variant="caption" tone="secondary">
+                  {copy.devicesError}{' '}
+                  <VemtapText variant="caption" tone="brand">
+                    {copy.retry}
+                  </VemtapText>
+                </VemtapText>
+              </Pressable>
+            ) : active.length === 0 ? (
+              <VemtapText variant="caption" tone="secondary">
+                {copy.devicesEmpty}
+              </VemtapText>
+            ) : (
+              active.slice(0, 3).map((device, index) => (
+                <React.Fragment key={device.id}>
+                  {index > 0 ? (
+                    <View className="h-px w-full bg-surface-container" />
+                  ) : null}
+                  <DeviceRow
+                    icon={device.platform === 'web' ? 'tablet' : 'phoneDevice'}
+                    name={device.deviceName}
+                    meta={copy.deviceMeta(
+                      copy.platforms[device.platform] ?? device.platform,
+                      device.lastActiveAt ? formatWhen(device.lastActiveAt) : '',
+                    )}
+                    badge={device.isCurrent ? copy.activeNow : undefined}
+                    onSignOut={device.isCurrent ? undefined : () => confirmRevoke(device)}
+                  />
+                </React.Fragment>
+              ))
+            )}
             <Button
-              label={copy.manageDevices}
+              label={copy.manageDevices(active.length)}
               variant="ghost"
               size="sm"
               labelVariant="labelMd"
@@ -209,11 +264,13 @@ function DeviceRow({
   name,
   meta,
   badge,
+  onSignOut,
 }: {
   icon: 'phoneDevice' | 'tablet';
   name: string;
   meta: string;
   badge?: string;
+  onSignOut?: () => void;
 }) {
   return (
     <View className="flex-row items-start gap-3">
@@ -237,6 +294,18 @@ function DeviceRow({
           {meta}
         </VemtapText>
       </View>
+      {onSignOut ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${copy.signOutDevice} ${name}`}
+          onPress={onSignOut}
+          className="shrink-0 px-1 py-1"
+        >
+          <VemtapText variant="labelSm" className="text-error">
+            {copy.signOutDevice}
+          </VemtapText>
+        </Pressable>
+      ) : null}
     </View>
   );
 }

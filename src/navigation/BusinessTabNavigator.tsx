@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, Linking, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Alert, Linking } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useFocusEffect, useRoute, type RouteProp } from '@react-navigation/native';
@@ -50,15 +50,10 @@ import {
   branchToLocationRow,
 } from '@features/business/screens/LocationsBranchesScreen';
 import { WuseBranchDetailsScreen } from '@features/business/screens/WuseBranchDetailsScreen';
-import { CustomerCrmDirectoryScreen } from '@features/business/screens/CustomerCrmDirectoryScreen';
-import { CustomerProfileDossierScreen } from '@features/business/screens/CustomerProfileDossierScreen';
 import { LoyaltyProgrammeConfigurationScreen } from '@features/business/screens/LoyaltyProgrammeConfigurationScreen';
 import { LoyaltyRewardsRulesScreen } from '@features/business/screens/LoyaltyRewardsRulesScreen';
 import { StaffTeamAccessDirectoryScreen } from '@features/business/screens/StaffTeamAccessDirectoryScreen';
 import { InviteStaffPermissionsScreen } from '@features/business/screens/InviteStaffPermissionsScreen';
-import { CustomerIntelligenceAnalyticsScreen } from '@features/business/screens/CustomerIntelligenceAnalyticsScreen';
-import { BusinessAnalyticsPerformanceScreen } from '@features/business/screens/BusinessAnalyticsPerformanceScreen';
-import { LocationsBranchComparisonScreen } from '@features/business/screens/LocationsBranchComparisonScreen';
 import { BusinessReviewsReputationScreen } from '@features/business/screens/BusinessReviewsReputationScreen';
 import { BusinessNotificationsCenterScreen } from '@features/business/screens/BusinessNotificationsCenterScreen';
 import { BusinessSubscriptionBillingScreen } from '@features/business/screens/BusinessSubscriptionBillingScreen';
@@ -70,6 +65,7 @@ import {
   useBusinessDashboard,
   useMyBusiness,
   usePosDashboard,
+  toStatNumber,
 } from '@features/business/hooks/useBusinessDashboardData';
 import { useActiveBranch } from '@features/business/hooks/useActiveBranch';
 import { branchPlanErrorMessage } from '@api/planErrors';
@@ -78,7 +74,84 @@ import {
   useCreateBranch,
   useUpdateBranch,
 } from '@features/business/hooks/useBranchMutations';
-import { useBusinessHubData } from '@features/business/hooks/useBusinessHubData';
+import {
+  useBusinessHubData,
+  useLoyaltyBusinessStats,
+} from '@features/business/hooks/useBusinessHubData';
+import { ApiError } from '@api/ApiError';
+import {
+  usePeripherals,
+  usePosSettings,
+  useUpdatePosSettings,
+} from '@features/business/hooks/usePos';
+import {
+  useDiscoveryPresence,
+  useUpdateDiscoverySetting,
+} from '@features/business/hooks/useBusinessNetwork';
+import { useUpdateBusinessProfile } from '@features/business/hooks/useUpdateBusinessProfile';
+import { toSettingsView } from '@features/business/utils/settingsMappers';
+import { useOfflineQueueStore } from '@store/offlineQueueStore';
+import { POS_SALE_QUEUE_KIND } from '@features/business/services/posOfflineSales';
+import {
+  useInviteStaff,
+  useRemoveTeamMember,
+  useResendTeamInvite,
+  useTeamMembers,
+} from '@features/business/hooks/useTeam';
+import type { InviteStaffInput } from '@api/teamApi';
+import {
+  useBranchRewards,
+  useBusinessPointLogs,
+  useCreateReward,
+  useDeleteReward,
+  useLoyaltyRules,
+  useUpdateLoyaltyRules,
+  useUpdateReward,
+} from '@features/business/hooks/useLoyalty';
+import {
+  useBusinessReviews,
+  useBusinessReviewsSummary,
+  useModerateBusinessReview,
+  useReplyToBusinessReview,
+} from '@features/business/hooks/useBusinessReviews';
+import {
+  useBusinessProductComments,
+  useBusinessProductCommentsSummary,
+  useRemoveProductComment,
+  useReplyToProductComment,
+} from '@features/business/hooks/useBusinessProductComments';
+import type { ProductCommentReplyFilter } from '@api/productCommentsApi';
+import type { BusinessReviewStatus } from '@api/dealsApi';
+import {
+  useAskSupportBot,
+  useCreateSupportTicket,
+  useReplySupportTicket,
+  useSupportFaqs,
+  useSupportTicket,
+  useSupportTickets,
+} from '@features/business/hooks/useSupport';
+import {
+  presentLoyaltyProgramme,
+  presentRewards,
+} from '@features/business/utils/loyaltyMappers';
+import {
+  presentBusinessReviews,
+  presentProductComments,
+  REVIEW_SOURCES,
+  type ReviewSource,
+  type ReviewFilterKey,
+} from '@features/business/utils/reviewMappers';
+import {
+  presentSupportTickets,
+  presentSupportTree,
+  presentTicketThread,
+} from '@features/business/utils/supportMappers';
+import {
+  inviteFormToInput,
+  presentStaffDirectory,
+  type InviteStaffForm,
+  type StaffFilterKey,
+} from '@features/business/utils/teamMappers';
 import {
   useBusinessThreadMessages,
   useBusinessThreads,
@@ -153,27 +226,7 @@ import {
 } from '@features/business/utils/catalogueHubRowMappers';
 import { endSession } from '@features/auth/endSession';
 import { navigationRef } from '@navigation/navigationRef';
-import {
-  BusinessAnalyticsVemtapIntelligenceScreen,
-  CustomersAnalyticsVemtapIntelligenceScreen,
-  DealsAnalyticsVemtapIntelligenceScreen,
-  LocationsAnalyticsVemtapIntelligenceScreen,
-  PosAnalyticsVemtapIntelligenceScreen,
-  AnalyticsFilterSettingsSheet,
-  ExportAnalyticsReportScreen,
-} from '@features/business/screens';
-import { BusinessQrScreen } from '@features/business/screens/BusinessQrScreen';
-import { LocationQrScreen } from '@features/business/screens/LocationQrScreen';
-import { BusinessDiscoveryFeedScreen } from '@features/business/screens/BusinessDiscoveryFeedScreen';
 import { BusinessMoreHubOperationsScreen } from '@features/business/screens/BusinessMoreHubOperationsScreen';
-import { BusinessNetworkIntroHubScreen } from '@features/business/screens/BusinessNetworkIntroHubScreen';
-import { MyBusinessNetworkScreen } from '@features/business/screens/MyBusinessNetworkScreen';
-import { NetworkMilestonesScreen } from '@features/business/screens/NetworkMilestonesScreen';
-import { BusinessNetworkInfoScreen } from '@features/business/screens/BusinessNetworkInfoScreen';
-import { MyReferralsScreen } from '@features/business/screens/MyReferralsScreen';
-import { ReferralDetailScreen } from '@features/business/screens/ReferralDetailScreen';
-import { BusinessNetworkActiveDashboardScreen } from '@features/business/screens/BusinessNetworkActiveDashboardScreen';
-import { InviteABusinessSheet } from '@features/business/screens/InviteABusinessSheet';
 import { TypeDensityProvider } from '@theme/TypeDensityProvider';
 import { useSwitchRole } from '@features/auth/hooks/useSwitchRole';
 import {
@@ -252,6 +305,29 @@ import {
   StaffPermissionsPasscodesRoute,
   TaxesSurchargesRoute,
 } from './posRoutes';
+import {
+  AnalyticsExportReportRoute,
+  BranchComparisonRoute,
+  BusinessAnalyticsRoute,
+  BusinessCustomerIntelligenceRoute,
+  BusinessPerformanceAnalyticsRoute,
+  CustomersAnalyticsRoute,
+  DealsAnalyticsRoute,
+  LocationsAnalyticsRoute,
+  PosAnalyticsRoute,
+} from './analyticsRoutes';
+import { BusinessQrRoute, LocationQrRoute } from './qrRoutes';
+import { CustomerCrmDirectoryRoute, CustomerProfileDossierRoute } from './crmRoutes';
+import {
+  BusinessDiscoveryFeedRoute,
+  BusinessNetworkDashboardRoute,
+  BusinessNetworkInfoRoute,
+  BusinessNetworkIntroHubRoute,
+  MyBusinessNetworkRoute,
+  MyReferralsRoute,
+  NetworkMilestonesRoute,
+  ReferralDetailRoute,
+} from './networkRoutes';
 import {
   ServiceAvailabilityStep,
   ServiceBasicsStep,
@@ -1789,96 +1865,288 @@ function WuseBranchDetailsRoute() {
   );
 }
 
-function CustomerCrmDirectoryRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <CustomerCrmDirectoryScreen
-      onNotifications={() => navigation.navigate('BusinessNotifications')}
-      onScanCode={() => undefined}
-      onSearch={() => undefined}
-      onFilter={() => undefined}
-      onChangeScope={() => undefined}
-      onExport={() => undefined}
-      onMessageCustomer={() => undefined}
-      onViewProfile={() => navigation.navigate('CustomerProfileDossier')}
-      onOpenAnalytics={() => undefined}
-    />
-  );
-}
-
-function CustomerProfileDossierRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <CustomerProfileDossierScreen
-      onBack={navigation.goBack}
-      onMoreActions={() => undefined}
-      onCall={() => undefined}
-      onCopyEmail={() => undefined}
-      onSendMessage={() => undefined}
-      onCustomDeal={() => undefined}
-      onLogVisit={() => undefined}
-      onViewOrder={() => undefined}
-      onViewVoucher={() => undefined}
-      onAddNote={() => undefined}
-    />
-  );
-}
-
 function LoyaltyProgrammeRoute() {
   const navigation = useBusinessNavigation();
+  const { branches, activeBranchId, setActiveBranch } = useActiveBranch();
+  const myBusiness = useMyBusiness();
+  /**
+   * Rules are read for the branch the picker is scoped to, so the programme
+   * edits the row the owner is looking at — the same scope the rest of the app
+   * uses (`useActiveBranch`), not a second selection that could drift from it.
+   */
+  const rules = useLoyaltyRules(activeBranchId);
+  const stats = useLoyaltyBusinessStats(activeBranchId);
+  const activity = useBusinessPointLogs(myBusiness.data?.id);
+  const updateRules = useUpdateLoyaltyRules(activeBranchId);
+  const copy = strings.loyaltyProgramme;
+
+  const view = useMemo(
+    () =>
+      rules.data
+        ? presentLoyaltyProgramme({
+            rule: rules.data,
+            businessName: myBusiness.data?.name,
+            stats: stats.data,
+            branches,
+            logs: activity.data?.data,
+          })
+        : undefined,
+    [rules.data, myBusiness.data?.name, stats.data, activity.data, branches],
+  );
+
+  const reportFailure = useCallback(
+    (error: unknown) =>
+      showError(error instanceof Error ? error.message : copy.error.title),
+    [copy.error.title],
+  );
+
   return (
     <LoyaltyProgrammeConfigurationScreen
+      view={view}
+      scope={activeBranchId}
+      isLoading={rules.isLoading}
+      isError={rules.isError}
+      onRetry={() => void rules.refetch()}
       onNotifications={() => navigation.navigate('BusinessNotifications')}
-      onChangeBranch={() => undefined}
-      onSave={() => undefined}
-      onPreviewPass={() => undefined}
-      onViewPass={() => undefined}
-      onAddRule={() => undefined}
-      onEditRule={() => navigation.navigate('LoyaltyRewards')}
+      onChangeScope={setActiveBranch}
+      onToggleEnabled={enabled =>
+        updateRules.mutate(
+          { isActive: enabled },
+          { onSuccess: () => showSuccess(copy.saved), onError: reportFailure },
+        )
+      }
+      onSaveRules={patch =>
+        updateRules.mutate(patch, {
+          onSuccess: () => showSuccess(copy.saved),
+          onError: reportFailure,
+        })
+      }
+      onTabChange={key => {
+        if (key === 'rewards') navigation.navigate('LoyaltyRewards');
+      }}
     />
   );
 }
 
 function LoyaltyRewardsRoute() {
   const navigation = useBusinessNavigation();
+  const { branches, activeBranchId } = useActiveBranch();
+  const myBusiness = useMyBusiness();
+  const rewards = useBranchRewards(activeBranchId);
+  const activity = useBusinessPointLogs(myBusiness.data?.id);
+  const createReward = useCreateReward();
+  const updateReward = useUpdateReward(activeBranchId);
+  const deleteReward = useDeleteReward();
+  const copy = strings.loyaltyRewards;
+
+  const view = useMemo(
+    () =>
+      rewards.data
+        ? presentRewards({
+            rewards: rewards.data,
+            logs: activity.data?.data,
+            branches,
+            activeBranchId,
+          })
+        : undefined,
+    [rewards.data, activity.data, branches, activeBranchId],
+  );
+
+  const reportFailure = useCallback(
+    (error: unknown) =>
+      showError(error instanceof Error ? error.message : copy.error.title),
+    [copy.error.title],
+  );
+
   return (
     <LoyaltyRewardsRulesScreen
+      view={view}
+      isLoading={rewards.isLoading}
+      isError={rewards.isError}
+      onRetry={() => void rewards.refetch()}
       onBack={navigation.goBack}
       onMoreActions={() => undefined}
-      onEditRules={() => undefined}
-      onTogglePause={() => undefined}
-      onEditPolicies={() => undefined}
-      onViewLedger={() => undefined}
+      onCreateReward={input =>
+        createReward.mutate(input, {
+          onSuccess: () => showSuccess(copy.createdToast),
+          onError: reportFailure,
+        })
+      }
+      onEditReward={(rewardId, patch) =>
+        updateReward.mutate(
+          { rewardId, patch },
+          {
+            onSuccess: () => showSuccess(copy.savedToast),
+            onError: reportFailure,
+          },
+        )
+      }
+      onTogglePause={(rewardId, next) =>
+        updateReward.mutate(
+          { rewardId, patch: { isActive: next } },
+          {
+            onSuccess: () => showSuccess(copy.savedToast),
+            onError: reportFailure,
+          },
+        )
+      }
+      onDeleteReward={rewardId =>
+        deleteReward.mutate(rewardId, {
+          onSuccess: () => showSuccess(copy.removedToast),
+          onError: reportFailure,
+        })
+      }
     />
   );
 }
 
 function StaffDirectoryRoute() {
   const navigation = useBusinessNavigation();
+  const { activeBranchId, branches } = useActiveBranch();
+  const user = useAuthStore(state => state.user);
+  const [scope, setScope] = useState<string>('all');
+  const [filter, setFilter] = useState<StaffFilterKey>('all');
+  const allBranches = scope === 'all';
+  const team = useTeamMembers(allBranches ? { allBranches: true } : { branchId: scope });
+  const resend = useResendTeamInvite();
+  const removeMember = useRemoveTeamMember();
+  const copy = strings.staffDirectory;
+
+  const branchOptions = useMemo(
+    () => branches.map(branch => ({ id: branch.id, name: branch.name })),
+    [branches],
+  );
+
+  const view = useMemo(
+    () =>
+      team.data
+        ? presentStaffDirectory({
+            members: team.data,
+            branches: branchOptions,
+            currentUserId: user?.id,
+          })
+        : undefined,
+    [team.data, branchOptions, user?.id],
+  );
+
+  /**
+   * Writes scope to the row's own branch, not to the viewer's scope: the
+   * backend looks the member up with `{ id, branchId }`, so an owner reading
+   * "All Locations" would get a 404 from their own branch id.
+   */
+  const branchIdOf = useCallback(
+    (memberId: string) =>
+      team.data?.find(member => member.id === memberId)?.branchId || activeBranchId || '',
+    [team.data, activeBranchId],
+  );
+
+  const reportFailure = useCallback(
+    (error: unknown) =>
+      showError(error instanceof Error ? error.message : copy.error.title),
+    [copy.error.title],
+  );
+
+  const confirmRemove = useCallback(
+    (memberId: string) => {
+      Alert.alert(copy.removeTitle, copy.removeBody, [
+        { text: copy.removeKeep, style: 'cancel' },
+        {
+          text: copy.removeConfirm,
+          style: 'destructive',
+          onPress: () =>
+            removeMember.mutate(
+              { memberId, branchId: branchIdOf(memberId) },
+              {
+                onSuccess: () => showSuccess(copy.removed),
+                onError: reportFailure,
+              },
+            ),
+        },
+      ]);
+    },
+    [copy, removeMember, branchIdOf, reportFailure],
+  );
+
   return (
     <StaffTeamAccessDirectoryScreen
+      view={view}
+      scope={scope}
+      filter={filter}
+      isLoading={team.isLoading}
+      isError={team.isError}
+      onRetry={() => void team.refetch()}
       onNotifications={() => navigation.navigate('BusinessNotifications')}
-      onChangeScope={() => undefined}
+      onChangeScope={setScope}
+      onFilterChange={setFilter}
       onInvite={() => navigation.navigate('InviteStaff')}
-      onOpenPermissions={() => navigation.navigate('InviteStaff')}
-      onAssignBranch={() => undefined}
-      onViewPayout={() => undefined}
-      onResendInvite={() => undefined}
-      onCancelInvite={() => undefined}
-      onMoreMemberOptions={() => undefined}
+      onOpenPermissions={memberId => {
+        const member = team.data?.find(row => row.id === memberId);
+        Alert.alert(
+          [member?.firstName, member?.lastName].filter(Boolean).join(' '),
+          member?.permissions.length
+            ? member.permissions.join(' · ')
+            : copy.permissionsGrantedNone,
+        );
+      }}
+      onResendInvite={memberId =>
+        resend.mutate(
+          { memberId, branchId: branchIdOf(memberId) },
+          {
+            onSuccess: () => showSuccess(copy.resentToast),
+            onError: reportFailure,
+          },
+        )
+      }
+      onCancelInvite={confirmRemove}
+      onMoreMemberOptions={confirmRemove}
     />
   );
 }
 
 function InviteStaffRoute() {
   const navigation = useBusinessNavigation();
+  const { activeBranchId, branches } = useActiveBranch();
+  const invite = useInviteStaff();
+  const copy = strings.inviteStaff;
+
+  const branchOptions = useMemo(
+    () => branches.map(branch => ({ id: branch.id, name: branch.name })),
+    [branches],
+  );
+
+  const sendError = invite.error
+    ? invite.error instanceof ApiError
+      ? invite.error.message
+      : strings.errors.server
+    : null;
+
+  const send = (form: InviteStaffForm) => {
+    let input: InviteStaffInput;
+    try {
+      input = inviteFormToInput(form);
+    } catch {
+      showError(copy.errors.form);
+      return;
+    }
+
+    invite.mutate(input, {
+      onSuccess: () => {
+        showSuccess(copy.sent);
+        navigation.goBack();
+      },
+    });
+  };
+
   return (
     <InviteStaffPermissionsScreen
+      branches={branchOptions}
+      defaultBranchId={activeBranchId}
+      isSending={invite.isPending}
+      sendError={sendError}
+      onSend={send}
       onBack={navigation.goBack}
-      onMoreActions={() => undefined}
-      onSend={navigation.goBack}
       onCancel={navigation.goBack}
-      onChangeBranch={() => undefined}
+      onMoreActions={() => undefined}
     />
   );
 }
@@ -1886,44 +2154,6 @@ function InviteStaffRoute() {
 /* -------------------------------------------------------------------------- */
 /* Analytics & intelligence routes (Business hub)                            */
 /* -------------------------------------------------------------------------- */
-
-function BusinessCustomerIntelligenceRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <CustomerIntelligenceAnalyticsScreen
-      onBack={navigation.goBack}
-      onMoreOptions={() => undefined}
-      onOpenSegment={() => undefined}
-      onOpenCustomer={() => navigation.navigate('CustomerCrmDirectory')}
-      onViewAllCustomers={() => navigation.navigate('CustomerCrmDirectory')}
-      onOpenLoyalty={() => navigation.navigate('LoyaltyProgramme')}
-      onCreateDeal={() => navigation.navigate('CreateDealLocationAssignment')}
-      onExport={() => undefined}
-      onOpenLoyaltyProgramme={() => navigation.navigate('LoyaltyProgramme')}
-      onOpenDeals={() => navigation.navigate('CentralDealsManagement')}
-    />
-  );
-}
-
-function BusinessPerformanceAnalyticsRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <BusinessAnalyticsPerformanceScreen
-      onBack={navigation.goBack}
-      onMoreOptions={() => undefined}
-      onOpenTab={tabKey =>
-        tabKey === 'customers'
-          ? navigation.navigate('BusinessCustomerIntelligence')
-          : tabKey === 'locations'
-            ? navigation.navigate('BranchComparison')
-            : undefined
-      }
-      onSwitchReport={() => undefined}
-      onOpenItem={() => navigation.navigate('CentralCatalogue')}
-      onOpenStaff={() => navigation.navigate('StaffDirectory')}
-    />
-  );
-}
 
 /**
  * `central_deals_management_2` — the flash-radar treatment. Separate destination
@@ -1989,29 +2219,118 @@ function BusinessHubCatalogueRoute() {
   );
 }
 
-function BranchComparisonRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <LocationsBranchComparisonScreen
-      onBack={navigation.goBack}
-      onChangeBranchFilter={() => navigation.navigate('LocationsBranches')}
-      onOpenBranch={() => navigation.navigate('WuseBranchDetails')}
-      onExport={() => undefined}
-    />
-  );
-}
-
 function BusinessReviewsReputationRoute() {
   const navigation = useBusinessNavigation();
+  const requestedSource =
+    useRoute<RouteProp<BusinessTabParamList, 'BusinessReviewsReputation'>>().params
+      ?.source;
+  /**
+   * Deal reviews and product comments share one screen. Each keeps its own
+   * filter, because each filter is a query: "Pending" asks for the moderation
+   * queue, "Needs reply" for the unanswered comments.
+   */
+  const [source, setSource] = useState<ReviewSource>(requestedSource ?? 'deals');
+  // A notification tap can land here while the screen is already open.
+  useEffect(() => {
+    if (requestedSource) setSource(requestedSource);
+  }, [requestedSource]);
+  const [dealFilter, setDealFilter] = useState<ReviewFilterKey>('all');
+  const [productFilter, setProductFilter] = useState<ProductCommentReplyFilter>('all');
+  const onDeals = source === 'deals';
+
+  const reviews = useBusinessReviews(
+    dealFilter === 'all' ? undefined : (dealFilter as BusinessReviewStatus),
+  );
+  const summary = useBusinessReviewsSummary();
+  const moderate = useModerateBusinessReview();
+  const reply = useReplyToBusinessReview();
+  const comments = useBusinessProductComments(productFilter, !onDeals);
+  const commentSummary = useBusinessProductCommentsSummary(!onDeals);
+  const replyToComment = useReplyToProductComment();
+  const removeComment = useRemoveProductComment();
+  const copy = strings.businessReviewsReputation;
+
+  const list = onDeals ? reviews : comments;
+  const totals = onDeals ? summary : commentSummary;
+  const activeReply = onDeals ? reply : replyToComment;
+
+  // Both endpoints have to answer: the score comes from the summary, the rows
+  // from the list, and a business with no reviews yet still deserves the empty
+  // state rather than an error.
+  const view = useMemo(() => {
+    if (onDeals) {
+      return reviews.data && summary.data
+        ? presentBusinessReviews({
+            reviews: reviews.data,
+            summary: summary.data,
+            filter: dealFilter,
+          })
+        : undefined;
+    }
+    return comments.data && commentSummary.data
+      ? presentProductComments({
+          comments: comments.data,
+          summary: commentSummary.data,
+          filter: productFilter,
+        })
+      : undefined;
+  }, [
+    onDeals,
+    reviews.data,
+    summary.data,
+    dealFilter,
+    comments.data,
+    commentSummary.data,
+    productFilter,
+  ]);
+
+  const reportFailure = useCallback(
+    (error: unknown) =>
+      showError(error instanceof Error ? error.message : copy.error.title),
+    [copy.error.title],
+  );
+
   return (
     <BusinessReviewsReputationScreen
+      view={view}
+      sources={REVIEW_SOURCES}
+      source={source}
+      onChangeSource={setSource}
+      filter={onDeals ? dealFilter : productFilter}
+      onChangeFilter={key =>
+        onDeals ? setDealFilter(key) : setProductFilter(key as ProductCommentReplyFilter)
+      }
+      isLoading={list.isLoading || totals.isLoading}
+      isError={list.isError || totals.isError}
+      onRetry={() => {
+        void list.refetch();
+        void totals.refetch();
+      }}
       onBack={navigation.goBack}
-      onOpenProfile={() => undefined}
-      onApplyFilter={() => undefined}
-      onReply={() => undefined}
-      onSendThankYouPerk={() => undefined}
-      onExport={() => undefined}
-      onConfigureRequests={() => undefined}
+      onModerate={(reviewId, action) => {
+        if (onDeals) {
+          moderate.mutate({ reviewId, action }, { onError: reportFailure });
+        } else if (action === 'delete') {
+          removeComment.mutate(reviewId, { onError: reportFailure });
+        }
+      }}
+      onReply={(reviewId, text) => {
+        if (onDeals) {
+          reply.reset();
+          reply.mutate({ reviewId, reply: text });
+        } else {
+          replyToComment.reset();
+          replyToComment.mutate({ commentId: reviewId, reply: text });
+        }
+      }}
+      isReplying={activeReply.isPending}
+      replyError={
+        activeReply.error
+          ? activeReply.error instanceof ApiError
+            ? activeReply.error.message
+            : copy.replyFailed
+          : null
+      }
     />
   );
 }
@@ -2056,6 +2375,13 @@ function BusinessNotificationsRoute() {
       navigation.navigate('BusinessMessages', {
         screen: 'BusinessConversation',
         params: { threadId: target.id },
+      });
+      return;
+    }
+    if (target?.kind === 'reviews') {
+      navigation.navigate('BusinessHub', {
+        screen: 'BusinessReviewsReputation',
+        params: { source: target.source },
       });
     }
   };
@@ -2219,30 +2545,168 @@ function BusinessVerificationTrustRoute() {
 
 function BusinessSupportHelpRoute() {
   const navigation = useBusinessNavigation();
+  /**
+   * The search term and the open ticket are route state, not screen state: both
+   * of them decide which query runs (the FAQ key carries the search, the thread
+   * is only fetched for the ticket that is open).
+   */
+  const [search, setSearch] = useState('');
+  const [openTicketId, setOpenTicketId] = useState<string | null>(null);
+  const [botAnswer, setBotAnswer] = useState<{ body: string; source: string } | null>(
+    null,
+  );
+
+  const tree = useSupportFaqs(search.trim() || undefined);
+  const tickets = useSupportTickets();
+  const thread = useSupportTicket(openTicketId);
+  const createTicket = useCreateSupportTicket();
+  const reply = useReplySupportTicket();
+  const askBot = useAskSupportBot();
+  const copy = strings.businessSupportHelp;
+
+  const view = useMemo(
+    () =>
+      tree.data
+        ? {
+            tree: presentSupportTree({
+              tree: tree.data,
+              search: search.trim() || undefined,
+            }),
+            tickets: presentSupportTickets(tickets.data),
+            thread: openTicketId ? presentTicketThread(thread.data) : null,
+          }
+        : undefined,
+    [tree.data, tickets.data, thread.data, openTicketId, search],
+  );
+
+  const reportFailure = useCallback(
+    (error: unknown) =>
+      showError(error instanceof Error ? error.message : copy.error.title),
+    [copy.error.title],
+  );
+
   return (
     <BusinessSupportHelpScreen
+      tree={view?.tree}
+      tickets={view?.tickets}
+      thread={view?.thread}
+      threadLoading={thread.isLoading}
+      botAnswer={botAnswer}
+      botPending={askBot.isPending}
+      botFailed={askBot.isError}
+      isLoading={tree.isLoading || tickets.isLoading}
+      isError={tree.isError || tickets.isError}
+      onRetry={() => {
+        void tree.refetch();
+        void tickets.refetch();
+      }}
       onBack={navigation.goBack}
-      onOpenProfile={() => undefined}
-      onOpenChannel={() => undefined}
-      onScheduleCall={() => undefined}
-      onStartChat={() => undefined}
-      onOpenCategory={() => undefined}
-      onOpenArticle={() => undefined}
-      onBookTechnician={() => undefined}
+      onSearch={setSearch}
+      onAskBot={query => {
+        setBotAnswer(null);
+        askBot.mutate(
+          { query },
+          {
+            onSuccess: response =>
+              setBotAnswer({ body: response.content, source: response.source }),
+            onError: reportFailure,
+          },
+        );
+      }}
+      onCreateTicket={input => createTicket.mutate(input, { onError: reportFailure })}
+      onReply={(ticketId, message) =>
+        reply.mutate({ ticketId, message }, { onError: reportFailure })
+      }
+      onOpenTicket={setOpenTicketId}
+      onCloseThread={() => setOpenTicketId(null)}
     />
   );
 }
 
 function BusinessSettingsRoute() {
   const navigation = useBusinessNavigation();
+  const copy = strings.businessSettings;
+  const user = useAuthStore(state => state.user);
+  const { branches, activeBranchId } = useActiveBranch();
+  const myBusiness = useMyBusiness();
+  const posSettings = usePosSettings();
+  const discovery = useDiscoveryPresence();
+  const peripherals = usePeripherals(activeBranchId);
+  const updatePos = useUpdatePosSettings();
+  const updateDiscovery = useUpdateDiscoverySetting();
+  const updateBusiness = useUpdateBusinessProfile();
+  const [notice, setNotice] = useState<string | null>(null);
+  const isOwner = String(user?.role ?? '').toLowerCase() === 'owner';
+
+  const view = useMemo(
+    () =>
+      myBusiness.data
+        ? toSettingsView({
+            business: myBusiness.data,
+            branchName:
+              branches.find(branch => branch.id === activeBranchId)?.name ?? null,
+            pos: posSettings.data ?? null,
+            discovery: discovery.data?.settings ?? null,
+            peripherals: peripherals.data?.data ?? [],
+            ownerEmail: user?.email ?? '',
+            twoFactorEnabled: Boolean(user?.twoFactorEnabled),
+          })
+        : undefined,
+    [
+      myBusiness.data,
+      branches,
+      activeBranchId,
+      posSettings.data,
+      discovery.data,
+      peripherals.data,
+      user?.email,
+      user?.twoFactorEnabled,
+    ],
+  );
+
+  const fail = (error: unknown) =>
+    setNotice(error instanceof ApiError ? error.message : copy.saveFailed);
+
   return (
     <BusinessSettingsScreen
+      view={view}
+      isError={myBusiness.isError}
+      onRetry={() => void myBusiness.refetch()}
+      canEdit={isOwner}
+      notice={notice}
       onBack={navigation.goBack}
-      onOpenProfile={() => undefined}
-      onChangeBranch={() => undefined}
-      onChangeHours={() => undefined}
-      onOpenRow={() => undefined}
-      onToggleRow={() => undefined}
+      onChangeBranch={() => navigation.navigate('LocationsBranches')}
+      onChangeHours={() =>
+        navigation.navigate('WuseBranchDetails', {
+          branchId: activeBranchId ?? undefined,
+        })
+      }
+      onOpenHardware={() => navigation.navigate('PaymentHardwareSetup')}
+      onOpenSecurity={() => {
+        // Password and 2FA live on the account Settings screen, outside the
+        // business shell, so it is opened through the root navigator.
+        if (navigationRef?.isReady()) {
+          navigationRef.navigate('AppStack', { screen: 'Settings' });
+        }
+      }}
+      onToggle={(id, value) => {
+        setNotice(null);
+        if (id === 'refundRequiresPin' || id === 'voidRequiresPin') {
+          updatePos.mutate({ permissions: { [id]: value } }, { onError: fail });
+        } else if (id === 'selfOrderingEnabled' || id === 'printKitchenChits') {
+          updatePos.mutate({ [id]: value }, { onError: fail });
+        } else if (discovery.data) {
+          updateDiscovery.mutate(
+            { branchId: discovery.data.branch.id, patch: { [id]: value } },
+            { onError: fail },
+          );
+        }
+      }}
+      onSetLive={live => {
+        setNotice(null);
+        updateBusiness.mutate({ isVisible: live }, { onError: fail });
+      }}
+      onSignOut={signOut}
     />
   );
 }
@@ -2303,151 +2767,6 @@ function SwitchToCustomerRoute() {
 /* -------------------------------------------------------------------------- */
 
 /** Route → analytics tab key, so the shell's nav strip stays in sync. */
-const analyticsTabByRoute: Record<string, string> = {
-  BusinessAnalytics: 'business',
-  CustomersAnalytics: 'customers',
-  DealsAnalytics: 'deals',
-  LocationsAnalytics: 'locations',
-  PosAnalytics: 'pos',
-};
-
-function BusinessAnalyticsRoute() {
-  const navigation = useBusinessNavigation();
-  const [filterOpen, setFilterOpen] = useState(false);
-  const openExport = () => navigation.navigate('AnalyticsExportReport');
-  return (
-    <View className="flex-1">
-      <BusinessAnalyticsVemtapIntelligenceScreen
-        onBack={navigation.goBack}
-        onMoreOptions={() => undefined}
-        onOpenFilters={() => setFilterOpen(true)}
-        onExport={openExport}
-        onTabChange={tabKey => {
-          const route = Object.keys(analyticsTabByRoute).find(
-            key => analyticsTabByRoute[key] === tabKey,
-          );
-          if (route) navigation.navigate(route as never);
-        }}
-      />
-      <AnalyticsFilterSettingsSheet
-        visible={filterOpen}
-        onClose={() => setFilterOpen(false)}
-        onApply={() => undefined}
-      />
-    </View>
-  );
-}
-
-function CustomersAnalyticsRoute() {
-  const navigation = useBusinessNavigation();
-  const [filterOpen, setFilterOpen] = useState(false);
-  return (
-    <View className="flex-1">
-      <CustomersAnalyticsVemtapIntelligenceScreen
-        onBack={navigation.goBack}
-        onMoreOptions={() => undefined}
-        onOpenFilters={() => setFilterOpen(true)}
-        onExport={() => navigation.navigate('AnalyticsExportReport')}
-        onTabChange={tabKey => {
-          const route = Object.keys(analyticsTabByRoute).find(
-            key => analyticsTabByRoute[key] === tabKey,
-          );
-          if (route) navigation.navigate(route as never);
-        }}
-      />
-      <AnalyticsFilterSettingsSheet
-        visible={filterOpen}
-        onClose={() => setFilterOpen(false)}
-        onApply={() => undefined}
-      />
-    </View>
-  );
-}
-
-function DealsAnalyticsRoute() {
-  const navigation = useBusinessNavigation();
-  const [filterOpen, setFilterOpen] = useState(false);
-  return (
-    <View className="flex-1">
-      <DealsAnalyticsVemtapIntelligenceScreen
-        onBack={navigation.goBack}
-        onMoreOptions={() => undefined}
-        onOpenFilters={() => setFilterOpen(true)}
-        onExport={() => navigation.navigate('AnalyticsExportReport')}
-        onTabChange={tabKey => {
-          const route = Object.keys(analyticsTabByRoute).find(
-            key => analyticsTabByRoute[key] === tabKey,
-          );
-          if (route) navigation.navigate(route as never);
-        }}
-      />
-      <AnalyticsFilterSettingsSheet
-        visible={filterOpen}
-        onClose={() => setFilterOpen(false)}
-        onApply={() => undefined}
-      />
-    </View>
-  );
-}
-
-function LocationsAnalyticsRoute() {
-  const navigation = useBusinessNavigation();
-  const [filterOpen, setFilterOpen] = useState(false);
-  return (
-    <View className="flex-1">
-      <LocationsAnalyticsVemtapIntelligenceScreen
-        onBack={navigation.goBack}
-        onMoreOptions={() => undefined}
-        onOpenFilters={() => setFilterOpen(true)}
-        onExport={() => navigation.navigate('AnalyticsExportReport')}
-        onTabChange={tabKey => {
-          const route = Object.keys(analyticsTabByRoute).find(
-            key => analyticsTabByRoute[key] === tabKey,
-          );
-          if (route) navigation.navigate(route as never);
-        }}
-      />
-      <AnalyticsFilterSettingsSheet
-        visible={filterOpen}
-        onClose={() => setFilterOpen(false)}
-        onApply={() => undefined}
-      />
-    </View>
-  );
-}
-
-function PosAnalyticsRoute() {
-  const navigation = useBusinessNavigation();
-  const [filterOpen, setFilterOpen] = useState(false);
-  return (
-    <View className="flex-1">
-      <PosAnalyticsVemtapIntelligenceScreen
-        onBack={navigation.goBack}
-        onMoreOptions={() => undefined}
-        onOpenFilters={() => setFilterOpen(true)}
-        onExport={() => navigation.navigate('AnalyticsExportReport')}
-        onTabChange={tabKey => {
-          const route = Object.keys(analyticsTabByRoute).find(
-            key => analyticsTabByRoute[key] === tabKey,
-          );
-          if (route) navigation.navigate(route as never);
-        }}
-      />
-      <AnalyticsFilterSettingsSheet
-        visible={filterOpen}
-        onClose={() => setFilterOpen(false)}
-        onApply={() => undefined}
-      />
-    </View>
-  );
-}
-
-function AnalyticsExportReportRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <ExportAnalyticsReportScreen onClose={navigation.goBack} onExport={() => undefined} />
-  );
-}
 
 /* -------------------------------------------------------------------------- */
 /* Boost routes                                                               */
@@ -2461,229 +2780,9 @@ function AnalyticsExportReportRoute() {
 /* Segment routes                                                             */
 /* -------------------------------------------------------------------------- */
 
-function BusinessQrRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <BusinessQrScreen
-      onBack={navigation.goBack}
-      onOpenNotifications={() => navigation.navigate('BusinessNotifications')}
-      onOpenSubTab={tabKey => {
-        if (tabKey === 'Analytics') navigation.navigate('BusinessPerformanceAnalytics');
-        if (tabKey === 'Hub') navigation.navigate('BusinessDiscoveryFeed');
-      }}
-      onShare={() => undefined}
-      onDownloadKit={() => undefined}
-      onOrderStandee={() => undefined}
-      onSendToSocials={() => undefined}
-      onCopyCode={() => undefined}
-      onSelectRouting={() => undefined}
-      onCustomizeStandee={() => undefined}
-      onOpenLocationQrs={() => navigation.navigate('LocationQr')}
-      onOpenProfile={() => undefined}
-    />
-  );
-}
-
-function LocationQrRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <LocationQrScreen
-      onBack={navigation.goBack}
-      onOpenNotifications={() => navigation.navigate('BusinessNotifications')}
-      onOpenSubTab={tabKey => {
-        if (tabKey === 'Analytics') navigation.navigate('BusinessPerformanceAnalytics');
-        if (tabKey === 'Hub') navigation.navigate('BusinessDiscoveryFeed');
-      }}
-      onNewPoint={() => undefined}
-      onFilterBranch={() => undefined}
-      onOpenPoint={() => undefined}
-      onViewTag={() => undefined}
-      onPrintSticker={() => undefined}
-      onShare={() => undefined}
-      onSavePng={() => undefined}
-      onExportAll={() => undefined}
-      onOrderAcrylics={() => undefined}
-      onOpenRule={() => undefined}
-      onOpenProfile={() => undefined}
-    />
-  );
-}
-
-function BusinessDiscoveryFeedRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <BusinessDiscoveryFeedScreen
-      onBack={navigation.goBack}
-      onOpenNotifications={() => navigation.navigate('BusinessNotifications')}
-      onOpenSubTab={tabKey => {
-        if (tabKey === 'Campaigns') navigation.navigate('CampaignsHub');
-        if (tabKey === 'QR & Tap') navigation.navigate('BusinessQr');
-        if (tabKey === 'Analytics') navigation.navigate('BusinessPerformanceAnalytics');
-      }}
-      onPreviewConsumerFeed={() => undefined}
-      onEditFeedCard={() => undefined}
-      onOpenIndexRow={() => undefined}
-      onToggleControl={() => undefined}
-      onOpenZone={() => undefined}
-      onBoostFeed={() => navigation.navigate('BoostEngine')}
-      onOpenProfile={() => undefined}
-    />
-  );
-}
-
 /* -------------------------------------------------------------------------- */
 /* Business Network routes                                                    */
 /* -------------------------------------------------------------------------- */
-
-function BusinessNetworkIntroHubRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <BusinessNetworkIntroHubScreen
-      onBack={navigation.goBack}
-      onOpenHelp={() => navigation.navigate('BusinessSupportHelp')}
-      onOpenProfile={() => undefined}
-      onOpenSubTab={tabKey => {
-        if (tabKey === 'Boost') navigation.navigate('BoostEngine');
-        if (tabKey === 'Campaigns') navigation.navigate('CampaignsHub');
-        if (tabKey === 'Segments') navigation.navigate('CustomerSegments');
-      }}
-      onGetReferralLink={() => navigation.navigate('MyBusinessNetwork')}
-      onReadMore={() => navigation.navigate('BusinessNetworkInfo')}
-      onOpenNearby={() => undefined}
-    />
-  );
-}
-
-function MyBusinessNetworkRoute() {
-  const navigation = useBusinessNavigation();
-  const [inviteOpen, setInviteOpen] = useState(false);
-  return (
-    <>
-      <MyBusinessNetworkScreen
-        onBack={navigation.goBack}
-        onOpenSearch={() => undefined}
-        onOpenProfile={() => undefined}
-        onOpenSubTab={tabKey => {
-          if (tabKey === 'Deals') navigation.navigate('CentralDealsManagement');
-          if (tabKey === 'Manage') navigation.navigate('MyReferrals');
-        }}
-        onCopyLink={() => undefined}
-        onShareLink={() => setInviteOpen(true)}
-        onQuickShare={() => setInviteOpen(true)}
-        onScan={() => undefined}
-        onOpenMilestones={() => navigation.navigate('NetworkMilestones')}
-        onOpenPartner={() => navigation.navigate('MyReferrals')}
-        onViewAllPartners={() => navigation.navigate('MyReferrals')}
-        onOpenHowItWorks={() => navigation.navigate('BusinessNetworkInfo')}
-      />
-      <InviteABusinessSheet
-        visible={inviteOpen}
-        onClose={() => setInviteOpen(false)}
-        onCopyMessage={() => undefined}
-        onCopyLink={() => undefined}
-        onShareDevice={() => undefined}
-        onShareChannel={() => undefined}
-      />
-    </>
-  );
-}
-
-function NetworkMilestonesRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <NetworkMilestonesScreen
-      onBack={navigation.goBack}
-      onOpenInfo={() => navigation.navigate('BusinessNetworkInfo')}
-      onOpenProfile={() => undefined}
-      onOpenSubTab={tabKey => {
-        if (tabKey === 'Network') navigation.navigate('BusinessNetworkDashboard');
-        if (tabKey === 'Partners') navigation.navigate('MyReferrals');
-      }}
-      onOpenMilestone={() => undefined}
-    />
-  );
-}
-
-function BusinessNetworkInfoRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <BusinessNetworkInfoScreen
-      onBack={navigation.goBack}
-      onOpenHelp={() => navigation.navigate('BusinessSupportHelp')}
-      onOpenProfile={() => undefined}
-      onOpenStep={() => undefined}
-      onGetLink={() => navigation.navigate('MyBusinessNetwork')}
-      onBackToNetwork={() => navigation.goBack()}
-    />
-  );
-}
-
-function MyReferralsRoute() {
-  const navigation = useBusinessNavigation();
-  const [inviteOpen, setInviteOpen] = useState(false);
-  return (
-    <>
-      <MyReferralsScreen
-        onBack={navigation.goBack}
-        onOpenFilter={() => undefined}
-        onOpenProfile={() => undefined}
-        onApplyFilter={() => undefined}
-        onSearch={() => undefined}
-        onOpenReferral={referralId =>
-          navigation.navigate('ReferralDetail', { referralId })
-        }
-        onInvite={() => setInviteOpen(true)}
-      />
-      <InviteABusinessSheet
-        visible={inviteOpen}
-        onClose={() => setInviteOpen(false)}
-        onCopyMessage={() => undefined}
-        onCopyLink={() => undefined}
-        onShareDevice={() => undefined}
-        onShareChannel={() => undefined}
-      />
-    </>
-  );
-}
-
-function ReferralDetailRoute() {
-  const navigation = useBusinessNavigation();
-  const route = useRoute<RouteProp<BusinessTabParamList, 'ReferralDetail'>>();
-  return (
-    <ReferralDetailScreen
-      referralId={route.params?.referralId}
-      onBack={navigation.goBack}
-      onShare={() => undefined}
-      onMoreOptions={() => undefined}
-      onSendMessage={() => navigation.navigate('BusinessMessages')}
-      onViewBusiness={() =>
-        navigation.navigate('BusinessHub', { screen: 'BusinessHubHome' })
-      }
-    />
-  );
-}
-
-function BusinessNetworkDashboardRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <BusinessNetworkActiveDashboardScreen
-      onBack={navigation.goBack}
-      onOpenProfile={() => undefined}
-      onOpenSubTab={tabKey => {
-        if (tabKey === 'Promos') navigation.navigate('CampaignsHub');
-        if (tabKey === 'Partners') navigation.navigate('MyReferrals');
-        if (tabKey === 'Analytics') navigation.navigate('BusinessPerformanceAnalytics');
-      }}
-      onShareLink={() => navigation.navigate('MyBusinessNetwork')}
-      onOpenConnection={referralId =>
-        navigation.navigate('ReferralDetail', { referralId })
-      }
-      onViewAllReferrals={() => navigation.navigate('MyReferrals')}
-      onOpenMilestones={() => navigation.navigate('NetworkMilestones')}
-      onOpenHowItWorks={() => navigation.navigate('BusinessNetworkInfo')}
-    />
-  );
-}
 
 /* -------------------------------------------------------------------------- */
 /* Operations hub + offline POS home                                          */
@@ -2733,6 +2832,24 @@ const signOut = () => {
 
 function BusinessMoreHubOperationsRoute() {
   const navigation = useBusinessNavigation();
+  const { activeBranchId } = useActiveBranch();
+  const catalogue = useBusinessCatalogue({ limit: 1 });
+  const posDashboard = usePosDashboard(activeBranchId);
+  const queuedSales = useOfflineQueueStore(
+    state => state.queue.filter(item => item.kind === POS_SALE_QUEUE_KIND).length,
+  );
+  const hints = strings.businessOpsHubHints;
+  const tileHints = {
+    ...(catalogue.data ? { products: hints.skus(String(catalogue.data.total)) } : {}),
+    ...(posDashboard.data
+      ? {
+          transactions: hints.today(
+            String(toStatNumber(posDashboard.data.transactionCount) ?? 0),
+          ),
+        }
+      : {}),
+    offline: queuedSales > 0 ? hints.offlineQueued(queuedSales) : hints.offlineReady,
+  };
 
   // Tile id -> the tab and screen that own it.
   /*
@@ -2840,6 +2957,7 @@ function BusinessMoreHubOperationsRoute() {
 
   return (
     <BusinessMoreHubOperationsScreen
+      tileHints={tileHints}
       onBack={navigation.goBack}
       onOpenNotifications={() => navigation.navigate('BusinessNotifications')}
       onOpenProfile={() => undefined}

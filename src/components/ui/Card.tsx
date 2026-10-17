@@ -12,16 +12,11 @@ export interface CardProps extends ViewProps {
 }
 
 /** Surface card: white, 1px border, design-system radius + ambient shadow. */
-export function Card({
-  className,
-  children,
-  elevated = false,
-  ...rest
-}: CardProps) {
+export function Card({ className, children, elevated = false, ...rest }: CardProps) {
   return (
     <View
       className={cn(
-        'rounded-card-lg bg-surface border border-border p-4',
+        'rounded-card-lg border border-border bg-surface p-4',
         elevated && 'shadow-md',
         className,
       )}

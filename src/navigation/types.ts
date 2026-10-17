@@ -106,7 +106,7 @@ export type BusinessStackParamList = {
   LocationsBranches: undefined;
   WuseBranchDetails: { branchId?: string } | undefined;
   CustomerCrmDirectory: undefined;
-  CustomerProfileDossier: undefined;
+  CustomerProfileDossier: { customerId?: string } | undefined;
   LoyaltyProgramme: undefined;
   LoyaltyRewards: undefined;
   StaffDirectory: undefined;
@@ -115,7 +115,8 @@ export type BusinessStackParamList = {
   BusinessCustomerIntelligence: undefined;
   BusinessPerformanceAnalytics: undefined;
   BranchComparison: undefined;
-  BusinessReviewsReputation: undefined;
+  /** `source` opens on deal reviews or product comments; deals by default. */
+  BusinessReviewsReputation: { source?: 'deals' | 'products' } | undefined;
   /** Customer-facing table surfaces, reached from the POS register. */
   CustomerDisplayOrder: { tillId?: string } | undefined;
   CustomerDisplayPayment: { tillId?: string } | undefined;
@@ -364,6 +365,24 @@ export type BookingDraft = {
   branchName?: string;
 };
 
+export interface OrderDraftLine {
+  itemId: string;
+  name: string;
+  image?: string | null;
+  /** The price the app showed; the server re-prices every line. */
+  unitPrice: number;
+  quantity: number;
+}
+
+/** A pickup order at one branch: one product from its page, or a reorder. */
+export interface OrderDraft {
+  branchId: string;
+  businessName?: string;
+  branchName?: string;
+  items: OrderDraftLine[];
+  instructions: string;
+}
+
 export type AppStackParamList = {
   Tabs: NavigatorScreenParams<MainTabParamList> | undefined;
   /**
@@ -387,8 +406,6 @@ export type AppStackParamList = {
      */
     claimCode?: string;
   };
-  MyClaimedDeal: { dealId: string };
-  MerchantChat: { dealId: string };
   GiftDealSentSuccess: {
     dealId: string;
     recipient: {
@@ -399,23 +416,34 @@ export type AppStackParamList = {
     };
   };
   DealFilters: undefined;
-  ProductDetail: { productId: string };
-  OrderCheckout: {
-    draft?: {
-      quantity: number;
-      temperature: string;
-      side: string;
-      addons: string[];
-      instructions: string;
-      unitPrice: number;
-      total: number;
-    };
+  /**
+   * A catalogue product, by uuid. `branchId` prices it for that branch; the two
+   * names are display context from the list that opened it, since the item
+   * payload carries neither.
+   */
+  ProductDetail: {
+    productId: string;
+    branchId?: string;
+    businessName?: string;
+    branchName?: string;
   };
+  /** A branch's products, opened from a live business profile. */
+  BusinessProducts: {
+    branchId: string;
+    businessName?: string;
+    branchName?: string;
+  };
+  /** A pickup order for one product at one branch, built on ProductDetail. */
+  OrderCheckout: { draft?: OrderDraft } | undefined;
+  /** The order the server just created; `total` is the server's figure. */
   OrderPlaced:
     | {
-        total: string;
-        fulfillment: 'pickup' | 'delivery';
+        orderId: string;
         orderNumber: string;
+        total: number;
+        itemCount: number;
+        businessName?: string;
+        branchName?: string;
       }
     | undefined;
   /**
@@ -462,12 +490,6 @@ export type DiscoverStackParamList = {
          */
         code: string;
       };
-  UrbanGrillProfile: undefined;
-  UrbanGrillProductsCatalogue: undefined;
-  UrbanGrillMenu: undefined;
-  UrbanGrillAllDeals: undefined;
-  GlowSerenityProfile: undefined;
-  GlowSerenityServices: undefined;
 };
 
 export type AccountStackParamList = {

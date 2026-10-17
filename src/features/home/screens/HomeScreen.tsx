@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { HomeSearchBar } from '@components/home/HomeSearchBar';
 import { LiveNearbyListCard, useEnriched } from '@components/home/LiveNearbyListCard';
@@ -34,6 +34,7 @@ import { sponsoredTracker } from '@services/sponsoredTracker';
 import { EmptyState } from '@components/shared/EmptyState';
 
 cssInterop(View, { className: 'style' });
+cssInterop(Pressable, { className: 'style' });
 cssInterop(ScrollView, {
   className: 'style',
   contentContainerClassName: 'contentContainerStyle',
@@ -61,6 +62,8 @@ export interface HomeScreenProps {
   onSearchArea?: () => void;
   /** Device-location request behind the sheet's auto-detect row. */
   onUseCurrentLocation?: () => void;
+  /** Opens a product from the "Popular near you" grid. */
+  onOpenProduct?: (productId: string) => void;
 }
 
 /**
@@ -137,6 +140,7 @@ export function HomeScreen({
   onOpenAccount,
   onSearchArea,
   onUseCurrentLocation,
+  onOpenProduct,
 }: HomeScreenProps) {
   const [viewMode, setViewMode] = useState<DealsViewMode>('list');
   // One search state serves the bar and the chips below it, so typing and
@@ -396,7 +400,16 @@ export function HomeScreen({
                 <TwoColumnGrid
                   items={nearbyProducts}
                   keyExtractor={product => product.id}
-                  renderItem={product => <PopularProductCard product={product} />}
+                  renderItem={product => (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={product.title}
+                      onPress={() => onOpenProduct?.(product.id)}
+                      className="active:opacity-80"
+                    >
+                      <PopularProductCard product={product} />
+                    </Pressable>
+                  )}
                 />
               ) : (
                 <SectionEmpty
@@ -427,6 +440,7 @@ export function HomeScreen({
         dealTitle={commentsDeal?.title ?? ''}
         merchant={commentsDeal?.merchant ?? ''}
         commentCount={commentsDeal?.comments ?? 0}
+        offerId={commentsDeal?.id ?? ''}
       />
       {shareDeal ? (
         <DealShareSheet

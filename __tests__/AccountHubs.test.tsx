@@ -1,4 +1,6 @@
 import React from 'react';
+import { Alert } from 'react-native';
+import { strings } from '@constants/strings';
 import { fireEvent, render } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { CustomerDashboardScreen } from '@features/accountHub/screens/CustomerDashboardScreen';
@@ -67,18 +69,14 @@ test('renders all four standalone hub and pass screens', async () => {
   );
   const deals = await renderWithClient(<MyDealsHubScreen onOpenClaim={onOpenClaim} />);
   const pass = await renderWithClient(
-    <ClaimedDealDetailPassScreen
-      claim={claimFixture}
-      onUseDeal={onOpenClaim}
-      onOpenChat={onOpenClaim}
-    />,
+    <ClaimedDealDetailPassScreen claim={claimFixture} onOpenChat={onOpenClaim} />,
   );
 
   expect(saved.getByText('Saved Items Hub')).toBeTruthy();
   expect(saved.getAllByText('Glow & Serenity Spa & Salon').length).toBeGreaterThan(0);
   expect(dashboard.getByText('Weekend Deals Are Here')).toBeTruthy();
   expect(deals.getByText('Total Savings to Date')).toBeTruthy();
-  expect(pass.getByText('Claim Verification')).toBeTruthy();
+  expect(pass.getByText(strings.claimedDealPass.verification)).toBeTruthy();
 });
 
 test('pass renders the live claim code and offer for a real claim', async () => {
@@ -89,6 +87,28 @@ test('pass renders the live claim code and offer for a real claim', async () => 
   expect(pass.getByText(claimFixture.claimCode)).toBeTruthy();
   expect(pass.getByText('Patrick Ventures')).toBeTruthy();
   expect(pass.getByText('Apo Lunch Combo')).toBeTruthy();
+  // No demo values stand in anywhere on a real pass.
+  expect(pass.queryByText('VT-48F261')).toBeNull();
+  expect(pass.queryByText('Urban Grill & Bistro')).toBeNull();
+});
+
+test('pass shows the server QR and releases an active claim after confirming', async () => {
+  const onRelease = jest.fn();
+  const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
+  const pass = await renderWithClient(
+    <ClaimedDealDetailPassScreen
+      claim={claimFixture}
+      qrSvg="<svg xmlns='http://www.w3.org/2000/svg'></svg>"
+      onRelease={onRelease}
+    />,
+  );
+
+  expect(pass.getByText(strings.claimedDealPass.scan)).toBeTruthy();
+  await fireEvent.press(pass.getByText(strings.claimedDealPass.cancel));
+  const buttons = alert.mock.calls[0][2] as { onPress?: () => void }[];
+  buttons[1].onPress?.();
+  expect(onRelease).toHaveBeenCalledTimes(1);
+  alert.mockRestore();
 });
 
 test('filters Saved Hub deals, businesses, and search results', async () => {

@@ -11,16 +11,14 @@ import {
   boostAudiences,
   boostBudgetTiers,
   boostRadii,
-  businessQrIdentity,
-  businessQrRouting,
   campaigns,
   campaignRetention,
   customerSegments,
-  discoveryControls,
-  discoveryFeedCard,
-  locationQrRules,
-  scanPoints,
 } from '@features/business/data/businessGrowthData';
+import { toBusinessQrView, toLocationQrView } from '@features/business/utils/qrMappers';
+import { toDiscoveryView } from '@features/business/utils/networkMappers';
+import { qrSummaryFixture } from '../../../../../__tests__/helpers/qrFixtures';
+import { discoveryFixture } from '../../../../../__tests__/helpers/networkFixtures';
 
 afterEach(cleanup);
 
@@ -267,166 +265,173 @@ describe('boost engine live audiences', () => {
 
 describe('business master QR', () => {
   const copy = strings.businessQr;
+  const qrView = toBusinessQrView(qrSummaryFixture);
 
-  it('renders the QR frame, shortcode, scan stats and routing options', async () => {
-    const view = await render(<BusinessQrScreen />);
+  it('renders the real QR, business link, master code and scan stats', async () => {
+    const view = await render(<BusinessQrScreen view={qrView} />);
 
     expect(view.getByText(copy.headerTitle)).toBeTruthy();
-    expect(view.getAllByText(businessQrIdentity.brand).length).toBeGreaterThan(0);
-    // The shortcode captions the QR frame and heads its own row.
-    expect(view.getAllByText(businessQrIdentity.shortcode).length).toBeGreaterThan(0);
-    expect(view.getByText(businessQrIdentity.code)).toBeTruthy();
-    businessQrRouting.forEach(option => {
-      expect(view.getAllByText(option.title).length).toBeGreaterThan(0);
-    });
-    expect(view.getByText(copy.acrylicTitle)).toBeTruthy();
+    expect(view.getByText(copy.statusSub('Wuse Flagship', 'Urban Grill'))).toBeTruthy();
+    expect(view.getAllByText('vemtap.com/b/BIZ8820').length).toBeGreaterThan(0);
+    expect(view.getByText('BIZ8820')).toBeTruthy();
+    expect(view.getByText('120')).toBeTruthy();
+    expect(view.getByText('25%')).toBeTruthy();
+    expect(view.getByText(strings.businessIntelligence.newThisPeriod)).toBeTruthy();
+    expect(view.queryByText('Scan Destination Routing')).toBeNull();
   });
 
-  it('selects a scan destination and copies the shortcode', async () => {
-    const onSelectRouting = jest.fn();
-    const onCopyCode = jest.fn();
-    const view = await render(
-      <BusinessQrScreen onSelectRouting={onSelectRouting} onCopyCode={onCopyCode} />,
-    );
+  it('shows loading and error states before the codes arrive', async () => {
+    const view = await render(<BusinessQrScreen isError onRetry={jest.fn()} />);
+    expect(view.getByText(copy.error.title)).toBeTruthy();
+  });
 
-    await pressAndSettle(view, businessQrRouting[1].title);
-    expect(onSelectRouting).toHaveBeenCalledWith(businessQrRouting[1].id);
+  it('copies the link and the master code', async () => {
+    const onCopyCode = jest.fn();
+    const view = await render(<BusinessQrScreen view={qrView} onCopyCode={onCopyCode} />);
 
     await pressAndSettle(view, copy.shortcodeLabel);
-    expect(onCopyCode).toHaveBeenCalledWith(businessQrIdentity.shortcode);
+    await pressAndSettle(view, copy.codeLabel);
+    expect(onCopyCode).toHaveBeenNthCalledWith(1, 'https://vemtap.com/b/BIZ8820');
+    expect(onCopyCode).toHaveBeenNthCalledWith(2, 'BIZ8820');
   });
 
-  it('shares, downloads, orders a standee and customises it', async () => {
+  it('shares, downloads the kit, requests a standee and shows the result', async () => {
     const onShare = jest.fn();
     const onDownloadKit = jest.fn();
     const onOrderStandee = jest.fn();
-    const onCustomizeStandee = jest.fn();
     const view = await render(
       <BusinessQrScreen
+        view={qrView}
         onShare={onShare}
         onDownloadKit={onDownloadKit}
         onOrderStandee={onOrderStandee}
-        onCustomizeStandee={onCustomizeStandee}
+        notice={{ tone: 'success', text: copy.downloadKitReady(5) }}
       />,
     );
 
     await pressAndSettle(view, copy.shareCta);
-    expect(onShare).toHaveBeenCalledTimes(1);
-
     await pressAndSettle(view, copy.downloadKitCta);
-    expect(onDownloadKit).toHaveBeenCalledTimes(1);
-
     await pressAndSettle(view, copy.standeeCta);
+    expect(onShare).toHaveBeenCalledTimes(1);
+    expect(onDownloadKit).toHaveBeenCalledTimes(1);
     expect(onOrderStandee).toHaveBeenCalledTimes(1);
-
-    await pressAndSettle(view, copy.customizeCta);
-    expect(onCustomizeStandee).toHaveBeenCalledTimes(1);
+    expect(view.getByText(copy.downloadKitReady(5))).toBeTruthy();
   });
 });
 
 describe('location QR', () => {
   const copy = strings.locationQr;
+  const locationView = toLocationQrView(qrSummaryFixture);
 
-  it('renders the network status, every scan point and the branch rules', async () => {
-    const view = await render(<LocationQrScreen />);
+  it('renders the network status, branch codes and tap points', async () => {
+    const view = await render(<LocationQrScreen view={locationView} />);
 
-    expect(view.getByText(copy.headerTitle)).toBeTruthy();
-    expect(view.getByText(copy.networkTitle)).toBeTruthy();
-    scanPoints.forEach(point => {
-      expect(view.getAllByText(point.name).length).toBeGreaterThan(0);
-    });
-    locationQrRules.forEach(rule => {
-      expect(view.getByText(rule.title)).toBeTruthy();
-    });
+    expect(view.getByText(copy.manageSubtitle(2))).toBeTruthy();
+    expect(view.getByText(copy.network.live)).toBeTruthy();
+    expect(view.getAllByText('Wuse Flagship').length).toBeGreaterThan(0);
+    expect(view.getByText('Till 01')).toBeTruthy();
+    expect(view.getByText(copy.weeklyScans('18'))).toBeTruthy();
+    expect(view.getByText(copy.statusLive)).toBeTruthy();
+    expect(view.getByText(copy.statusInactive)).toBeTruthy();
   });
 
-  it('filters by branch and runs a per-point action', async () => {
+  it('filters by branch and opens a scan tag', async () => {
     const onFilterBranch = jest.fn();
-    const onViewTag = jest.fn();
     const view = await render(
-      <LocationQrScreen onFilterBranch={onFilterBranch} onViewTag={onViewTag} />,
+      <LocationQrScreen view={locationView} onFilterBranch={onFilterBranch} />,
     );
 
-    await pressAndSettle(view, copy.branchGroups[1].label);
-    expect(onFilterBranch).toHaveBeenCalledWith(copy.branchGroups[1].id);
+    await pressFirst(view, 'Garki Express');
+    expect(onFilterBranch).toHaveBeenCalledWith('b-garki');
+    expect(view.queryByText('Till 01')).toBeNull();
+    expect(view.getByText('Front Door')).toBeTruthy();
 
-    await pressAndSettle(view, `${copy.viewTagCta}: ${scanPoints[1].name}`);
-    expect(onViewTag).toHaveBeenCalledWith(scanPoints[1].id);
+    await pressAndSettle(view, `${copy.viewTagCta} Front Door`);
+    expect(view.getByText(copy.tagTitle)).toBeTruthy();
   });
 
-  it('creates a point, exports the set and orders acrylics', async () => {
-    const onNewPoint = jest.fn();
-    const onExportAll = jest.fn();
-    const onOrderAcrylics = jest.fn();
+  it('shares a code, prints a branch sheet, exports everything and requests devices', async () => {
+    const onShare = jest.fn();
+    const onPrintSheet = jest.fn();
+    const onRequestDevices = jest.fn();
     const view = await render(
       <LocationQrScreen
-        onNewPoint={onNewPoint}
-        onExportAll={onExportAll}
-        onOrderAcrylics={onOrderAcrylics}
+        view={locationView}
+        onShare={onShare}
+        onPrintSheet={onPrintSheet}
+        onRequestDevices={onRequestDevices}
       />,
     );
 
-    await pressAndSettle(view, copy.newPointCta);
-    expect(onNewPoint).toHaveBeenCalledTimes(1);
-
+    await pressAndSettle(view, `${copy.shareCta} Till 01`);
+    expect(onShare).toHaveBeenCalledWith(expect.objectContaining({ id: 'd-till' }));
+    await pressAndSettle(view, `${copy.printStickerCta} Till 01`);
+    expect(onPrintSheet).toHaveBeenCalledWith('b-wuse');
     await pressAndSettle(view, copy.exportCta);
-    expect(onExportAll).toHaveBeenCalledTimes(1);
-
+    expect(onPrintSheet).toHaveBeenLastCalledWith(null);
     await pressAndSettle(view, copy.acrylicCta);
-    expect(onOrderAcrylics).toHaveBeenCalledTimes(1);
+    expect(onRequestDevices).toHaveBeenCalledTimes(1);
   });
 });
 
 describe('business discovery feed', () => {
   const copy = strings.businessDiscoveryFeed;
+  const discovery = toDiscoveryView(discoveryFixture);
 
-  it('renders the health score, reach figures, feed card and controls', async () => {
-    const view = await render(<BusinessDiscoveryFeedScreen />);
+  it('renders the health index, feed card, index, zones and controls', async () => {
+    const view = await render(<BusinessDiscoveryFeedScreen view={discovery} />);
 
     expect(view.getByText(copy.headerTitle)).toBeTruthy();
-    expect(view.getByText(copy.healthValue)).toBeTruthy();
-    // The business name heads the feed header and the simulated feed card.
-    expect(view.getAllByText(discoveryFeedCard.name).length).toBeGreaterThan(0);
-    expect(view.getByText(copy.indexTitle)).toBeTruthy();
-    expect(view.getByText(copy.zonesTitle)).toBeTruthy();
-    discoveryControls.forEach(control => {
-      expect(view.getAllByText(control.title).length).toBeGreaterThan(0);
-    });
+    expect(view.getByText('80')).toBeTruthy();
+    expect(view.getByText(copy.healthMissing('cover photo, opening hours'))).toBeTruthy();
+    expect(view.getAllByText('Urban Grill').length).toBeGreaterThan(0);
+    expect(
+      view.getByText(strings.businessIntelligence.deals.percentOff('20')),
+    ).toBeTruthy();
+    expect(view.getByText(copy.indexRows.missing)).toBeTruthy();
+    expect(view.getByText(copy.zonesBadge(1))).toBeTruthy();
+    expect(
+      view.getAllByText(copy.controls.joinDiscoveryNetwork.title).length,
+    ).toBeGreaterThan(0);
   });
 
-  it('toggles a discovery automation control', async () => {
+  it('shows an error state when discovery cannot load', async () => {
+    const view = await render(
+      <BusinessDiscoveryFeedScreen isError onRetry={jest.fn()} />,
+    );
+    expect(view.getByText(copy.error.title)).toBeTruthy();
+  });
+
+  it('toggles a discovery setting', async () => {
     const onToggleControl = jest.fn();
     const view = await render(
-      <BusinessDiscoveryFeedScreen onToggleControl={onToggleControl} />,
+      <BusinessDiscoveryFeedScreen view={discovery} onToggleControl={onToggleControl} />,
     );
 
-    await pressAndSettle(view, discoveryControls[0].title);
-    expect(onToggleControl).toHaveBeenCalledWith(discoveryControls[0].id, false);
+    await pressFirst(view, copy.controls.allowPromotions.title);
+    expect(onToggleControl).toHaveBeenCalledWith('allowPromotions', true);
   });
 
-  it('previews the consumer feed, edits the card and boosts', async () => {
-    const onPreviewConsumerFeed = jest.fn();
+  it('keeps the settings read-only for non-owners', async () => {
+    const view = await render(
+      <BusinessDiscoveryFeedScreen view={discovery} canEditControls={false} />,
+    );
+    expect(view.getByText(copy.controlsOwnerOnly)).toBeTruthy();
+  });
+
+  it('edits the card and boosts', async () => {
     const onEditFeedCard = jest.fn();
     const onBoostFeed = jest.fn();
     const view = await render(
       <BusinessDiscoveryFeedScreen
-        onPreviewConsumerFeed={onPreviewConsumerFeed}
+        view={discovery}
         onEditFeedCard={onEditFeedCard}
         onBoostFeed={onBoostFeed}
       />,
     );
 
-    await pressAndSettle(view, copy.previewCta);
-    expect(onPreviewConsumerFeed).toHaveBeenCalledTimes(1);
-
-    // "Edit Feed Card" labels both the footer CTA and the card's own action.
-    fireEvent.press(view.getAllByLabelText(copy.editCardCta)[0]);
-    await waitFor(() =>
-      expect(view.getAllByLabelText(copy.editCardCta).length).toBeGreaterThan(0),
-    );
+    await pressFirst(view, copy.editCardCta);
     expect(onEditFeedCard).toHaveBeenCalledTimes(1);
-
-    // "Supercharge Discovery Feed" labels the footer CTA and the booster row.
     await pressFirst(view, copy.boostCta);
     expect(onBoostFeed).toHaveBeenCalledTimes(1);
   });

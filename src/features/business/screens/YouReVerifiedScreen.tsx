@@ -4,11 +4,7 @@ import { View } from 'react-native';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { colors } from '@theme/colors';
-import {
-  youReVerifiedCopy as copy,
-  verificationImages,
-} from '@features/business/verificationCopy';
-import { BusinessProductImage } from '@features/business/components/BusinessPrimitives';
+import { youReVerifiedCopy as copy } from '@features/business/verificationCopy';
 import {
   PrimaryActionButton,
   SetupCallout,
@@ -19,6 +15,7 @@ import {
   VerificationPage,
   VerificationPillarRow,
   VerificationSeal,
+  BusinessLogo,
 } from '@features/business/components/VerificationPrimitives';
 
 export interface YouReVerifiedPillar {
@@ -159,9 +156,9 @@ export function YouReVerifiedScreen({
 
         <View className="pt-3">
           <View className="flex-row items-center gap-3 rounded-card bg-surface-container-low p-2">
-            <BusinessProductImage
-              source={{ uri: logoUrl ?? verificationImages.verifiedStorefront }}
-              alt={businessName ?? ''}
+            <BusinessLogo
+              uri={logoUrl}
+              name={businessName}
               className="h-14 w-14 shrink-0 rounded-lg shadow-sm"
             />
             <View className="min-w-0 flex-1">

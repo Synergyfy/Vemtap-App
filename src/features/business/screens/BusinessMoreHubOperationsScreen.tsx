@@ -51,6 +51,8 @@ function HubLinkList({
 }
 
 export interface BusinessMoreHubOperationsScreenProps {
+  /** Live hints per POS tile id (SKU count, today's sales, offline queue). */
+  tileHints?: Partial<Record<string, string>>;
   onBack?: () => void;
   onOpenNotifications?: () => void;
   onOpenProfile?: () => void;
@@ -69,6 +71,7 @@ export interface BusinessMoreHubOperationsScreenProps {
  * navigation — and the standard More hub remains the default landing screen.
  */
 export function BusinessMoreHubOperationsScreen({
+  tileHints,
   onBack,
   onOpenNotifications,
   onOpenProfile,
@@ -227,13 +230,13 @@ export function BusinessMoreHubOperationsScreen({
               >
                 {tile.label}
               </VemtapText>
-              {tile.hint ? (
+              {(tileHints?.[tile.id] ?? tile.hint) ? (
                 <VemtapText
                   variant="micro"
                   className={primary ? 'text-surface' : 'text-text-tertiary'}
                   numberOfLines={1}
                 >
-                  {tile.hint}
+                  {tileHints?.[tile.id] ?? tile.hint}
                 </VemtapText>
               ) : null}
             </Pressable>

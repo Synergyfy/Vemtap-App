@@ -3,6 +3,7 @@ import { View } from 'react-native';
 import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
 import { strings } from '@constants/strings';
+import { ErrorState, LoadingState } from '@components/shared';
 import {
   BusinessScreenLayout,
   type BusinessHeaderProps,
@@ -30,6 +31,10 @@ export interface BusinessAnalyticsShellProps {
   onExport?: () => void;
   /** Renders under the nav strip, before the date range (e.g. a scope banner). */
   banner?: ReactNode;
+  /** False until the screen's data has loaded; the body shows a state instead. */
+  ready?: boolean;
+  isError?: boolean;
+  onRetry?: () => void;
   children: ReactNode;
 }
 
@@ -51,6 +56,9 @@ export function BusinessAnalyticsShell({
   onOpenFilters,
   onExport,
   banner,
+  ready = true,
+  isError,
+  onRetry,
   children,
 }: BusinessAnalyticsShellProps) {
   return (
@@ -102,7 +110,17 @@ export function BusinessAnalyticsShell({
           />
         ) : null}
       </View>
-      {children}
+      {ready ? (
+        children
+      ) : isError ? (
+        <ErrorState
+          title={strings.businessIntelligence.error.title}
+          description={strings.businessIntelligence.error.body}
+          onRetry={onRetry}
+        />
+      ) : (
+        <LoadingState label={strings.businessIntelligence.loading} />
+      )}
     </BusinessScreenLayout>
   );
 }

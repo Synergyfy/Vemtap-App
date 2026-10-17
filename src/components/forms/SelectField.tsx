@@ -1,6 +1,11 @@
 import React, { useId } from 'react';
 import { Pressable, View } from 'react-native';
-import { Controller, type Control, type FieldPath, type FieldValues } from 'react-hook-form';
+import {
+  Controller,
+  type Control,
+  type FieldPath,
+  type FieldValues,
+} from 'react-hook-form';
 import { cssInterop } from 'nativewind';
 import { cn } from '@utils/cn';
 import { VemtapText } from '@components/ui/Text';
@@ -30,7 +35,13 @@ export interface SelectFieldProps<
 export function SelectField<
   TFieldValues extends FieldValues = FieldValues,
   TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
->({ control, name, label, options, containerClassName }: SelectFieldProps<TFieldValues, TName>) {
+>({
+  control,
+  name,
+  label,
+  options,
+  containerClassName,
+}: SelectFieldProps<TFieldValues, TName>) {
   const groupId = useId();
 
   return (
@@ -57,8 +68,8 @@ export function SelectField<
                   className={cn(
                     'min-h-[36px] justify-center rounded-full border px-3',
                     selected
-                      ? 'bg-surface-tint border-border-active'
-                      : 'bg-surface-muted border-border',
+                      ? 'border-border-active bg-surface-tint'
+                      : 'border-border bg-surface-muted',
                   )}
                 >
                   <VemtapText

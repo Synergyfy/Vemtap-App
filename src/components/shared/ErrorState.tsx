@@ -33,7 +33,13 @@ export function ErrorState({
         {description}
       </VemtapText>
       {onRetry ? (
-        <Button label={strings.common.retry} onPress={onRetry} fullWidth={false} size="sm" variant="outline" />
+        <Button
+          label={strings.common.retry}
+          onPress={onRetry}
+          fullWidth={false}
+          size="sm"
+          variant="outline"
+        />
       ) : null}
     </View>
   );

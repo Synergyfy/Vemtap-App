@@ -68,6 +68,8 @@ export const userSchema = z.object({
   googleId: nullableText(),
   businessId: nullableText(),
   branchId: nullableText(),
+  /** Account creation time, for "member since". */
+  createdAt: nullableText(),
   lastActive: nullableTimestamp(),
   twoFactorSecret: nullableText(),
 

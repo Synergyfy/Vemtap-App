@@ -8,7 +8,7 @@ import {
   offerImage,
   priceLabels,
 } from '@features/deals/utils/offerMapper';
-import type { ResolvedDeal } from '@features/dealDetail/data/dealResolver';
+import type { ResolvedDeal } from '@features/dealDetail/types';
 
 /**
  * A live offer detail payload onto the deal page's view model.
@@ -85,5 +85,9 @@ export function mapOfferDetailToResolved(
         : undefined,
     terms: detail.terms.length > 0 ? detail.terms : undefined,
     endDate: detail.endDate ?? undefined,
+    perCustomerLimit:
+      detail.maxClaimsPerCustomer && detail.maxClaimsPerCustomer > 0
+        ? detail.maxClaimsPerCustomer
+        : undefined,
   };
 }

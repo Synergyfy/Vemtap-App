@@ -20,9 +20,6 @@ export const businessMedia = {
   reviewMap: {
     uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAWtUvHLIcbqcTqjm7Kx_93XfJ_fHBLr7QmFDcmIVAABkhYXEXSspRFsRgxjOCsEPgtYtQ28EK0yQWUuVXy5cy5za0PMZF5WAMIYnKg4gw9ML3glWMn4EmyvyEKGpnzxU1zKRS-akWkk7GGyVGMoHdo6JfOJCYzajOjjnX5icjnTygV1VVPm4zhcxadKg-Z1UkVG8YxFNpXvGKsTQ0TXoPvgNbl96fMziRslo72aL1M',
   },
-  customerPassPreview: {
-    uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB9LSZ0igpV-CzTdKx1j3WTuqqk8z-z4zHbkTwlWq_Us36LF0sXWxrMC9drNESSSdhIOk60Y_blTQOZWSN-Qe-ptseWhVCz3tdDvzmd5QVtkBrWoLKHqpU-r_KceD4kqRqrtoPKE8EIO97exb7M41GPwNBM8JW7ClSzY6-bOtBv0awBILMrgU2-sudicSDAZN7lyGO8LRmo8iLeqeqVPxjp3ZFG9_PZbP53VjS8hQcBMiawormtvD1OMA',
-  },
 } as const;
 
 export const productIdentity = {
@@ -90,13 +87,6 @@ export const participatingDealBranches = [
 ] as const;
 
 export const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
-
-export const businessQrIdentity = {
-  businessName: 'Urban Grill & Bistro',
-  descriptor: 'Artisan Smokehouse & Grill • Maitama, Abuja',
-  publicLink: 'vemtap.com/biz/urban-grill',
-  fullLink: 'https://vemtap.com/biz/urban-grill',
-} as const;
 
 export function formatNaira(value: number): string {
   return `₦${value.toLocaleString('en-US')}`;

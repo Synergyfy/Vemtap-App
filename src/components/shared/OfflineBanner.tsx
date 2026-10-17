@@ -25,12 +25,12 @@ export function OfflineBanner({
       accessibilityLiveRegion="polite"
       className={cn(
         'w-full flex-row items-center justify-center gap-2',
-        'bg-warning py-2 px-4',
+        'bg-warning px-4 py-2',
         className,
       )}
     >
       <View className="h-2 w-2 rounded-full bg-warning-foreground" />
-      <VemtapText variant="labelSm" className="text-warning-foreground text-center">
+      <VemtapText variant="labelSm" className="text-center text-warning-foreground">
         {message}
       </VemtapText>
     </View>

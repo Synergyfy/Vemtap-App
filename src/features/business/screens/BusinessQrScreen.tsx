@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { ErrorState, LoadingState } from '@components/shared';
 import { Pressable, View } from 'react-native';
 import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
@@ -16,19 +17,21 @@ import {
   BusinessMetricGrid,
 } from '@features/business/components/BusinessAnalyticsPrimitives';
 import { BusinessQrFrame } from '@features/business/components/BusinessPosPrimitives';
-import {
-  businessQrIdentity,
-  businessQrRouting,
-  businessQrScanStats,
-  qrSubTabIcon,
-  qrSubTabs,
-} from '@features/business/data/businessGrowthData';
+import { qrSubTabIcon, qrSubTabs } from '@features/business/data/businessGrowthData';
+import type { BusinessQrView } from '@features/business/utils/qrMappers';
 
 const copy = strings.businessQr;
 
 const qrTabs = qrSubTabs.map(label => ({ key: label, label, icon: qrSubTabIcon[label] }));
 
 export interface BusinessQrScreenProps {
+  view?: BusinessQrView;
+  isError?: boolean;
+  onRetry?: () => void;
+  /** The print kit is being built. */
+  isKitBusy?: boolean;
+  /** Result line after a kit download or copy. */
+  notice?: { tone: 'success' | 'error'; text: string } | null;
   onBack?: () => void;
   onOpenNotifications?: () => void;
   onOpenSubTab?: (tabKey: string) => void;
@@ -37,7 +40,6 @@ export interface BusinessQrScreenProps {
   onOrderStandee?: () => void;
   onSendToSocials?: () => void;
   onCopyCode?: (value: string) => void;
-  onSelectRouting?: (routingId: string) => void;
   onCustomizeStandee?: () => void;
   onOpenLocationQrs?: () => void;
   onOpenProfile?: () => void;
@@ -49,6 +51,11 @@ export interface BusinessQrScreenProps {
  * collateral (acrylic standee, download kit, socials) that carries it.
  */
 export function BusinessQrScreen({
+  view,
+  isError,
+  onRetry,
+  isKitBusy = false,
+  notice,
   onBack,
   onOpenNotifications,
   onOpenSubTab,
@@ -57,13 +64,11 @@ export function BusinessQrScreen({
   onOrderStandee,
   onSendToSocials,
   onCopyCode,
-  onSelectRouting,
   onCustomizeStandee,
   onOpenLocationQrs,
   onOpenProfile,
 }: BusinessQrScreenProps) {
   const [subTab, setSubTab] = useState(qrSubTabs[1]);
-  const [routing, setRouting] = useState(businessQrRouting[0].id);
 
   return (
     <BusinessScreenLayout
@@ -110,7 +115,7 @@ export function BusinessQrScreen({
           className="min-w-0 flex-1"
           numberOfLines={1}
         >
-          {copy.statusSub}
+          {view?.statusSub ?? ''}
         </VemtapText>
       </View>
 
@@ -124,280 +129,248 @@ export function BusinessQrScreen({
         className="-mx-6 mt-3"
       />
 
-      <BusinessPanel className="mt-3" icon="restaurant" title={copy.presenceLabel}>
-        <View className="items-center">
-          <BusinessQrFrame
-            size="lg"
-            glyph="qrCodeScanner"
-            label={businessQrIdentity.brand}
-            caption={businessQrIdentity.shortcode}
-            className="w-full"
+      {!view ? (
+        isError ? (
+          <ErrorState
+            title={copy.error.title}
+            description={copy.error.body}
+            onRetry={onRetry}
           />
-        </View>
-        <View className="mt-1 flex-row items-center gap-1.5">
-          <Icon name="verified" size={14} color={colors.badgeDiscountText} />
-          <VemtapText
-            variant="caption"
-            className="min-w-0 flex-1 text-badge-discount-text"
-            numberOfLines={1}
-          >
-            {copy.presenceLabel}
-          </VemtapText>
-        </View>
-
-        <View className="mt-1 gap-1.5">
-          <View className="flex-row items-center justify-between gap-2 rounded-field bg-surface-subtle p-2.5">
-            <View className="min-w-0 flex-1">
-              <VemtapText variant="micro" tone="tertiary" numberOfLines={1}>
-                {copy.shortcodeLabel}
-              </VemtapText>
+        ) : (
+          <LoadingState label={copy.loading} />
+        )
+      ) : (
+        <>
+          <BusinessPanel className="mt-3" icon="restaurant" title={copy.presenceLabel}>
+            <View className="items-center">
+              <BusinessQrFrame
+                size="lg"
+                glyph="qrCodeScanner"
+                label={view.businessName}
+                caption={view.displayUrl}
+                svg={view.svg}
+                className="w-full"
+              />
+            </View>
+            <View className="mt-1 flex-row items-center gap-1.5">
+              <Icon name="verified" size={14} color={colors.badgeDiscountText} />
               <VemtapText
-                variant="labelMd"
-                className="font-sans-semibold"
+                variant="caption"
+                className="min-w-0 flex-1 text-badge-discount-text"
                 numberOfLines={1}
               >
-                {businessQrIdentity.shortcode}
+                {copy.presenceLabel}
               </VemtapText>
             </View>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={copy.shortcodeLabel}
-              onPress={() => onCopyCode?.(businessQrIdentity.shortcode)}
-              className="h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-container-high active:scale-95"
-            >
-              <Icon name="copy" size={17} color={colors.text} />
-            </Pressable>
-          </View>
-          <View className="flex-row items-center justify-between gap-2 rounded-field bg-surface-subtle p-2.5">
-            <View className="min-w-0 flex-1">
-              <VemtapText variant="micro" tone="tertiary" numberOfLines={1}>
-                {copy.codeLabel}
-              </VemtapText>
-              <VemtapText
-                variant="labelMd"
-                className="font-sans-semibold"
-                numberOfLines={1}
-              >
-                {businessQrIdentity.code}
-              </VemtapText>
-            </View>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={copy.codeLabel}
-              onPress={() => onCopyCode?.(businessQrIdentity.code)}
-              className="h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-container-high active:scale-95"
-            >
-              <Icon name="copy" size={17} color={colors.text} />
-            </Pressable>
-          </View>
-        </View>
 
-        <VemtapText
-          variant="caption"
-          tone="secondary"
-          className="mt-1 leading-relaxed"
-          numberOfLines={3}
-        >
-          {copy.scanToLabel}
-        </VemtapText>
-      </BusinessPanel>
-
-      <View className="mt-3 flex-row gap-2">
-        <View className="min-w-0 flex-1">
-          <BusinessActionTile
-            size="stacked"
-            label={copy.downloadKitCta}
-            hint={copy.downloadKitSub}
-            icon="download"
-            onPress={onDownloadKit}
-          />
-        </View>
-        <View className="min-w-0 flex-1">
-          <BusinessActionTile
-            size="stacked"
-            label={copy.standeeCta}
-            hint={copy.standeeSub}
-            icon="printReceipt"
-            onPress={onOrderStandee}
-          />
-        </View>
-        <View className="min-w-0 flex-1">
-          <BusinessActionTile
-            size="stacked"
-            label={copy.socialsCta}
-            hint={copy.socialsSub}
-            icon="share"
-            onPress={onSendToSocials}
-          />
-        </View>
-      </View>
-      <View className="mt-1 flex-row items-center gap-1.5">
-        <Icon name="schedule" size={13} color={colors.textTertiary} />
-        <VemtapText variant="micro" tone="tertiary" numberOfLines={1}>
-          {copy.downloadKitEta}
-        </VemtapText>
-      </View>
-
-      <BusinessPanel
-        className="mt-3"
-        title={copy.insightsTitle}
-        icon="insights"
-        badge={copy.insightsSubtitle}
-        badgeTone="brand"
-      >
-        <View className="flex-row items-center justify-between gap-2">
-          <VemtapText
-            variant="labelMd"
-            className="min-w-0 flex-1 font-sans-semibold"
-            numberOfLines={1}
-          >
-            {copy.impactTitle}
-          </VemtapText>
-          <VemtapText
-            variant="micro"
-            tone="tertiary"
-            className="shrink-0"
-            numberOfLines={1}
-          >
-            {copy.impactSubtitle}
-          </VemtapText>
-        </View>
-        <BusinessMetricGrid
-          cells={businessQrScanStats.map(stat => ({
-            label: stat.label,
-            value: stat.value,
-            note: stat.delta,
-            noteIcon: stat.delta.startsWith('+') ? 'trendingUp' : undefined,
-            noteTone: stat.delta.startsWith('+')
-              ? ('success' as const)
-              : ('default' as const),
-            icon: stat.icon,
-          }))}
-          columns={3}
-          variant="bare"
-        />
-      </BusinessPanel>
-
-      <BusinessPanel
-        className="mt-3"
-        title={copy.routingTitle}
-        icon="altRoute"
-        badge={copy.routingSubtitle}
-        badgeTone="neutral"
-      >
-        <View className="gap-2">
-          {businessQrRouting.map(option => {
-            const active = option.id === routing;
-            return (
-              <Pressable
-                key={option.id}
-                accessibilityRole="radio"
-                accessibilityState={{ selected: active }}
-                accessibilityLabel={option.title}
-                onPress={() => {
-                  setRouting(option.id);
-                  onSelectRouting?.(option.id);
-                }}
-                className={`gap-1.5 rounded-field p-3 active:scale-[0.99] ${
-                  active ? 'bg-surface-tint' : 'bg-surface-subtle'
-                }`}
-              >
-                <View className="flex-row items-center gap-2.5">
-                  <View
-                    className={`h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
-                      active ? 'bg-surface' : 'bg-surface-container-high'
-                    }`}
-                  >
-                    <Icon
-                      name={option.icon}
-                      size={18}
-                      color={active ? colors.primary : colors.text}
-                    />
-                  </View>
+            <View className="mt-1 gap-1.5">
+              <View className="flex-row items-center justify-between gap-2 rounded-field bg-surface-subtle p-2.5">
+                <View className="min-w-0 flex-1">
+                  <VemtapText variant="micro" tone="tertiary" numberOfLines={1}>
+                    {copy.shortcodeLabel}
+                  </VemtapText>
                   <VemtapText
                     variant="labelMd"
-                    className={`min-w-0 flex-1 font-sans-semibold ${active ? 'text-primary' : ''}`}
-                    numberOfLines={2}
+                    className="font-sans-semibold"
+                    numberOfLines={1}
                   >
-                    {option.title}
+                    {view.displayUrl}
                   </VemtapText>
-                  {option.badge ? (
-                    <BusinessStatusPill
-                      label={option.badge}
-                      tone={option.badge === copy.routingTitle ? 'neutral' : 'success'}
-                    />
-                  ) : null}
-                  <View className="shrink-0">
-                    <Icon
-                      name={active ? 'checkCircle' : 'checkBold'}
-                      size={18}
-                      color={active ? colors.primary : colors.outline}
-                    />
-                  </View>
                 </View>
-                <VemtapText
-                  variant="caption"
-                  tone="secondary"
-                  className="leading-relaxed"
-                  numberOfLines={3}
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={copy.shortcodeLabel}
+                  onPress={() => onCopyCode?.(view.url)}
+                  className="h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-container-high active:scale-95"
                 >
-                  {option.body}
-                </VemtapText>
-              </Pressable>
-            );
-          })}
-        </View>
-      </BusinessPanel>
+                  <Icon name="copy" size={17} color={colors.text} />
+                </Pressable>
+              </View>
+              <View className="flex-row items-center justify-between gap-2 rounded-field bg-surface-subtle p-2.5">
+                <View className="min-w-0 flex-1">
+                  <VemtapText variant="micro" tone="tertiary" numberOfLines={1}>
+                    {copy.codeLabel}
+                  </VemtapText>
+                  <VemtapText
+                    variant="labelMd"
+                    className="font-sans-semibold"
+                    numberOfLines={1}
+                  >
+                    {view.code}
+                  </VemtapText>
+                </View>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={copy.codeLabel}
+                  onPress={() => onCopyCode?.(view.code)}
+                  className="h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-container-high active:scale-95"
+                >
+                  <Icon name="copy" size={17} color={colors.text} />
+                </Pressable>
+              </View>
+            </View>
 
-      <BusinessPanel
-        className="mt-3"
-        title={copy.collateralTitle}
-        icon="layers"
-        badge={copy.collateralSubtitle}
-        badgeTone="neutral"
-      >
-        <View className="flex-row items-center gap-2.5 rounded-field bg-surface-subtle p-3">
-          <View className="h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-tint">
-            <Icon name="contactlessPay" size={18} color={colors.primary} />
-          </View>
-          <View className="min-w-0 flex-1">
             <VemtapText
-              variant="micro"
-              className="font-sans-bold uppercase tracking-wider text-primary"
-              numberOfLines={1}
+              variant="caption"
+              tone="secondary"
+              className="mt-1 leading-relaxed"
+              numberOfLines={3}
             >
-              {copy.tapOrScanLabel}
+              {copy.scanToLabel}
             </VemtapText>
-            <VemtapText
-              variant="labelMd"
-              className="font-sans-semibold"
-              numberOfLines={1}
-            >
-              {copy.acrylicTitle}
+          </BusinessPanel>
+
+          <View className="mt-3 flex-row gap-2">
+            <View className="min-w-0 flex-1">
+              <BusinessActionTile
+                size="stacked"
+                label={copy.downloadKitCta}
+                hint={
+                  isKitBusy
+                    ? strings.businessIntelligence.exportReport.generating
+                    : copy.downloadKitSub
+                }
+                icon="download"
+                onPress={isKitBusy ? undefined : onDownloadKit}
+              />
+            </View>
+            <View className="min-w-0 flex-1">
+              <BusinessActionTile
+                size="stacked"
+                label={copy.standeeCta}
+                hint={copy.standeeSub}
+                icon="printReceipt"
+                onPress={onOrderStandee}
+              />
+            </View>
+            <View className="min-w-0 flex-1">
+              <BusinessActionTile
+                size="stacked"
+                label={copy.socialsCta}
+                hint={copy.socialsSub}
+                icon="share"
+                onPress={onSendToSocials}
+              />
+            </View>
+          </View>
+          <View className="mt-1 flex-row items-center gap-1.5">
+            <Icon name="schedule" size={13} color={colors.textTertiary} />
+            <VemtapText variant="micro" tone="tertiary" numberOfLines={1}>
+              {copy.downloadKitEta}
             </VemtapText>
           </View>
-        </View>
-        <VemtapText
-          variant="caption"
-          tone="secondary"
-          className="leading-relaxed"
-          numberOfLines={3}
-        >
-          {copy.acrylicBody}
-        </VemtapText>
-        <BusinessStatusPill label={copy.acrylicBadge} tone="success" />
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={copy.customizeCta}
-          onPress={onCustomizeStandee}
-          className="min-h-10 flex-row items-center justify-center gap-1.5 rounded-field bg-surface-container active:scale-95"
-        >
-          <Icon name="palette" size={16} color={colors.text} />
-          <VemtapText variant="labelSm" className="font-sans-semibold" numberOfLines={1}>
-            {copy.customizeCta}
-          </VemtapText>
-        </Pressable>
-      </BusinessPanel>
+          {notice ? (
+            <VemtapText
+              variant="caption"
+              className={
+                notice.tone === 'success'
+                  ? 'mt-1 text-badge-discount-text'
+                  : 'mt-1 text-error'
+              }
+            >
+              {notice.text}
+            </VemtapText>
+          ) : null}
+
+          <BusinessPanel
+            className="mt-3"
+            title={copy.insightsTitle}
+            icon="insights"
+            badge={copy.insightsSubtitle}
+            badgeTone="brand"
+          >
+            <View className="flex-row items-center justify-between gap-2">
+              <VemtapText
+                variant="labelMd"
+                className="min-w-0 flex-1 font-sans-semibold"
+                numberOfLines={1}
+              >
+                {copy.impactTitle}
+              </VemtapText>
+              <VemtapText
+                variant="micro"
+                tone="tertiary"
+                className="shrink-0"
+                numberOfLines={1}
+              >
+                {copy.impactSubtitle}
+              </VemtapText>
+            </View>
+            <BusinessMetricGrid
+              cells={view.stats.map(stat => ({
+                label: stat.label,
+                value: stat.value,
+                note: stat.note,
+                noteIcon:
+                  stat.direction === 'up'
+                    ? ('trendingUp' as const)
+                    : stat.direction === 'down'
+                      ? ('trendingDown' as const)
+                      : undefined,
+                noteTone:
+                  stat.direction === 'up' ? ('success' as const) : ('default' as const),
+                icon: stat.icon,
+              }))}
+              columns={3}
+              variant="bare"
+            />
+          </BusinessPanel>
+
+          <BusinessPanel
+            className="mt-3"
+            title={copy.collateralTitle}
+            icon="layers"
+            badge={copy.collateralSubtitle}
+            badgeTone="neutral"
+          >
+            <View className="flex-row items-center gap-2.5 rounded-field bg-surface-subtle p-3">
+              <View className="h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-tint">
+                <Icon name="contactlessPay" size={18} color={colors.primary} />
+              </View>
+              <View className="min-w-0 flex-1">
+                <VemtapText
+                  variant="micro"
+                  className="font-sans-bold uppercase tracking-wider text-primary"
+                  numberOfLines={1}
+                >
+                  {copy.tapOrScanLabel}
+                </VemtapText>
+                <VemtapText
+                  variant="labelMd"
+                  className="font-sans-semibold"
+                  numberOfLines={1}
+                >
+                  {copy.acrylicTitle}
+                </VemtapText>
+              </View>
+            </View>
+            <VemtapText
+              variant="caption"
+              tone="secondary"
+              className="leading-relaxed"
+              numberOfLines={3}
+            >
+              {copy.acrylicBody}
+            </VemtapText>
+            <BusinessStatusPill label={copy.acrylicBadge} tone="success" />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={copy.customizeCta}
+              onPress={onCustomizeStandee}
+              className="min-h-10 flex-row items-center justify-center gap-1.5 rounded-field bg-surface-container active:scale-95"
+            >
+              <Icon name="palette" size={16} color={colors.text} />
+              <VemtapText
+                variant="labelSm"
+                className="font-sans-semibold"
+                numberOfLines={1}
+              >
+                {copy.customizeCta}
+              </VemtapText>
+            </Pressable>
+          </BusinessPanel>
+        </>
+      )}
 
       <View className="mt-3 flex-row items-center gap-2.5 rounded-field bg-surface-subtle p-3">
         <Icon name="qrCodeScanner" size={17} color={colors.primary} />

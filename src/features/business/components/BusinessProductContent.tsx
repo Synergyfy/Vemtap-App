@@ -1,6 +1,6 @@
 import React, { type ReactNode } from 'react';
 import { Pressable, View } from 'react-native';
-import Svg, { Rect } from 'react-native-svg';
+import Svg, { Rect, SvgXml } from 'react-native-svg';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { colors } from '@theme/colors';
@@ -193,9 +193,28 @@ export function ProductVariantList({
 
 export function BusinessQrGraphic({
   sizeClassName = 'w-[72%] max-w-[224px]',
+  svg,
+  accessibilityLabel,
 }: {
   sizeClassName?: string;
+  /** Real QR artwork (SVG markup); without it the decorative placeholder shows. */
+  svg?: string;
+  accessibilityLabel?: string;
 }) {
+  if (svg) {
+    return (
+      <View
+        accessibilityRole="image"
+        accessibilityLabel={accessibilityLabel ?? 'QR code'}
+        className={cn(
+          'aspect-square items-center justify-center rounded-xl bg-surface p-3 shadow-md',
+          sizeClassName,
+        )}
+      >
+        <SvgXml xml={svg} width="100%" height="100%" />
+      </View>
+    );
+  }
   return (
     <View
       className={cn(

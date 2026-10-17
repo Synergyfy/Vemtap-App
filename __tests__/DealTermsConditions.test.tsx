@@ -126,34 +126,25 @@ describe('DealTermsConditionsScreen', () => {
     jest.useRealTimers();
   });
 
-  it('renders the terms and expands the FAQ', async () => {
-    const screen = await renderScreen('urban-grill-lunch');
+  it('builds the redemption rules from the offer itself', async () => {
+    const screen = await renderScreen(LIVE_ID);
 
-    expect(screen.getByText('Deal Terms & Conditions')).toBeTruthy();
-    expect(screen.getByText('Redemption Rules')).toBeTruthy();
-    expect(
-      screen.queryByText(
-        'Yes! Unredeemed claims can be released penalty-free up to 30 minutes before the end of the daily lunch window so other members can enjoy them.',
-      ),
-    ).toBeNull();
-
-    await fireEvent.press(screen.getByLabelText('Can I cancel if my plans change?'));
-
-    expect(
-      screen.getByText(
-        'Yes! Unredeemed claims can be released penalty-free up to 30 minutes before the end of the daily lunch window so other members can enjoy them.',
-      ),
-    ).toBeTruthy();
+    await waitFor(() => expect(screen.getByText(DETAIL.name)).toBeTruthy());
+    expect(screen.getByText(strings.dealTerms.redemptionTitle)).toBeTruthy();
+    // `maxClaimsPerCustomer: 1` on the offer.
+    expect(screen.getByText(strings.dealTerms.perCustomerLimit(1))).toBeTruthy();
+    expect(screen.getByText(strings.dealTerms.showCode)).toBeTruthy();
+    // The scripted restaurant rules are gone.
+    expect(screen.queryByText(/Glovo|Chowdeck|lunch window|kitchen/i)).toBeNull();
   });
 
   it('opens the How to Claim screen', async () => {
-    const screen = await renderScreen('urban-grill-lunch');
+    const screen = await renderScreen(LIVE_ID);
 
+    await waitFor(() => expect(screen.getByText(DETAIL.name)).toBeTruthy());
     await fireEvent.press(screen.getByLabelText('Claim Deal'));
 
-    expect(mockNavigate).toHaveBeenCalledWith('HowToClaim', {
-      dealId: 'urban-grill-lunch',
-    });
+    expect(mockNavigate).toHaveBeenCalledWith('HowToClaim', { dealId: LIVE_ID });
   });
 
   it('shows the live offer’s own identity, never the demo merchant', async () => {
@@ -161,8 +152,7 @@ describe('DealTermsConditionsScreen', () => {
 
     await waitFor(() => expect(screen.getByText(DETAIL.name)).toBeTruthy());
     expect(screen.getByText('Test store • Abuja')).toBeTruthy();
-    expect(screen.queryByText(strings.dealTerms.merchant)).toBeNull();
-    expect(screen.queryByText('Lunch Combo — 20% Off')).toBeNull();
+    expect(screen.queryByText(/Urban Grill/)).toBeNull();
     // Verified merchant → the pill stays.
     expect(screen.getByText(strings.dealTerms.vetted)).toBeTruthy();
   });
@@ -183,8 +173,7 @@ describe('DealTermsConditionsScreen', () => {
     const screen = await renderScreen(LIVE_ID);
 
     await waitFor(() => expect(screen.getByText('14 Feb 2027')).toBeTruthy());
-    // The demo date belongs to the bundled deals only.
-    expect(screen.queryByText(strings.dealTerms.validityDate)).toBeNull();
+    expect(screen.queryByText(/20 Sep 2025/)).toBeNull();
   });
 
   it('renders the merchant’s own terms as an offer-terms section', async () => {
@@ -220,8 +209,7 @@ describe('DealTermsConditionsScreen', () => {
 
     // The window node only renders inside the live-hours branch.
     await waitFor(() => expect(screen.getByText('12:00 AM – 11:59 PM')).toBeTruthy());
-    // The scripted lunch window never appears for a real offer.
-    expect(screen.queryByText(strings.dealTerms.redeemableWindow)).toBeNull();
+    expect(screen.queryByText(/12:00 PM – 4:00 PM/)).toBeNull();
   });
 
   it('falls back to neutral hours copy instead of inventing a window', async () => {
@@ -231,7 +219,7 @@ describe('DealTermsConditionsScreen', () => {
     await waitFor(() =>
       expect(screen.getByText(strings.dealTerms.hoursFallback)).toBeTruthy(),
     );
-    expect(screen.queryByText(strings.dealTerms.redeemableWindow)).toBeNull();
+    expect(screen.queryByText(/12:00 PM – 4:00 PM/)).toBeNull();
   });
 
   it('says the terms are unavailable instead of showing another deal', async () => {

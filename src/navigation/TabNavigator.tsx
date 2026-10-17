@@ -43,15 +43,9 @@ import { SavingsHistoryScreen } from '@features/accountHub/screens/SavingsHistor
 import { AccountSettingsSecurityScreen } from '@features/accountHub/screens/AccountSettingsSecurityScreen';
 import { EditProfileScreen } from '@features/accountHub/screens/EditProfileScreen';
 import { BookingDetailScreen } from '@features/accountHub/screens/BookingDetailScreen';
-import { ClaimedDealDetailPassScreen } from '@features/claimedDeal/screens/ClaimedDealDetailPassScreen';
+import { ClaimPassView } from '@navigation/ClaimPassView';
 import { DealsDiscoveryScreen } from '@features/deals/screens/DealsDiscoveryScreen';
 import { DiscoverScreen } from '@features/discover/screens/DiscoverScreen';
-import { UrbanGrillProfileScreen } from '@features/discover/screens/UrbanGrillProfileScreen';
-import { UrbanGrillProductsCatalogueScreen } from '@features/discover/screens/UrbanGrillProductsCatalogueScreen';
-import { UrbanGrillMenuScreen } from '@features/discover/screens/UrbanGrillMenuScreen';
-import { UrbanGrillAllDealsScreen } from '@features/discover/screens/UrbanGrillAllDealsScreen';
-import { GlowSerenityProfileScreen } from '@features/discover/screens/GlowSerenityProfileScreen';
-import { GlowSerenityServicesScreen } from '@features/discover/screens/GlowSerenityServicesScreen';
 import { BusinessProfileScreen } from '@features/discover/screens/BusinessProfileScreen';
 import { TabIcon } from '@navigation/TabIcon';
 import { CenteredTabButton } from '@navigation/CenteredTabButton';
@@ -205,6 +199,7 @@ function HomeFeedScreen() {
       onSearchArea={openLocationSelect}
       onOpenNotifications={onOpenNotifications}
       onOpenAccount={onOpenAccount}
+      onOpenProduct={productId => navigation.navigate('ProductDetail', { productId })}
     />
   );
 }
@@ -376,104 +371,9 @@ function BusinessProfileTabScreen() {
       onBack={goBack}
       onOpenInApp={openMessages}
       onOpenService={target => navigation.navigate('ServiceDetail', target)}
-    />
-  );
-}
-
-function UrbanGrillProfileTabScreen() {
-  const goBack = useHistoryBack();
-
-  const navigation = useNavigation<DiscoverStackNavigation>();
-  const openMessages = useOpenPersonalMessages();
-  return (
-    <UrbanGrillProfileScreen
-      onBack={goBack}
-      onOpenCatalogue={() => navigation.push('UrbanGrillProductsCatalogue')}
-      onOpenMenu={() => navigation.push('UrbanGrillMenu')}
-      onOpenAllDeals={() => navigation.push('UrbanGrillAllDeals')}
-      onOpenDeal={() =>
-        navigation.navigate('DealDetail', { dealId: 'urban-grill-lunch' })
-      }
-      onOpenInApp={openMessages}
-    />
-  );
-}
-
-function UrbanGrillCatalogueTabScreen() {
-  const goBack = useHistoryBack();
-
-  const navigation = useNavigation<DiscoverStackNavigation>();
-  return (
-    <UrbanGrillProductsCatalogueScreen
-      onBack={goBack}
-      onOpenProduct={productId => navigation.navigate('ProductDetail', { productId })}
-      onCheckout={() =>
-        navigation.navigate('OrderCheckout', {
-          draft: {
-            quantity: 1,
-            temperature: 'Medium Rare',
-            side: 'Truffle Parmesan Wedges',
-            addons: [],
-            instructions: '',
-            unitPrice: 14000,
-            total: 14000,
-          },
-        })
-      }
-    />
-  );
-}
-
-function UrbanGrillMenuTabScreen() {
-  const goBack = useHistoryBack();
-
-  const navigation = useNavigation<DiscoverStackNavigation>();
-  return (
-    <UrbanGrillMenuScreen
-      onBack={goBack}
-      onOpenAllDeals={() => navigation.push('UrbanGrillAllDeals')}
-    />
-  );
-}
-
-function UrbanGrillDealsTabScreen() {
-  const goBack = useHistoryBack();
-
-  const navigation = useNavigation<DiscoverStackNavigation>();
-  return (
-    <UrbanGrillAllDealsScreen
-      onBack={goBack}
-      onOpenDeal={() =>
-        navigation.navigate('DealDetail', { dealId: 'urban-grill-lunch' })
-      }
-    />
-  );
-}
-
-function GlowSerenityProfileTabScreen() {
-  const goBack = useHistoryBack();
-
-  const navigation = useNavigation<DiscoverStackNavigation>();
-  const openMessages = useOpenPersonalMessages();
-  return (
-    <GlowSerenityProfileScreen
-      onBack={goBack}
-      onOpenServices={() => navigation.push('GlowSerenityServices')}
-      onOpenDeal={() => navigation.navigate('DealDetail', { dealId: 'glow-spa-weekend' })}
-      onOpenInApp={openMessages}
-    />
-  );
-}
-
-function GlowSerenityServicesTabScreen() {
-  const goBack = useHistoryBack();
-
-  const navigation = useNavigation<DiscoverStackNavigation>();
-  return (
-    <GlowSerenityServicesScreen
-      onBack={goBack}
-      onOpenService={serviceId => navigation.navigate('ServiceDetail', { serviceId })}
-      onContinueToBook={serviceId => navigation.navigate('ServiceDetail', { serviceId })}
+      onOpenDeal={dealId => navigation.navigate('DealDetail', { dealId })}
+      onOpenProduct={target => navigation.navigate('ProductDetail', target)}
+      onOpenProducts={target => navigation.navigate('BusinessProducts', target)}
     />
   );
 }
@@ -483,27 +383,6 @@ function DiscoverTabScreen() {
     <DiscoverStack.Navigator screenOptions={{ headerShown: false }}>
       <DiscoverStack.Screen name="DiscoverHome" component={DiscoverHomeScreen} />
       <DiscoverStack.Screen name="BusinessProfile" component={BusinessProfileTabScreen} />
-      <DiscoverStack.Screen
-        name="UrbanGrillProfile"
-        component={UrbanGrillProfileTabScreen}
-      />
-      <DiscoverStack.Screen
-        name="UrbanGrillProductsCatalogue"
-        component={UrbanGrillCatalogueTabScreen}
-      />
-      <DiscoverStack.Screen name="UrbanGrillMenu" component={UrbanGrillMenuTabScreen} />
-      <DiscoverStack.Screen
-        name="UrbanGrillAllDeals"
-        component={UrbanGrillDealsTabScreen}
-      />
-      <DiscoverStack.Screen
-        name="GlowSerenityProfile"
-        component={GlowSerenityProfileTabScreen}
-      />
-      <DiscoverStack.Screen
-        name="GlowSerenityServices"
-        component={GlowSerenityServicesTabScreen}
-      />
     </DiscoverStack.Navigator>
   );
 }
@@ -599,23 +478,6 @@ function AccountDashboardRoute() {
     (id: string) => {
       if (id === 'my-deals') {
         navigation.navigate('PersonalHub', { screen: 'PersonalMyDeals' });
-      } else if (id === 'urban-grill-lunch') {
-        navigation.navigate('PersonalHub', {
-          screen: 'PersonalHome',
-          params: { deepLink: { screen: 'PersonalClaimedDealPass', dealId: id } },
-        });
-      } else if (id === 'glow-booking') {
-        // The dashboard row carries a seed id, not a booking UUID, and
-        // `GET /bookings/:id` only resolves UUIDs. Navigate without an id so the
-        // detail screen renders its "not found" state instead of firing a
-        // request that is guaranteed to 400. The real path in is the bookings
-        // list, which passes the id from `GET /me/bookings`.
-        navigation.navigate('PersonalHub', {
-          screen: 'PersonalHome',
-          params: {
-            deepLink: { screen: 'PersonalBookingDetail' },
-          },
-        });
       } else {
         navigation.navigate('Deals');
       }
@@ -726,8 +588,20 @@ function ActivityRoute() {
   return (
     <MyActivityScreen
       onBack={goBack}
-      onOpenDeal={dealId => navigation.navigate('ClaimedDealPass', { dealId })}
-      onViewReceipt={() => navigation.navigate('OrderDetail', {})}
+      onOpenClaim={dealId => navigation.navigate('ClaimedDealPass', { dealId })}
+      onOpenOrder={orderId => navigation.navigate('OrderDetail', { orderId })}
+      onOpenBooking={bookingId => navigation.navigate('BookingDetail', { bookingId })}
+      // Deal and product pages live on the root app stack; navigate bubbles up.
+      onOpenDeal={dealId =>
+        (navigation.navigate as (name: string, params: object) => void)('DealDetail', {
+          dealId,
+        })
+      }
+      onOpenProduct={productId =>
+        (navigation.navigate as (name: string, params: object) => void)('ProductDetail', {
+          productId,
+        })
+      }
     />
   );
 }
@@ -780,10 +654,11 @@ function ClaimedDealPassRoute() {
     navigation.navigate('Conversation', params),
   );
   return (
-    <ClaimedDealDetailPassScreen
-      claim={pass.claim}
+    <ClaimPassView
+      pass={pass}
       onBack={goBack}
       onOpenChat={openChat}
+      navigate={navigation.navigate as (route: string, params: object) => void}
     />
   );
 }
@@ -798,6 +673,13 @@ function OrderDetailRoute() {
       orderId={route.params?.orderId}
       onBack={goBack}
       onChat={() => navigation.navigate('Conversation', {})}
+      // Checkout lives on the parent app stack, which this stack's type does
+      // not describe; navigate bubbles up to it.
+      onReorder={draft =>
+        (navigation.navigate as (name: string, params: object) => void)('OrderCheckout', {
+          draft,
+        })
+      }
     />
   );
 }

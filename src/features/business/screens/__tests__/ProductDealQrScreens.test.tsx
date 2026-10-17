@@ -12,6 +12,8 @@ import { CreateDealStep2LimitsGiftingRulesScreen } from '@features/business/scre
 import { CreateDealStep3ParticipatingBranchesScheduleScreen } from '@features/business/screens/CreateDealStep3ParticipatingBranchesScheduleScreen';
 import { strings } from '@constants/strings';
 import { YourVemtapBusinessQrIsReadyScreen } from '@features/business/screens/YourVemtapBusinessQrIsReadyScreen';
+import { toQrReadyView } from '@features/business/utils/qrMappers';
+import { qrSummaryFixture } from '../../../../../__tests__/helpers/qrFixtures';
 
 const onBack = jest.fn();
 
@@ -104,14 +106,35 @@ describe('product, deal and QR setup screens', () => {
   });
 
   it('renders and copies the business QR link', async () => {
-    const view = await render(<YourVemtapBusinessQrIsReadyScreen onBack={onBack} />);
+    const onCopyLink = jest.fn();
+    const view = await render(
+      <YourVemtapBusinessQrIsReadyScreen
+        onBack={onBack}
+        view={toQrReadyView(qrSummaryFixture)}
+        onCopyLink={onCopyLink}
+      />,
+    );
     expect(view.getByText('Your VEMTAP Business QR is ready')).toBeTruthy();
     expect(view.getByText('VEMTAP PASS')).toBeTruthy();
+    expect(view.getAllByText('Urban Grill').length).toBeGreaterThan(0);
+    expect(view.getByText('vemtap.com/b/BIZ8820')).toBeTruthy();
 
     await act(async () => {
       fireEvent.press(view.getByLabelText('Copy business QR link'));
     });
-    expect(view.getByText('Link copied to clipboard!')).toBeTruthy();
+    expect(onCopyLink).toHaveBeenCalledWith('https://vemtap.com/b/BIZ8820');
+  });
+
+  it('waits for the QR, then offers a retry when it cannot load', async () => {
+    const onRetry = jest.fn();
+    const view = await render(
+      <YourVemtapBusinessQrIsReadyScreen onBack={onBack} isError onRetry={onRetry} />,
+    );
+    expect(view.getByText(strings.businessQrReady.error)).toBeTruthy();
+    await act(async () => {
+      fireEvent.press(view.getByText(strings.businessQrReady.retry));
+    });
+    expect(onRetry).toHaveBeenCalled();
   });
 
   it('renders the setup badge and the referral perk from the revised design', async () => {

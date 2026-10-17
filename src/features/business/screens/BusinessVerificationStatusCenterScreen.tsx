@@ -5,11 +5,7 @@ import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { colors } from '@theme/colors';
-import {
-  verificationImages,
-  verificationStatusCenterCopy as copy,
-} from '@features/business/verificationCopy';
-import { BusinessProductImage } from '@features/business/components/BusinessPrimitives';
+import { verificationStatusCenterCopy as copy } from '@features/business/verificationCopy';
 import {
   SetupCallout,
   SetupSectionCard,
@@ -19,6 +15,7 @@ import {
   VerificationPage,
   VerificationPillarRow,
   VerificationSummaryRow,
+  BusinessLogo,
 } from '@features/business/components/VerificationPrimitives';
 import type { IconName } from '@components/ui/Icon';
 import type {
@@ -239,11 +236,7 @@ export function BusinessVerificationStatusCenterScreen({
       <SetupSectionCard className="w-full p-6">
         <View className="flex-row items-start gap-3">
           <View className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-surface-container shadow-sm">
-            <BusinessProductImage
-              source={{ uri: logoUrl ?? verificationImages.statusCenterLogo }}
-              alt={businessName ?? ''}
-              className="h-full w-full"
-            />
+            <BusinessLogo uri={logoUrl} name={businessName} className="h-full w-full" />
             <View className="absolute inset-0 bg-primary/5" />
           </View>
           <View className="min-w-0 flex-1">

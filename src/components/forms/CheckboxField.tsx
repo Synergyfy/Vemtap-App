@@ -1,6 +1,11 @@
 import React from 'react';
 import { Pressable, View } from 'react-native';
-import { Controller, type Control, type FieldPath, type FieldValues } from 'react-hook-form';
+import {
+  Controller,
+  type Control,
+  type FieldPath,
+  type FieldValues,
+} from 'react-hook-form';
 import { cssInterop } from 'nativewind';
 import { cn } from '@utils/cn';
 import { VemtapText } from '@components/ui/Text';
@@ -32,17 +37,15 @@ export function CheckboxField<
           accessibilityState={{ checked: Boolean(value) }}
           accessibilityLabel={label}
           onPress={() => onChange(!value)}
-          className={cn('flex-row items-start gap-3 min-h-[44px]', containerClassName)}
+          className={cn('min-h-[44px] flex-row items-start gap-3', containerClassName)}
         >
           <View
             className={cn(
               'mt-0.5 h-5 w-5 items-center justify-center rounded-md border',
-              value ? 'bg-primary border-primary' : 'bg-surface border-border',
+              value ? 'border-primary bg-primary' : 'border-border bg-surface',
             )}
           >
-            {value ? (
-              <View className="h-2 w-2 rounded-sm bg-primary-foreground" />
-            ) : null}
+            {value ? <View className="h-2 w-2 rounded-sm bg-primary-foreground" /> : null}
           </View>
           <View className="flex-1">
             <VemtapText variant="bodyMd" tone={error ? 'error' : 'secondary'}>

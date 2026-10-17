@@ -38,7 +38,7 @@ export function AppModal({
       >
         <Pressable
           className={cn(
-            'w-full max-w-screen rounded-card-lg bg-surface p-6 border border-border',
+            'w-full max-w-screen rounded-card-lg border border-border bg-surface p-6',
             'shadow-lg',
             className,
           )}

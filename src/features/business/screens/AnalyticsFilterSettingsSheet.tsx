@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
+import { Input } from '@components/ui/Input';
 import { AppModal } from '@components/ui/Modal';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
@@ -9,72 +10,81 @@ import { colors } from '@theme/colors';
 import { BusinessAnalyticsRow } from '@features/business/components/BusinessAnalyticsPrimitives';
 import {
   BusinessPanel,
-  BusinessSegmentTabs,
   BusinessToggleChip,
-  type BusinessSegmentTab,
 } from '@features/business/components/BusinessOpsPrimitives';
+import { parseLocalDate, type AnalyticsPreset } from '@store/analyticsFilterStore';
 
 const copy = strings.businessIntelligence.filters;
 
-const contextTabs: BusinessSegmentTab[] = [
-  { key: 'deals', label: copy.contextTabs[0] },
-  { key: 'pos', label: copy.contextTabs[1] },
-  { key: 'customers', label: copy.contextTabs[2] },
-];
+const PRESETS: AnalyticsPreset[] = ['today', '7d', '30d', '90d', 'year', 'custom'];
+const DEFAULT_PRESET: AnalyticsPreset = '30d';
+const MAX_DAYS = 366;
+
+export interface AnalyticsFilterSelection {
+  preset: AnalyticsPreset;
+  customFrom: string | null;
+  customTo: string | null;
+  branchId: string | null;
+}
+
+export interface AnalyticsFilterBranch {
+  id: string;
+  name: string;
+  address?: string;
+}
 
 export interface AnalyticsFilterSettingsSheetProps {
   visible: boolean;
   onClose: () => void;
+  value: AnalyticsFilterSelection;
+  branches: readonly AnalyticsFilterBranch[];
   onApply?: (selection: AnalyticsFilterSelection) => void;
 }
 
-export interface AnalyticsFilterSelection {
-  range: string;
-  location: string;
-  context: string;
-  contextValue: string;
-  till: string;
-  cohort: string;
+/** A custom window is usable when both dates parse, run forwards and fit a year. */
+export function isValidCustomRange(from: string, to: string): boolean {
+  const start = parseLocalDate(from);
+  const end = parseLocalDate(to);
+  if (!start || !end || start > end) return false;
+  return (end.getTime() - start.getTime()) / 86_400_000 < MAX_DAYS;
 }
 
 /**
  * Analytics Filter Settings.
  * stitch_vemtap_mobile_app_design/analytics_filter_settings — the source is a
  * centered scrim'd card (no bottom anchor, no grabber), so it uses the shared
- * modal shell rather than the bottom sheet, and composes the shared business
- * chips/tabs/rows instead of forking a second set of filter controls.
+ * modal shell rather than the bottom sheet. It edits a draft of the shared
+ * analytics window (period + branch) and hands it back on Apply.
  */
 export function AnalyticsFilterSettingsSheet({
   visible,
   onClose,
+  value,
+  branches,
   onApply,
 }: AnalyticsFilterSettingsSheetProps) {
-  const [range, setRange] = useState<string>(copy.ranges[2]);
-  const [location, setLocation] = useState<string>(copy.locations[0].id);
-  const [context, setContext] = useState<string>('deals');
-  const [dealStatus, setDealStatus] = useState<string>(copy.dealsContext[0]);
-  const [till, setTill] = useState<string>(copy.till[0]);
-  const [cohort, setCohort] = useState<string>(copy.customersContext[0]);
+  const [preset, setPreset] = useState<AnalyticsPreset>(value.preset);
+  const [customFrom, setCustomFrom] = useState(value.customFrom ?? '');
+  const [customTo, setCustomTo] = useState(value.customTo ?? '');
+  const [branchId, setBranchId] = useState<string | null>(value.branchId);
 
-  const contextValue =
-    context === 'deals' ? dealStatus : context === 'pos' ? till : cohort;
+  // Reopening starts from what is applied, not from an abandoned draft.
+  useEffect(() => {
+    if (!visible) return;
+    setPreset(value.preset);
+    setCustomFrom(value.customFrom ?? '');
+    setCustomTo(value.customTo ?? '');
+    setBranchId(value.branchId);
+  }, [visible, value]);
 
-  // Only the visible context tab can contribute, so an inactive tab counts 0
-  // rather than reading as a change.
-  const activeCount =
-    (range === copy.ranges[2] ? 0 : 1) +
-    (location === copy.locations[0].id ? 0 : 1) +
-    (context !== 'deals' || dealStatus === copy.dealsContext[0] ? 0 : 1) +
-    (context !== 'pos' || till === copy.till[0] ? 0 : 1) +
-    (context !== 'customers' || cohort === copy.customersContext[0] ? 0 : 1);
+  const customInvalid = preset === 'custom' && !isValidCustomRange(customFrom, customTo);
+  const activeCount = (preset === DEFAULT_PRESET ? 0 : 1) + (branchId ? 1 : 0);
 
   function reset() {
-    setRange(copy.ranges[2]);
-    setLocation(copy.locations[0].id);
-    setContext('deals');
-    setDealStatus(copy.dealsContext[0]);
-    setTill(copy.till[0]);
-    setCohort(copy.customersContext[0]);
+    setPreset(DEFAULT_PRESET);
+    setCustomFrom('');
+    setCustomTo('');
+    setBranchId(null);
   }
 
   return (
@@ -89,190 +99,91 @@ export function AnalyticsFilterSettingsSheet({
         contentContainerClassName="gap-4 pb-1"
         showsVerticalScrollIndicator={false}
       >
-        <View className="flex-row items-center justify-between gap-2">
-          <View className="min-w-0 flex-1">
-            <VemtapText variant="labelMd" className="font-sans-semibold">
-              {copy.scope}
-            </VemtapText>
-            <VemtapText variant="micro" tone="secondary" numberOfLines={2}>
-              {copy.scopeMeta}
-            </VemtapText>
-          </View>
-          <View className="shrink-0 flex-row items-center gap-1 rounded-full bg-badge-discount-bg px-2 py-0.5">
-            <View className="h-1.5 w-1.5 rounded-full bg-badge-discount-text" />
-            <VemtapText
-              variant="micro"
-              className="font-sans-semibold text-badge-discount-text"
-            >
-              {copy.liveBadge}
-            </VemtapText>
-          </View>
+        <View className="min-w-0">
+          <VemtapText variant="labelMd" className="font-sans-semibold">
+            {copy.scope}
+          </VemtapText>
+          <VemtapText variant="micro" tone="secondary" numberOfLines={2}>
+            {copy.scopeMeta(branches.length)}
+          </VemtapText>
         </View>
 
         <BusinessPanel tone="subtle" className="gap-2">
-          <View className="flex-row items-center justify-between gap-2">
-            <VemtapText variant="labelSm" className="font-sans-semibold">
-              {copy.rangeTitle}
-            </VemtapText>
-            <VemtapText variant="micro" tone="tertiary" numberOfLines={1}>
-              {copy.rangeMeta}
-            </VemtapText>
-          </View>
+          <VemtapText variant="labelSm" className="font-sans-semibold">
+            {copy.rangeTitle}
+          </VemtapText>
           <View className="flex-row flex-wrap gap-1.5">
-            {copy.ranges.map(option => (
+            {PRESETS.map(option => (
               <BusinessToggleChip
                 key={option}
-                label={option}
+                label={copy.ranges[option]}
                 icon="calendar"
-                selected={option === range}
-                onPress={() => setRange(option)}
+                selected={option === preset}
+                onPress={() => setPreset(option)}
               />
             ))}
           </View>
-          {range === copy.ranges[copy.ranges.length - 1] ? (
+          {preset === 'custom' ? (
             <View className="gap-2">
               <VemtapText variant="micro" tone="secondary">
                 {copy.customTitle}
               </VemtapText>
-              <View className="flex-row items-center gap-2">
-                <View className="min-w-0 flex-1 gap-0.5 rounded-field bg-surface p-2">
-                  <VemtapText variant="micro" tone="tertiary">
-                    {copy.startDate}
-                  </VemtapText>
-                  <VemtapText
-                    variant="caption"
-                    className="font-sans-semibold"
-                    numberOfLines={1}
-                  >
-                    {copy.startValue}
-                  </VemtapText>
-                </View>
-                <View className="min-w-0 flex-1 gap-0.5 rounded-field bg-surface p-2">
-                  <VemtapText variant="micro" tone="tertiary">
-                    {copy.endDate}
-                  </VemtapText>
-                  <VemtapText
-                    variant="caption"
-                    className="font-sans-semibold"
-                    numberOfLines={1}
-                  >
-                    {copy.endValue}
-                  </VemtapText>
-                </View>
-              </View>
-              <VemtapText variant="micro" tone="tertiary">
-                {copy.customMeta}
-              </VemtapText>
+              <Input
+                label={copy.startDate}
+                value={customFrom}
+                onChangeText={setCustomFrom}
+                placeholder="2026-10-01"
+                keyboardType="numbers-and-punctuation"
+                autoCapitalize="none"
+              />
+              <Input
+                label={copy.endDate}
+                value={customTo}
+                onChangeText={setCustomTo}
+                placeholder="2026-10-31"
+                keyboardType="numbers-and-punctuation"
+                autoCapitalize="none"
+              />
+              {customInvalid && (customFrom || customTo) ? (
+                <VemtapText variant="micro" className="text-error">
+                  {copy.customInvalid}
+                </VemtapText>
+              ) : null}
             </View>
           ) : null}
         </BusinessPanel>
 
-        <BusinessPanel tone="subtle" className="gap-2">
-          <View className="flex-row items-center justify-between gap-2">
-            <VemtapText variant="labelSm" className="font-sans-semibold">
-              {copy.locationsTitle}
-            </VemtapText>
-            <VemtapText variant="micro" tone="tertiary" numberOfLines={1}>
-              {copy.locationsMeta}
-            </VemtapText>
-          </View>
-          {copy.locations.map(option => (
+        {branches.length > 1 ? (
+          <BusinessPanel tone="subtle" className="gap-2">
+            <View className="flex-row items-center justify-between gap-2">
+              <VemtapText variant="labelSm" className="font-sans-semibold">
+                {copy.locationsTitle}
+              </VemtapText>
+              <VemtapText variant="micro" tone="tertiary" numberOfLines={1}>
+                {copy.locationsMeta}
+              </VemtapText>
+            </View>
             <BusinessAnalyticsRow
-              key={option.id}
-              title={option.label}
-              subtitle={option.meta}
-              icon={option.id === 'all' ? 'layers' : 'storefront'}
-              trailing={option.id === location ? copy.selected : undefined}
+              title={copy.allLocations}
+              subtitle={copy.allLocationsMeta}
+              icon="layers"
+              trailing={branchId === null ? copy.selected : undefined}
               trailingTone="brand"
-              onPress={() => setLocation(option.id)}
+              onPress={() => setBranchId(null)}
             />
-          ))}
-        </BusinessPanel>
-
-        <BusinessPanel tone="subtle" className="gap-2">
-          <VemtapText variant="labelSm" className="font-sans-semibold">
-            {copy.contextTitle}
-          </VemtapText>
-          <BusinessSegmentTabs
-            tabs={contextTabs}
-            value={context}
-            onChange={setContext}
-            accessibilityLabel={copy.contextTitle}
-          />
-
-          {context === 'deals' ? (
-            <View className="gap-1.5">
-              <View className="flex-row items-center justify-between gap-2">
-                <VemtapText variant="micro" tone="secondary">
-                  {copy.dealsContextTitle}
-                </VemtapText>
-                <VemtapText variant="micro" tone="tertiary" numberOfLines={1}>
-                  {copy.dealsContextMeta}
-                </VemtapText>
-              </View>
-              {copy.dealsContext.map(option => (
-                <BusinessToggleChip
-                  key={option}
-                  label={option}
-                  icon="localOffer"
-                  selected={option === dealStatus}
-                  onPress={() => setDealStatus(option)}
-                />
-              ))}
-            </View>
-          ) : null}
-
-          {context === 'pos' ? (
-            <View className="gap-2">
-              <VemtapText variant="micro" tone="secondary">
-                {copy.posContextTitle}
-              </VemtapText>
-              <View className="flex-row flex-wrap gap-1.5">
-                {copy.posContext.map(option => (
-                  <View key={option} className="rounded-full bg-surface px-2.5 py-1">
-                    <VemtapText variant="micro" tone="secondary" numberOfLines={1}>
-                      {option}
-                    </VemtapText>
-                  </View>
-                ))}
-              </View>
-              <VemtapText variant="micro" tone="secondary">
-                {copy.tillTitle}
-              </VemtapText>
-              {copy.till.map(option => (
-                <BusinessToggleChip
-                  key={option}
-                  label={option}
-                  icon="pointOfSale"
-                  selected={option === till}
-                  onPress={() => setTill(option)}
-                />
-              ))}
-            </View>
-          ) : null}
-
-          {context === 'customers' ? (
-            <View className="gap-1.5">
-              <View className="flex-row items-center justify-between gap-2">
-                <VemtapText variant="micro" tone="secondary" numberOfLines={1}>
-                  {copy.customersContextTitle}
-                </VemtapText>
-                <VemtapText variant="micro" tone="tertiary" numberOfLines={1}>
-                  {copy.cohortMeta}
-                </VemtapText>
-              </View>
-              {copy.customersContext.map(option => (
-                <BusinessToggleChip
-                  key={option}
-                  label={option}
-                  icon="group"
-                  selected={option === cohort}
-                  onPress={() => setCohort(option)}
-                />
-              ))}
-            </View>
-          ) : null}
-        </BusinessPanel>
+            {branches.map(branch => (
+              <BusinessAnalyticsRow
+                key={branch.id}
+                title={branch.name}
+                subtitle={branch.address || undefined}
+                icon="storefront"
+                trailing={branch.id === branchId ? copy.selected : undefined}
+                trailingTone="brand"
+                onPress={() => setBranchId(branch.id)}
+              />
+            ))}
+          </BusinessPanel>
+        ) : null}
       </ScrollView>
 
       <View className="flex-row items-center gap-2 pt-4">
@@ -293,9 +204,15 @@ export function AnalyticsFilterSettingsSheet({
           labelVariant="labelMd"
           size="sm"
           className="min-h-[44px] flex-1"
+          disabled={customInvalid}
           leftIcon={<Icon name="check" size={18} color={colors.surface} />}
           onPress={() => {
-            onApply?.({ range, location, context, contextValue, till, cohort });
+            onApply?.({
+              preset,
+              customFrom: preset === 'custom' ? customFrom.trim() : null,
+              customTo: preset === 'custom' ? customTo.trim() : null,
+              branchId,
+            });
             onClose();
           }}
         />

@@ -3,11 +3,7 @@ import { View } from 'react-native';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { colors } from '@theme/colors';
-import {
-  trialEndingCopy as copy,
-  verificationImages,
-} from '@features/business/verificationCopy';
-import { BusinessProductImage } from '@features/business/components/BusinessPrimitives';
+import { trialEndingCopy as copy } from '@features/business/verificationCopy';
 import {
   PrimaryActionButton,
   SetupCallout,
@@ -18,6 +14,7 @@ import {
 import {
   PlanFeatureRow,
   VerificationPage,
+  BusinessLogo,
 } from '@features/business/components/VerificationPrimitives';
 import type { TrialProgress } from '@features/business/subscriptionDisplay';
 
@@ -140,9 +137,9 @@ export function TrialEndingRenewGrowthScreen({
           </VemtapText>
         </View>
         <View className="mt-1 flex-row items-center gap-3">
-          <BusinessProductImage
-            source={{ uri: logoUrl ?? verificationImages.endingStorefront }}
-            alt={businessName ?? ''}
+          <BusinessLogo
+            uri={logoUrl}
+            name={businessName}
             className="h-12 w-12 shrink-0 rounded-lg bg-surface-container shadow-sm"
           />
           <View className="min-w-0 flex-1">

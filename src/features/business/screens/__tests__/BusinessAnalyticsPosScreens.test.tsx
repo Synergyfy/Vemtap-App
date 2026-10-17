@@ -10,10 +10,15 @@ import { CustomerDisplayTipRatingScreen } from '@features/business/screens/Custo
 import { SplitTheBillScreen } from '@features/business/screens/SplitTheBillScreen';
 import { DigitalEReceiptScreen } from '@features/business/screens/DigitalEReceiptScreen';
 import {
-  branchComparison,
-  customerValueSegments,
-  topCustomers,
-} from '@features/business/data/businessAnalyticsData';
+  toBranchComparisonView,
+  toCustomerIntelligenceView,
+  toPerformanceView,
+} from '@features/business/utils/analyticsMappers';
+import {
+  customersFixture,
+  locationsFixture,
+  overviewFixture,
+} from '../../../../../__tests__/helpers/analyticsFixtures';
 
 afterEach(cleanup);
 
@@ -30,26 +35,40 @@ async function pressAndSettle(view: Awaited<ReturnType<typeof render>>, label: s
 
 describe('customer intelligence analytics', () => {
   const copy = strings.customerIntelligenceAnalytics;
+  const intelligence = toCustomerIntelligenceView(customersFixture);
 
   it('renders the greeting, KPIs, segments and top customers', async () => {
-    const view = await render(<CustomerIntelligenceAnalyticsScreen />);
+    const view = await render(
+      <CustomerIntelligenceAnalyticsScreen view={intelligence} ownerName="Zainab" />,
+    );
 
     expect(view.getByText(copy.headerTitle)).toBeTruthy();
-    expect(view.getByText(copy.greeting)).toBeTruthy();
-    expect(view.getByText(copy.totalCustomersValue)).toBeTruthy();
-    expect(view.getByText(copy.repeatRateValue)).toBeTruthy();
-    customerValueSegments.forEach(segment => {
-      expect(view.getByText(segment.name)).toBeTruthy();
+    expect(view.getByText(copy.greeting('Zainab'))).toBeTruthy();
+    expect(view.getByText('120')).toBeTruthy();
+    expect(view.getByText('55%')).toBeTruthy();
+    Object.values(copy.segments).forEach(name => {
+      expect(view.getByText(name)).toBeTruthy();
     });
-    topCustomers.forEach(customer => {
-      expect(view.getByText(customer.name)).toBeTruthy();
-    });
+    expect(view.getByText('Michael James')).toBeTruthy();
+    expect(view.getByText('Platinum')).toBeTruthy();
+    expect(view.getByText(copy.insightChurn('18'))).toBeTruthy();
+  });
+
+  it('waits for data with a loading state', async () => {
+    const view = await render(<CustomerIntelligenceAnalyticsScreen />);
+    expect(view.getByText(strings.businessIntelligence.loading)).toBeTruthy();
+  });
+
+  it('shows an error when the request fails', async () => {
+    const view = await render(<CustomerIntelligenceAnalyticsScreen isError />);
+    expect(view.getByText(copy.error.title)).toBeTruthy();
   });
 
   it('switches the active analytics tab and routes the loyalty tab', async () => {
     const onOpenLoyaltyProgramme = jest.fn();
     const view = await render(
       <CustomerIntelligenceAnalyticsScreen
+        view={intelligence}
         onOpenLoyaltyProgramme={onOpenLoyaltyProgramme}
       />,
     );
@@ -59,16 +78,21 @@ describe('customer intelligence analytics', () => {
     expect(onOpenLoyaltyProgramme).toHaveBeenCalledTimes(1);
   });
 
-  it('changes the date range and exports the report', async () => {
+  it('reports a range change and exports the report', async () => {
     const onExport = jest.fn();
+    const onRangeChange = jest.fn();
     const view = await render(
-      <CustomerIntelligenceAnalyticsScreen onExport={onExport} />,
+      <CustomerIntelligenceAnalyticsScreen
+        view={intelligence}
+        onExport={onExport}
+        onRangeChange={onRangeChange}
+      />,
     );
 
-    fireEvent.press(view.getByLabelText(copy.dateRanges[3]));
-    await waitFor(() => expect(view.getByLabelText(copy.dateRanges[3])).toBeTruthy());
+    await pressAndSettle(view, copy.dateRanges[3]);
     await pressAndSettle(view, copy.exportCta);
 
+    expect(onRangeChange).toHaveBeenCalledWith(copy.dateRanges[3]);
     expect(onExport).toHaveBeenCalledTimes(1);
   });
 
@@ -77,35 +101,37 @@ describe('customer intelligence analytics', () => {
     const onOpenCustomer = jest.fn();
     const view = await render(
       <CustomerIntelligenceAnalyticsScreen
+        view={intelligence}
         onOpenSegment={onOpenSegment}
         onOpenCustomer={onOpenCustomer}
       />,
     );
 
-    await pressAndSettle(view, customerValueSegments[0].name);
-    await pressAndSettle(view, topCustomers[0].name);
+    await pressAndSettle(view, copy.segments.vip);
+    await pressAndSettle(view, 'Michael James');
 
-    expect(onOpenSegment).toHaveBeenCalledWith(customerValueSegments[0].id);
-    expect(onOpenCustomer).toHaveBeenCalledWith(topCustomers[0].id);
+    expect(onOpenSegment).toHaveBeenCalledWith('vip');
+    expect(onOpenCustomer).toHaveBeenCalledWith('c-michael');
   });
 });
 
 describe('business analytics performance', () => {
   const copy = strings.businessAnalyticsPerformance;
+  const performance = toPerformanceView(overviewFixture);
 
   it('renders the five-way analytics nav, KPIs and all performance panels', async () => {
-    const view = await render(<BusinessAnalyticsPerformanceScreen />);
+    const view = await render(<BusinessAnalyticsPerformanceScreen view={performance} />);
 
     expect(view.getByText(copy.headerTitle)).toBeTruthy();
-    copy.navTabs &&
-      Object.values(copy.navTabs).forEach(tab => {
-        expect(view.getByLabelText(tab)).toBeTruthy();
-      });
-    expect(view.getByText(copy.revenueValue)).toBeTruthy();
-    expect(view.getByText(copy.channelTitle)).toBeTruthy();
-    expect(view.getByText(copy.topProductsTitle)).toBeTruthy();
+    Object.values(copy.navTabs).forEach(tab => {
+      expect(view.getByLabelText(tab)).toBeTruthy();
+    });
+    expect(view.getByText('₦485,000')).toBeTruthy();
+    expect(view.getByText(copy.channelPos)).toBeTruthy();
+    expect(view.getByText('Woodfire Ribeye')).toBeTruthy();
+    expect(view.getByText(copy.itemMeta('24', '50%'))).toBeTruthy();
     expect(view.getByText(copy.hourlyTitle)).toBeTruthy();
-    expect(view.getByText(copy.staffTitle)).toBeTruthy();
+    expect(view.getByText('Ada Obi')).toBeTruthy();
   });
 
   it('routes tab changes and the report switch', async () => {
@@ -113,6 +139,7 @@ describe('business analytics performance', () => {
     const onSwitchReport = jest.fn();
     const view = await render(
       <BusinessAnalyticsPerformanceScreen
+        view={performance}
         onOpenTab={onOpenTab}
         onSwitchReport={onSwitchReport}
       />,
@@ -128,30 +155,47 @@ describe('business analytics performance', () => {
 
 describe('locations branch comparison', () => {
   const copy = strings.locationsBranchComparison;
+  const comparison = toBranchComparisonView(locationsFixture);
 
   it('renders a comparable card for every branch', async () => {
-    const view = await render(<LocationsBranchComparisonScreen />);
+    const view = await render(<LocationsBranchComparisonScreen view={comparison} />);
 
     expect(view.getByText(copy.headerTitle)).toBeTruthy();
-    expect(view.getAllByText(copy.branchCountValue).length).toBeGreaterThan(0);
+    expect(view.getAllByText('2').length).toBeGreaterThan(0);
     // The best/worst branch names also appear in the summary metric grid.
-    branchComparison.forEach(branch => {
-      expect(view.getAllByText(branch.name).length).toBeGreaterThan(0);
-      expect(view.getAllByText(branch.revenue).length).toBeGreaterThan(0);
-    });
+    expect(view.getAllByText('Wuse Flagship').length).toBeGreaterThan(0);
+    expect(view.getAllByText('₦360,000').length).toBeGreaterThan(0);
+    expect(view.getAllByText('Garki Express').length).toBeGreaterThan(0);
+    // The status pill and the summary tile share the label.
+    expect(view.getAllByText(copy.status.best).length).toBe(2);
+    expect(view.getAllByText(copy.status.watch).length).toBe(2);
+    expect(view.getByText(copy.noteDown('21.9%'))).toBeTruthy();
+  });
+
+  it('shows the empty state when the business has no branches', async () => {
+    const view = await render(
+      <LocationsBranchComparisonScreen
+        view={toBranchComparisonView({ ...locationsFixture, branches: [] })}
+      />,
+    );
+    expect(view.getByText(copy.empty.title)).toBeTruthy();
   });
 
   it('opens a branch and exports the comparison', async () => {
     const onOpenBranch = jest.fn();
     const onExport = jest.fn();
     const view = await render(
-      <LocationsBranchComparisonScreen onOpenBranch={onOpenBranch} onExport={onExport} />,
+      <LocationsBranchComparisonScreen
+        view={comparison}
+        onOpenBranch={onOpenBranch}
+        onExport={onExport}
+      />,
     );
 
-    await pressAndSettle(view, branchComparison[0].name);
+    fireEvent.press(view.getAllByLabelText('Wuse Flagship')[0]);
+    await waitFor(() => expect(onOpenBranch).toHaveBeenCalledWith('b-wuse'));
     await pressAndSettle(view, copy.exportCta);
 
-    expect(onOpenBranch).toHaveBeenCalledWith(branchComparison[0].id);
     expect(onExport).toHaveBeenCalledTimes(1);
   });
 });

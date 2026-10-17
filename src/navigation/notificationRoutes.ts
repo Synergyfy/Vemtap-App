@@ -38,7 +38,9 @@ export type NotificationTarget =
   /** Trial ending / ended (`/business/subscribe`): business plan screens. */
   | { kind: 'plan' }
   /** Verification outcome (`/business/verification`): the status centre. */
-  | { kind: 'verification' };
+  | { kind: 'verification' }
+  /** New ratings or product comments (`/business/reviews[?source=products]`). */
+  | { kind: 'reviews'; source: 'deals' | 'products' };
 
 /** Exact app paths the backend writes for business-only destinations. */
 const BUSINESS_PATHS: Record<string, NotificationTarget> = {
@@ -64,6 +66,13 @@ export function resolveNotificationUrl(
   if (threadId) {
     return { kind: 'message', id: threadId };
   }
-  const path = (actionUrl ?? '').split(/[?#]/)[0].replace(/\/$/, '');
+  const [rawPath, query = ''] = (actionUrl ?? '').split('#')[0].split('?');
+  const path = rawPath.replace(/\/$/, '');
+  if (path === '/business/reviews') {
+    return {
+      kind: 'reviews',
+      source: /(^|&)source=products(&|$)/.test(query) ? 'products' : 'deals',
+    };
+  }
   return BUSINESS_PATHS[path];
 }

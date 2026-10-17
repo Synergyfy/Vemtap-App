@@ -1,5 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
-import { ordersApi, type CatalogueOrder } from '@api/ordersApi';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { ordersApi, type CatalogueOrder, type PlaceOrderInput } from '@api/ordersApi';
 
 export const customerOrderKeys = {
   all: ['customerOrders'] as const,
@@ -43,4 +43,13 @@ export function useCustomerOrderDetail(id?: string | null) {
     /** Distinguishes "still loading" from "loaded, and this order isn't yours". */
     isNotFound: list.isSuccess && Boolean(id) && !order,
   };
+}
+
+/** Places an order and refreshes the customer's order list so it shows up. */
+export function usePlaceOrder() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: PlaceOrderInput) => ordersApi.placeOrder(input),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: customerOrderKeys.all }),
+  });
 }

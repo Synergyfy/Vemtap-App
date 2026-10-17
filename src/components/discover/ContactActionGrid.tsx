@@ -18,41 +18,57 @@ interface ContactAction {
 }
 
 interface ContactActionGridProps {
-  phone: string;
-  whatsappUrl: string;
+  /** Call and WhatsApp only show when the business has a number. */
+  phone?: string;
+  /** Website only shows when the business has one. */
+  website?: string;
   onInApp: () => void;
-  onWebsite: () => void;
 }
 
-export function ContactActionGrid({
-  phone,
-  whatsappUrl,
-  onInApp,
-  onWebsite,
-}: ContactActionGridProps) {
+export function ContactActionGrid({ phone, website, onInApp }: ContactActionGridProps) {
+  const digits = phone?.replace(/[^\d]/g, '') ?? '';
   const actions: ContactAction[] = [
-    {
-      label: strings.urbanProfile.call,
-      icon: 'phone',
-      onPress: () => {
-        Linking.openURL(`tel:${phone}`).catch(() => undefined);
-      },
-    },
+    ...(phone
+      ? [
+          {
+            label: strings.urbanProfile.call,
+            icon: 'phone' as const,
+            onPress: () => {
+              Linking.openURL(`tel:${phone}`).catch(() => undefined);
+            },
+          },
+        ]
+      : []),
     {
       label: strings.urbanProfile.inApp,
       icon: 'message',
       onPress: onInApp,
       badge: strings.urbanProfile.fast,
     },
-    {
-      label: strings.urbanProfile.whatsapp,
-      icon: 'whatsapp',
-      onPress: () => {
-        Linking.openURL(whatsappUrl).catch(() => undefined);
-      },
-      success: true,
-    },
-    { label: strings.urbanProfile.website, icon: 'explore', onPress: onWebsite },
+    ...(digits
+      ? [
+          {
+            label: strings.urbanProfile.whatsapp,
+            icon: 'whatsapp' as const,
+            onPress: () => {
+              Linking.openURL(`https://wa.me/${digits}`).catch(() => undefined);
+            },
+            success: true,
+          },
+        ]
+      : []),
+    ...(website
+      ? [
+          {
+            label: strings.urbanProfile.website,
+            icon: 'explore' as const,
+            onPress: () => {
+              const url = /^https?:\/\//.test(website) ? website : `https://${website}`;
+              Linking.openURL(url).catch(() => undefined);
+            },
+          },
+        ]
+      : []),
   ];
   return (
     <View className="flex-row gap-2">

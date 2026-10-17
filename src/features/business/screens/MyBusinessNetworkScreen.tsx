@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { EmptyState, ErrorState, LoadingState } from '@components/shared';
 import { Pressable, View } from 'react-native';
 import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
@@ -17,11 +18,10 @@ import {
   NetworkPartnerRow,
 } from '@features/business/components/BusinessNetworkPrimitives';
 import {
-  networkGrowth,
-  networkPartners,
   networkSubTabIcon,
   myNetworkSubTabs,
 } from '@features/business/data/businessNetworkData';
+import type { NetworkHubView } from '@features/business/utils/networkMappers';
 import { strings } from '@constants/strings';
 
 const copy = strings.myBusinessNetwork;
@@ -33,6 +33,9 @@ const tabs = myNetworkSubTabs.map(label => ({
 }));
 
 export interface MyBusinessNetworkScreenProps {
+  view?: NetworkHubView;
+  isError?: boolean;
+  onRetry?: () => void;
   onBack?: () => void;
   onOpenSearch?: () => void;
   onOpenProfile?: () => void;
@@ -54,6 +57,9 @@ export interface MyBusinessNetworkScreenProps {
  * The design's bottom tab bar is not rendered — the app shell owns it.
  */
 export function MyBusinessNetworkScreen({
+  view,
+  isError,
+  onRetry,
   onBack,
   onOpenSearch,
   onOpenProfile,
@@ -132,155 +138,178 @@ export function MyBusinessNetworkScreen({
         </VemtapText>
       </View>
 
-      <NetworkInfoBanner
-        className="mt-3"
-        icon="tapAndPlay"
-        title={copy.scanTitle}
-        onPress={onScan}
-        accessibilityLabel={copy.scanTitle}
-      />
+      {!view ? (
+        isError ? (
+          <ErrorState
+            title={copy.error.title}
+            description={copy.error.body}
+            onRetry={onRetry}
+          />
+        ) : (
+          <LoadingState label={copy.loading} />
+        )
+      ) : (
+        <>
+          <NetworkInfoBanner
+            className="mt-3"
+            icon="tapAndPlay"
+            title={copy.scanTitle}
+            onPress={onScan}
+            accessibilityLabel={copy.scanTitle}
+          />
 
-      <BusinessPanel className="mt-3" title={copy.linkLabel} icon="link">
-        <View className="flex-row items-center gap-2.5 rounded-field bg-surface-subtle p-3">
-          <View className="min-w-0 flex-1">
-            <VemtapText variant="caption" tone="tertiary" numberOfLines={1}>
-              {copy.linkLabel}
-            </VemtapText>
+          <BusinessPanel className="mt-3" title={copy.linkLabel} icon="link">
+            <View className="flex-row items-center gap-2.5 rounded-field bg-surface-subtle p-3">
+              <View className="min-w-0 flex-1">
+                <VemtapText variant="caption" tone="tertiary" numberOfLines={1}>
+                  {copy.linkLabel}
+                </VemtapText>
+                <VemtapText
+                  variant="labelMd"
+                  className="font-sans-semibold"
+                  numberOfLines={1}
+                >
+                  {view.displayLink}
+                </VemtapText>
+              </View>
+              <BusinessStatusPill label={copy.linkStatus} tone="success" />
+            </View>
+            <View className="flex-row gap-2">
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={copy.copyLinkCta}
+                onPress={onCopyLink}
+                className="min-h-10 min-w-0 flex-1 flex-row items-center justify-center gap-1.5 rounded-field bg-surface-container active:scale-95"
+              >
+                <Icon name="copy" size={15} color={colors.text} />
+                <VemtapText
+                  variant="labelSm"
+                  className="font-sans-semibold"
+                  numberOfLines={1}
+                >
+                  {copy.copyLinkCta}
+                </VemtapText>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={copy.shareLinkCta}
+                onPress={onShareLink}
+                className="min-h-10 min-w-0 flex-1 flex-row items-center justify-center gap-1.5 rounded-field bg-surface-container active:scale-95"
+              >
+                <Icon name="share" size={15} color={colors.text} />
+                <VemtapText
+                  variant="labelSm"
+                  className="font-sans-semibold"
+                  numberOfLines={1}
+                >
+                  {copy.shareLinkCta}
+                </VemtapText>
+              </Pressable>
+            </View>
+          </BusinessPanel>
+
+          <View className="mt-3">
             <VemtapText
               variant="labelMd"
-              className="font-sans-semibold"
+              className="mb-2 font-sans-semibold"
               numberOfLines={1}
             >
-              {copy.referralLink}
+              {copy.quickShareTitle}
             </VemtapText>
+            <View className="flex-row gap-2">
+              {copy.shareChannels.map(channel => (
+                <Pressable
+                  key={channel.id}
+                  accessibilityRole="link"
+                  accessibilityLabel={channel.label}
+                  onPress={onQuickShare ? () => onQuickShare(channel.id) : undefined}
+                  className="min-h-11 min-w-0 flex-1 flex-row items-center justify-center gap-1.5 rounded-field bg-surface px-2 shadow-sm active:scale-95"
+                >
+                  <Icon name={channel.icon} size={17} color={colors.primary} />
+                  <VemtapText
+                    variant="labelSm"
+                    className="min-w-0 font-sans-semibold"
+                    numberOfLines={1}
+                  >
+                    {channel.label}
+                  </VemtapText>
+                </Pressable>
+              ))}
+            </View>
           </View>
-          <BusinessStatusPill label={copy.linkStatus} tone="success" />
-        </View>
-        <View className="flex-row gap-2">
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={copy.copyLinkCta}
-            onPress={onCopyLink}
-            className="min-h-10 min-w-0 flex-1 flex-row items-center justify-center gap-1.5 rounded-field bg-surface-container active:scale-95"
-          >
-            <Icon name="copy" size={15} color={colors.text} />
-            <VemtapText
-              variant="labelSm"
-              className="font-sans-semibold"
-              numberOfLines={1}
-            >
-              {copy.copyLinkCta}
-            </VemtapText>
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={copy.shareLinkCta}
-            onPress={onShareLink}
-            className="min-h-10 min-w-0 flex-1 flex-row items-center justify-center gap-1.5 rounded-field bg-surface-container active:scale-95"
-          >
-            <Icon name="share" size={15} color={colors.text} />
-            <VemtapText
-              variant="labelSm"
-              className="font-sans-semibold"
-              numberOfLines={1}
-            >
-              {copy.shareLinkCta}
-            </VemtapText>
-          </Pressable>
-        </View>
-      </BusinessPanel>
 
-      <View className="mt-3">
-        <VemtapText
-          variant="labelMd"
-          className="mb-2 font-sans-semibold"
-          numberOfLines={1}
-        >
-          {copy.quickShareTitle}
-        </VemtapText>
-        <View className="flex-row gap-2">
-          {copy.shareChannels.map(channel => (
-            <Pressable
-              key={channel.id}
-              accessibilityRole="link"
-              accessibilityLabel={channel.label}
-              onPress={onQuickShare ? () => onQuickShare(channel.id) : undefined}
-              className="min-h-11 min-w-0 flex-1 flex-row items-center justify-center gap-1.5 rounded-field bg-surface px-2 shadow-sm active:scale-95"
-            >
-              <Icon name={channel.icon} size={17} color={colors.primary} />
+          <NetworkGrowthSummary
+            className="mt-3"
+            verifiedCount={view.growth.verifiedCount}
+            tierName={view.growth.tierName}
+            nextTierName={view.growth.nextTierName}
+            remaining={view.growth.remaining}
+            remainingTotal={view.growth.remainingTotal}
+            percent={view.growth.percent}
+            nextMilestoneBody={view.growth.nextMilestoneBody}
+            milestonesCta={copy.milestonesCta}
+            onViewMilestones={onOpenMilestones}
+          />
+
+          <BusinessPanel
+            className="mt-3"
+            title={copy.connectedTitle}
+            icon="accountCircle"
+            badge={copy.connectedCount.replace('{count}', String(view.recent.length))}
+            badgeTone="success"
+          >
+            <View className="flex-row items-center gap-1.5">
+              <Icon name="sync" size={13} color={colors.badgeDiscountText} />
               <VemtapText
-                variant="labelSm"
-                className="min-w-0 font-sans-semibold"
+                variant="micro"
+                className="min-w-0 flex-1 text-badge-discount-text"
                 numberOfLines={1}
               >
-                {channel.label}
+                {copy.connectedSync}
               </VemtapText>
+            </View>
+            <View className="gap-2">
+              {view.recent.length === 0 ? (
+                <EmptyState
+                  icon="groupNetwork"
+                  variant="contained"
+                  title={copy.empty.title}
+                  description={copy.empty.body}
+                />
+              ) : null}
+              {view.recent.map(partner => (
+                <NetworkPartnerRow
+                  key={partner.id}
+                  name={partner.name}
+                  initials={partner.initials}
+                  subtitle={partner.subtitle}
+                  meta={partner.meta}
+                  status={partner.status}
+                  statusTone={partner.tone}
+                  icon={partner.icon}
+                  chevron
+                  onPress={() => onOpenPartner?.(partner.id)}
+                />
+              ))}
+            </View>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={copy.viewAllCta.replace('{count}', String(view.total))}
+              onPress={onViewAllPartners}
+              className="min-h-10 flex-row items-center justify-center gap-1.5 rounded-field bg-surface-container"
+            >
+              <VemtapText
+                variant="labelSm"
+                className="font-sans-semibold"
+                numberOfLines={1}
+              >
+                {copy.viewAllCta.replace('{count}', String(view.total))}
+              </VemtapText>
+              <Icon name="forward" size={15} color={colors.text} />
             </Pressable>
-          ))}
-        </View>
-      </View>
-
-      <NetworkGrowthSummary
-        className="mt-3"
-        verifiedCount={networkGrowth.verifiedCount}
-        tierName={networkGrowth.currentTierName}
-        nextTierName={networkGrowth.nextTierName}
-        remaining={networkGrowth.remaining}
-        remainingTotal={networkGrowth.remainingTotal}
-        percent={networkGrowth.percent}
-        nextMilestoneBody={networkGrowth.nextMilestoneBody}
-        milestonesCta={copy.milestonesCta}
-        onViewMilestones={onOpenMilestones}
-      />
-
-      <BusinessPanel
-        className="mt-3"
-        title={copy.connectedTitle}
-        icon="accountCircle"
-        badge={copy.connectedCount.replace('{count}', String(networkPartners.length))}
-        badgeTone="success"
-      >
-        <View className="flex-row items-center gap-1.5">
-          <Icon name="sync" size={13} color={colors.badgeDiscountText} />
-          <VemtapText
-            variant="micro"
-            className="min-w-0 flex-1 text-badge-discount-text"
-            numberOfLines={1}
-          >
-            {copy.connectedSync}
-          </VemtapText>
-        </View>
-        <View className="gap-2">
-          {networkPartners.map(partner => (
-            <NetworkPartnerRow
-              key={partner.id}
-              name={partner.name}
-              initials={partner.initials}
-              subtitle={`${partner.district} • ${partner.category}`}
-              meta={partner.meta}
-              status={partner.status}
-              statusTone="success"
-              icon={partner.icon}
-              chevron
-              onPress={() => onOpenPartner?.(partner.id)}
-            />
-          ))}
-        </View>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={copy.viewAllCta.replace(
-            '{count}',
-            String(networkPartners.length),
-          )}
-          onPress={onViewAllPartners}
-          className="min-h-10 flex-row items-center justify-center gap-1.5 rounded-field bg-surface-container"
-        >
-          <VemtapText variant="labelSm" className="font-sans-semibold" numberOfLines={1}>
-            {copy.viewAllCta.replace('{count}', String(networkPartners.length))}
-          </VemtapText>
-          <Icon name="forward" size={15} color={colors.text} />
-        </Pressable>
-      </BusinessPanel>
+          </BusinessPanel>
+        </>
+      )}
 
       <Pressable
         accessibilityRole="button"

@@ -4,30 +4,24 @@ import { dealsApi, type PublicOfferDetail } from '@api/dealsApi';
 import { ApiError } from '@api/ApiError';
 import { discoveryOrigin } from '@utils/geo';
 import { useLocationStore } from '@store/locationStore';
-import { resolveDeal, type ResolvedDeal } from '@features/dealDetail/data/dealResolver';
+import type { ResolvedDeal } from '@features/dealDetail/types';
 import { mapOfferDetailToResolved } from '@features/dealDetail/utils/liveDealMapper';
 
 /**
- * Resolving a deal id to the page's view model.
+ * Resolving a deal id to the page's view model, from
+ * `GET /catalogue/offers/public/details/:id`.
  *
- * Order matters and is not interchangeable:
- *
- *  1. **Seed first.** Discover's businesses and the bundled feeds reference
- *     fictional deals (`urban-grill-lunch`, `glow-spa-weekend`). Those are not
- *     on the server at all, and asking the API about one is a **400**, not a
- *     404 — so they must never reach the network.
- *  2. **Live second.** A real offer id is fetched from
- *     `GET /catalogue/offers/public/details/:id`.
- *
- * A miss is reported as `notFound` instead of falling back to some other deal.
- * The resolver used to answer `?? gridDeals[0]`, so tapping a live card opened
- * an unrelated seed offer — a wrong price for a wrong product, silently.
+ * Offer ids are uuids, and the endpoint answers a non-uuid with a 400, so an id
+ * that cannot be an offer (an old link to a retired demo deal) is reported as
+ * `notFound` without a request. A miss is never filled with some other deal.
  */
 export type DealDetailState =
   | { status: 'resolved'; deal: ResolvedDeal }
   | { status: 'loading' }
   | { status: 'notFound' }
   | { status: 'error' };
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export const dealDetailKeys = {
   live: (offerId: string) => ['offers', 'detail', offerId] as const,
@@ -38,14 +32,12 @@ export function useDealDetail(dealId: string): DealDetailState & { retry: () => 
   const coords = useLocationStore(state => state.coords);
   const origin = useMemo(() => discoveryOrigin(area, coords), [area, coords]);
 
-  const seed = useMemo(() => resolveDeal(dealId), [dealId]);
-  const isSeed = seed !== undefined;
+  const isOfferId = UUID.test(dealId);
 
   const query = useQuery<PublicOfferDetail>({
-    // No request at all for a fictional deal — see the note above.
     queryKey: dealDetailKeys.live(dealId),
     queryFn: () => dealsApi.getPublicOfferDetails(dealId),
-    enabled: !isSeed,
+    enabled: isOfferId,
     staleTime: 60_000,
     retry: false,
   });
@@ -58,8 +50,8 @@ export function useDealDetail(dealId: string): DealDetailState & { retry: () => 
     void query.refetch();
   };
 
-  if (seed) {
-    return { status: 'resolved', deal: seed, retry: () => undefined };
+  if (!isOfferId) {
+    return { status: 'notFound', retry: () => undefined };
   }
 
   if (query.isPending) {

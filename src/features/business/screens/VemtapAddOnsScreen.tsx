@@ -28,19 +28,28 @@ const ADD_ON_IMAGES = {
 
 type AddOnImageKey = keyof typeof ADD_ON_IMAGES;
 
-interface AddOnCardProps {
-  addOn: (typeof copy.addOns)[number];
-  onPress: () => void;
-  onJoinWaitlist: () => void;
+export type AddOnKey = (typeof copy.addOns)[number]['key'];
+
+/** A live "from" price, e.g. `{ price: '₦1,500', suffix: '/ 250 SMS' }`. */
+export interface AddOnPrice {
+  price: string;
+  suffix?: string | null;
 }
 
-function AddOnCard({ addOn, onPress, onJoinWaitlist }: AddOnCardProps) {
+interface AddOnCardProps {
+  addOn: (typeof copy.addOns)[number];
+  price?: AddOnPrice | null;
+  /** Nothing to buy yet (no credit bundle on sale). */
+  unavailable?: boolean;
+  onPress: () => void;
+}
+
+function AddOnCard({ addOn, price, unavailable, onPress }: AddOnCardProps) {
   const image = addOn.image as AddOnImageKey | null;
   const features = 'features' in addOn ? addOn.features : null;
   const statIcon = addOn.statIcon as IconName | null;
   const actionIcon = addOn.actionIcon as IconName;
   const isSecondary = addOn.actionVariant === 'secondary';
-  const hasSecondaryBadge = 'badgeSecondary' in addOn && Boolean(addOn.badgeSecondary);
 
   return (
     <SetupSectionCard tone="subtle" className="w-full gap-3">
@@ -62,16 +71,9 @@ function AddOnCard({ addOn, onPress, onJoinWaitlist }: AddOnCardProps) {
             <View className="mb-1 flex-row flex-wrap items-center gap-1.5">
               <StatusPill
                 label={addOn.badge}
-                tone={hasSecondaryBadge ? 'brandHigh' : (addOn.badgeTone as PillTone)}
+                tone={addOn.badgeTone as PillTone}
                 className="self-start"
               />
-              {hasSecondaryBadge ? (
-                <StatusPill
-                  label={addOn.badgeSecondary}
-                  tone="neutral"
-                  className="self-start"
-                />
-              ) : null}
             </View>
             <VemtapText variant="labelMd" className="min-w-0 font-sans-semibold">
               {addOn.title}
@@ -158,22 +160,26 @@ function AddOnCard({ addOn, onPress, onJoinWaitlist }: AddOnCardProps) {
       ) : null}
 
       <View className="mt-auto flex-row flex-wrap items-end justify-between gap-3 pt-1">
-        {addOn.price ? (
+        {price ? (
           <View className="min-w-0 shrink-0">
             <VemtapText variant="caption" tone="tertiary">
               {addOn.priceCaption}
             </VemtapText>
             <View className="flex-row items-baseline gap-1">
               <VemtapText variant="labelMd" className="font-sans-bold font-sans-semibold">
-                {addOn.price}
+                {price.price}
               </VemtapText>
-              {addOn.priceSuffix ? (
+              {price.suffix ? (
                 <VemtapText variant="caption" tone="secondary">
-                  {addOn.priceSuffix}
+                  {price.suffix}
                 </VemtapText>
               ) : null}
             </View>
           </View>
+        ) : unavailable ? (
+          <VemtapText variant="caption" tone="tertiary" className="min-w-0 shrink">
+            {copy.noBundles}
+          </VemtapText>
         ) : 'statLeadingLabel' in addOn && addOn.statLeadingLabel ? (
           <View className="min-w-0 shrink-0 flex-row items-center gap-1.5">
             <Icon name="devices" size={18} color={colors.textSecondary} />
@@ -200,7 +206,8 @@ function AddOnCard({ addOn, onPress, onJoinWaitlist }: AddOnCardProps) {
           size="sm"
           className={isSecondary ? 'border-0 bg-surface-container' : undefined}
           labelClassName={isSecondary ? 'text-text-secondary' : undefined}
-          onPress={isSecondary ? onJoinWaitlist : onPress}
+          disabled={unavailable}
+          onPress={onPress}
         />
       </View>
     </SetupSectionCard>
@@ -211,10 +218,13 @@ export interface VemtapAddOnsScreenProps {
   /** Add-ons configured by VEMTAP (`GET /addons`). */
   planAddOns?: Addon[];
   currentPlanName?: string | null;
+  /** Live "from" prices; a card without one shows no price. */
+  prices?: Partial<Record<AddOnKey, AddOnPrice | null>>;
+  /** Cards with nothing on sale (their action is disabled). */
+  unavailable?: AddOnKey[];
   onBack?: () => void;
   onHelp?: () => void;
-  onSelectAddOn?: (addOnTitle: string) => void;
-  onJoinPosWaitlist?: () => void;
+  onSelectAddOn?: (key: AddOnKey) => void;
 }
 
 /**
@@ -224,10 +234,11 @@ export interface VemtapAddOnsScreenProps {
 export function VemtapAddOnsScreen({
   planAddOns = [],
   currentPlanName,
+  prices = {},
+  unavailable = [],
   onBack,
   onHelp,
   onSelectAddOn,
-  onJoinPosWaitlist,
 }: VemtapAddOnsScreenProps) {
   const handleBack = useCallback(() => onBack?.(), [onBack]);
 
@@ -306,10 +317,11 @@ export function VemtapAddOnsScreen({
 
       {copy.addOns.map(addOn => (
         <AddOnCard
-          key={addOn.title}
+          key={addOn.key}
           addOn={addOn}
-          onPress={() => onSelectAddOn?.(addOn.title)}
-          onJoinWaitlist={() => onJoinPosWaitlist?.()}
+          price={prices[addOn.key]}
+          unavailable={unavailable.includes(addOn.key)}
+          onPress={() => onSelectAddOn?.(addOn.key)}
         />
       ))}
 

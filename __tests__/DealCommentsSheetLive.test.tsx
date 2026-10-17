@@ -112,7 +112,7 @@ test('posts a new review with the typed comment', async () => {
   );
 
   await fireEvent.changeText(
-    screen.getByLabelText(strings.deals.addCommentPlaceholder),
+    screen.getByLabelText(strings.deals.addCommentPlaceholder('Patrick Ventures')),
     'Lovely spot',
   );
   await fireEvent.press(screen.getByLabelText(strings.deals.post));
@@ -121,19 +121,4 @@ test('posts a new review with the typed comment', async () => {
     { comment: 'Lovely spot', rating: undefined },
     expect.anything(),
   );
-});
-
-test('keeps the designed demo conversation for fictional seed deals', async () => {
-  const screen = await render(
-    <DealCommentsSheet
-      visible
-      onClose={jest.fn()}
-      dealTitle="Prime Lunch Gourmet Combo"
-      merchant="Urban Grill & Bistro"
-      commentCount={32}
-    />,
-  );
-
-  expect(screen.getByText('Samuel A.')).toBeTruthy();
-  expect(mockList).not.toHaveBeenCalled();
 });

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { EmptyState, ErrorState, LoadingState } from '@components/shared';
 import { Pressable, View } from 'react-native';
 import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
@@ -20,12 +21,10 @@ import {
   NetworkPartnerRow,
 } from '@features/business/components/BusinessNetworkPrimitives';
 import {
-  dashboardConnections,
   dashboardSubTabs,
-  networkBadges,
-  networkGrowth,
   networkSubTabIcon,
 } from '@features/business/data/businessNetworkData';
+import type { NetworkHubView } from '@features/business/utils/networkMappers';
 
 const copy = strings.businessNetworkDashboard;
 
@@ -36,6 +35,9 @@ const tabs = dashboardSubTabs.map(label => ({
 }));
 
 export interface BusinessNetworkActiveDashboardScreenProps {
+  view?: NetworkHubView;
+  isError?: boolean;
+  onRetry?: () => void;
   onBack?: () => void;
   onOpenProfile?: () => void;
   onOpenSubTab?: (tabKey: string) => void;
@@ -55,6 +57,9 @@ export interface BusinessNetworkActiveDashboardScreenProps {
  * its category strip is a top sub-tab instead.
  */
 export function BusinessNetworkActiveDashboardScreen({
+  view,
+  isError,
+  onRetry,
   onBack,
   onOpenProfile,
   onOpenSubTab,
@@ -76,7 +81,7 @@ export function BusinessNetworkActiveDashboardScreen({
     {
       id: 'referrals',
       icon: 'groupNetwork',
-      title: copy.referralCardTitle.replace('{count}', networkGrowth.verifiedCount),
+      title: copy.referralCardTitle.replace('{count}', view?.growth.verifiedCount ?? '0'),
       body: copy.referralCardBody,
       onPress: onViewAllReferrals,
     },
@@ -95,6 +100,8 @@ export function BusinessNetworkActiveDashboardScreen({
       onPress: onOpenHowItWorks,
     },
   ];
+
+  const badges = (view?.milestones ?? []).filter(tier => tier.state !== 'locked');
 
   return (
     <BusinessScreenLayout
@@ -131,102 +138,140 @@ export function BusinessNetworkActiveDashboardScreen({
         className="-mx-6 mt-2"
       />
 
-      <View className="mt-3 flex-row items-center gap-2.5 rounded-card bg-primary p-3">
-        <View className="min-w-0 flex-1">
-          <BusinessStatusPill label={copy.statusBadge} tone="success" />
-          <View className="mt-1.5 flex-row items-baseline gap-1.5">
-            <VemtapText
-              variant="headingLg"
-              className="font-sans-bold text-surface"
-              numberOfLines={1}
-            >
-              {networkGrowth.verifiedCount}
-            </VemtapText>
-            <VemtapText variant="caption" className="text-surface" numberOfLines={1}>
-              {copy.verifiedLabel}
-            </VemtapText>
-          </View>
-        </View>
-        <View className="h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-surface">
-          <Icon name="hub" size={24} color={colors.primary} />
-        </View>
-      </View>
-
-      <NetworkGrowthSummary
-        className="mt-3"
-        verifiedCount={networkGrowth.verifiedCount}
-        tierName={networkGrowth.currentTierName}
-        nextTierName={networkGrowth.nextTierName}
-        remaining={networkGrowth.remaining}
-        remainingTotal={networkGrowth.remainingTotal}
-        percent={networkGrowth.percent}
-        nextMilestoneBody={networkGrowth.nextMilestoneBody}
-      />
-
-      <BusinessPanel
-        className="mt-3"
-        title={copy.badgesTitle}
-        icon="medal"
-        badge={copy.badgesCount.replace('{count}', String(networkBadges.length))}
-        badgeTone="brand"
-      >
-        <View className="flex-row flex-wrap gap-2">
-          {networkBadges.map(badge => (
-            <View
-              key={badge.id}
-              className="min-w-[45%] flex-1 flex-row items-center gap-2.5 rounded-field bg-surface-subtle p-2.5"
-            >
-              <BusinessIconWell icon={badge.icon} tone={badge.tone} size="sm" />
-              <View className="min-w-0 flex-1">
+      {!view ? (
+        isError ? (
+          <ErrorState
+            title={copy.error.title}
+            description={copy.error.body}
+            onRetry={onRetry}
+          />
+        ) : (
+          <LoadingState label={copy.loading} />
+        )
+      ) : (
+        <>
+          <View className="mt-3 flex-row items-center gap-2.5 rounded-card bg-primary p-3">
+            <View className="min-w-0 flex-1">
+              <BusinessStatusPill label={copy.statusBadge} tone="success" />
+              <View className="mt-1.5 flex-row items-baseline gap-1.5">
                 <VemtapText
-                  variant="labelSm"
-                  className="min-w-0 font-sans-semibold"
+                  variant="headingLg"
+                  className="font-sans-bold text-surface"
                   numberOfLines={1}
                 >
-                  {badge.name}
+                  {view.growth.verifiedCount}
                 </VemtapText>
-                <VemtapText variant="micro" tone="tertiary" numberOfLines={1}>
-                  {badge.meta}
+                <VemtapText variant="caption" className="text-surface" numberOfLines={1}>
+                  {copy.verifiedLabel}
                 </VemtapText>
               </View>
             </View>
-          ))}
-        </View>
-      </BusinessPanel>
+            <View className="h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-surface">
+              <Icon name="hub" size={24} color={colors.primary} />
+            </View>
+          </View>
 
-      <BusinessPanel
-        className="mt-3"
-        title={copy.connectionsTitle}
-        icon="accountCircle"
-        badge={copy.connectionsBadge}
-        badgeTone="neutral"
-      >
-        <View className="gap-2">
-          {dashboardConnections.map(connection => (
-            <NetworkPartnerRow
-              key={connection.id}
-              name={connection.name}
-              initials={connection.initials}
-              subtitle="Verified partner"
-              status="Active"
-              statusTone="success"
-              chevron
-              onPress={() => onOpenConnection?.(connection.id)}
-            />
-          ))}
-        </View>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={copy.connectionsAction.replace('{count}', '11')}
-          onPress={onViewAllReferrals}
-          className="min-h-10 flex-row items-center justify-center gap-1.5 rounded-field bg-surface-container"
-        >
-          <VemtapText variant="labelSm" className="font-sans-semibold" numberOfLines={1}>
-            {copy.connectionsAction.replace('{count}', '11')}
-          </VemtapText>
-          <Icon name="arrowForward" size={15} color={colors.text} />
-        </Pressable>
-      </BusinessPanel>
+          <NetworkGrowthSummary
+            className="mt-3"
+            verifiedCount={view.growth.verifiedCount}
+            tierName={view.growth.tierName}
+            nextTierName={view.growth.nextTierName}
+            remaining={view.growth.remaining}
+            remainingTotal={view.growth.remainingTotal}
+            percent={view.growth.percent}
+            nextMilestoneBody={view.growth.nextMilestoneBody}
+          />
+
+          <BusinessPanel
+            className="mt-3"
+            title={copy.badgesTitle}
+            icon="medal"
+            badge={copy.badgesCount.replace('{count}', String(badges.length))}
+            badgeTone="brand"
+          >
+            <View className="flex-row flex-wrap gap-2">
+              {badges.length === 0 ? (
+                <VemtapText variant="caption" tone="tertiary">
+                  {copy.badgesEmpty}
+                </VemtapText>
+              ) : null}
+              {badges.map(badge => (
+                <View
+                  key={badge.id}
+                  className="min-w-[45%] flex-1 flex-row items-center gap-2.5 rounded-field bg-surface-subtle p-2.5"
+                >
+                  <BusinessIconWell
+                    icon={badge.icon}
+                    tone={badge.state === 'active' ? 'brand' : 'tertiary'}
+                    size="sm"
+                  />
+                  <View className="min-w-0 flex-1">
+                    <VemtapText
+                      variant="labelSm"
+                      className="min-w-0 font-sans-semibold"
+                      numberOfLines={1}
+                    >
+                      {badge.name}
+                    </VemtapText>
+                    <VemtapText variant="micro" tone="tertiary" numberOfLines={1}>
+                      {badge.threshold}
+                    </VemtapText>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </BusinessPanel>
+
+          <BusinessPanel
+            className="mt-3"
+            title={copy.connectionsTitle}
+            icon="accountCircle"
+            badge={copy.connectionsBadge}
+            badgeTone="neutral"
+          >
+            <View className="gap-2">
+              {view.recent.length === 0 ? (
+                <EmptyState
+                  icon="groupNetwork"
+                  variant="contained"
+                  title={copy.empty.title}
+                  description={copy.empty.body}
+                />
+              ) : null}
+              {view.recent.map(connection => (
+                <NetworkPartnerRow
+                  key={connection.id}
+                  name={connection.name}
+                  initials={connection.initials}
+                  subtitle={connection.subtitle || connection.meta}
+                  status={connection.status}
+                  statusTone={connection.tone}
+                  chevron
+                  onPress={() => onOpenConnection?.(connection.id)}
+                />
+              ))}
+            </View>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={copy.connectionsAction.replace(
+                '{count}',
+                String(view.total),
+              )}
+              onPress={onViewAllReferrals}
+              className="min-h-10 flex-row items-center justify-center gap-1.5 rounded-field bg-surface-container"
+            >
+              <VemtapText
+                variant="labelSm"
+                className="font-sans-semibold"
+                numberOfLines={1}
+              >
+                {copy.connectionsAction.replace('{count}', String(view.total))}
+              </VemtapText>
+              <Icon name="arrowForward" size={15} color={colors.text} />
+            </Pressable>
+          </BusinessPanel>
+        </>
+      )}
 
       <View className="mt-3 gap-2">
         {cards.map(card => (

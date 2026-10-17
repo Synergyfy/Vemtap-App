@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { View } from 'react-native';
+import React from 'react';
+import { Alert, View } from 'react-native';
+import { ErrorState, LoadingState } from '@components/shared';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
@@ -9,73 +10,86 @@ import {
   BusinessStatusPill,
 } from '@features/business/components/BusinessPrimitives';
 import { BusinessSettingsGroup } from '@features/business/components/BusinessPosPrimitives';
-import {
-  settingsBranch,
-  settingsDispatchGroups,
-  settingsHardwareGroups,
-  settingsSecurityGroups,
-  settingsSessionGroups,
-  settingsStoreGroups,
-  settingsTeamGroups,
-} from '@features/business/data/businessTrustSettingsData';
+import type {
+  SettingsToggleId,
+  SettingsToggleRow,
+  SettingsView,
+} from '@features/business/utils/settingsMappers';
 
 const copy = strings.businessSettings;
 
-/** Icon per settings row id so the list and its data stay in one place. */
-const settingsRowIcon: Record<string, string> = {
-  branch: 'storefront',
-  hours: 'schedule',
-  'dine-in': 'dining',
-  alerts: 'notificationsActive',
-  drawer: 'payments',
-  printer: 'printReceipt',
-  scanner: 'qrCodeScanner',
-  'refund-pin': 'pin',
-  'mask-phone': 'shieldPerson',
-  whatsapp: 'whatsapp',
-  'email-digest': 'markEmailUnread',
-  '2fa': 'verifiedUser',
-  pin: 'password',
-  devices: 'devices',
-  pause: 'pauseCircle',
-  signout: 'logout',
-};
-
 export interface BusinessSettingsScreenProps {
+  view?: SettingsView;
+  isError?: boolean;
+  onRetry?: () => void;
+  /** Only owners may change POS policy, discovery and storefront state. */
+  canEdit?: boolean;
+  notice?: string | null;
   onBack?: () => void;
   onOpenProfile?: () => void;
   onChangeBranch?: () => void;
   onChangeHours?: () => void;
-  onOpenRow?: (rowId: string) => void;
-  onToggleRow?: (rowId: string, value: boolean) => void;
+  onOpenHardware?: () => void;
+  onOpenSecurity?: () => void;
+  onToggle?: (id: SettingsToggleId, value: boolean) => void;
+  onSetLive?: (live: boolean) => void;
+  onSignOut?: () => void;
 }
 
 /**
- * Business settings: storefront identity and location, ordering behaviour,
- * POS hardware, team policy, dispatch, security and session management. Every
- * group renders through the shared settings-row primitive.
+ * Business settings: storefront identity and branch, ordering and POS policy,
+ * hardware, notifications, security and storefront state. Every row reads and
+ * writes the store that owns it (POS settings, discovery settings, the
+ * business profile); rows a manager may not change are read-only.
  */
 export function BusinessSettingsScreen({
+  view,
+  isError,
+  onRetry,
+  canEdit = true,
+  notice,
   onBack,
   onOpenProfile,
   onChangeBranch,
   onChangeHours,
-  onOpenRow,
-  onToggleRow,
+  onOpenHardware,
+  onOpenSecurity,
+  onToggle,
+  onSetLive,
+  onSignOut,
 }: BusinessSettingsScreenProps) {
-  const [switches, setSwitches] = useState<Record<string, boolean>>({
-    'dine-in': true,
-    alerts: true,
-    'refund-pin': true,
-    'mask-phone': true,
-    whatsapp: false,
-    'email-digest': true,
-  });
+  const toggles = (rows: SettingsToggleRow[]) =>
+    rows.map(row => ({
+      title: row.title,
+      subtitle: row.subtitle,
+      icon: row.icon,
+      trailing: 'switch' as const,
+      switchValue: row.value,
+      onSwitchChange: canEdit ? (value: boolean) => onToggle?.(row.id, value) : undefined,
+    }));
 
-  const toggle = (id: string, value: boolean) => {
-    setSwitches(current => ({ ...current, [id]: value }));
-    onToggleRow?.(id, value);
-  };
+  const confirmPause = () =>
+    Alert.alert(copy.pauseConfirmTitle, copy.pauseConfirmBody, [
+      { text: copy.cancel, style: 'cancel' },
+      {
+        text: copy.pauseConfirm,
+        style: 'destructive',
+        onPress: () => onSetLive?.(false),
+      },
+    ]);
+
+  const heading = (title: string, subtitle?: string) => (
+    <View className="px-1">
+      <VemtapText variant="labelMd" className="font-sans-semibold" numberOfLines={1}>
+        {title}
+      </VemtapText>
+      {subtitle ? (
+        <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
+          {subtitle}
+        </VemtapText>
+      ) : null}
+    </View>
+  );
 
   return (
     <BusinessScreenLayout
@@ -88,190 +102,150 @@ export function BusinessSettingsScreen({
       }}
       contentContainerClassName="pb-8 gap-3"
     >
-      <View className="gap-2 rounded-card bg-surface p-3 shadow-sm">
-        <View className="flex-row items-center gap-2">
-          <VemtapText
-            variant="labelMd"
-            className="min-w-0 flex-1 font-sans-semibold"
-            numberOfLines={1}
-          >
-            {copy.identityName}
-          </VemtapText>
-          <Icon name="verified" size={17} color={colors.primary} />
-        </View>
-        <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-          {copy.identityMeta}
-        </VemtapText>
-        <View className="flex-row items-center justify-between gap-2">
-          <BusinessStatusPill label={copy.identityStatus} tone="success" />
-          <VemtapText
-            variant="caption"
-            tone="tertiary"
-            className="shrink-0"
-            numberOfLines={1}
-          >
-            {copy.identityStatusNote}
-          </VemtapText>
-        </View>
-      </View>
+      {!view ? (
+        isError ? (
+          <ErrorState
+            title={copy.error.title}
+            description={copy.error.body}
+            onRetry={onRetry}
+          />
+        ) : (
+          <LoadingState label={copy.loading} />
+        )
+      ) : (
+        <>
+          <View className="gap-2 rounded-card bg-surface p-3 shadow-sm">
+            <View className="flex-row items-center gap-2">
+              <VemtapText
+                variant="labelMd"
+                className="min-w-0 flex-1 font-sans-semibold"
+                numberOfLines={1}
+              >
+                {view.identity.name}
+              </VemtapText>
+              <Icon name="verified" size={17} color={colors.primary} />
+            </View>
+            {view.identity.meta ? (
+              <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
+                {view.identity.meta}
+              </VemtapText>
+            ) : null}
+            <View className="flex-row items-center justify-between gap-2">
+              <BusinessStatusPill
+                label={view.identity.live ? copy.identityLive : copy.identityPaused}
+                tone={view.identity.live ? 'success' : 'warning'}
+              />
+              <VemtapText
+                variant="caption"
+                tone="tertiary"
+                className="shrink-0"
+                numberOfLines={1}
+              >
+                {view.identity.verification}
+              </VemtapText>
+            </View>
+          </View>
 
-      <BusinessSettingsGroup
-        rows={[
-          {
-            title: copy.branchTitle,
-            subtitle: copy.branchSubtitle,
-            icon: 'storefront' as const,
-            trailing: 'value',
-            value: settingsBranch.title,
-            onPress: onChangeBranch,
-          },
-          {
-            title: copy.hoursTitle,
-            subtitle: copy.hoursStatus,
-            icon: 'schedule' as const,
-            trailing: 'value',
-            value: settingsBranch.hours,
-            onPress: onChangeHours,
-          },
-        ]}
-      />
+          {notice ? (
+            <VemtapText variant="caption" className="px-1 text-error">
+              {notice}
+            </VemtapText>
+          ) : null}
+          {!canEdit ? (
+            <VemtapText variant="caption" tone="tertiary" className="px-1">
+              {copy.ownerOnly}
+            </VemtapText>
+          ) : null}
 
-      <BusinessSettingsGroup
-        rows={settingsStoreGroups.map(row => ({
-          title: row.title,
-          subtitle: row.subtitle,
-          icon: settingsRowIcon[row.id] as never,
-          trailing: 'switch' as const,
-          switchValue: switches[row.id],
-          onSwitchChange: value => toggle(row.id, value),
-        }))}
-      />
+          <BusinessSettingsGroup
+            rows={[
+              {
+                title: copy.branchTitle,
+                subtitle: copy.branchSubtitle,
+                icon: 'storefront' as const,
+                trailing: 'value',
+                value: view.branchName,
+                onPress: onChangeBranch,
+              },
+              {
+                title: copy.hoursTitle,
+                subtitle: copy.hoursSubtitle,
+                icon: 'schedule' as const,
+                trailing: 'value',
+                value: copy.hoursValue,
+                onPress: onChangeHours,
+              },
+            ]}
+          />
 
-      <View className="flex-row items-center justify-between gap-2 px-1">
-        <VemtapText
-          variant="labelMd"
-          className="min-w-0 flex-1 font-sans-semibold"
-          numberOfLines={1}
-        >
-          {copy.hardwareTitle}
-        </VemtapText>
-        <BusinessStatusPill label={copy.hardwareBadge} tone="brand" />
-      </View>
+          {heading(copy.storeTitle)}
+          <BusinessSettingsGroup rows={toggles(view.ordering)} />
 
-      <BusinessSettingsGroup
-        rows={[
-          {
-            title: 'Default Cash Drawer Base',
-            subtitle: 'Opening balance per shift',
-            icon: 'payments' as const,
-            trailing: 'value',
-            value: settingsBranch.drawerBase,
-            onPress: () => onOpenRow?.('drawer'),
-          },
-          ...settingsHardwareGroups.map(row => ({
-            title: row.title,
-            subtitle: row.subtitle,
-            icon: settingsRowIcon[row.id] as never,
-            trailing: 'value' as const,
-            value: row.value,
-            onPress: () => onOpenRow?.(row.id),
-          })),
-        ]}
-      />
+          {heading(copy.hardwareTitle, copy.hardwareSubtitle)}
+          <BusinessSettingsGroup
+            rows={view.hardware.map(row => ({
+              title: row.title,
+              icon: row.icon,
+              trailing: 'value' as const,
+              value: row.value,
+              onPress: onOpenHardware,
+            }))}
+          />
 
-      <View className="px-1">
-        <VemtapText variant="labelMd" className="font-sans-semibold" numberOfLines={1}>
-          {copy.teamTitle}
-        </VemtapText>
-        <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-          {settingsTeamGroups[0].subtitle}
-        </VemtapText>
-      </View>
+          {heading(copy.teamTitle, copy.teamSubtitle)}
+          <BusinessSettingsGroup rows={toggles(view.team)} />
 
-      <BusinessSettingsGroup
-        rows={settingsTeamGroups.map(row => ({
-          title: row.title,
-          subtitle: row.subtitle,
-          icon: settingsRowIcon[row.id] as never,
-          trailing: 'switch' as const,
-          switchValue: switches[row.id],
-          onSwitchChange: value => toggle(row.id, value),
-        }))}
-      />
+          {heading(copy.dispatchTitle)}
+          <BusinessSettingsGroup rows={toggles(view.dispatch)} />
 
-      <View className="px-1">
-        <VemtapText variant="labelMd" className="font-sans-semibold" numberOfLines={1}>
-          {copy.dispatchTitle}
-        </VemtapText>
-      </View>
+          {heading(copy.securityTitle)}
+          <BusinessSettingsGroup
+            rows={[
+              {
+                title: copy.twoFactorTitle,
+                subtitle: copy.twoFactorSubtitle,
+                icon: 'verifiedUser' as const,
+                trailing: 'value',
+                value: view.twoFactor,
+                valueTone: view.twoFactorOn ? 'success' : 'default',
+                onPress: onOpenSecurity,
+              },
+              {
+                title: copy.passwordTitle,
+                subtitle: copy.passwordSubtitle,
+                icon: 'password' as const,
+                trailing: 'arrow',
+                onPress: onOpenSecurity,
+              },
+            ]}
+          />
 
-      <BusinessSettingsGroup
-        rows={settingsDispatchGroups.map(row => ({
-          title: row.title,
-          subtitle: row.subtitle,
-          icon: settingsRowIcon[row.id] as never,
-          trailing: row.id === 'whatsapp' ? ('switch' as const) : ('value' as const),
-          switchValue: switches[row.id],
-          onSwitchChange: value => toggle(row.id, value),
-          value: row.value,
-          onPress: () => onOpenRow?.(row.id),
-        }))}
-      />
-
-      <View className="px-1">
-        <VemtapText variant="labelMd" className="font-sans-semibold" numberOfLines={1}>
-          {copy.securityTitle}
-        </VemtapText>
-      </View>
-
-      <BusinessSettingsGroup
-        rows={settingsSecurityGroups.map(row => ({
-          title: row.title,
-          subtitle: row.subtitle,
-          icon: settingsRowIcon[row.id] as never,
-          trailing: 'value' as const,
-          value: row.value,
-          valueTone: (row.id === '2fa' ? 'success' : 'default') as 'success' | 'default',
-          onPress: () => onOpenRow?.(row.id),
-        }))}
-      />
-
-      <View className="px-1">
-        <VemtapText variant="labelMd" className="font-sans-semibold" numberOfLines={1}>
-          {copy.sessionsTitle}
-        </VemtapText>
-      </View>
-
-      <BusinessSettingsGroup
-        rows={settingsSessionGroups.map(row => ({
-          title: row.title,
-          subtitle: row.subtitle,
-          icon: settingsRowIcon[row.id] as never,
-          trailing: (row.id === 'signout' ? 'arrow' : 'pill') as 'arrow' | 'pill',
-          value: row.value,
-          onPress: () => onOpenRow?.(row.id),
-        }))}
-      />
-
-      <View className="flex-row items-center gap-1.5 rounded-field bg-surface-subtle p-2.5">
-        <Icon name="devices" size={14} color={colors.textTertiary} />
-        <VemtapText
-          variant="micro"
-          tone="tertiary"
-          className="min-w-0 flex-1"
-          numberOfLines={2}
-        >
-          {copy.terminalVersion}
-        </VemtapText>
-        <VemtapText
-          variant="micro"
-          tone="tertiary"
-          className="shrink-0"
-          numberOfLines={1}
-        >
-          {copy.terminalFooter}
-        </VemtapText>
-      </View>
+          {heading(copy.sessionsTitle)}
+          <BusinessSettingsGroup
+            rows={[
+              {
+                title: view.live ? copy.pauseTitle : copy.resumeTitle,
+                subtitle: view.live ? copy.pauseSubtitle : copy.resumeSubtitle,
+                icon: view.live ? ('pauseCircle' as const) : ('playCircle' as const),
+                trailing: 'pill',
+                value: view.live ? copy.pauseValue : copy.resumeValue,
+                onPress: canEdit
+                  ? view.live
+                    ? confirmPause
+                    : () => onSetLive?.(true)
+                  : undefined,
+              },
+              {
+                title: copy.signOutTitle,
+                subtitle: copy.signOutSubtitle,
+                icon: 'logout' as const,
+                trailing: 'arrow',
+                onPress: onSignOut,
+              },
+            ]}
+          />
+        </>
+      )}
     </BusinessScreenLayout>
   );
 }

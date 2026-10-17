@@ -625,6 +625,37 @@ describe('trial and payment screens', () => {
     await act(async () => {
       fireEvent.press(view.getByLabelText('Boost Deal'));
     });
-    expect(onSelectAddOn).toHaveBeenCalledWith('Boost a Deal');
+    expect(onSelectAddOn).toHaveBeenCalledWith('boost');
+  });
+
+  it('prints only live add-on prices and disables bundles that are not on sale', async () => {
+    const onSelectAddOn = jest.fn();
+    const view = await render(
+      <VemtapAddOnsScreen
+        prices={{
+          boost: { price: '₦2,000' },
+          sms: { price: '₦1,800', suffix: '/ 300 SMS' },
+        }}
+        unavailable={['ai']}
+        onSelectAddOn={onSelectAddOn}
+      />,
+    );
+
+    expect(view.getByText('₦2,000')).toBeTruthy();
+    expect(view.getByText('/ 300 SMS')).toBeTruthy();
+    // The old fixed figures are gone.
+    expect(view.queryByText('₦3,500')).toBeNull();
+    expect(view.queryByText(/3\.4x|99\.8%/)).toBeNull();
+    expect(view.getByText('No bundles on sale yet')).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.press(view.getByLabelText('Buy AI Credits'));
+    });
+    expect(onSelectAddOn).not.toHaveBeenCalled();
+
+    await act(async () => {
+      fireEvent.press(view.getByLabelText('Set Up POS Hardware'));
+    });
+    expect(onSelectAddOn).toHaveBeenCalledWith('pos');
   });
 });

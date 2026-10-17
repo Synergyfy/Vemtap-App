@@ -3,11 +3,7 @@ import { View } from 'react-native';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { colors } from '@theme/colors';
-import {
-  cacVerificationSuccessCopy as copy,
-  verificationImages,
-} from '@features/business/verificationCopy';
-import { BusinessProductImage } from '@features/business/components/BusinessPrimitives';
+import { cacVerificationSuccessCopy as copy } from '@features/business/verificationCopy';
 import {
   PrimaryActionButton,
   SetupCallout,
@@ -17,6 +13,7 @@ import {
 import {
   VerificationPage,
   VerificationSeal,
+  BusinessLogo,
 } from '@features/business/components/VerificationPrimitives';
 
 export interface CacVerificationSuccessScreenProps {
@@ -98,11 +95,7 @@ export function CacVerificationSuccessScreen({
 
       <View className="mt-2 flex-row items-center gap-3 rounded-card bg-surface p-3 shadow-sm">
         <View className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-surface-container">
-          <BusinessProductImage
-            source={{ uri: logoUrl ?? verificationImages.cacStorefront }}
-            alt={businessName ?? ''}
-            className="h-full w-full"
-          />
+          <BusinessLogo uri={logoUrl} name={businessName} className="h-full w-full" />
           <View className="absolute bottom-0 right-0 flex-row items-center gap-0.5 rounded-tl-md bg-primary px-1 py-0.5">
             <Icon name="verified" size={10} color={colors.surface} />
           </View>

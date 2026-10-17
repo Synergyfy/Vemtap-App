@@ -1,7 +1,7 @@
 /**
- * Fixture data for the operations-dense More hub variant (`business_more_hub_3`).
- * Screens read from here so POS tiles and analytics rows are never inlined
- * twice.
+ * Menu configuration for the operations-dense More hub (`business_more_hub_3`):
+ * tiles and link rows with their icons. Live figures on the tiles (SKU count,
+ * today's transactions, the offline queue) are passed in by the route.
  */
 import type { IconName } from '@components/ui/Icon';
 
@@ -19,10 +19,10 @@ export interface HubPosTile {
 export const hubPosTiles: readonly HubPosTile[] = [
   { id: 'new-sale', label: 'New Sale', hint: 'Launch quick register', icon: 'cartPlus' },
   { id: 'pos-home', label: 'POS Home', hint: null, icon: 'desktopClassic' },
-  { id: 'products', label: 'Products', hint: '142 SKUs', icon: 'inventory' },
+  { id: 'products', label: 'Products', hint: null, icon: 'inventory' },
   { id: 'customers', label: 'Customers', hint: 'Till lookup', icon: 'group' },
-  { id: 'transactions', label: 'Transactions', hint: '38 today', icon: 'receipt' },
-  { id: 'offline', label: 'Offline Mode', hint: 'Ready (0 buf)', icon: 'wifiAlert' },
+  { id: 'transactions', label: 'Transactions', hint: null, icon: 'receipt' },
+  { id: 'offline', label: 'Offline Mode', hint: null, icon: 'wifiAlert' },
   { id: 'sync', label: 'Sync Till', hint: 'Instant push', icon: 'sync' },
   { id: 'public-pos', label: 'Public POS', hint: 'Dual-screen', icon: 'television' },
 ] as const;
@@ -50,7 +50,7 @@ export const hubAnalyticsRows: readonly HubLinkRow[] = [
   {
     id: 'business',
     title: 'Business Analytics',
-    body: 'Gross GMV, profit margins & item velocity',
+    body: 'Revenue, orders, top items & trends',
     icon: 'chartBox',
   },
   {
@@ -68,7 +68,7 @@ export const hubAnalyticsRows: readonly HubLinkRow[] = [
   {
     id: 'locations',
     title: 'Locations Comparison',
-    body: 'Wuse vs. Maitama multi-branch benchmarks',
+    body: 'Revenue, orders and check-ins per branch',
     icon: 'storeMallDirectory',
   },
   {
@@ -83,10 +83,8 @@ export const hubMarketingRows: readonly HubLinkRow[] = [
   {
     id: 'boost',
     title: 'Boost Promoted Deals',
-    body: '3x feed placement in Wuse zone',
+    body: 'Promote a deal on nearby customer feeds',
     icon: 'fire',
-    badge: 'HOT',
-    badgeTone: 'discount',
   },
   {
     id: 'campaigns',
@@ -107,7 +105,7 @@ export const hubQrRows: readonly HubLinkRow[] = [
   {
     id: 'location-qr',
     title: 'Location-Specific QR',
-    body: 'Table tents 1–24 & bar counter stickers',
+    body: 'Branch QR codes and tap devices',
     icon: 'tableBar',
   },
   {

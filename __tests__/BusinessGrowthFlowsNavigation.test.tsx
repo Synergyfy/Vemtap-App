@@ -5,6 +5,7 @@ import { BusinessTabNavigator } from '@navigation/BusinessTabNavigator';
 import { strings } from '@constants/strings';
 import { boostsApi } from '@api/boostsApi';
 import { adWalletApi } from '@api/adWalletApi';
+import { mockAnalyticsApis } from './helpers/analyticsFixtures';
 
 const copy = strings.campaignWizard;
 const boost = strings.boostWizard;
@@ -73,8 +74,10 @@ async function pressMoreRow(id: string) {
 
 describe('VEMTAP Intelligence navigation', () => {
   it('walks the shared analytics strip across surfaces', async () => {
+    mockAnalyticsApis();
     await openMoreTab();
     await pressMoreRow('intelligence');
+    await settle();
 
     expect(
       screen.getByText(strings.businessIntelligence.business.revenueLabel),
@@ -83,17 +86,21 @@ describe('VEMTAP Intelligence navigation', () => {
     await act(async () => {
       fireEvent.press(screen.getByLabelText('Customers'));
     });
+    await settle();
     expect(screen.getByText(strings.businessIntelligence.customers.title)).toBeTruthy();
 
     await act(async () => {
       fireEvent.press(screen.getByLabelText('Locations'));
     });
+    await settle();
     expect(
-      screen.getByText(strings.businessIntelligence.locations.networkValue),
+      screen.getByText(strings.businessIntelligence.locations.networkTitle),
     ).toBeTruthy();
+    expect(screen.getByText('₦485,000')).toBeTruthy();
   });
 
   it('keeps the shell tab bar as the only bottom navigation', async () => {
+    mockAnalyticsApis();
     await openMoreTab();
     await pressMoreRow('intelligence');
     expect(screen.getByLabelText(strings.businessShell.tabs.overview)).toBeTruthy();

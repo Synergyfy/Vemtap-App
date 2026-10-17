@@ -16,7 +16,7 @@ import {
   markMessagingRead,
 } from '@api/messagingSocket';
 import { strings } from '@constants/strings';
-import { orderImages } from '@features/order/orderData';
+import { PRODUCT_FALLBACK_IMAGE } from '@features/home/utils/productMapper';
 import {
   markCustomerThreadReadLocally,
   useCustomerThreadMessages,
@@ -303,7 +303,7 @@ export function UrbanConversationScreen({
                 source={
                   thread?.branch?.logoUrl
                     ? { uri: thread.branch.logoUrl }
-                    : { uri: orderImages.merchant }
+                    : { uri: PRODUCT_FALLBACK_IMAGE }
                 }
                 className="h-full w-full rounded-full bg-surface-container"
               />
@@ -326,11 +326,11 @@ export function UrbanConversationScreen({
                 {presence
                   ? presence.isOnline
                     ? strings.presence.activeNow
-                    : `${presenceCaption(presence, {
+                    : presenceCaption(presence, {
                         activeNow: strings.presence.activeNow,
                         offline: strings.presence.offline,
                         lastSeenPrefix: strings.presence.lastSeenPrefix,
-                      })} • ${strings.urbanConversation.replyStatus}`
+                      })
                   : strings.urbanConversation.replyStatus}
               </VemtapText>
             </View>
@@ -396,7 +396,7 @@ export function UrbanConversationScreen({
                 source={
                   linkedOffer.mainImage
                     ? { uri: linkedOffer.mainImage }
-                    : { uri: orderImages.burger }
+                    : { uri: PRODUCT_FALLBACK_IMAGE }
                 }
                 className="h-16 w-16 shrink-0 rounded-lg bg-surface-container"
               />

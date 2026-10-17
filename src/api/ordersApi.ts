@@ -75,6 +75,8 @@ export const orderBranchSchema = z.object({
   name: z.string().nullish(),
   address: z.string().nullable().optional(),
   phone: z.string().nullable().optional(),
+  /** Customer order lists join the branch's business for its name and logo. */
+  business: orderBusinessSchema.nullish(),
 });
 
 /** The customer joined onto business-side order queries. */
@@ -145,7 +147,56 @@ export interface BusinessOrdersQuery {
   type?: 'order' | 'booking';
 }
 
+/** A customer placing a pickup order at one branch (`POST /catalogue/orders`). */
+export interface PlaceOrderInput {
+  branchId: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  email?: string;
+  notes?: string;
+  tableNumber?: string;
+  items: { itemId: string; quantity: number }[];
+}
+
+const orderReceiptSchema = z.object({
+  filename: z.string(),
+  mimeType: z.string(),
+  contentBase64: z.string(),
+});
+export type OrderReceipt = z.infer<typeof orderReceiptSchema>;
+
 export const ordersApi = {
+  /** A PDF receipt for one of the customer's own orders. */
+  async getMyOrderReceipt(
+    orderId: string,
+    options: ApiRequestOptions = {},
+  ): Promise<OrderReceipt> {
+    return requestValidated<OrderReceipt>(
+      {
+        method: 'GET',
+        url: `/catalogue/orders/my-orders/${orderId}/receipt`,
+        ...options,
+      },
+      orderReceiptSchema,
+    );
+  },
+
+  /**
+   * Place an order. The server prices every line itself — the branch price
+   * less the item's discount — so `totalAmount` in the answer is what the
+   * customer owes, whatever the app displayed.
+   */
+  async placeOrder(
+    input: PlaceOrderInput,
+    options: ApiRequestOptions = {},
+  ): Promise<CatalogueOrder> {
+    return requestValidated<CatalogueOrder>(
+      { method: 'POST', url: '/catalogue/orders', data: input, ...options },
+      catalogueOrderSchema,
+    );
+  },
+
   /**
    * List orders for the authenticated customer.
    */

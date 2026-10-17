@@ -56,7 +56,7 @@ test('edit profile starts from the signup values', async () => {
 test('settings composes its account, SMS and email lines from the user', async () => {
   const screen = await render(<AccountSettingsSecurityScreen />);
 
-  expect(screen.getByText('Ada Okon • 0801 111 2222 • Verified')).toBeTruthy();
+  expect(screen.getByText('Ada Okon • 0801 111 2222')).toBeTruthy();
   expect(screen.getByText('Codes for sign-ins to 0801 111 2222')).toBeTruthy();
   expect(screen.getByText('Sent to ada.okon@example.com')).toBeTruthy();
 });
@@ -71,23 +71,18 @@ test('the marketplace account hub prints the real name, initials, email and phon
   expect(screen.getByText('0801 111 2222')).toBeTruthy();
 });
 
-test('with no stored user the design placeholder still fills every slot', async () => {
+test('with no stored user nobody is invented: no name in the greeting, a neutral label elsewhere', async () => {
   useAuthStore.setState({ user: null, status: 'unauthenticated' });
 
   const dashboard = await render(<CustomerDashboardScreen />);
-  expect(dashboard.getByText('Hello, Zainab 👋')).toBeTruthy();
+  expect(dashboard.getByText('Hello 👋')).toBeTruthy();
+  expect(dashboard.queryByText(/Zainab/)).toBeNull();
 
   const more = await render(<MoreHubScreen />);
-  // Card + navbar avatar both render the initials.
-  expect(more.getAllByText('ZA').length).toBeGreaterThanOrEqual(1);
-  expect(more.getByText('Zainab Ahmed')).toBeTruthy();
-  expect(more.getByText('zainab.ahmed@example.com')).toBeTruthy();
-  expect(more.getByText('+234 803 555 0192')).toBeTruthy();
+  expect(more.getAllByText('VemTap member').length).toBeGreaterThanOrEqual(1);
+  expect(more.queryByText(/Zainab|\+234 803/)).toBeNull();
 
   const account = await render(<AccountHomeScreen />);
-  // Card + navbar avatar both render the initials.
-  expect(account.getAllByText('ZA').length).toBeGreaterThanOrEqual(1);
-  expect(account.getByText('Zainab Ahmed')).toBeTruthy();
-  expect(account.getByText('zainab.ahmed@example.com')).toBeTruthy();
-  expect(account.getByText('+234 803 555 0192')).toBeTruthy();
+  expect(account.getAllByText('VemTap member').length).toBeGreaterThanOrEqual(1);
+  expect(account.queryByText(/zainab/i)).toBeNull();
 });

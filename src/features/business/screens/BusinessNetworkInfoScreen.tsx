@@ -20,7 +20,6 @@ import {
   fairNetworkRules,
   guideTiers,
   networkFaqs,
-  networkPartners,
 } from '@features/business/data/businessNetworkData';
 
 const copy = strings.businessNetworkInfo;
@@ -32,6 +31,8 @@ const stepIcon: Record<string, import('@components/ui/Icon').IconName> = {
 };
 
 export interface BusinessNetworkInfoScreenProps {
+  /** Verified referrals, shown in the closing note when known. */
+  connectedCount?: number;
   onBack?: () => void;
   onOpenHelp?: () => void;
   onOpenProfile?: () => void;
@@ -46,6 +47,7 @@ export interface BusinessNetworkInfoScreenProps {
  * rules and the FAQ.
  */
 export function BusinessNetworkInfoScreen({
+  connectedCount,
   onBack,
   onOpenHelp,
   onOpenProfile,
@@ -299,7 +301,9 @@ export function BusinessNetworkInfoScreen({
           className="min-w-0 flex-1"
           numberOfLines={2}
         >
-          {`${networkPartners.length} merchants already connected in your district.`}
+          {connectedCount != null
+            ? strings.businessNetworkInfo.connectedNote(connectedCount)
+            : strings.businessNetworkInfo.connectedNoteGeneric}
         </VemtapText>
       </View>
     </BusinessScreenLayout>

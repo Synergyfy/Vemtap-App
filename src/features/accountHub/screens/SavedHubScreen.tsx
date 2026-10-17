@@ -12,7 +12,6 @@ import { Icon, type IconName } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
 import { colors } from '@theme/colors';
-import { savedImages } from '@features/accountHub/data/accountHubImages';
 import { formatCurrency } from '@utils/formatters';
 import { offerCountdown, toAmount } from '@features/deals/utils/offerMapper';
 import {
@@ -45,6 +44,30 @@ type SavedFilter = 'ALL' | 'DEAL' | 'BUSINESS' | 'SERVICE';
 
 /** Index-aligned with `copy.filters` so the design labels stay in the strings file. */
 const FILTER_KEYS: readonly SavedFilter[] = ['ALL', 'DEAL', 'BUSINESS', 'SERVICE'];
+
+/** The item's own picture, or a plain icon tile when it has none. */
+function SavedImage({
+  uri,
+  label,
+  icon,
+}: {
+  uri?: string | null;
+  label: string;
+  icon: IconName;
+}) {
+  return uri ? (
+    <Image
+      source={{ uri }}
+      accessibilityLabel={label}
+      className="h-full w-full"
+      resizeMode="cover"
+    />
+  ) : (
+    <View className="h-full w-full items-center justify-center">
+      <Icon name={icon} size={32} color={colors.textTertiary} />
+    </View>
+  );
+}
 
 function searchText(row: SavedRow): string {
   switch (row.type) {
@@ -149,12 +172,7 @@ function SavedDealCard({
   return (
     <View className="overflow-hidden rounded-card bg-surface-canvas shadow-sm">
       <View className="relative h-44 w-full bg-surface-container-high">
-        <Image
-          source={{ uri: item.mainImage ?? savedImages.burger.uri }}
-          accessibilityLabel={item.name}
-          className="h-full w-full"
-          resizeMode="cover"
-        />
+        <SavedImage uri={item.mainImage} label={item.name} icon="localOffer" />
         <ImageBadge icon="schedule" {...dealBadge(item)} />
         <BookmarkButton
           label={`${copy.removeBookmark}: ${item.name}`}
@@ -221,12 +239,7 @@ function SavedBusinessCard({
   return (
     <View className="overflow-hidden rounded-card bg-surface-canvas shadow-sm">
       <View className="relative h-40 w-full bg-surface-container-high">
-        <Image
-          source={{ uri: item.logoUrl ?? savedImages.spaInterior.uri }}
-          accessibilityLabel={item.name}
-          className="h-full w-full"
-          resizeMode="cover"
-        />
+        <SavedImage uri={item.logoUrl} label={item.name} icon="storefront" />
         <ImageBadge
           icon="storefront"
           label={item.categoryName ?? copy.businessBadgeFallback}
@@ -308,12 +321,7 @@ function SavedServiceCard({
   return (
     <View className="flex-row items-center gap-4 rounded-card bg-surface-canvas p-4 shadow-sm">
       <View className="relative h-24 w-24 shrink-0 overflow-hidden rounded-field bg-surface-container-high">
-        <Image
-          source={{ uri: item.mainImage ?? savedImages.coldBrew.uri }}
-          accessibilityLabel={item.name}
-          className="h-full w-full"
-          resizeMode="cover"
-        />
+        <SavedImage uri={item.mainImage} label={item.name} icon="spa" />
         {item.duration ? (
           <View className="absolute bottom-1 right-1 rounded bg-surface-container-lowest/90 px-1.5 py-0.5">
             <VemtapText variant="caption" tone="secondary" className="font-sans-semibold">

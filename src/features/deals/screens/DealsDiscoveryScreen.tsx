@@ -291,6 +291,7 @@ export function DealsDiscoveryScreen({
         dealTitle={commentsDeal?.title ?? ''}
         merchant={commentsDeal?.merchant ?? ''}
         commentCount={commentsDeal?.comments ?? 0}
+        offerId={commentsDeal?.id ?? ''}
       />
     </>,
   );

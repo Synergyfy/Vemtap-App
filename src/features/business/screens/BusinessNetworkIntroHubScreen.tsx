@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { ErrorState, LoadingState } from '@components/shared';
 import { Pressable, View } from 'react-native';
 import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
@@ -20,10 +21,10 @@ import {
   NetworkMilestoneCard,
 } from '@features/business/components/BusinessNetworkPrimitives';
 import {
-  nearbyMerchants,
   networkSubTabIcon,
   networkSubTabs,
 } from '@features/business/data/businessNetworkData';
+import type { NetworkHubView } from '@features/business/utils/networkMappers';
 
 const copy = strings.businessNetworkIntroHub;
 
@@ -40,6 +41,9 @@ const benefitIcon: Record<string, import('@components/ui/Icon').IconName> = {
 };
 
 export interface BusinessNetworkIntroHubScreenProps {
+  view?: NetworkHubView;
+  isError?: boolean;
+  onRetry?: () => void;
   onBack?: () => void;
   onOpenHelp?: () => void;
   onOpenProfile?: () => void;
@@ -58,6 +62,9 @@ export interface BusinessNetworkIntroHubScreenProps {
  * owns bottom navigation — so its category strip is a top sub-tab instead.
  */
 export function BusinessNetworkIntroHubScreen({
+  view,
+  isError,
+  onRetry,
   onBack,
   onOpenHelp,
   onOpenProfile,
@@ -139,193 +146,231 @@ export function BusinessNetworkIntroHubScreen({
         </VemtapText>
       </View>
 
-      <NetworkInfoBanner
-        className="mt-3"
-        icon="groupNetwork"
-        title={copy.joinedValue}
-        body={`${copy.joinedLabel} · ${copy.joinedDelta}`}
-      />
+      {!view ? (
+        isError ? (
+          <ErrorState
+            title={copy.error.title}
+            description={copy.error.body}
+            onRetry={onRetry}
+          />
+        ) : (
+          <LoadingState label={copy.loading} />
+        )
+      ) : (
+        <>
+          <NetworkInfoBanner
+            className="mt-3"
+            icon="groupNetwork"
+            title={copy.joinedValue(view.nearbyTotal)}
+            body={`${copy.joinedLabel} · ${copy.joinedDelta(view.nearbyKm)}`}
+          />
 
-      <BusinessPanel
-        className="mt-3"
-        title={copy.liveStatusTitle}
-        icon="radar"
-        badge={copy.liveStatusTier}
-        badgeTone="neutral"
-      >
-        <View className="flex-row items-center gap-2.5">
-          <BusinessIconWell icon="hub" tone="neutral" size="lg" />
-          <View className="min-w-0 flex-1">
-            <VemtapText variant="caption" tone="tertiary" numberOfLines={1}>
-              {copy.networkTitle}
-            </VemtapText>
-            <VemtapText
-              variant="labelMd"
-              className="font-sans-semibold"
-              numberOfLines={1}
-            >
-              {copy.networkValue}
-            </VemtapText>
-          </View>
-        </View>
-      </BusinessPanel>
-
-      <View className="mt-3 gap-2 rounded-card border border-border bg-surface p-3">
-        <View className="flex-row items-center gap-2">
-          <Icon name="flag" size={17} color={colors.primary} />
-          <VemtapText
-            variant="labelMd"
-            className="min-w-0 flex-1 font-sans-semibold"
-            numberOfLines={2}
+          <BusinessPanel
+            className="mt-3"
+            title={copy.liveStatusTitle}
+            icon="radar"
+            badge={copy.liveStatusTier(view.tierName)}
+            badgeTone="neutral"
           >
-            {copy.milestoneTitle}
-          </VemtapText>
-        </View>
-        <VemtapText
-          variant="bodyMd"
-          tone="secondary"
-          className="leading-relaxed"
-          numberOfLines={3}
-        >
-          {`${copy.milestoneBody} `}
-          <VemtapText variant="bodyMd" className="font-sans-semibold text-primary">
-            {copy.milestoneHighlight}
-          </VemtapText>
-          {` ${copy.milestoneBodyEnd}`}
-        </VemtapText>
-      </View>
-
-      <BusinessPanel className="mt-3" title={copy.whyTitle} icon="lightbulb">
-        <View className="gap-2.5">
-          {copy.benefits.map(benefit => (
-            <View key={benefit.id} className="flex-row items-start gap-2.5">
-              <BusinessIconWell icon={benefitIcon[benefit.id]} tone="brand" />
+            <View className="flex-row items-center gap-2.5">
+              <BusinessIconWell icon="hub" tone="neutral" size="lg" />
               <View className="min-w-0 flex-1">
+                <VemtapText variant="caption" tone="tertiary" numberOfLines={1}>
+                  {copy.networkTitle}
+                </VemtapText>
                 <VemtapText
                   variant="labelMd"
                   className="font-sans-semibold"
-                  numberOfLines={2}
-                >
-                  {benefit.step}
-                </VemtapText>
-                <VemtapText
-                  variant="caption"
-                  className="font-sans-medium"
                   numberOfLines={1}
                 >
-                  {benefit.title}
+                  {view.networkValue}
                 </VemtapText>
-                <VemtapText
-                  variant="caption"
-                  tone="secondary"
-                  className="mt-1 leading-relaxed"
-                  numberOfLines={4}
-                >
-                  {benefit.body}
-                </VemtapText>
-                {benefit.stat ? (
-                  <View className="mt-1.5 flex-row items-center gap-1.5">
-                    <Icon name="checkCircle" size={13} color={colors.badgeDiscountText} />
-                    <VemtapText
-                      variant="micro"
-                      className="min-w-0 flex-1 text-badge-discount-text"
-                      numberOfLines={2}
-                    >
-                      {benefit.stat}
-                    </VemtapText>
-                  </View>
-                ) : null}
               </View>
             </View>
-          ))}
-        </View>
-      </BusinessPanel>
+          </BusinessPanel>
 
-      <BusinessPanel className="mt-3" title="Tier Perks" icon="workspacePremium">
-        <View className="flex-row flex-wrap gap-2">
-          {copy.tierPerks.map(perk => (
-            <View
-              key={perk.id}
-              className="min-w-[30%] flex-1 items-center gap-1 rounded-field bg-surface-subtle p-2.5"
-            >
-              <View className="h-8 w-8 items-center justify-center rounded-full bg-surface">
-                <VemtapText
-                  variant="micro"
-                  className="font-sans-bold text-primary"
-                  numberOfLines={1}
-                >
-                  {perk.label}
-                </VemtapText>
-              </View>
+          <View className="mt-3 gap-2 rounded-card border border-border bg-surface p-3">
+            <View className="flex-row items-center gap-2">
+              <Icon name="flag" size={17} color={colors.primary} />
               <VemtapText
-                variant="caption"
-                className="text-center font-sans-semibold"
+                variant="labelMd"
+                className="min-w-0 flex-1 font-sans-semibold"
                 numberOfLines={2}
               >
-                {perk.perk}
+                {copy.milestoneTitle}
               </VemtapText>
             </View>
-          ))}
-        </View>
-      </BusinessPanel>
-
-      <NetworkMilestoneCard
-        className="mt-3"
-        name={strings.networkMilestones.currentStatusValue}
-        threshold={strings.myReferrals.growthValue}
-        state="unlocked"
-        icon="trophy"
-        percent={100}
-        verifiedCaption={strings.myBusinessNetwork.tierLabel}
-        perks={[
-          { text: 'Network Partner status' },
-          { text: 'Partner badge on merchant profiles' },
-        ]}
-        onPress={onReadMore}
-      />
-
-      <BusinessPanel
-        className="mt-3"
-        title={copy.nearbyTitle}
-        icon="locationOn"
-        badge={strings.myBusinessNetwork.connectedCount.replace(
-          '{count}',
-          String(nearbyMerchants.length),
-        )}
-        badgeTone="neutral"
-      >
-        <VemtapText variant="caption" tone="secondary" numberOfLines={2}>
-          {copy.nearbyBody}
-        </VemtapText>
-        <View className="gap-2">
-          {nearbyMerchants.map(merchant => (
-            <Pressable
-              key={merchant.id}
-              accessibilityRole="button"
-              accessibilityLabel={merchant.name}
-              onPress={onOpenNearby ? () => onOpenNearby(merchant.id) : undefined}
-              className="flex-row items-center gap-2.5 rounded-field bg-surface-subtle p-2.5 active:bg-surface-container"
+            <VemtapText
+              variant="bodyMd"
+              tone="secondary"
+              className="leading-relaxed"
+              numberOfLines={3}
             >
-              <BusinessIconWell icon="storefront" tone="neutral" size="sm" />
-              <View className="min-w-0 flex-1">
-                <VemtapText
-                  variant="labelMd"
-                  className="min-w-0 font-sans-semibold"
-                  numberOfLines={1}
+              {`${view.milestoneBody} `}
+              <VemtapText variant="bodyMd" className="font-sans-semibold text-primary">
+                {view.milestoneHighlight}
+              </VemtapText>
+              {` ${copy.milestoneBodyEnd}`}
+            </VemtapText>
+          </View>
+
+          <BusinessPanel className="mt-3" title={copy.whyTitle} icon="lightbulb">
+            <View className="gap-2.5">
+              {copy.benefits.map(benefit => (
+                <View key={benefit.id} className="flex-row items-start gap-2.5">
+                  <BusinessIconWell icon={benefitIcon[benefit.id]} tone="brand" />
+                  <View className="min-w-0 flex-1">
+                    <VemtapText
+                      variant="labelMd"
+                      className="font-sans-semibold"
+                      numberOfLines={2}
+                    >
+                      {benefit.step}
+                    </VemtapText>
+                    <VemtapText
+                      variant="caption"
+                      className="font-sans-medium"
+                      numberOfLines={1}
+                    >
+                      {benefit.title}
+                    </VemtapText>
+                    <VemtapText
+                      variant="caption"
+                      tone="secondary"
+                      className="mt-1 leading-relaxed"
+                      numberOfLines={4}
+                    >
+                      {benefit.body}
+                    </VemtapText>
+                    {benefit.stat ? (
+                      <View className="mt-1.5 flex-row items-center gap-1.5">
+                        <Icon
+                          name="checkCircle"
+                          size={13}
+                          color={colors.badgeDiscountText}
+                        />
+                        <VemtapText
+                          variant="micro"
+                          className="min-w-0 flex-1 text-badge-discount-text"
+                          numberOfLines={2}
+                        >
+                          {benefit.stat}
+                        </VemtapText>
+                      </View>
+                    ) : null}
+                  </View>
+                </View>
+              ))}
+            </View>
+          </BusinessPanel>
+
+          <BusinessPanel
+            className="mt-3"
+            title={copy.benefits[2].title}
+            icon="workspacePremium"
+          >
+            <View className="flex-row flex-wrap gap-2">
+              {view.milestones
+                .map(tier => ({
+                  id: tier.id,
+                  label: tier.threshold.split(' ')[0] ?? '',
+                  perk: tier.name,
+                }))
+                .map(perk => (
+                  <View
+                    key={perk.id}
+                    className="min-w-[30%] flex-1 items-center gap-1 rounded-field bg-surface-subtle p-2.5"
+                  >
+                    <View className="h-8 w-8 items-center justify-center rounded-full bg-surface">
+                      <VemtapText
+                        variant="micro"
+                        className="font-sans-bold text-primary"
+                        numberOfLines={1}
+                      >
+                        {perk.label}
+                      </VemtapText>
+                    </View>
+                    <VemtapText
+                      variant="caption"
+                      className="text-center font-sans-semibold"
+                      numberOfLines={2}
+                    >
+                      {perk.perk}
+                    </VemtapText>
+                  </View>
+                ))}
+            </View>
+          </BusinessPanel>
+
+          {view.milestones
+            .filter(tier => tier.state !== 'unlocked')
+            .slice(0, 1)
+            .map(tier => (
+              <NetworkMilestoneCard
+                key={tier.id}
+                className="mt-3"
+                name={tier.name}
+                threshold={tier.threshold}
+                state={tier.state}
+                icon={tier.icon}
+                tierNote={tier.tierNote}
+                progressNote={tier.progressNote}
+                percent={tier.percent}
+                verifiedCaption={tier.verifiedCaption}
+                perks={tier.perks}
+                onPress={onReadMore}
+              />
+            ))}
+
+          <BusinessPanel
+            className="mt-3"
+            title={copy.nearbyTitle}
+            icon="locationOn"
+            badge={strings.myBusinessNetwork.connectedCount.replace(
+              '{count}',
+              view.nearbyTotal,
+            )}
+            badgeTone="neutral"
+          >
+            <VemtapText variant="caption" tone="secondary" numberOfLines={2}>
+              {copy.nearbyBody}
+            </VemtapText>
+            <View className="gap-2">
+              {view.nearby.length === 0 ? (
+                <VemtapText variant="caption" tone="tertiary">
+                  {copy.nearbyEmpty}
+                </VemtapText>
+              ) : null}
+              {view.nearby.map(merchant => (
+                <Pressable
+                  key={merchant.id}
+                  accessibilityRole="button"
+                  accessibilityLabel={merchant.name}
+                  onPress={onOpenNearby ? () => onOpenNearby(merchant.id) : undefined}
+                  className="flex-row items-center gap-2.5 rounded-field bg-surface-subtle p-2.5 active:bg-surface-container"
                 >
-                  {merchant.name}
-                </VemtapText>
-                <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-                  {`${merchant.distance} • ${merchant.category}`}
-                </VemtapText>
-              </View>
-              <View className="shrink-0">
-                <Icon name="forward" size={18} color={colors.textTertiary} />
-              </View>
-            </Pressable>
-          ))}
-        </View>
-      </BusinessPanel>
+                  <BusinessIconWell icon="storefront" tone="neutral" size="sm" />
+                  <View className="min-w-0 flex-1">
+                    <VemtapText
+                      variant="labelMd"
+                      className="min-w-0 font-sans-semibold"
+                      numberOfLines={1}
+                    >
+                      {merchant.name}
+                    </VemtapText>
+                    <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
+                      {[merchant.distance, merchant.category].filter(Boolean).join(' • ')}
+                    </VemtapText>
+                  </View>
+                  <View className="shrink-0">
+                    <Icon name="forward" size={18} color={colors.textTertiary} />
+                  </View>
+                </Pressable>
+              ))}
+            </View>
+          </BusinessPanel>
+        </>
+      )}
 
       <View className="mt-3 flex-row items-center gap-1.5 rounded-field bg-surface-subtle p-2.5">
         <Icon name="verifiedUser" size={14} color={colors.textTertiary} />

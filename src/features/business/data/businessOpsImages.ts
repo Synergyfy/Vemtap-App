@@ -70,54 +70,6 @@ export const businessOpsMedia = {
     uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBCEzxKxJVj2ZzFVUY9uHjBm9IS2FhcmFjdGVkX2NoZWYgdGFzdGluZyBtZW51IHdpdGggc2VydmVkIGJ5IHRoZSBzb29mIHBhcnR5IHNoYXJlcyB3aXRoIGFwcGV0aXplcyBhbmQgZW1iZXJza3VkZWQgZ3VhcmRz',
     alt: 'Chef tasting menu plated for a private dining group.',
   },
-  rewardVoucher: {
-    uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuArj6yk6hsx0SB_tTLcO72CYTnl-M3Jqi7WJCuMKR5KECsCxs7VvUETPG3ckbAWJIVTxTqfYyjkxX6m60gGjd3TJRjT6GRMq1yqHrvwrgWOjh6u7Bxwm_qEZwHm2SvSot2LGkzRTGPKj1cqfl_mdz8M5Uy9wLVkoIIvMCZ1YZeEECt1GOHqVs2eYOPN-c4oxVouZvdXXkZ9VDGD0NLDsQd0IuxyUSfO6plhxeCZ1ntRlAxzGs9B0kVGwg',
-    alt: 'Restaurant dining scene with plated pasta and warm lighting.',
-  },
-  rewardDessert: {
-    uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDpHOuLbrh0SodwEDc4Dzz5A3ZZrq8j8Ym70jeEXOtIP67hVtqxSa07Pz303OiQSg79dAZ51ZVhSDbHg9-JwX6uPH8C7VqHXvwEBj0Yd4jlAsKFmz_oN0u57PEHsl73_60_eXPMI8rSdngZQ2gwdoRNsmufjILAoLqWWQWLWVoQ6BU-IRg4MQUwXMd9VAYF31d2NLRP0HB7H4j4Hv7BQgnUAiXE5l4eGjJHse8j3HyA9ZfZAX-9Q_v4bw',
-    alt: 'Artisanal chocolate layered dessert with gold dust.',
-  },
-  rewardVip: {
-    uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAn_m6435uEgEHXB3WfwDOrseajkH4MNnkRPDgqmnPNAoW5jeIEgfMxMVne5gkXxeLY-RDnLiHwzBpTR2ZGPTZd4NuHlJZBZrlRiVhrEzUBuW1t7dn3JFNzMg9OwulJ5mdfnIo7VpYPnHofzFfks9VDtu1PbB4a_ZskoZRtHzEnrAvZNuObw61h9f0jD1jgjoBzwnrlCK7MEDEB6nVm2ueo4bThJOzX9tyUn0_qdiKKfAcRWPnsl3GMPg',
-    alt: 'Rooftop lounge table with tropical mocktails at twilight.',
-  },
-  customerMichael: {
-    uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDBHPBQ75zVOpQtlg67YMogNBNY9Bo79FcgOtTqFI1mj9Ps2i-ZcQsR4Dp9PcZe2S_cuZ0xBNtAJMQeupzPJ3C-Di612GXoDWlNfERXLQkt59OIvUijFCN9zie-_gY-Ye3BwWqojP7GwgXKpNnIL3U1Oz8DuqgJ1gZJJhkUix3btZTzIj_Vw2h683qg3sYngh-fDXVv5zoDJ9Je5cfvHg3CETCTOedn6-WUvesoqRFySUgtoBdqWeO_Lg',
-    alt: 'Portrait of Michael James, a smiling professional customer.',
-  },
-  customerSarah: {
-    uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAlMEwIQkeThXM-Eje4uQyTuojl4AHw-h-qy9koTVpFfgNAAjdIFjRHVYUAomiz5284s8HFCGxXHUKKqUA1ZMgQETBRTu6aLvMMo25yl4LXpnjnBbBMDQyvkxG5LVsOOGAzxYBh4T-qY2bZjRWkwAXz6zQ2EwDonf0CxLTAHOBSJnqgTyzTvqCb7kG1a5ZynmGv-F-N-yK7DPhwEk4CRSlPudq3lKN_8mJ8Ugz5HNlW3FDTq1Fj1mzbwQ',
-    alt: 'Portrait of Sarah Adams, a smiling loyal customer.',
-  },
-  customerChidi: {
-    uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAFbN8MGpuagizIxTdzvOMu3Zc5bkntg83-QZrN6WojbaLUaKNyCqqjse7VwWXCNlA99rQpiS-oT045xpU03s79UpO-j3y233VSbnC-afY1oX10EJxU2gkqnlFeoaccR5YtaPcyVB6-Gvmof_2XgqNiv-ti9aCgePhfPOMwzm5wdrUS83Ff7_DoiI2V8CmZJ3pkA7AeT1mepXIVATTbMOfvSd1ChZR4tz2XSpDVzcYbhWcHyoQCiQZC3A',
-    alt: 'Portrait of Dr. Chidi Okafor, a returning customer.',
-  },
-  customerAmaka: {
-    uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBdlxuVyN18lB2PxTAX-P5cQxo0Pd83Cpi6BboLwRaUgXo6I8GWr8rr_WDLvDbgWfFVV5NvM1sx2UAxIgVLS8IpGbfXdOyzFmEG2D8WjrmIgaXhYs0BdJoeo18BCBag9-3FKreJvlrSMcBDcl4A-2ktt62dDxCFTDQhvVnp2JYhH06JtLrx5kzvUe4QyWdfgir-AvXXiyJXPwj05DizkcEGiwcbPF-Az58Zw-9aHzg44TlCAcfWl7hymA',
-    alt: 'Portrait of Amaka Kalu, a new customer.',
-  },
-  staffZainab: {
-    uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA9hO4pxYCCeJ91-LSGdXvtWQCB20Vb9wvo-ubcrVcHvnWU9nKrKUcJCK0-WgQHwVCKAqfnSO71_UejA-uGoRKEoCRljGiyBQWLVkk4UOBapo7fiq3Ppk7fpwLZUb5tzIQwouoX1vCZisrxyGKyPtyh61WhshdT6xslO5T-NCMrbLhplGaZEcxdWag5mkhuiIv_3nRNgYLotXTK4yi5ZcpA66bP3yxrHhxz9VVlxZ8g2ldPyV9xQP9u4Q',
-    alt: 'Portrait of Zainab Ahmed, the business owner.',
-  },
-  staffJohn: {
-    uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAs95wClFmROxgiGGXUrOhafs3Uydk7r7n4DDtasU3xI9pBJrVP0Hdh9mUhBvmVdA6XgPdvq_AzbGEPhlufbIEebNV6wxQYwDGa3NRl_E6z5fgmYZ2nyN4jmI4MfH14s0XacGpkzwAklxfPC5UtBN-vfwQV9t_rI4lML0OiIZQQR_hoIEm_s_t_QfLGnwec-hZYcF2XutB57U6JGJy7g-vo12Rp1u2PK77VLaRNimVAy459lrgLik2pxQ',
-    alt: 'Portrait of John Peter, branch manager.',
-  },
-  staffAmara: {
-    uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCO7yZzv5pz4pz8XRK8L_r-2n4HinvNRnxSsmSEdLrcFJ8Eo13tGyHJ-ek4VaTYaGHzOxbQqufHsdcPJ6Sujb2I9sF63AbRp0GPjMP-zEjK3DOBZMH8GRgDC3K5yTLSzv2Rzv5R9eNpkelzxmM_dshv-61nntxeom8ARUXXXuCDdH_J7UulV9DHUij__eHSVWumlG2Uf1dXRQPtX9U22O7eubvPQJZyoB9N2BswKrEr41rTX7UUUTr8rw',
-    alt: 'Portrait of Amara Kalu, service manager.',
-  },
-  staffTunde: {
-    uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuACQtbLCCK_F4y7AAi929dWlq0mvk0382w3jGAw5hDK9FVDA96MWmEhvizF7ym2M54aXm2SQM4PIwjv_KFVtgc5GY6ivdPaR3X61jfmuIVCYrVt4uaU-XWKYl20JvNnfABETyhTOQOpfDOPvS-tSj4sWrXmVshkBhjF_XsqULStGqTOTVKdU6k2P_j8BmZI2eceXH_6fatrENEfg3Erpu_l51kgQDdV2k-nBwyx9JlngEDRK5pFW5AGxg',
-    alt: 'Portrait of Tunde Bakare, a cashier.',
-  },
-  staffKemi: {
-    uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDHl0qc8JhnnJRPRqrRWMNRq5eyZpWdbqGIfbWbeD2ekdBSQvV_kUoSHIcGhDvYEdOzycirtpBHdR8TYx3n_2wnXZ6faxrTsPm76ppGpPyuEwpfAmOaM8LCPXuRr1cyeeH5RB_bXRg-fZJVYzTvKnjpmFpW0QAYgCImQMH68B_jYAxDmYrBO5cYln3-je8ly8Dt_vXbA9dXyuo32lcZHFl9_xOJYFF2qWWfyChNBf0TtkUFFAtOsvDDtw',
-    alt: 'Portrait of Kemi Davies, a service lead awaiting invite acceptance.',
-  },
 } as const satisfies Record<string, BusinessOpsImage>;
 
 /** Deal cards, catalogue items and CRM rows resolve their image by id. */
@@ -132,16 +84,4 @@ export const businessOpsImageById: Record<string, BusinessOpsImage> = {
   facial: businessOpsMedia.serviceFacial,
   manicure: businessOpsMedia.serviceManicure,
   tasting: businessOpsMedia.serviceTasting,
-  voucher: businessOpsMedia.rewardVoucher,
-  dessert: businessOpsMedia.rewardDessert,
-  vip: businessOpsMedia.rewardVip,
-  michael: businessOpsMedia.customerMichael,
-  sarah: businessOpsMedia.customerSarah,
-  chidi: businessOpsMedia.customerChidi,
-  amaka: businessOpsMedia.customerAmaka,
-  zainab: businessOpsMedia.staffZainab,
-  john: businessOpsMedia.staffJohn,
-  amara: businessOpsMedia.staffAmara,
-  tunde: businessOpsMedia.staffTunde,
-  kemi: businessOpsMedia.staffKemi,
 };

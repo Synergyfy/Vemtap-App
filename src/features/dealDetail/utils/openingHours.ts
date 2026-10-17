@@ -194,3 +194,37 @@ export function hoursWindow(
     days: formatDays(openByDay),
   };
 }
+
+export type WeeklyHoursRow = { day: string; hours: string; closed: boolean };
+
+/**
+ * One row per day, Monday first, for the profile's hours card. Days with no
+ * entry or unusable times are left out rather than shown as open; `[]` when
+ * nothing is usable, so the card can hide itself.
+ */
+export function weeklyHours(hours: OpeningHours | null | undefined): WeeklyHoursRow[] {
+  if (!hours) {
+    return [];
+  }
+  return DISPLAY_ORDER.flatMap<WeeklyHoursRow>(day => {
+    const entry = findDay(hours, DAY_KEYS[day]);
+    if (!entry) {
+      return [];
+    }
+    if (entry.isClosed) {
+      return [{ day: DAY_NAMES[day], hours: 'Closed', closed: true }];
+    }
+    const from = toMinutes(entry.from);
+    const to = toMinutes(entry.to);
+    if (from === null || to === null) {
+      return [];
+    }
+    return [
+      {
+        day: DAY_NAMES[day],
+        hours: `${formatClock(from)} – ${formatClock(to)}`,
+        closed: false,
+      },
+    ];
+  });
+}

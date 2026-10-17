@@ -104,21 +104,22 @@ beforeEach(() => {
 afterEach(() => clients.forEach(client => client.clear()));
 
 describe('HowToClaimScreen', () => {
-  test('renders the three claim steps and keeps the scripted walkthrough', async () => {
-    const screen = await renderScreen('urban-grill-lunch');
+  test('renders the three claim steps for a live offer', async () => {
+    const screen = await renderScreen(LIVE_ID);
 
-    expect(screen.getByText('Claim your deal in 3 simple steps')).toBeTruthy();
+    await waitFor(() =>
+      expect(screen.getByText('Claim your deal in 3 simple steps')).toBeTruthy(),
+    );
     expect(screen.getByText('Claim the Deal')).toBeTruthy();
     expect(screen.getByText('Visit the Business')).toBeTruthy();
     expect(screen.getByText('Show Your Claim')).toBeTruthy();
-    // The header used to read "Deal Terms & Conditions".
     expect(screen.getByText('How to Claim')).toBeTruthy();
+  });
 
-    await fireEvent.press(screen.getByText('Claim Deal'));
+  test('an old demo id is not found, with no request', async () => {
+    const screen = await renderScreen('urban-grill-lunch');
 
-    expect(mockNavigate).toHaveBeenCalledWith('DealClaimedSuccess', {
-      dealId: 'urban-grill-lunch',
-    });
+    expect(screen.getByText(strings.errors.notFound)).toBeTruthy();
     expect(mockGetOfferDetails).not.toHaveBeenCalled();
   });
 

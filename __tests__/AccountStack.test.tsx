@@ -1,6 +1,7 @@
 import React from 'react';
 import { fireEvent, render } from '@testing-library/react-native';
 import { NavigationContainer } from '@react-navigation/native';
+import { strings } from '@constants/strings';
 import { TabNavigator } from '@navigation/TabNavigator';
 import { navigationRef } from '@navigation/navigationRef';
 import {
@@ -25,6 +26,10 @@ jest.mock('@features/deals/hooks/useDealEngagementActions', () =>
 jest.mock('@features/discover/hooks/useDiscoverBusinesses', () =>
   jest.requireActual('./helpers/mockDiscoverBusinesses').mockDiscoverBusinessesModule(),
 );
+jest.mock('@features/accountHub/hooks/useLoyalty', () => {
+  const hub = jest.requireActual('./helpers/mockCustomerHub');
+  return hub.mockLoyaltyModule({ balance: 1450, rewards: [hub.rewardFixture] });
+});
 jest.mock('@features/accountHub/hooks/useSavedHub', () =>
   jest.requireActual('./helpers/mockCustomerHub').mockSavedHubModule(),
 );
@@ -161,7 +166,7 @@ test('Account tab opens the account hub and links to the customer dashboard', as
   expect(screen.getByText('Activity & Deals')).toBeTruthy();
 
   await fireEvent.press(screen.getByText('Dashboard'));
-  expect(screen.getByText('Hello, Zainab 👋')).toBeTruthy();
+  expect(screen.getByText('Hello 👋')).toBeTruthy();
   // The consumer bar stays on screen while the personal page is open.
   expect(consumerBarVisible(screen)).toBe(true);
 });
@@ -174,7 +179,7 @@ test('a personal page keeps the consumer bar and backs out to Account', async ()
   expect(consumerBarVisible(screen)).toBe(true);
 
   await fireEvent.press(screen.getByLabelText('Go back'));
-  expect(screen.getByText('Hello, Zainab 👋')).toBeTruthy();
+  expect(screen.getByText('Hello 👋')).toBeTruthy();
 
   await fireEvent.press(screen.getByLabelText('Go back'));
   expect(screen.getByText('Activity & Deals')).toBeTruthy();
@@ -190,7 +195,7 @@ test('account hub rows route to their hubs', async () => {
 test('Account stack opens on the customer dashboard', async () => {
   const screen = await renderDashboard();
 
-  expect(screen.getByText('Hello, Zainab 👋')).toBeTruthy();
+  expect(screen.getByText('Hello 👋')).toBeTruthy();
   expect(screen.getByText('Saved Total')).toBeTruthy();
   expect(screen.getByText('Quick Actions')).toBeTruthy();
 });
@@ -201,7 +206,7 @@ test('dashboard pushes the rewards screen', async () => {
   await fireEvent.press(screen.getByText('Rewards'));
 
   expect(screen.getByText('Rewards & Loyalty')).toBeTruthy();
-  expect(screen.queryByText('Hello, Zainab 👋')).toBeNull();
+  expect(screen.queryByText('Hello 👋')).toBeNull();
 });
 
 test('dashboard pushes my deals', async () => {
@@ -210,7 +215,7 @@ test('dashboard pushes my deals', async () => {
   await fireEvent.press(screen.getByText('View All My Deals'));
 
   expect(screen.getByText('Total Savings to Date')).toBeTruthy();
-  expect(screen.queryByText('Hello, Zainab 👋')).toBeNull();
+  expect(screen.queryByText('Hello 👋')).toBeNull();
 });
 
 test('dashboard opens notifications from the header', async () => {
@@ -230,13 +235,13 @@ test('account menu pushes settings and activity', async () => {
   expect(screen.getAllByText('More').length).toBeGreaterThan(0);
 
   await fireEvent.press(screen.getByText('My Activity'));
-  expect(screen.getByText('User Activity')).toBeTruthy();
+  expect(screen.getByText('My Activity')).toBeTruthy();
 });
 
 test('account screens render the comfortable type density', async () => {
   const screen = await renderDashboard();
 
-  const greeting = screen.getByText('Hello, Zainab 👋');
+  const greeting = screen.getByText('Hello 👋');
   const styles = Array.isArray(greeting.props.style)
     ? Object.assign({}, ...greeting.props.style.filter(Boolean))
     : (greeting.props.style ?? {});
@@ -281,7 +286,7 @@ test('rewards card price text is reduced', async () => {
 
   await fireEvent.press(screen.getByText('Rewards'));
 
-  const price = screen.getByText('500 VEM pts');
+  const price = screen.getByText('500 points');
   const styles = Array.isArray(price.props.style)
     ? Object.assign({}, ...price.props.style.filter(Boolean))
     : (price.props.style ?? {});
@@ -308,14 +313,14 @@ test('nested personal pages pop one level at a time, then back to Account', asyn
   // Overview → More → Activity.
   await fireEvent.press(screen.getByLabelText('Open account menu'));
   await fireEvent.press(screen.getByText('My Activity'));
-  expect(screen.getByText('User Activity')).toBeTruthy();
+  expect(screen.getByText('My Activity')).toBeTruthy();
   expect(consumerBarVisible(screen)).toBe(true);
 
   // Activity → More → Overview, then Overview → Account.
   await fireEvent.press(screen.getByLabelText('Go back'));
-  expect(screen.queryByText('User Activity')).toBeNull();
+  expect(screen.queryByText(strings.accountScreens.activity.footprint)).toBeNull();
   await fireEvent.press(screen.getByLabelText('Go back'));
-  expect(screen.getByText('Hello, Zainab 👋')).toBeTruthy();
+  expect(screen.getByText('Hello 👋')).toBeTruthy();
   await fireEvent.press(screen.getByLabelText('Go back'));
   expect(screen.getByText('Activity & Deals')).toBeTruthy();
 });
@@ -325,7 +330,7 @@ test('the Activity & Deals Dashboard row opens the personal overview', async () 
 
   await fireEvent.press(screen.getByText('Dashboard'));
 
-  expect(screen.getByText('Hello, Zainab 👋')).toBeTruthy();
+  expect(screen.getByText('Hello 👋')).toBeTruthy();
   expect(consumerBarVisible(screen)).toBe(true);
 });
 

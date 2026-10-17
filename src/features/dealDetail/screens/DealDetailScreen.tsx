@@ -11,13 +11,11 @@ import {
   ClaimAuthModalSheet,
   ClaimConfirmationSheet,
   ClaimIdentitySheet,
-  ClaimTermsSheet,
   DealCommentsSheet,
   DealShareSheet,
   GiftConfirmSheet,
   GiftDetailsSheet,
   RecipientDetailsSheet,
-  RecipientSummarySheet,
   RecipientVerificationSheet,
   type ClaimDealData,
   type RecipientData,
@@ -37,7 +35,7 @@ import { useAuthStore, selectIsAuthenticated } from '@store/authStore';
 import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
 import { usePublicBusinessProfile } from '@features/discover/hooks/usePublicBusinessProfile';
 import { isOpenNow } from '@features/dealDetail/utils/openingHours';
-import { businesses } from '@features/discover/data/discoverData';
+import { claimPassParams } from '@navigation/claimPassLink';
 
 cssInterop(View, { className: 'style' });
 cssInterop(ScrollView, {
@@ -52,22 +50,14 @@ type ClaimFlowStep =
   | 'confirmation'
   | 'auth'
   | 'identity'
-  | 'recipient'
-  | 'verification'
-  | 'summary'
   | 'selfIdentity'
   | 'selfVerification'
   | 'gift'
   | 'giftConfirm'
-  | 'terms'
   | null;
 
-const apoRegion = {
-  latitude: 9.0765,
-  longitude: 7.3986,
-  latitudeDelta: 0.012,
-  longitudeDelta: 0.012,
-};
+/** Map zoom around the merchant's pin. */
+const MAP_DELTA = 0.012;
 
 type DealDetailProps = {
   title: string;
@@ -96,7 +86,6 @@ export function DealDetailScreen({ route, navigation }: Props) {
   // The claim copy addresses the claim to whoever the session says the user
   // is — never a fixed name or address.
   const claimant = useCurrentUserDisplay();
-  const [claimingAs, setClaimingAs] = useState(claimant.email);
   // Stable seed for the self-claim form: a fresh identity on every render
   // would re-trigger the sheet's re-seed effect on every keystroke.
   const selfClaimDefaults = useMemo<RecipientData>(
@@ -140,23 +129,9 @@ export function DealDetailScreen({ route, navigation }: Props) {
     profile.status === 'resolved' ? profile.business.openingHours : undefined,
   );
 
-  /**
-   * The merchant's own first term when they wrote one. The platform phrasing is
-   * only for the bundled deals: claiming "12 PM – 4 PM weekdays" for an offer
-   * whose merchant said nothing would be inventing the merchant's hours.
-   */
-  const termsSubtitle =
-    deal?.terms?.[0] ??
-    (deal?.businessCode ? undefined : 'Valid 12 PM - 4 PM weekdays only');
+  /** The merchant's own first term, when they wrote one; otherwise nothing. */
+  const termsSubtitle = deal?.terms?.[0];
 
-  /**
-   * Only a real offer can be claimed: the claim endpoints are keyed by offer UUID
-   * and the app's fictional deals do not exist server-side.
-   */
-  const isLiveOffer =
-    deal?.businessCode !== undefined &&
-    !deal.id.startsWith('urban-grill') &&
-    !deal.id.startsWith('glow-');
   const claim = useOfferClaim(route.params.dealId);
   const gift = useSendGift();
 
@@ -168,24 +143,6 @@ export function DealDetailScreen({ route, navigation }: Props) {
   const reaction = useDealReaction(route.params.dealId);
   const engagement = useDealEngagement(route.params.dealId);
 
-  /**
-   * The fictional Discover businesses are reached by id prefix. A real offer has
-   * no such prefix and instead carries the merchant's 9-character code, which
-   * is what the public business endpoint is keyed by — so the merchant link
-   * works for real offers instead of silently doing nothing.
-   */
-  const seedBusinessId = route.params.dealId.startsWith('urban-grill')
-    ? 'urban-grill'
-    : route.params.dealId.startsWith('glow-')
-      ? 'glow-serenity'
-      : route.params.dealId.includes('sky-lounge')
-        ? 'sky-lounge'
-        : route.params.dealId.startsWith('sole-district')
-          ? 'sole-district'
-          : route.params.dealId.startsWith('cafe-neo')
-            ? 'cafe-neo'
-            : null;
-  const seedBusiness = businesses.find(item => item.id === seedBusinessId);
   const details: DealDetailProps | null = deal
     ? {
         title: deal.title,
@@ -200,7 +157,7 @@ export function DealDetailScreen({ route, navigation }: Props) {
         description: deal.description,
         address: deal.address,
         // Engagement cache is the one number every screen shares; fall back to
-        // the payload while it loads (and for seed deals with no endpoint).
+        // the payload while it loads.
         likes: engagement.data?.likesCount ?? deal.likes,
         comments: deal.comments,
       }
@@ -210,58 +167,25 @@ export function DealDetailScreen({ route, navigation }: Props) {
     setShareVisible(true);
   }, []);
 
+  /** The merchant's public profile, keyed by the code the offer carries. */
   const handleOpenBusiness = useCallback(() => {
-    // A fictional deal links to its bundled Discover profile; a real offer links
-    // to the merchant's public profile, fetched by code.
-    if (deal?.businessCode) {
-      navigation.navigate('Tabs', {
-        screen: 'Discover',
-        params: {
-          screen: 'BusinessProfile',
-          params: { code: deal.businessCode },
-        },
-      });
-      return;
-    }
-    if (seedBusiness) {
-      navigation.navigate('Tabs', {
-        screen: 'Discover',
-        params: {
-          screen: 'BusinessProfile',
-          params: { business: seedBusiness },
-        },
-      });
-    }
-  }, [deal?.businessCode, seedBusiness, navigation]);
+    if (!deal?.businessCode) return;
+    navigation.navigate('Tabs', {
+      screen: 'Discover',
+      params: {
+        screen: 'BusinessProfile',
+        params: { code: deal.businessCode },
+      },
+    });
+  }, [deal?.businessCode, navigation]);
 
   const handleClaim = useCallback(() => {
     if (claimed) {
-      navigation.navigate('MyClaimedDeal', { dealId: route.params.dealId });
+      navigation.navigate('Tabs', claimPassParams(route.params.dealId));
       return;
     }
     setClaimStep('confirmation');
   }, [claimed, route.params.dealId, navigation]);
-
-  /**
-   * Marks the offer claimed. For a real offer this only proceeds once the API
-   * has verified the emailed code and issued a claim code — previously it set the
-   * flag unconditionally, so a user could "claim" a promotion that was never
-   * issued.
-   */
-  const completeClaim = useCallback(() => {
-    const verified = claim.status.phase === 'claimed';
-    if (isLiveOffer && !verified) {
-      setClaimStep('selfIdentity');
-      return;
-    }
-    setClaimed(true);
-    setClaimStep(null);
-    navigation.navigate('DealClaimedSuccess', {
-      dealId: route.params.dealId,
-      claimCode:
-        verified && claim.status.phase === 'claimed' ? claim.status.claimCode : undefined,
-    });
-  }, [isLiveOffer, claim.status, route.params.dealId, navigation]);
 
   /**
    * Dispatches the gift, and only then shows the confirmation screen.
@@ -571,33 +495,44 @@ export function DealDetailScreen({ route, navigation }: Props) {
                 </View>
               )}
             </View>
-            <LocationMapView
-              region={
-                deal?.coordinates
-                  ? {
-                      latitude: deal.coordinates.latitude,
-                      longitude: deal.coordinates.longitude,
-                      latitudeDelta: apoRegion.latitudeDelta,
-                      longitudeDelta: apoRegion.longitudeDelta,
-                    }
-                  : apoRegion
-              }
-              style={styles.mapPanel}
-              scrollEnabled={false}
-              zoomEnabled={false}
-              pitchEnabled={false}
-              rotateEnabled={false}
-            >
-              <View style={styles.addressBadge}>
+            {/* A map only when the offer reports where the merchant is; a
+                pin on a default city would point the customer at the wrong
+                place. The address is shown either way. */}
+            {deal.coordinates ? (
+              <LocationMapView
+                region={{
+                  latitude: deal.coordinates.latitude,
+                  longitude: deal.coordinates.longitude,
+                  latitudeDelta: MAP_DELTA,
+                  longitudeDelta: MAP_DELTA,
+                }}
+                style={styles.mapPanel}
+                scrollEnabled={false}
+                zoomEnabled={false}
+                pitchEnabled={false}
+                rotateEnabled={false}
+              >
+                <View style={styles.addressBadge}>
+                  <Icon name="locationOn" size={16} color={colors.primary} />
+                  <VemtapText
+                    className="font-sans-medium text-caption text-text"
+                    numberOfLines={1}
+                  >
+                    {details.address}
+                  </VemtapText>
+                </View>
+              </LocationMapView>
+            ) : details.address ? (
+              <View className="flex-row items-center gap-2 rounded-xl bg-surface-container-low p-3">
                 <Icon name="locationOn" size={16} color={colors.primary} />
                 <VemtapText
-                  className="font-sans-medium text-caption text-text"
-                  numberOfLines={1}
+                  className="min-w-0 flex-1 font-sans-medium text-caption text-text"
+                  numberOfLines={2}
                 >
                   {details.address}
                 </VemtapText>
               </View>
-            </LocationMapView>
+            ) : null}
           </View>
 
           <View style={styles.infoRows}>
@@ -670,31 +605,12 @@ export function DealDetailScreen({ route, navigation }: Props) {
         visible={claimStep === 'identity'}
         onClose={() => setClaimStep(null)}
         onForMe={() => {
-          // A real offer goes through the real OTP flow: the API only issues a
-          // claim once an emailed code is verified. Fictional deals have no server
-          // record to claim, so they keep the local walkthrough — addressed to
-          // whoever is signed in.
-          if (isLiveOffer) {
-            claim.reset();
-            setClaimStep('selfIdentity');
-            return;
-          }
-          setClaimingAs(claimant.email);
-          setClaimStep('terms');
+          // The API only issues a claim once an emailed code is verified.
+          claim.reset();
+          setClaimStep('selfIdentity');
         }}
         onGift={() => setClaimStep('gift')}
-        onRecipient={() => setClaimStep('recipient')}
         deal={claimData}
-      />
-      <RecipientDetailsSheet
-        visible={claimStep === 'recipient'}
-        onClose={() => setClaimStep(null)}
-        onBack={() => setClaimStep('identity')}
-        onContinue={data => {
-          setRecipient(data);
-          setClaimingAs(data.email);
-          setClaimStep('verification');
-        }}
       />
       <RecipientDetailsSheet
         visible={claimStep === 'selfIdentity'}
@@ -706,7 +622,6 @@ export function DealDetailScreen({ route, navigation }: Props) {
         initialValues={selfClaimDefaults}
         onContinue={async data => {
           setRecipient(data);
-          setClaimingAs(data.email);
           await claim.requestCode(data);
           setClaimStep('selfVerification');
         }}
@@ -733,27 +648,11 @@ export function DealDetailScreen({ route, navigation }: Props) {
           await claim.submitCode(codeText);
         }}
       />
-      <RecipientVerificationSheet
-        visible={claimStep === 'verification'}
-        onClose={() => setClaimStep(null)}
-        onBack={() => setClaimStep('recipient')}
-        onContinue={() => setClaimStep('summary')}
-        email={recipient.email}
-      />
-      <RecipientSummarySheet
-        visible={claimStep === 'summary'}
-        onClose={() => setClaimStep(null)}
-        onEdit={() => setClaimStep('recipient')}
-        onContinue={() => setClaimStep('terms')}
-        recipient={recipient}
-        deal={claimData}
-      />
       <GiftDetailsSheet
         visible={claimStep === 'gift'}
         onClose={() => setClaimStep(null)}
         onContinue={data => {
           setGiftRecipient(data);
-          setClaimingAs(data.email);
           setClaimStep('giftConfirm');
         }}
         deal={claimData}
@@ -763,8 +662,6 @@ export function DealDetailScreen({ route, navigation }: Props) {
         onClose={() => setClaimStep(null)}
         onBack={() => setClaimStep('gift')}
         onConfirm={() => {
-          // A fictional deal's id is not an offer uuid, so the endpoint rejects
-          // it — the sheet shows that failure rather than a success screen.
           void sendDealGift();
         }}
         sending={gift.status.phase === 'sending'}
@@ -772,22 +669,13 @@ export function DealDetailScreen({ route, navigation }: Props) {
         recipient={giftRecipient}
         deal={claimData}
       />
-      <ClaimTermsSheet
-        visible={claimStep === 'terms'}
-        onClose={() => setClaimStep(null)}
-        onComplete={completeClaim}
-        deal={claimData}
-        claimingAs={claimingAs}
-      />
-
       <DealCommentsSheet
         visible={commentsVisible}
         onClose={() => setCommentsVisible(false)}
         dealTitle={details.title}
         merchant={deal.merchant.split(' • ')[0]}
         commentCount={details.comments}
-        // Fictional seed offers have no server row — the sheet keeps demo copy.
-        offerId={isLiveOffer ? route.params.dealId : undefined}
+        offerId={route.params.dealId}
       />
       <DealShareSheet
         visible={shareVisible}

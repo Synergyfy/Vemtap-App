@@ -1,31 +1,174 @@
-import React, { useState } from 'react';
-import { Image, Pressable, View } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { Alert, Clipboard, Image, Pressable, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   AccountHeader,
   PageScroll,
   TransactionRow,
 } from '@features/accountHub/components/AccountScreensPrimitives';
+import { EmptyState } from '@components/shared/EmptyState';
+import { ErrorState } from '@components/shared/ErrorState';
+import { LoadingState } from '@components/shared/LoadingState';
+import { showToast } from '@components/shared/toast';
 import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
 import { colors } from '@theme/colors';
-import { rewardImages } from '@features/accountHub/data/accountHubImages';
-import { useLoyaltyBalance } from '@features/accountHub/hooks/useLoyalty';
+import { formatWhen } from '@utils/formatters';
+import type { Reward } from '@api/loyaltyApi';
+import {
+  useLoyaltyBalance,
+  useLoyaltyLogs,
+  useLoyaltyTier,
+  useLoyaltyWallet,
+  useMyRedemptions,
+  useRedeemReward,
+  useRewards,
+} from '@features/accountHub/hooks/useLoyalty';
 
 const copy = strings.accountScreens.rewards;
+const pts = (n: number) => n.toLocaleString('en-NG');
 
 export interface RewardsScreenProps {
   onBack?: () => void;
   onHowToEarn?: () => void;
-  onRedeem?: (reward: string) => void;
 }
 
-export function RewardsScreen({ onBack, onHowToEarn, onRedeem }: RewardsScreenProps) {
+function RewardCard({
+  reward,
+  available,
+  busy,
+  onRedeem,
+}: {
+  reward: Reward;
+  /** The customer's points at the reward's business. */
+  available: number;
+  busy: boolean;
+  onRedeem: () => void;
+}) {
+  const short = Math.max(0, reward.pointsRequired - available);
+  const business = reward.business?.name || copy.unknownBusiness;
+  return (
+    <View className="gap-3 rounded-card bg-surface p-4 shadow-sm">
+      <View className="flex-row gap-3">
+        {reward.coverImage ? (
+          <Image
+            source={{ uri: reward.coverImage }}
+            accessibilityLabel={reward.name}
+            className="h-20 w-20 shrink-0 rounded-field bg-surface-container"
+            resizeMode="cover"
+          />
+        ) : (
+          <View className="h-20 w-20 shrink-0 items-center justify-center rounded-field bg-surface-container">
+            <Icon name="loyalty" size={28} color={colors.primary} />
+          </View>
+        )}
+        <View className="min-w-0 flex-1 gap-1">
+          <View className="flex-row items-center gap-1">
+            <Icon name="storefront" size={14} color={colors.textSecondary} />
+            <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
+              {business}
+            </VemtapText>
+          </View>
+          <VemtapText variant="bodyMd" className="font-sans-semibold" numberOfLines={2}>
+            {reward.name}
+          </VemtapText>
+          {reward.description ? (
+            <VemtapText variant="caption" tone="secondary" numberOfLines={2}>
+              {reward.description}
+            </VemtapText>
+          ) : null}
+          <VemtapText variant="caption" tone="brand">
+            {copy.rewardPoints(pts(reward.pointsRequired))}
+          </VemtapText>
+        </View>
+      </View>
+      <View className="flex-row items-center justify-between gap-2">
+        <VemtapText variant="caption" tone="tertiary" className="min-w-0 flex-1">
+          {short > 0 ? copy.needMore(pts(short)) : copy.canRedeem}
+        </VemtapText>
+        <Button
+          label={copy.redeem}
+          size="sm"
+          fullWidth={false}
+          labelVariant="labelSm"
+          disabled={short > 0 || busy}
+          loading={busy}
+          onPress={onRedeem}
+        />
+      </View>
+    </View>
+  );
+}
+
+/**
+ * Points, tier and rewards, all from the loyalty API: the global balance and
+ * tier, each business's balance (`/loyalty/me/wallet`) to say what the
+ * customer can afford, the platform's rewards, the codes already redeemed and
+ * the points ledger.
+ */
+export function RewardsScreen({ onBack, onHowToEarn }: RewardsScreenProps) {
   const [tab, setTab] = useState(0);
-  const { data: balance } = useLoyaltyBalance(null);
-  const pointsText = balance != null ? Number(balance).toLocaleString() : copy.points;
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const balance = useLoyaltyBalance(null);
+  const tier = useLoyaltyTier();
+  const wallet = useLoyaltyWallet();
+  const rewards = useRewards({});
+  const redemptions = useMyRedemptions();
+  const logs = useLoyaltyLogs(null, 1, 20);
+  const redeem = useRedeemReward();
+
+  const pointsByBusiness = useMemo(
+    () => new Map((wallet.data ?? []).map(entry => [entry.businessId, entry.points])),
+    [wallet.data],
+  );
+
+  const confirmRedeem = (reward: Reward) => {
+    const business = reward.business?.name || copy.unknownBusiness;
+    Alert.alert(copy.redeemTitle, copy.redeemBody(pts(reward.pointsRequired), business), [
+      { text: copy.cancel, style: 'cancel' },
+      {
+        text: copy.redeemConfirm,
+        onPress: () =>
+          redeem.mutate(reward.id, {
+            onSuccess: result => {
+              showToast(copy.redeemed(result.redemptionCode ?? ''), 'success');
+              setTab(1);
+            },
+            onError: error =>
+              showToast(
+                error instanceof Error ? error.message : copy.redeemFailed,
+                'error',
+              ),
+          }),
+      },
+    ]);
+  };
+
+  const copyCode = (code: string) => {
+    Clipboard.setString(code);
+    setCopiedCode(code);
+    setTimeout(() => setCopiedCode(null), 2000);
+  };
+
+  const state = (query: {
+    isLoading: boolean;
+    isError: boolean;
+    refetch: () => unknown;
+  }) =>
+    query.isLoading ? (
+      <LoadingState label={copy.loading} />
+    ) : query.isError ? (
+      <ErrorState
+        title={copy.error.title}
+        description={copy.error.body}
+        onRetry={() => query.refetch()}
+      />
+    ) : null;
+
+  const tierData = tier.data;
+
   return (
     <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-background">
       <AccountHeader
@@ -47,34 +190,37 @@ export function RewardsScreen({ onBack, onHowToEarn, onRedeem }: RewardsScreenPr
               variant="headingLg"
               className="text-heading-lg text-primary-foreground"
             >
-              {pointsText}
+              {pts(Number(balance.data ?? 0))}
             </VemtapText>
             <VemtapText variant="labelMd" className="text-primary-foreground">
               {copy.unit}
             </VemtapText>
           </View>
-          <VemtapText variant="caption" className="text-primary-foreground">
-            {copy.equivalent}{' '}
-            <VemtapText
-              variant="labelSm"
-              className="font-sans-semibold text-primary-foreground"
-            >
-              {copy.credit}
+          {tierData?.tier ? (
+            <VemtapText variant="caption" className="text-primary-foreground">
+              {copy.tier(tierData.tier)}
+              {tierData.nextTier && tierData.pointsToNext != null
+                ? ` • ${copy.nextTier(pts(tierData.pointsToNext), tierData.nextTier)}`
+                : ''}
             </VemtapText>
-          </VemtapText>
-          <Button
-            label={copy.earn}
-            labelVariant="labelMd"
-            variant="secondary"
-            onPress={onHowToEarn}
-            leftIcon={<Icon name="info" size={18} color={colors.primary} />}
-          />
+          ) : null}
+          {onHowToEarn ? (
+            <Button
+              label={copy.earn}
+              labelVariant="labelMd"
+              variant="secondary"
+              onPress={onHowToEarn}
+              leftIcon={<Icon name="info" size={18} color={colors.primary} />}
+            />
+          ) : null}
         </View>
+
         <View className="flex-row rounded-xl bg-surface-container-high p-1">
           {copy.tabs.map((label, index) => (
             <Pressable
               key={label}
               accessibilityRole="tab"
+              accessibilityLabel={label}
               accessibilityState={{ selected: tab === index }}
               onPress={() => setTab(index)}
               className={`min-h-10 flex-1 items-center justify-center rounded-lg px-1 ${tab === index ? 'bg-surface shadow-sm' : ''}`}
@@ -89,320 +235,124 @@ export function RewardsScreen({ onBack, onHowToEarn, onRedeem }: RewardsScreenPr
             </Pressable>
           ))}
         </View>
-        {tab === 0 ? (
-          <View className="gap-3">
-            <View className="flex-row items-center justify-between gap-2">
-              <View className="min-w-0 flex-1 flex-row items-center gap-2">
-                <VemtapText
-                  variant="labelMd"
-                  className="font-sans-semibold"
-                  numberOfLines={1}
-                >
-                  {copy.redeemYourPoints}
-                </VemtapText>
-                <View className="shrink-0 rounded-full bg-surface-container px-2 py-0.5">
-                  <VemtapText variant="caption">{copy.ready}</VemtapText>
-                </View>
-              </View>
-              <VemtapText variant="caption" tone="tertiary" className="shrink-0">
-                {copy.tap}
-              </VemtapText>
-            </View>
-            {[
-              {
-                title: copy.dining,
-                partner: copy.diningPartner,
-                meta: copy.diningMeta,
-                points: copy.diningPoints,
-                balanceLabel: copy.diningBalance,
-                image: rewardImages.dining,
-              },
-              {
-                title: copy.wellness,
-                partner: copy.wellnessPartner,
-                meta: copy.wellnessMeta,
-                points: copy.wellnessPoints,
-                balanceLabel: copy.wellnessBalance,
-                image: rewardImages.wellness,
-              },
-              {
-                title: copy.fashion,
-                partner: copy.fashionPartner,
-                meta: copy.fashionMeta,
-                points: copy.fashionPoints,
-                balanceLabel: copy.fashionBalance,
-                image: rewardImages.fashion,
-              },
-            ].map(({ title, partner, meta, points, balanceLabel, image }) => (
-              <View key={title} className="gap-3 rounded-card bg-surface p-4 shadow-sm">
-                <View className="flex-row gap-3">
-                  <Image
-                    source={{ uri: image.uri }}
-                    accessibilityLabel={image.alt}
-                    className="h-20 w-20 shrink-0 rounded-field bg-surface-container"
-                    resizeMode="cover"
-                  />
-                  <View className="min-w-0 flex-1 gap-1">
-                    <View className="flex-row items-center gap-1">
-                      <Icon name="storefront" size={14} color={colors.textSecondary} />
-                      <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-                        {partner}
-                      </VemtapText>
-                    </View>
-                    <VemtapText
-                      variant="bodyMd"
-                      className="font-sans-semibold"
-                      numberOfLines={1}
-                    >
-                      {title}
-                    </VemtapText>
-                    <VemtapText variant="caption" tone="secondary">
-                      {meta}
-                    </VemtapText>
-                    <VemtapText variant="caption" tone="brand">
-                      {points}
-                    </VemtapText>
-                  </View>
-                </View>
-                <View className="flex-row items-center justify-between gap-2">
-                  <VemtapText
-                    variant="caption"
-                    tone="tertiary"
-                    className="min-w-0 flex-1"
-                  >
-                    {balanceLabel}
-                  </VemtapText>
-                  <Button
-                    label="Redeem Now"
-                    size="sm"
-                    fullWidth={false}
-                    labelVariant="labelSm"
-                    labelClassName="text-primary-foreground"
-                    rightIcon={
-                      <Icon name="arrowForward" size={15} color={colors.surface} />
-                    }
-                    onPress={() => onRedeem?.(title)}
-                  />
-                </View>
-              </View>
-            ))}
-            <View className="gap-3 rounded-card bg-surface p-4 opacity-80 shadow-sm">
-              <View className="flex-row gap-3">
-                <View className="relative h-20 w-20 shrink-0 overflow-hidden rounded-field bg-surface-container-highest">
-                  <Image
-                    source={{ uri: rewardImages.vip.uri }}
-                    accessibilityLabel={rewardImages.vip.alt}
-                    className="h-full w-full"
-                    resizeMode="cover"
-                  />
-                  <View className="absolute inset-0 items-center justify-center bg-inverse-surface/40">
-                    <Icon name="lock" size={24} color={colors.surface} />
-                  </View>
-                </View>
-                <View className="min-w-0 flex-1 justify-between">
-                  <View>
-                    <View className="flex-row items-center gap-1">
-                      <Icon name="restaurant" size={14} color={colors.textSecondary} />
-                      <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-                        {copy.lockedPartner}
-                      </VemtapText>
-                    </View>
-                    <VemtapText
-                      variant="bodyMd"
-                      className="mt-0.5 font-sans-semibold"
-                      numberOfLines={1}
-                    >
-                      {copy.locked}
-                    </VemtapText>
-                    <VemtapText variant="caption" tone="secondary" numberOfLines={2}>
-                      {copy.lockedMeta}
-                    </VemtapText>
-                  </View>
-                  <View className="mt-1 flex-row items-center gap-1">
-                    <Icon name="loyalty" size={16} color={colors.textSecondary} />
-                    <VemtapText variant="labelSm" className="font-sans-semibold">
-                      {copy.lockedPoints}
-                    </VemtapText>
-                  </View>
-                </View>
-              </View>
-              <View className="flex-row items-center justify-between gap-2">
-                <View className="shrink-0 flex-row items-center gap-1 rounded-full bg-surface-container px-2.5 py-1">
-                  <Icon name="lock" size={14} color={colors.textTertiary} />
-                  <VemtapText variant="caption" tone="tertiary" numberOfLines={1}>
-                    {copy.need}
-                  </VemtapText>
-                </View>
-                <Button
-                  label={copy.lockedAction}
-                  variant="secondary"
-                  size="sm"
-                  fullWidth={false}
-                  disabled
-                  labelVariant="labelSm"
-                  onPress={() => undefined}
-                />
-              </View>
-            </View>
-          </View>
-        ) : tab === 1 ? (
-          <View className="gap-3">
-            <View className="flex-row justify-between gap-2">
-              <VemtapText
-                variant="labelMd"
-                className="min-w-0 flex-1 font-sans-semibold"
-                numberOfLines={2}
-              >
-                {copy.redeemedTitle}
-              </VemtapText>
-              <VemtapText variant="caption" tone="brand" className="shrink-0">
-                {copy.activeVoucher}
-              </VemtapText>
-            </View>
-            <View className="gap-3 rounded-card bg-surface p-4 shadow-sm">
-              <View className="flex-row justify-between">
-                <View>
-                  <VemtapText
-                    variant="labelMd"
-                    className="font-sans-semibold"
-                    numberOfLines={1}
-                  >
-                    {copy.voucher}
-                  </VemtapText>
-                  <VemtapText variant="caption" tone="secondary">
-                    {copy.redeemedOn}
-                  </VemtapText>
-                </View>
-                <VemtapText variant="caption" tone="success">
-                  {copy.active}
-                </VemtapText>
-              </View>
-              <View className="flex-row justify-between rounded-field bg-surface-subtle p-3">
-                <View>
-                  <VemtapText variant="caption" tone="tertiary">
-                    {copy.passcode}
-                  </VemtapText>
-                  <VemtapText variant="labelMd" className="font-sans-bold">
-                    {copy.passcodeValue}
-                  </VemtapText>
-                </View>
-                <Button
-                  label={copy.copy}
-                  labelVariant="labelSm"
-                  variant="secondary"
-                  size="sm"
-                  fullWidth={false}
-                  onPress={() => undefined}
-                  leftIcon={<Icon name="copy" size={16} color={colors.primary} />}
-                />
-              </View>
-              <VemtapText variant="caption" tone="secondary">
-                ⏱ {copy.expires}
-              </VemtapText>
-            </View>
-          </View>
-        ) : (
-          <View className="overflow-hidden rounded-card bg-surface shadow-sm">
-            <TransactionRow
-              title="Urban Grill & Bistro"
-              subtitle="Oct 15, 2024"
-              amount="+100 pts"
-              positive
-              icon="localOffer"
-            />
-            <TransactionRow
-              title="Sole District Boutique"
-              subtitle="Oct 12, 2024"
-              amount="+75 pts"
-              positive
-              icon="localOffer"
-            />
-            <TransactionRow
-              title="Cafe Neo Artisan"
-              subtitle="Oct 08, 2024"
-              amount="+50 pts"
-              positive
-              icon="localOffer"
-            />
-          </View>
-        )}
 
-        <View className="gap-3">
-          <View className="flex-row items-center justify-between gap-2">
-            <View className="min-w-0 flex-1 flex-row items-center gap-2">
-              <Icon name="receipt" size={20} color={colors.secondary} />
-              <VemtapText variant="bodyMd" className="flex-1 font-sans-semibold">
-                {copy.recentPointsTitle}
-              </VemtapText>
-            </View>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={copy.viewAll}
-              onPress={() => setTab(2)}
-              className="shrink-0"
-            >
-              <VemtapText variant="labelSm" tone="brand" className="font-sans-semibold">
-                {copy.viewAll}
-              </VemtapText>
-            </Pressable>
-          </View>
-          <View className="gap-1 rounded-card bg-surface p-2 shadow-sm">
-            {copy.ledger.slice(0, 3).map(row => (
-              <View
-                key={row.title}
-                className="flex-row items-center justify-between gap-3 rounded-field p-2"
-              >
-                <View className="min-w-0 flex-1 flex-row items-center gap-3">
-                  <View
-                    className={`h-10 w-10 shrink-0 items-center justify-center rounded-full ${
-                      row.amount.startsWith('-')
-                        ? 'bg-error-container'
-                        : 'bg-badge-discount-bg'
-                    }`}
-                  >
-                    <Icon
-                      name={row.icon}
-                      size={20}
-                      color={
-                        row.amount.startsWith('-')
-                          ? colors.error
-                          : colors.badgeDiscountText
-                      }
-                    />
-                  </View>
-                  <View className="min-w-0 flex-1">
-                    <VemtapText
-                      variant="labelMd"
-                      className="min-w-0 font-sans-semibold"
-                      numberOfLines={1}
-                    >
-                      {row.title}
-                    </VemtapText>
-                    <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-                      {row.meta}
-                    </VemtapText>
-                  </View>
-                </View>
-                <View className="shrink-0 items-end pl-2">
-                  <VemtapText
-                    variant="labelMd"
-                    className={
-                      row.amount.startsWith('-')
-                        ? 'font-sans-bold text-error'
-                        : 'font-sans-bold text-badge-discount-text'
-                    }
-                    numberOfLines={1}
-                  >
-                    {row.amount}
+        {tab === 0
+          ? (state(rewards) ??
+            ((rewards.data ?? []).length === 0 ? (
+              <EmptyState
+                icon="loyalty"
+                title={copy.emptyRewards.title}
+                description={copy.emptyRewards.body}
+              />
+            ) : (
+              <View className="gap-3">
+                {(wallet.data ?? []).slice(0, 3).map(entry => (
+                  <VemtapText key={entry.businessId} variant="caption" tone="secondary">
+                    {copy.pointsAt(
+                      pts(entry.points),
+                      entry.businessName || copy.unknownBusiness,
+                    )}
                   </VemtapText>
-                  <VemtapText variant="caption" tone="tertiary" numberOfLines={1}>
-                    {row.note}
-                  </VemtapText>
-                </View>
+                ))}
+                {(rewards.data ?? []).map(reward => (
+                  <RewardCard
+                    key={reward.id}
+                    reward={reward}
+                    available={pointsByBusiness.get(reward.businessId ?? '') ?? 0}
+                    busy={redeem.isPending && redeem.variables === reward.id}
+                    onRedeem={() => confirmRedeem(reward)}
+                  />
+                ))}
               </View>
-            ))}
-          </View>
-        </View>
+            )))
+          : tab === 1
+            ? (state(redemptions) ??
+              ((redemptions.data ?? []).length === 0 ? (
+                <EmptyState
+                  icon="voucher"
+                  title={copy.emptyRedeemed.title}
+                  description={copy.emptyRedeemed.body}
+                />
+              ) : (
+                <View className="gap-3">
+                  {(redemptions.data ?? []).map(item => (
+                    <View
+                      key={item.code}
+                      className="gap-3 rounded-card bg-surface p-4 shadow-sm"
+                    >
+                      <View>
+                        <VemtapText
+                          variant="labelMd"
+                          className="font-sans-semibold"
+                          numberOfLines={1}
+                        >
+                          {item.rewardName}
+                        </VemtapText>
+                        <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
+                          {[item.businessName, item.branchName]
+                            .filter(Boolean)
+                            .join(' • ')}
+                        </VemtapText>
+                        {item.redeemedAt ? (
+                          <VemtapText variant="caption" tone="tertiary">
+                            {copy.redeemedOn(formatWhen(item.redeemedAt))}
+                          </VemtapText>
+                        ) : null}
+                      </View>
+                      <View className="flex-row items-center justify-between rounded-field bg-surface-subtle p-3">
+                        <View>
+                          <VemtapText variant="caption" tone="tertiary">
+                            {copy.code}
+                          </VemtapText>
+                          <VemtapText variant="labelMd" className="font-sans-bold">
+                            {item.code}
+                          </VemtapText>
+                        </View>
+                        <Button
+                          label={copiedCode === item.code ? copy.copied : copy.copy}
+                          labelVariant="labelSm"
+                          variant="secondary"
+                          size="sm"
+                          fullWidth={false}
+                          onPress={() => copyCode(item.code)}
+                          leftIcon={<Icon name="copy" size={16} color={colors.primary} />}
+                        />
+                      </View>
+                      {item.expiresAt ? (
+                        <VemtapText variant="caption" tone="secondary">
+                          {copy.expiresOn(formatWhen(item.expiresAt))}
+                        </VemtapText>
+                      ) : null}
+                    </View>
+                  ))}
+                </View>
+              )))
+            : (state(logs) ??
+              ((logs.data?.data ?? []).length === 0 ? (
+                <EmptyState
+                  icon="receipt"
+                  title={copy.emptyLog.title}
+                  description={copy.emptyLog.body}
+                />
+              ) : (
+                <View className="overflow-hidden rounded-card bg-surface shadow-sm">
+                  {(logs.data?.data ?? []).map(row => {
+                    const debit = row.type === 'spent' || row.type === 'expired';
+                    return (
+                      <TransactionRow
+                        key={row.id}
+                        title={row.reason || (debit ? copy.logSpent : copy.logEarned)}
+                        subtitle={[formatWhen(row.createdAt), row.branchName]
+                          .filter(Boolean)
+                          .join(' • ')}
+                        amount={copy.logDelta(pts(row.points), debit)}
+                        positive={!debit}
+                        icon={debit ? 'voucher' : 'localOffer'}
+                      />
+                    );
+                  })}
+                </View>
+              )))}
 
         <View className="flex-row items-start gap-3 rounded-card bg-surface-container-low p-4">
           <Icon name="info" size={20} color={colors.secondary} />

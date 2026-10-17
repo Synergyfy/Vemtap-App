@@ -35,6 +35,7 @@ import { useAuthBootstrap } from '@features/auth/hooks/useAuthBootstrap';
 import { endSession } from '@features/auth/endSession';
 import { useCustomerTokenSync } from '@features/auth/hooks/useCustomerTokenSync';
 import { useCustomerMessagingRealtime } from '@features/merchantChat/hooks/useCustomerMessagingRealtime';
+import { useDescribeCurrentDevice } from '@features/accountHub/hooks/useLinkedDevices';
 import { usePushTokenRegistration } from '@features/accountHub/hooks/usePushTokenRegistration';
 import { useNotificationsRealtime } from '@features/accountHub/hooks/useNotificationsRealtime';
 import { startOfflineReplay } from '@services/offlineReplay';
@@ -145,6 +146,8 @@ function CustomerMessagingRealtime() {
  */
 function PushTokenRegistration() {
   usePushTokenRegistration();
+  // Same lifetime as the push token: names this sign-in's device once.
+  useDescribeCurrentDevice();
   return null;
 }
 
