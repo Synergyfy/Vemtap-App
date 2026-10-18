@@ -19,6 +19,7 @@ test('step 1 stacks the primary button above the transparent action', async () =
   const onSaveDraft = jest.fn();
   const view = await render(
     <AddServiceBasicsMediaScreen
+      initialValue={{ title: 'Hot Stone Therapy' }}
       onBack={jest.fn()}
       onNext={onNext}
       onSaveDraft={onSaveDraft}

@@ -13,10 +13,8 @@ import { CampaignStep1ObjectiveScreen } from '@features/business/screens/Campaig
 import { CampaignStep2ContentScreen } from '@features/business/screens/CampaignStep2ContentScreen';
 import { CampaignStep3AudienceScreen } from '@features/business/screens/CampaignStep3AudienceScreen';
 import { CampaignStep4ScheduleScreen } from '@features/business/screens/CampaignStep4ScheduleScreen';
-import {
-  CAMPAIGN_BUDGET_TIERS,
-  CampaignStep5BudgetScreen,
-} from '@features/business/screens/CampaignStep5BudgetScreen';
+import { CampaignStep5BudgetScreen } from '@features/business/screens/CampaignStep5BudgetScreen';
+import { useBudgetTiers } from '@features/business/hooks/useBudgetTiers';
 import { CampaignStep6ReviewScreen } from '@features/business/screens/CampaignStep6ReviewScreen';
 import { showToast } from '@components/shared/toast';
 import { useBusinessBranches } from '@features/business/hooks/useCatalogueMutations';
@@ -43,7 +41,6 @@ import { statsToPerformanceView } from '@features/business/utils/campaignPerform
 import { BoostPerformanceScreen } from '@features/business/screens/BoostPerformanceScreen';
 import {
   BOOST_ENGINE_RADIUS_KM,
-  BOOST_ENGINE_TIER_DAILY,
   BoostEngineScreen,
   type BoostEngineLive,
   type BoostEngineSelection,
@@ -179,7 +176,6 @@ export function CustomerSegmentsRoute() {
           : undefined
       }
       scopeLabel={scopeLabel}
-      showPrototypeFilters={false}
       isLoading={segments.isLoading}
       error={
         segments.isError ? messageOf(segments.error, segmentCopy.error.body) : undefined
@@ -257,7 +253,6 @@ export function CreateCustomSegmentRoute() {
             }
           : undefined
       }
-      sizingPending={preview.isFetching}
       sizingNote={segmentCopy.live.builder.sizingNote}
       businessName={business.data?.name}
       onSelectionChange={setSelection}
@@ -335,12 +330,14 @@ export function SegmentActionsRoute() {
   const segment = useSegment(segmentId);
   const insights = useSegmentInsights(segmentId);
   const { data } = insights;
+  const business = useMyBusiness();
 
   return (
     <SegmentActionsSheet
       visible
       segmentId={segmentId}
       segmentName={data?.name ?? segmentName}
+      businessName={business.data?.name}
       summary={
         data
           ? {
@@ -618,7 +615,6 @@ export function CampaignCreateAudienceRoute() {
   return (
     <CampaignStep3AudienceScreen
       onBack={navigation.goBack}
-      live
       branchOptions={outlets}
       segmentOptions={(segments.data ?? []).map(segment => ({
         id: segment.id,
@@ -660,7 +656,6 @@ export function CampaignCreateScheduleRoute() {
   return (
     <CampaignStep4ScheduleScreen
       onBack={navigation.goBack}
-      live
       initialSelection={{
         durationDays: draft.durationDays,
         instantLaunch: draft.instantLaunch,
@@ -678,19 +673,16 @@ export function CampaignCreateScheduleRoute() {
   );
 }
 
-const TIER_IDS = Object.keys(
-  CAMPAIGN_BUDGET_TIERS,
-) as (keyof typeof CAMPAIGN_BUDGET_TIERS)[];
-
 export function CampaignCreateBudgetRoute() {
+  const budgetTiers = useBudgetTiers('promotion');
   const navigation = useBusinessNavigation();
   const draft = useCampaignDraftStore(state => state.draft);
   const update = useCampaignDraftStore(state => state.update);
   const saveDraft = useSaveDraftAndExit();
   const wallet = useAdWallet();
   const forecasts = usePromotionForecasts(
-    TIER_IDS.map(id => ({
-      budget: CAMPAIGN_BUDGET_TIERS[id],
+    budgetTiers.tiers.map(tier => ({
+      budget: tier.amount,
       durationDays: draft.durationDays,
       radiusKm: draft.radiusKm,
       ...campaignForecastTargeting(draft),
@@ -698,12 +690,12 @@ export function CampaignCreateBudgetRoute() {
   );
 
   const tierForecasts = Object.fromEntries(
-    TIER_IDS.flatMap((id, index) => {
+    budgetTiers.tiers.flatMap((tier, index) => {
       const data = forecasts[index]?.data;
       return data
         ? [
             [
-              id,
+              tier.id,
               {
                 reach: estimateRange(data.reachMin, data.reachMax),
                 claims: estimateRange(data.claimsMin, data.claimsMax),
@@ -716,8 +708,9 @@ export function CampaignCreateBudgetRoute() {
 
   return (
     <CampaignStep5BudgetScreen
+      minBudget={budgetTiers.minBudget}
+      tiers={budgetTiers.tiers}
       onBack={navigation.goBack}
-      live
       initialDays={draft.durationDays}
       initialSelection={{
         mode: draft.budgetMode,
@@ -743,6 +736,7 @@ export function CampaignCreateBudgetRoute() {
 }
 
 export function CampaignReviewLaunchRoute() {
+  const reviewBusiness = useMyBusiness();
   const navigation = useBusinessNavigation();
   const draft = useCampaignDraftStore(state => state.draft);
   const reset = useCampaignDraftStore(state => state.reset);
@@ -782,9 +776,9 @@ export function CampaignReviewLaunchRoute() {
 
   return (
     <CampaignStep6ReviewScreen
+      storeName={reviewBusiness.data?.name}
       onBack={navigation.goBack}
       onSaveDraft={saveDraft}
-      live
       objectiveId={draft.objectiveId}
       objectiveTitle={objectiveTitle(draft.objectiveId)}
       assetNames={draft.assets.map(asset => asset.title)}
@@ -921,7 +915,6 @@ export function BoostPerformanceRoute() {
       onResume={() => run('resume')}
       onEndCampaign={() => run('end')}
       onAddBudget={topUp}
-      onOpenWallet={() => navigation.navigate('BoostWallet')}
       performance={performance}
       busy={action.isPending || addBudget.isPending}
       isLoading={loading}
@@ -952,11 +945,6 @@ const goalCopy = strings.boostWizard.goalStep;
 
 /** Engine radius options in km, for the per-radius reach estimates. */
 const ENGINE_RADII = Object.entries(BOOST_ENGINE_RADIUS_KM);
-/** Budget-step tiers (₦ total) by id. */
-const BUDGET_TIERS = strings.boostWizard.budgetStep.tiers.map(tier => ({
-  id: tier.id,
-  amount: Number(tier.id) * 1000,
-}));
 
 function range(data?: {
   reachMin: number;
@@ -1016,8 +1004,11 @@ export function BoostEngineRoute() {
   const [picking, setPicking] = useState(false);
   const [selection, setSelection] = useState<BoostEngineSelection | null>(null);
 
+  const budgetTiers = useBudgetTiers('boost');
+  const suggestedTier =
+    budgetTiers.tiers[Math.floor(budgetTiers.tiers.length / 2)] ?? budgetTiers.tiers[0];
   const days = selection?.days ?? 7;
-  const total = selection?.total ?? 35_000;
+  const total = selection?.total ?? suggestedTier?.amount ?? budgetTiers.minBudget;
   const radiusKm = selection?.radiusKm ?? 3;
   // The chosen audience narrows every estimate on the engine.
   const audience = selection?.audience ? { audienceType: selection.audience } : {};
@@ -1030,8 +1021,8 @@ export function BoostEngineRoute() {
     })),
   );
   const tierForecasts = useBoostForecasts(
-    Object.entries(BOOST_ENGINE_TIER_DAILY).map(([, daily]) => ({
-      budget: daily * days,
+    budgetTiers.tiers.map(tier => ({
+      budget: tier.amount,
       durationDays: days,
       radiusKm,
       ...audience,
@@ -1096,9 +1087,9 @@ export function BoostEngineRoute() {
       }),
     ),
     tierClaims: Object.fromEntries(
-      Object.keys(BOOST_ENGINE_TIER_DAILY).flatMap((id, index) => {
+      budgetTiers.tiers.flatMap((tier, index) => {
         const data = range(tierForecasts[index]?.data);
-        return data ? [[id, engineCopy.tierClaims(data.claims)]] : [];
+        return data ? [[tier.id, engineCopy.tierClaims(data.claims)]] : [];
       }),
     ),
     estimate: range(current?.data)
@@ -1137,6 +1128,7 @@ export function BoostEngineRoute() {
         }}
         onViewHistory={() => navigation.navigate('BoostPerformance', { kind: 'boost' })}
         live={live}
+        tiers={budgetTiers.tiers}
         initialSelection={{
           radius:
             ENGINE_RADII.find(([, km]) => km === draft.radiusKm)?.[0] ??
@@ -1275,6 +1267,7 @@ export function BoostGoalAudienceRoute() {
 }
 
 export function BoostBudgetScheduleRoute() {
+  const budgetTiers = useBudgetTiers('boost');
   const navigation = useBusinessNavigation();
   const draft = useBoostDraftStore(state => state.draft);
   const update = useBoostDraftStore(state => state.update);
@@ -1283,7 +1276,7 @@ export function BoostBudgetScheduleRoute() {
     days: draft.durationDays,
   });
   const tierForecasts = useBoostForecasts(
-    BUDGET_TIERS.map(tier => ({
+    budgetTiers.tiers.map(tier => ({
       budget: tier.amount,
       durationDays: selection.days,
       radiusKm: draft.radiusKm,
@@ -1305,6 +1298,8 @@ export function BoostBudgetScheduleRoute() {
 
   return (
     <BoostBudgetScheduleScreen
+      minBudget={budgetTiers.minBudget}
+      tiers={budgetTiers.tiers}
       onBack={navigation.goBack}
       initialSelection={{
         budget: draft.budget,
@@ -1316,7 +1311,7 @@ export function BoostBudgetScheduleRoute() {
         assetName: draft.asset?.title ?? boostCopy.untitled,
         assetGoal: boostCopy.assetGoal(goalTitle),
         tierForecasts: Object.fromEntries(
-          BUDGET_TIERS.flatMap((tier, index) => {
+          budgetTiers.tiers.flatMap((tier, index) => {
             const data = range(tierForecasts[index]?.data);
             return data ? [[tier.id, data]] : [];
           }),

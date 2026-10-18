@@ -61,7 +61,7 @@ export function BusinessProfileBasicInfoScreen({
   onSaveDraft,
   initialValue,
 }: BusinessProfileBasicInfoScreenProps) {
-  const [name, setName] = useState(initialValue?.name ?? 'Urban Grill & Bistro');
+  const [name, setName] = useState(initialValue?.name ?? '');
   // Starts unselected: the previous default was an invented category that has no
   // counterpart in the API taxonomy, so it could not have been submitted.
   const [category, setCategory] = useState(initialValue?.category ?? '');
@@ -73,10 +73,7 @@ export function BusinessProfileBasicInfoScreen({
   const [specialties, setSpecialties] = useState<string[]>(
     initialValue?.specialties ?? [],
   );
-  const [description, setDescription] = useState(
-    initialValue?.description ??
-      'Artisanal wood-fired steaks, fresh gourmet burgers, and handcrafted botanical cocktails right in the vibrant heart of the city.',
-  );
+  const [description, setDescription] = useState(initialValue?.description ?? '');
   const [categorySheetOpen, setCategorySheetOpen] = useState(false);
 
   const handleBack = useCallback(() => onBack?.(), [onBack]);

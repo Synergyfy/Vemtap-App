@@ -10,6 +10,11 @@ import { VemtapText } from '@components/ui/Text';
 import { colors } from '@theme/colors';
 import { businessLocationCopy as copy } from '@features/business/businessCopy';
 import { countryFlags, primaryBranchRegion } from '@features/business/businessData';
+import {
+  requestCurrentLocation,
+  reverseGeocode,
+  type CurrentLocationCoords,
+} from '@features/location/utils/currentLocation';
 import { BusinessSectionHeading } from '@features/business/components/BusinessPrimitives';
 import {
   FieldInput,
@@ -17,7 +22,6 @@ import {
   SectionMetaRow,
   SetupStepBar,
   SetupSectionCard,
-  StatusPill,
   TextActionButton,
 } from '@features/business/components/BusinessSetupPrimitives';
 
@@ -38,6 +42,11 @@ export interface BusinessLocationDraft {
   street: string;
   landmark: string;
   district: string;
+  /** From the device position, when the owner used it. */
+  state?: string;
+  city?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface WhereIsYourBusinessLocatedScreenProps {
@@ -47,7 +56,6 @@ export interface WhereIsYourBusinessLocatedScreenProps {
   onUseCurrentLocation?: () => void;
   onRecenter?: () => void;
   onToggleMapLayers?: () => void;
-  onClusterInfo?: () => void;
   initialValue?: Partial<BusinessLocationDraft>;
 }
 
@@ -62,32 +70,72 @@ export function WhereIsYourBusinessLocatedScreen({
   onUseCurrentLocation,
   onRecenter,
   onToggleMapLayers,
-  onClusterInfo,
   initialValue,
 }: WhereIsYourBusinessLocatedScreenProps) {
-  const defaultSearch = 'Plot 1428, Adetokunbo Ademola Crescent, Wuse 2';
-  const [search, setSearch] = useState(initialValue?.search ?? defaultSearch);
-  const [street, setStreet] = useState(
-    initialValue?.street ?? 'Plot 1428, Adetokunbo Ademola Crescent, Wuse 2, Abuja',
+  const [search, setSearch] = useState(initialValue?.search ?? '');
+  const [street, setStreet] = useState(initialValue?.street ?? '');
+  const [landmark, setLandmark] = useState(initialValue?.landmark ?? '');
+  const [territory, setTerritory] = useState<{
+    district?: string;
+    city?: string;
+    state?: string;
+  }>({
+    district: initialValue?.district || undefined,
+    city: initialValue?.city,
+    state: initialValue?.state,
+  });
+  const [coords, setCoords] = useState<CurrentLocationCoords | undefined>(
+    initialValue?.latitude && initialValue?.longitude
+      ? { latitude: initialValue.latitude, longitude: initialValue.longitude }
+      : undefined,
   );
-  const [landmark, setLandmark] = useState(
-    initialValue?.landmark ?? 'Opposite Cubana Suites, Ground Floor (Suite G-02)',
-  );
+  const [locating, setLocating] = useState(false);
+  const [locateError, setLocateError] = useState<string | null>(null);
 
   const handleBack = useCallback(() => onBack?.(), [onBack]);
   const onClearSearch = useCallback(() => setSearch(''), []);
-  const onUseGps = useCallback(() => {
-    setSearch('Adetokunbo Ademola Cres, Wuse 2, Abuja 904101');
+  const onUseGps = useCallback(async () => {
     onUseCurrentLocation?.();
+    setLocating(true);
+    setLocateError(null);
+    const result = await requestCurrentLocation();
+    if (!result.ok) {
+      setLocating(false);
+      setLocateError(
+        result.reason === 'denied'
+          ? copy.whereLocated.locationDenied
+          : copy.whereLocated.locationUnavailable,
+      );
+      return;
+    }
+    setCoords(result.coords);
+    const address = await reverseGeocode(result.coords);
+    setLocating(false);
+    if (!address) return;
+    setSearch(address.line);
+    if (address.street) setStreet(current => current || address.street || '');
+    setTerritory({
+      district: address.district,
+      city: address.city,
+      state: address.state,
+    });
   }, [onUseCurrentLocation]);
 
   const draft = useMemo<BusinessLocationDraft>(
-    () => ({ search, street, landmark, district: copy.whereLocated.district }),
-    [landmark, search, street],
+    () => ({
+      search,
+      street,
+      landmark,
+      district: territory.district ?? '',
+      state: territory.state,
+      city: territory.city,
+      latitude: coords?.latitude,
+      longitude: coords?.longitude,
+    }),
+    [coords, landmark, search, street, territory],
   );
 
-  // `district` is fixed design copy, so it must not count as an entered
-  // address: one of the three user-editable fields has to carry the location.
+  // One of the three user-editable fields has to carry the location.
   // The wizard PATCHes the derived address to `/businesses/my-business`.
   const hasAddress = [search, street, landmark].some(part => part.trim().length > 0);
   const blockingReason = hasAddress ? null : copy.whereLocated.addressRequired;
@@ -165,7 +213,9 @@ export function WhereIsYourBusinessLocatedScreen({
             <View className="min-w-0 flex-1 flex-row items-center gap-2">
               <Icon name="myLocation" size={20} color={colors.primary} />
               <VemtapText variant="labelMd" className="font-sans-semibold text-primary">
-                {copy.whereLocated.useCurrentLocation}
+                {locating
+                  ? copy.whereLocated.locating
+                  : copy.whereLocated.useCurrentLocation}
               </VemtapText>
             </View>
             <View className="shrink-0 flex-row items-center gap-1">
@@ -175,6 +225,15 @@ export function WhereIsYourBusinessLocatedScreen({
               <View className="ml-1 h-2 w-2 rounded-full bg-badge-discount-text" />
             </View>
           </Pressable>
+          {locateError ? (
+            <VemtapText
+              variant="caption"
+              className="text-error"
+              accessibilityRole="alert"
+            >
+              {locateError}
+            </VemtapText>
+          ) : null}
         </View>
 
         <View
@@ -182,7 +241,11 @@ export function WhereIsYourBusinessLocatedScreen({
           style={{ height: MAP_HEIGHT }}
         >
           <LocationMapView
-            region={primaryBranchRegion}
+            region={
+              coords
+                ? { ...coords, latitudeDelta: 0.012, longitudeDelta: 0.012 }
+                : primaryBranchRegion
+            }
             style={StyleSheet.absoluteFill}
             scrollEnabled
             zoomEnabled
@@ -264,7 +327,6 @@ export function WhereIsYourBusinessLocatedScreen({
                 {copy.whereLocated.territoryTitle}
               </VemtapText>
             </View>
-            <StatusPill label={copy.whereLocated.territoryBadge} tone="success" />
           </View>
           <View className="flex-row gap-2.5">
             <View className="min-w-0 flex-1 gap-2.5">
@@ -274,56 +336,20 @@ export function WhereIsYourBusinessLocatedScreen({
               />
               <SectionMetaRow
                 label={copy.whereLocated.stateLabel}
-                value={copy.whereLocated.state}
+                value={territory.state ?? '\u2014'}
               />
             </View>
             <View className="min-w-0 flex-1 gap-2.5">
               <SectionMetaRow
                 label={copy.whereLocated.cityLabel}
-                value={copy.whereLocated.city}
+                value={territory.city ?? '\u2014'}
               />
               <SectionMetaRow
                 label={copy.whereLocated.districtLabel}
-                value={copy.whereLocated.district}
+                value={territory.district ?? '\u2014'}
                 emphasized
               />
             </View>
-          </View>
-          <View className="gap-1.5 rounded-field bg-surface-tint-blue p-3">
-            <View className="flex-row items-center justify-between gap-2">
-              <View className="min-w-0 flex-1 flex-row items-center gap-1.5">
-                <Icon name="insights" size={16} color={colors.primary} />
-                <VemtapText variant="labelSm" className="font-sans-semibold text-primary">
-                  {copy.whereLocated.clusterTitle}
-                </VemtapText>
-              </View>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={copy.whereLocated.clusterInfo}
-                hitSlop={6}
-                onPress={onClusterInfo}
-              >
-                <Icon name="info" size={16} color={colors.secondary} />
-              </Pressable>
-            </View>
-            <View className="flex-row items-center justify-between gap-2 rounded-lg bg-surface-container-lowest px-2.5 py-1.5 shadow-sm">
-              <VemtapText
-                variant="labelSm"
-                className="min-w-0 flex-1 font-sans-semibold text-text"
-                numberOfLines={1}
-              >
-                {copy.whereLocated.clusterName}
-              </VemtapText>
-              <VemtapText
-                variant="caption"
-                className="shrink-0 font-sans-semibold text-primary"
-              >
-                {copy.whereLocated.clusterStatus}
-              </VemtapText>
-            </View>
-            <VemtapText variant="caption" tone="secondary" className="leading-tight">
-              {copy.whereLocated.clusterBody}
-            </VemtapText>
           </View>
         </SetupSectionCard>
 

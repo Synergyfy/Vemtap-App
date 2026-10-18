@@ -1,14 +1,11 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { LinearGradient } from 'expo-linear-gradient';
-import type { Region } from 'react-native-maps';
 import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
-import { LocationMapView } from '@components/shared/LocationMapView';
 import { colors } from '@theme/colors';
-import { cn } from '@utils/cn';
 import {
   BusinessInlineAction,
   BusinessProductImage,
@@ -19,17 +16,11 @@ import {
 } from '@features/business/components/BusinessPrimitives';
 import { ServiceSectionHeader } from '@features/business/components/ServiceFlowPrimitives';
 import { ProductVariantList } from '@features/business/components/BusinessProductContent';
-import {
-  businessMedia,
-  productBranches,
-  productIdentity,
-  productVariants,
-} from '@features/business/data/businessSetupData';
 import type { ProductDraft } from '@store/catalogueDraftStore';
 import { useBusinessBranches } from '@features/business/hooks/useCatalogueMutations';
 
 export interface ReviewProductSummaryScreenProps {
-  /** Live draft from the setup wizard. Absent in standalone (storybook) use. */
+  /** The product being set up (`catalogueDraftStore`). */
   draft?: ProductDraft;
   publishing?: boolean;
   onBack: () => void;
@@ -47,13 +38,26 @@ export interface ReviewProductSummaryScreenProps {
 cssInterop(View, { className: 'style' });
 cssInterop(LinearGradient, { className: 'style' });
 
-const abujaRegion: Region = {
-  latitude: 9.0765,
-  longitude: 7.3986,
-  latitudeDelta: 0.12,
-  longitudeDelta: 0.12,
+/** "14,000" or "14000" → 14000; blank or invalid → null. */
+function amount(value: string | undefined): number | null {
+  if (!value) return null;
+  const parsed = Number(value.replace(/,/g, ''));
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+const naira = (value: number) => `₦${value.toLocaleString('en-NG')}`;
+
+const FULFILLMENT_LABELS: Record<string, string> = {
+  pickup: 'In-store pickup',
+  delivery: 'Delivery',
+  dinein: 'Dine-in',
+  'dine-in': 'Dine-in',
 };
 
+/**
+ * Final check before publishing: everything shown is what the owner entered in
+ * the earlier steps, so what they confirm is exactly what customers will see.
+ */
 export function ReviewProductSummaryScreen({
   draft,
   publishing = false,
@@ -69,19 +73,20 @@ export function ReviewProductSummaryScreen({
   onEditDescription,
 }: ReviewProductSummaryScreenProps) {
   const liveBranches = useBusinessBranches();
-  const shownBranches =
-    draft && liveBranches.data
-      ? liveBranches.data
-          .filter(branch => draft.branchIds.includes(branch.id))
-          .map(branch => ({
-            id: branch.id,
-            name: branch.name,
-            price: `₦${draft.regularPrice || '0'}`,
-            stock: draft.inStock ? 'In Stock' : 'Out of stock',
-            priceNote: 'Standard Base Rate',
-          }))
-      : productBranches.slice(0, 2);
-  const shownBranchCount = draft ? draft.branchIds.length : 2;
+  const price = amount(draft?.regularPrice);
+  const compareAt = amount(draft?.compareAtPrice);
+  const saving =
+    price !== null && compareAt !== null && compareAt > price ? compareAt - price : 0;
+  const variants = draft?.variants ?? [];
+  const totalStock = variants.reduce((total, variant) => total + variant.inventory, 0);
+  const photos = [draft?.mainImage, ...(draft?.galleryImages ?? [])].filter(
+    (uri, index, all): uri is string => Boolean(uri) && all.indexOf(uri) === index,
+  );
+  const branches = (liveBranches.data ?? []).filter(branch =>
+    (draft?.branchIds ?? []).includes(branch.id),
+  );
+  const fulfillment = draft?.fulfillmentModes ?? [];
+
   return (
     <BusinessScreenLayout
       header={{
@@ -99,42 +104,41 @@ export function ReviewProductSummaryScreen({
         completionLabel="100% Complete"
       />
 
-      <View className="flex-row items-start gap-3 rounded-xl bg-surface-tint p-4 shadow-sm">
-        <View className="h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10">
-          <Icon name="verified" size={20} color={colors.primary} />
-        </View>
-        <View className="min-w-0 flex-1">
-          <VemtapText variant="headingSm">Ready for customers</VemtapText>
-          <VemtapText variant="caption" tone="secondary" className="mt-0.5">
-            All regulatory labels and branch logistics match VEMTAP Instant Commerce
-            standards.
-          </VemtapText>
-        </View>
-      </View>
-
       <View className="overflow-hidden rounded-card bg-surface shadow-md">
-        <View className="relative h-56 w-full bg-surface-container-high">
-          <BusinessProductImage
-            source={businessMedia.ribeyeAlternate}
-            alt="Woodfire seared aged ribeye steak with rosemary potatoes"
-            className="h-full w-full"
-          />
+        <View className="relative h-56 w-full items-center justify-center bg-surface-container-high">
+          {photos[0] ? (
+            <BusinessProductImage
+              source={{ uri: photos[0] }}
+              alt={draft?.name || 'Product photo'}
+              className="h-full w-full"
+            />
+          ) : (
+            <View className="items-center gap-1">
+              <Icon name="camera" size={32} color={colors.textTertiary} />
+              <VemtapText variant="caption" tone="tertiary">
+                No photos yet
+              </VemtapText>
+            </View>
+          )}
           <View className="absolute left-3 top-3 flex-row flex-wrap items-center gap-1">
-            <View className="flex-row items-center gap-1 rounded-full bg-badge-discount-bg px-2.5 py-1 shadow-sm">
-              <Icon name="fire" size={14} color={colors.badgeDiscountText} />
-              <VemtapText
-                variant="labelSm"
-                className="font-sans-bold text-badge-discount-text"
-              >
-                Fresh / Made to order
-              </VemtapText>
-            </View>
-            <View className="flex-row items-center gap-1 rounded-full bg-inverse-surface/85 px-2.5 py-1">
-              <Icon name="camera" size={14} color={colors.inverseOnSurface} />
-              <VemtapText variant="labelSm" className="text-inverse">
-                4 Photos
-              </VemtapText>
-            </View>
+            {draft?.condition ? (
+              <View className="flex-row items-center gap-1 rounded-full bg-badge-discount-bg px-2.5 py-1 shadow-sm">
+                <VemtapText
+                  variant="labelSm"
+                  className="font-sans-bold text-badge-discount-text"
+                >
+                  {draft.condition}
+                </VemtapText>
+              </View>
+            ) : null}
+            {photos.length ? (
+              <View className="flex-row items-center gap-1 rounded-full bg-inverse-surface/85 px-2.5 py-1">
+                <Icon name="camera" size={14} color={colors.inverseOnSurface} />
+                <VemtapText variant="labelSm" className="text-inverse">
+                  {`${photos.length} photo${photos.length === 1 ? '' : 's'}`}
+                </VemtapText>
+              </View>
+            ) : null}
           </View>
           <Button
             label="Edit Media"
@@ -149,17 +153,21 @@ export function ReviewProductSummaryScreen({
         </View>
         <View className="gap-3 p-4">
           <View className="flex-row items-center justify-between gap-2">
-            <View className="min-w-0 flex-1 flex-row items-center gap-1.5 rounded-full bg-surface-container-low px-2.5 py-1">
-              <Icon name="storefront" size={15} color={colors.primary} />
-              <VemtapText
-                variant="caption"
-                tone="secondary"
-                className="font-sans-medium"
-                numberOfLines={1}
-              >
-                {draft?.brand || productIdentity.brand}
-              </VemtapText>
-            </View>
+            {draft?.brand ? (
+              <View className="min-w-0 flex-1 flex-row items-center gap-1.5 rounded-full bg-surface-container-low px-2.5 py-1">
+                <Icon name="storefront" size={15} color={colors.primary} />
+                <VemtapText
+                  variant="caption"
+                  tone="secondary"
+                  className="font-sans-medium"
+                  numberOfLines={1}
+                >
+                  {draft.brand}
+                </VemtapText>
+              </View>
+            ) : (
+              <View className="flex-1" />
+            )}
             <BusinessInlineAction
               label="Edit Basics"
               icon="forward"
@@ -168,11 +176,13 @@ export function ReviewProductSummaryScreen({
           </View>
           <View>
             <VemtapText variant="headingMd" className="text-heading-md">
-              {draft?.name || productIdentity.name}
+              {draft?.name || 'Untitled product'}
             </VemtapText>
-            <VemtapText variant="caption" tone="tertiary" className="mt-1">
-              {draft?.categoryName || productIdentity.categoryPath}
-            </VemtapText>
+            {draft?.categoryName ? (
+              <VemtapText variant="caption" tone="tertiary" className="mt-1">
+                {draft.categoryName}
+              </VemtapText>
+            ) : null}
           </View>
         </View>
       </View>
@@ -182,7 +192,11 @@ export function ReviewProductSummaryScreen({
           boxedIcon
           title="Pricing & Variants"
           icon="payments"
-          subtitle="3 sizes configured"
+          subtitle={
+            variants.length
+              ? `${variants.length} option${variants.length === 1 ? '' : 's'} configured`
+              : 'Single price'
+          }
           actionLabel="Edit"
           onAction={onEditPricing}
         />
@@ -193,41 +207,52 @@ export function ReviewProductSummaryScreen({
             </VemtapText>
             <View className="mt-0.5 flex-row flex-wrap items-baseline gap-2">
               <VemtapText variant="headingMd" className="font-sans-bold text-heading-md">
-                ₦{draft?.regularPrice || '14,000'}
+                {price !== null ? naira(price) : 'Not set'}
               </VemtapText>
-              <VemtapText tone="tertiary" className="line-through">
-                ₦{draft?.compareAtPrice || '16,000'}
-              </VemtapText>
+              {saving > 0 && compareAt !== null ? (
+                <VemtapText tone="tertiary" className="line-through">
+                  {naira(compareAt)}
+                </VemtapText>
+              ) : null}
             </View>
           </View>
-          <BusinessStatusPill label="Save ₦2,000" tone="success" />
+          {saving > 0 ? (
+            <BusinessStatusPill label={`Save ${naira(saving)}`} tone="success" />
+          ) : null}
         </View>
-        <VemtapText
-          variant="labelSm"
-          tone="secondary"
-          className="font-sans-semibold uppercase tracking-wider"
-        >
-          Active Portions
-        </VemtapText>
-        <ProductVariantList
-          variants={(draft?.variants.length ? draft.variants : productVariants).map(
-            item => ({ ...item }),
-          )}
-          readOnly
-        />
+        {variants.length ? (
+          <>
+            <VemtapText
+              variant="labelSm"
+              tone="secondary"
+              className="font-sans-semibold uppercase tracking-wider"
+            >
+              Options
+            </VemtapText>
+            <ProductVariantList variants={variants.map(item => ({ ...item }))} readOnly />
+          </>
+        ) : null}
         <View className="flex-row flex-wrap items-center justify-between gap-2">
-          <View className="flex-row items-center gap-1.5">
-            <Icon name="inventory" size={16} color={colors.primary} />
-            <VemtapText variant="caption" tone="secondary">
-              Total Stock:{' '}
-              <VemtapText className="font-sans-semibold text-text">48 units</VemtapText>
-            </VemtapText>
-          </View>
-          <View className="rounded bg-surface-container px-2 py-0.5">
-            <VemtapText className="text-on-secondary-fixed text-caption">
-              SKU: {draft?.sku || productIdentity.sku}
-            </VemtapText>
-          </View>
+          {variants.length ? (
+            <View className="flex-row items-center gap-1.5">
+              <Icon name="inventory" size={16} color={colors.primary} />
+              <VemtapText variant="caption" tone="secondary">
+                Total Stock:{' '}
+                <VemtapText className="font-sans-semibold text-text">
+                  {`${totalStock} unit${totalStock === 1 ? '' : 's'}`}
+                </VemtapText>
+              </VemtapText>
+            </View>
+          ) : (
+            <View />
+          )}
+          {draft?.sku ? (
+            <View className="rounded bg-surface-container px-2 py-0.5">
+              <VemtapText className="text-on-secondary-fixed text-caption">
+                SKU: {draft.sku}
+              </VemtapText>
+            </View>
+          ) : null}
         </View>
       </SetupCard>
 
@@ -236,118 +261,82 @@ export function ReviewProductSummaryScreen({
           boxedIcon
           title="Branch Availability"
           icon="hub"
-          subtitle={`${shownBranchCount} Outlets serving this item`}
+          subtitle={`${branches.length} outlet${branches.length === 1 ? '' : 's'} serving this item`}
           actionLabel="Edit"
           onAction={onEditBranches}
         />
-        <View className="relative h-28 overflow-hidden rounded-lg bg-surface-container shadow-sm">
-          <LocationMapView
-            region={abujaRegion}
-            style={StyleSheet.absoluteFill}
-            scrollEnabled={false}
-            zoomEnabled={false}
-          />
-          <View className="absolute bottom-2 left-2 flex-row items-center gap-1 rounded-full bg-surface/90 px-2.5 py-1 shadow-sm">
-            <Icon name="pinDrop" size={14} color={colors.primary} />
-            <VemtapText variant="caption" className="font-sans-semibold">
-              Abuja Central Metros
-            </VemtapText>
-          </View>
-        </View>
-        <View className="gap-2">
-          {shownBranches.map((branch, index) => (
-            <View
-              key={branch.id}
-              className="gap-1 rounded-lg bg-surface-container-low p-3"
-            >
-              <View className="flex-row items-center justify-between gap-2">
-                <View className="min-w-0 flex-row flex-wrap items-center gap-1.5">
-                  <VemtapText variant="labelMd" className="font-sans-semibold">
+        {branches.length ? (
+          <View className="gap-2">
+            {branches.map(branch => (
+              <View
+                key={branch.id}
+                className="gap-1 rounded-lg bg-surface-container-low p-3"
+              >
+                <View className="flex-row items-center justify-between gap-2">
+                  <VemtapText
+                    variant="labelMd"
+                    className="min-w-0 flex-1 font-sans-semibold"
+                    numberOfLines={1}
+                  >
                     {branch.name}
                   </VemtapText>
-                  {index === 0 ? <BusinessStatusPill label="Flagship" /> : null}
+                  {price !== null ? (
+                    <VemtapText variant="labelMd" className="shrink-0 font-sans-bold">
+                      {naira(price)}
+                    </VemtapText>
+                  ) : null}
                 </View>
-                <VemtapText variant="labelMd" className="shrink-0 font-sans-bold">
-                  {branch.price}
-                </VemtapText>
-              </View>
-              <View className="flex-row items-center justify-between gap-2">
                 <View className="flex-row items-center gap-1">
-                  <View className="h-1.5 w-1.5 rounded-full bg-badge-discount-text" />
+                  <View
+                    className={`h-1.5 w-1.5 rounded-full ${draft?.inStock === false ? 'bg-error' : 'bg-badge-discount-text'}`}
+                  />
                   <VemtapText variant="caption" tone="secondary">
-                    {branch.stock}
+                    {draft?.inStock === false ? 'Out of stock' : 'In stock'}
                   </VemtapText>
                 </View>
-                <VemtapText
-                  variant="caption"
-                  tone={index === 0 ? 'tertiary' : 'error'}
-                  className={cn('text-right', index === 1 && 'font-sans-medium')}
-                >
-                  {index === 0 ? branch.priceNote : `Customized Price (+₦500)`}
-                </VemtapText>
               </View>
-            </View>
-          ))}
-        </View>
-        <View className="flex-row items-center gap-2 rounded-lg bg-surface-tint p-2.5">
-          <Icon name="tune" size={18} color={colors.primary} />
-          <VemtapText variant="caption" tone="secondary" className="min-w-0 flex-1">
-            <VemtapText className="font-sans-semibold text-text">
-              Dynamic Mode:
-            </VemtapText>{' '}
-            Prices are independently adjusted by branch operational costs.
+            ))}
+          </View>
+        ) : (
+          <VemtapText variant="caption" tone="secondary">
+            No branch selected yet. Pick at least one so customers can find this item.
           </VemtapText>
-        </View>
+        )}
       </SetupCard>
 
       <SetupCard>
         <ServiceSectionHeader
           boxedIcon
-          title="Fulfillment & Dispatch"
+          title="Fulfillment"
           icon="delivery"
-          subtitle="Delivery rules for this item"
+          subtitle="How customers get this item"
           actionLabel="Edit"
           onAction={onEditFulfillment}
         />
-        <View className="gap-2">
-          <FulfillmentRow
-            title="In-Store Pickup / Dine-In Walk"
-            subtitle="Ready in 15 mins upon confirmation"
-            status="Instant"
-            statusTone="success"
-          />
-          <FulfillmentRow
-            title="Local Delivery / Express Dispatch"
-            subtitle="Hot insulated bike courier"
-            status="20 - 30 mins"
-            statusTone="brand"
-          />
-          <View className="flex-row items-center justify-between gap-3 rounded-lg bg-surface-container-low/70 p-3 opacity-80">
-            <View className="min-w-0 flex-1 flex-row items-center gap-3">
-              <View className="h-7 w-7 shrink-0 items-center justify-center rounded-full bg-error-container">
-                <Icon name="block" size={16} color={colors.error} />
-              </View>
-              <View className="min-w-0 flex-1">
+        {fulfillment.length ? (
+          <View className="gap-2">
+            {fulfillment.map(mode => (
+              <View
+                key={mode}
+                className="flex-row items-center gap-3 rounded-lg bg-surface-subtle p-3"
+              >
+                <View className="h-7 w-7 shrink-0 items-center justify-center rounded-full bg-badge-discount-bg">
+                  <Icon name="check" size={16} color={colors.badgeDiscountText} />
+                </View>
                 <VemtapText
                   variant="labelMd"
-                  tone="secondary"
-                  className="font-sans-medium"
+                  className="min-w-0 flex-1 font-sans-semibold"
                 >
-                  Interstate Cargo Waybill
-                </VemtapText>
-                <VemtapText variant="caption" tone="tertiary">
-                  Fresh cooked items cannot travel interstate
+                  {FULFILLMENT_LABELS[mode] ?? mode}
                 </VemtapText>
               </View>
-            </View>
-            <VemtapText
-              variant="labelSm"
-              className="shrink-0 font-sans-semibold text-error"
-            >
-              Perishable
-            </VemtapText>
+            ))}
           </View>
-        </View>
+        ) : (
+          <VemtapText variant="caption" tone="secondary">
+            No fulfillment option chosen yet.
+          </VemtapText>
+        )}
       </SetupCard>
 
       <SetupCard>
@@ -362,49 +351,50 @@ export function ReviewProductSummaryScreen({
           tone="secondary"
           className="rounded-xl bg-surface-subtle p-3 leading-relaxed"
         >
-          “{draft?.description || productIdentity.description}”
+          {draft?.description ? `“${draft.description}”` : 'No description yet.'}
         </VemtapText>
-        <View className="flex-row flex-wrap gap-2">
-          {(draft?.attributes.length
-            ? draft.attributes
-            : ['Gluten-free', 'Halal certified', 'Eco packaging']
-          ).map(attribute => (
-            <BusinessStatusPill key={attribute} label={attribute} tone="neutral" />
-          ))}
-        </View>
+        {draft?.attributes.length ? (
+          <View className="flex-row flex-wrap gap-2">
+            {draft.attributes.map(attribute => (
+              <BusinessStatusPill key={attribute} label={attribute} tone="neutral" />
+            ))}
+          </View>
+        ) : null}
       </SetupCard>
 
-      <View className="overflow-hidden rounded-xl shadow-sm">
-        <LinearGradient
-          colors={['#EDF2FF', colors.surfaceTint]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          className="flex-row items-center justify-between gap-3 p-4"
-        >
-          <View className="min-w-0 flex-1 flex-row items-center gap-3">
-            <View className="h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary">
-              <Icon name="visibility" size={22} color={colors.surface} />
+      {onInspectPreview ? (
+        <View className="overflow-hidden rounded-xl shadow-sm">
+          <LinearGradient
+            colors={['#EDF2FF', colors.surfaceTint]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            className="flex-row items-center justify-between gap-3 p-4"
+          >
+            <View className="min-w-0 flex-1 flex-row items-center gap-3">
+              <View className="h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary">
+                <Icon name="visibility" size={22} color={colors.surface} />
+              </View>
+              <View className="min-w-0 flex-1">
+                <VemtapText variant="labelMd" className="font-sans-bold">
+                  Consumer View Preview
+                </VemtapText>
+                <VemtapText variant="caption" tone="secondary">
+                  See how customers will see this item
+                </VemtapText>
+              </View>
             </View>
-            <View className="min-w-0 flex-1">
-              <VemtapText variant="labelMd" className="font-sans-bold">
-                Consumer View Preview
-              </VemtapText>
-              <VemtapText variant="caption" tone="secondary">
-                Simulate live tap-to-order screen
-              </VemtapText>
-            </View>
-          </View>
-          <Button
-            label="Inspect"
-            labelVariant="labelSm"
-            variant="outline"
-            size="sm"
-            fullWidth={false}
-            className="min-h-10 border-0 bg-surface px-4"
-            onPress={onInspectPreview}
-          />
-        </LinearGradient>
-      </View>
+            <Button
+              label="Inspect"
+              labelVariant="labelSm"
+              variant="outline"
+              size="sm"
+              fullWidth={false}
+              className="min-h-10 border-0 bg-surface px-4"
+              onPress={onInspectPreview}
+            />
+          </LinearGradient>
+        </View>
+      ) : null}
 
       <View className="gap-3">
         <Button
@@ -430,44 +420,5 @@ export function ReviewProductSummaryScreen({
         </VemtapText>
       </View>
     </BusinessScreenLayout>
-  );
-}
-
-function FulfillmentRow({
-  title,
-  subtitle,
-  status,
-  statusTone,
-}: {
-  title: string;
-  subtitle: string;
-  status: string;
-  statusTone: 'brand' | 'success';
-}) {
-  return (
-    <View className="flex-row items-center justify-between gap-3 rounded-lg bg-surface-subtle p-3">
-      <View className="min-w-0 flex-1 flex-row items-center gap-3">
-        <View className="h-7 w-7 shrink-0 items-center justify-center rounded-full bg-badge-discount-bg">
-          <Icon name="check" size={16} color={colors.badgeDiscountText} />
-        </View>
-        <View className="min-w-0 flex-1">
-          <VemtapText variant="labelMd" className="font-sans-semibold">
-            {title}
-          </VemtapText>
-          <VemtapText variant="caption" tone="secondary">
-            {subtitle}
-          </VemtapText>
-        </View>
-      </View>
-      <VemtapText
-        variant="labelSm"
-        className={cn(
-          'shrink-0 font-sans-bold',
-          statusTone === 'success' ? 'text-success' : 'text-primary',
-        )}
-      >
-        {status}
-      </VemtapText>
-    </View>
   );
 }

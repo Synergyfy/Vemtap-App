@@ -1,5 +1,3 @@
-import { strings } from '@constants/strings';
-
 export type DiscoverCategory =
   | 'All'
   | 'Food & Dining'
@@ -29,6 +27,3 @@ export interface BusinessProfileSummary {
   /** 9-character code used to fetch the live profile via GET /public/businesses/code/:code */
   branchCode: string;
 }
-
-export const discoverCategories: readonly DiscoverCategory[] =
-  strings.discoverFeed.categories;

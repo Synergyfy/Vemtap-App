@@ -7,7 +7,7 @@ import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { colors } from '@theme/colors';
 import { businessLocationCopy as copy } from '@features/business/businessCopy';
-import { branchSummaries, type BranchSummary } from '@features/business/businessData';
+import type { BranchSummary } from '@features/business/businessData';
 import {
   PrimaryActionButton,
   SetupSectionCard,
@@ -54,7 +54,7 @@ export function BusinessLocationsMultiBranchScreen({
   onEditBranch,
   onManageHours,
   onContactConcierge,
-  branches = branchSummaries,
+  branches = [],
   initialMultiLocation = true,
 }: BusinessLocationsMultiBranchScreenProps) {
   const [multiLocation, setMultiLocation] = useState(initialMultiLocation);

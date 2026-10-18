@@ -9,7 +9,7 @@ import { colors } from '@theme/colors';
 import { LoadingState } from '@components/shared/LoadingState';
 import { ErrorState } from '@components/shared/ErrorState';
 import { businessCatalogCopy as copy } from '@features/business/businessCopy';
-import { catalogItems, type CatalogItem } from '@features/business/businessData';
+import { type CatalogItem } from '@features/business/businessData';
 import {
   PrimaryActionButton,
   SetupStepBar,
@@ -64,7 +64,7 @@ export function AddProductsOrServicesScreen({
   onEditItem,
   onRemoveItem,
   onFilter,
-  items = catalogItems,
+  items = [],
   isLoading = false,
   error,
 }: AddProductsOrServicesScreenProps) {

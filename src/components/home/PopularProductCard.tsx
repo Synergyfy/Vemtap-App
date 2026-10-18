@@ -2,7 +2,7 @@ import React from 'react';
 import { Image, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { VemtapText } from '@components/ui/Text';
-import type { PopularProduct } from '@features/home/data/homeFeed';
+import type { PopularProduct } from '@features/home/types/feed';
 
 cssInterop(View, { className: 'style' });
 

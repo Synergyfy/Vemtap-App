@@ -151,7 +151,6 @@ export function ServicePricingStep({ nav }: { nav: ServiceFlowNavigation }) {
   return (
     <AddServiceDurationPricingScreen
       onBack={nav.goBack}
-      live
       initialValue={{
         basePrice: draft.basePrice,
         compareAtPrice: draft.compareAtPrice,

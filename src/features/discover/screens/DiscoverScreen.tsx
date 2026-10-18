@@ -20,11 +20,7 @@ import {
 } from '@features/discover/hooks/useDiscoverBusinesses';
 import { useFilterCategories } from '@features/deals/hooks/useFilterCategories';
 import { useSearch } from '@features/search/hooks/usePublicSearch';
-import {
-  discoverCategories,
-  DiscoverCategory,
-  type BusinessProfileSummary,
-} from '@features/discover/data/discoverData';
+import { DiscoverCategory, type BusinessProfileSummary } from '@features/discover/types';
 import { useConsumerTargeting } from '@features/home/hooks/useConsumerTargeting';
 import { usePullToRefresh } from '@hooks/usePullToRefresh';
 
@@ -230,7 +226,7 @@ export function DiscoverScreen(props: Partial<DiscoverScreenProps> = {}) {
 
         <View className="w-full bg-surface-canvas py-3">
           <CategoryChips
-            categories={discoverCategories}
+            categories={strings.discoverFeed.categories as readonly DiscoverCategory[]}
             activeCategory={activeCategory}
             onChangeCategory={category => setActiveCategory(category as DiscoverCategory)}
           />

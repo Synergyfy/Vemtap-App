@@ -1,5 +1,5 @@
 import React, { type ReactNode } from 'react';
-import { Pressable, View } from 'react-native';
+import { Pressable, TextInput, View } from 'react-native';
 import Svg, { Rect, SvgXml } from 'react-native-svg';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
@@ -13,7 +13,8 @@ import {
 } from './BusinessPrimitives';
 
 export interface ProductStatusSnapshotProps {
-  image: React.ComponentProps<typeof BusinessProductImage>['source'];
+  /** Omitted when the product has no photo yet: an icon tile shows instead. */
+  image?: React.ComponentProps<typeof BusinessProductImage>['source'];
   imageAlt: string;
   imageBadge?: string;
   name: string;
@@ -47,7 +48,17 @@ export function ProductStatusSnapshot({
     <SetupCard className={cn('gap-3', className)}>
       <View className="flex-row items-start gap-3">
         <View className="h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-surface-container">
-          <BusinessProductImage source={image} alt={imageAlt} className="h-full w-full" />
+          {image ? (
+            <BusinessProductImage
+              source={image}
+              alt={imageAlt}
+              className="h-full w-full"
+            />
+          ) : (
+            <View className="h-full w-full items-center justify-center">
+              <Icon name="inventory" size={26} color={colors.textTertiary} />
+            </View>
+          )}
           {imageBadge ? (
             <View className="absolute bottom-1 left-1 rounded bg-surface-dark/80 px-1.5 py-0.5">
               <VemtapText variant="caption" className="font-sans-semibold text-surface">
@@ -114,9 +125,12 @@ export function ProductVariantList({
   onPriceChange,
   onInventoryChange,
   onDelete,
+  onNameChange,
 }: {
   variants: BusinessVariant[];
   readOnly?: boolean;
+  /** Makes the variant name editable (e.g. "Large", "500ml"). */
+  onNameChange?: (id: string, value: string) => void;
   onPriceChange?: (id: string, value: string) => void;
   onInventoryChange?: (id: string, value: string) => void;
   onDelete?: (id: string) => void;
@@ -134,13 +148,24 @@ export function ProductVariantList({
           <View className="flex-row items-center justify-between gap-2">
             <View className="min-w-0 flex-1 flex-row items-center gap-2">
               <View className="h-2 w-2 shrink-0 rounded-full bg-primary" />
-              <VemtapText
-                variant="labelMd"
-                className="min-w-0 font-sans-semibold"
-                numberOfLines={2}
-              >
-                {variant.name}
-              </VemtapText>
+              {onNameChange && !readOnly ? (
+                <TextInput
+                  value={variant.name}
+                  onChangeText={value => onNameChange(variant.id, value)}
+                  placeholder="Variant name, e.g. Large"
+                  placeholderTextColor={colors.textTertiary}
+                  accessibilityLabel="Variant name"
+                  className="min-w-0 flex-1 font-sans-semibold text-label-md text-text"
+                />
+              ) : (
+                <VemtapText
+                  variant="labelMd"
+                  className="min-w-0 font-sans-semibold"
+                  numberOfLines={2}
+                >
+                  {variant.name}
+                </VemtapText>
+              )}
             </View>
             {onDelete ? (
               <Pressable

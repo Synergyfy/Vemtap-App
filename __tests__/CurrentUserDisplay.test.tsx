@@ -1,7 +1,6 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
 import { userSchema } from '@api/authApi';
-import { strings } from '@constants/strings';
 import { useAuthStore } from '@store/authStore';
 import { AccountSettingsSecurityScreen } from '@features/accountHub/screens/AccountSettingsSecurityScreen';
 import { AccountHomeScreen } from '@features/accountHub/screens/AccountHomeScreen';
@@ -30,7 +29,7 @@ test('the dashboard navbar greets the signed-in customer by first name', async (
   const screen = await render(<CustomerDashboardScreen />);
 
   expect(screen.getByText('Hello, Ada 👋')).toBeTruthy();
-  expect(screen.queryByText(strings.customerDashboard.greeting)).toBeNull();
+  expect(screen.queryByText(/Zainab/)).toBeNull();
 });
 
 test('the More hub prints the real name, initials, email and phone', async () => {

@@ -183,8 +183,8 @@ describe('boost wallet reachability', () => {
     await act(async () => {
       fireEvent.press(screen.getByLabelText(boost.budgetStep.cta));
     });
-    // ₦5,000/day (Top Pick) x 7 days, carried from the engine.
-    expect(screen.getByText('₦35,000')).toBeTruthy();
+    // The engine's suggested API tier (₦20,000), carried through the wizard.
+    expect(screen.getAllByText('₦20,000').length).toBeGreaterThan(0);
     await act(async () => {
       fireEvent.press(screen.getByLabelText(boost.preview.openWallet));
     });
@@ -192,6 +192,6 @@ describe('boost wallet reachability', () => {
     // Balance and spendable (nothing reserved) both read from the live wallet.
     expect(screen.getByText('Ref: VEM-WAL-ABC123')).toBeTruthy();
     expect(screen.getAllByText('₦12,000')).toHaveLength(2);
-    expect(screen.queryByText(boost.wallet.balance)).toBeNull();
+    expect(screen.queryByText('\u20a625,000.00')).toBeNull();
   });
 });

@@ -1,7 +1,7 @@
 import type { PublicBusinessDetail } from '@api/publicBusinessApi';
 import { formatDistanceLabel } from '@features/deals/utils/offerMapper';
 import { haversineMeters } from '@utils/geo';
-import type { BusinessProfileSummary } from '@features/discover/data/discoverData';
+import type { BusinessProfileSummary } from '@features/discover/types';
 import { strings } from '@constants/strings';
 
 /**

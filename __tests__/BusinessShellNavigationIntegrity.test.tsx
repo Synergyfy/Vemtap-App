@@ -223,13 +223,15 @@ describe('business orders/bookings switcher', () => {
         await act(async () => {
           fireEvent.press(pill('Bookings')[0]);
         });
-        expect(screen.getByText(strings.businessBookings.summaryTitle)).toBeTruthy();
+        expect(screen.getByText(strings.businessBookings.filters[0].label)).toBeTruthy();
 
         await act(async () => {
           fireEvent.press(pill('Orders')[0]);
         });
-        expect(screen.getByText(strings.businessOrders.orders[0].reference)).toBeTruthy();
-        expect(screen.queryByText(strings.businessBookings.summaryTitle)).toBeNull();
+        expect(
+          screen.getByText(`${strings.businessOrders.filters[0].label} (0)`),
+        ).toBeTruthy();
+        expect(screen.queryByText(strings.businessBookings.filters[0].label)).toBeNull();
       };
 
       await toBookingsAndBack();

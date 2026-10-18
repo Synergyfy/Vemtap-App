@@ -6,7 +6,6 @@ import { VemtapText } from '@components/ui/Text';
 import { colors } from '@theme/colors';
 import {
   BusinessActionDock,
-  BusinessInlineAction,
   BusinessNumberInput,
   BusinessProgress,
   BusinessScreenLayout,
@@ -19,7 +18,6 @@ import {
   ProductVariantList,
   type BusinessVariant,
 } from '@features/business/components/BusinessProductContent';
-import { productVariants } from '@features/business/data/businessSetupData';
 
 export type ProductPricingValue = {
   regularPrice: string;
@@ -36,6 +34,8 @@ export interface AddProductPricingVariantsScreenProps {
   onContinue?: (value: ProductPricingValue) => void;
   onSaveDraft?: (value: ProductPricingValue) => void;
   onAddVariant?: () => void;
+  /** Values already in the draft (`catalogueDraftStore`). */
+  initialValue?: Partial<ProductPricingValue>;
 }
 
 export function AddProductPricingVariantsScreen({
@@ -43,17 +43,24 @@ export function AddProductPricingVariantsScreen({
   onContinue,
   onSaveDraft,
   onAddVariant,
+  initialValue,
 }: AddProductPricingVariantsScreenProps) {
-  const [variantsEnabled, setVariantsEnabled] = useState(true);
-  const [regularPrice, setRegularPrice] = useState('14,000');
-  const [compareAtPrice, setCompareAtPrice] = useState('16,000');
-  const [costPerItem, setCostPerItem] = useState('8,500');
   const [variants, setVariants] = useState<BusinessVariant[]>(
-    productVariants.map(item => ({ ...item })),
+    (initialValue?.variants ?? []).map(item => ({ ...item })),
   );
-  const [sku, setSku] = useState('UG-RB-042');
-  const [lowStockThreshold, setLowStockThreshold] = useState('5');
-  const [backorder, setBackorder] = useState(false);
+  const [variantsEnabled, setVariantsEnabled] = useState(variants.length > 0);
+  const [regularPrice, setRegularPrice] = useState(initialValue?.regularPrice ?? '');
+  const [compareAtPrice, setCompareAtPrice] = useState(
+    initialValue?.compareAtPrice ?? '',
+  );
+  const [costPerItem, setCostPerItem] = useState(initialValue?.costPerItem ?? '');
+  const [sku, setSku] = useState(initialValue?.sku ?? '');
+  const [lowStockThreshold, setLowStockThreshold] = useState(
+    initialValue?.lowStockThreshold ?? '5',
+  );
+  const [backorder, setBackorder] = useState(
+    initialValue?.continueWhenOutOfStock ?? false,
+  );
   const totalStock = useMemo(
     () => variants.reduce((total, variant) => total + variant.inventory, 0),
     [variants],
@@ -63,13 +70,15 @@ export function AddProductPricingVariantsScreen({
       regularPrice,
       compareAtPrice,
       costPerItem,
-      variants,
       sku,
       lowStockThreshold,
       continueWhenOutOfStock: backorder,
+      // Switched off, the variants are not part of the product.
+      variants: variantsEnabled ? variants : [],
     }),
     [
       backorder,
+      variantsEnabled,
       compareAtPrice,
       costPerItem,
       lowStockThreshold,
@@ -96,12 +105,12 @@ export function AddProductPricingVariantsScreen({
     );
   };
   const addVariant = () => {
-    const id = `variant-${variants.length + 1}`;
+    const id = `variant-${Date.now()}`;
     setVariants(current => [
       ...current,
       {
         id,
-        name: `New Variant (${current.length + 1})`,
+        name: '',
         price: regularPrice,
         inventory: 0,
       },
@@ -271,19 +280,19 @@ export function AddProductPricingVariantsScreen({
               <View className="flex-row items-center justify-between rounded-lg bg-surface-container-low px-4 py-2">
                 <View className="min-w-0 flex-1 flex-row items-center gap-2">
                   <VemtapText variant="labelMd" tone="secondary">
-                    Active Option:
-                  </VemtapText>
-                  <VemtapText
-                    variant="button"
-                    className="font-sans-semibold text-primary"
-                  >
-                    Portion Size / Cut
+                    Name each option and set its price and stock.
                   </VemtapText>
                 </View>
-                <BusinessInlineAction label="Edit" icon="edit" />
               </View>
               <ProductVariantList
                 variants={variants}
+                onNameChange={(id, name) =>
+                  setVariants(current =>
+                    current.map(variant =>
+                      variant.id === id ? { ...variant, name } : variant,
+                    ),
+                  )
+                }
                 onPriceChange={updateVariantPrice}
                 onInventoryChange={updateVariantInventory}
                 onDelete={id =>

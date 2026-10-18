@@ -108,7 +108,8 @@ describe('business hub live rendering', () => {
     expect(screen.getByText('482 Total Customers \u00b7 38 New this week')).toBeTruthy();
     expect(screen.getByText('1 of 1 terminals online')).toBeTruthy();
     // The designed numbers must not leak into live mode.
-    expect(screen.queryByText(copy.name)).toBeNull();
+    expect(screen.queryByText(copy.nameFallback)).toBeNull();
+    expect(screen.queryByText(/Urban Grill|urbangrill/)).toBeNull();
   });
 
   it('switches branches through the live option list', async () => {

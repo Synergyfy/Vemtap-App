@@ -2,7 +2,7 @@ import React from 'react';
 import { AccessibilityInfo } from 'react-native';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { FeaturedDealsRail } from '@components/home/FeaturedDealsRail';
-import type { FeaturedDeal } from '@features/home/data/homeFeed';
+import type { FeaturedDeal } from '@features/home/types/feed';
 
 jest.mock('@features/deals/hooks/usePublicOffers', () =>
   jest.requireActual('./helpers/mockOffersFeed').mockOffersFeedModule(),

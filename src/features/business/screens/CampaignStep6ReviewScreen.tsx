@@ -24,6 +24,8 @@ export interface CampaignStep6ReviewScreenProps {
   objectiveTitle?: string;
   /** Step 2 choices. */
   assetNames?: string[];
+  /** The business the campaign promotes (storefront line on the asset card). */
+  storeName?: string;
   /** Step 3 choices. */
   cohortNames?: string[];
   branchNames?: string[];
@@ -38,11 +40,6 @@ export interface CampaignStep6ReviewScreenProps {
   walletLabel?: string;
   cardLabel?: string;
   cardAmountLabel?: string;
-  /**
-   * Live mode: the estimates come from the forecast, the audience line from
-   * the real selection, and the design's sample map, weighting and ROAS go.
-   */
-  live?: boolean;
   durationDays?: number;
   forecast?: { reach: string; claims: string };
   audienceSummary?: string;
@@ -73,23 +70,19 @@ export function CampaignStep6ReviewScreen({
   onSaveDraft,
   objectiveId = DEFAULT_OBJECTIVE.id,
   objectiveTitle = DEFAULT_OBJECTIVE.title,
-  assetNames = [wizard.step2.items[0].title, wizard.step2.items[1].title],
-  cohortNames = [
-    wizard.step3.cohorts[0].name,
-    wizard.step3.cohorts[1].name,
-    wizard.step3.cohorts[2].name,
-  ],
-  branchNames = [wizard.step3.branches[0].name, wizard.step3.branches[1].name],
-  clusterNames = [wizard.step3.clusters[0], wizard.step3.clusters[1]],
-  radiusLabel = '3.0 km around Flagship',
-  scheduleLabel = 'Oct 24 – Oct 31, 2024 (7 Days)',
-  daypartingLabel = 'Lunch Rush (11:30A–3:30P) & Dinner Rush (6:30P–10:00P)',
-  totalLabel = '\u20a635,000',
-  dailyLabel = '\u20a65,000 / active day',
-  walletLabel = '\u20a625,000',
-  cardLabel = step.splitCard,
-  cardAmountLabel = '\u20a610,000',
-  live: liveData = false,
+  assetNames = [],
+  storeName,
+  cohortNames = [],
+  branchNames = [],
+  clusterNames = [],
+  radiusLabel = '',
+  scheduleLabel = '',
+  daypartingLabel = '',
+  totalLabel = '',
+  dailyLabel = '',
+  walletLabel = '',
+  cardLabel = '',
+  cardAmountLabel = '',
   durationDays = 7,
   forecast,
   audienceSummary,
@@ -98,23 +91,19 @@ export function CampaignStep6ReviewScreen({
   error,
 }: CampaignStep6ReviewScreenProps) {
   const [agreed, setAgreed] = useState(true);
-  const [launchingLocal, setLaunching] = useState(false);
-  const [liveLocal, setLive] = useState(false);
-  // The prototype fakes the launch locally; live callers own it.
-  const launching = liveData ? Boolean(launchingProp) : launchingLocal;
-  const live = liveData ? Boolean(launchedLabel) : liveLocal;
-  const stats = liveData
-    ? forecast
-      ? [
-          { label: step.liveReachLabel, value: forecast.reach, sub: '' },
-          {
-            label: step.liveClaimsLabel,
-            value: forecast.claims,
-            sub: step.liveClaimsSub,
-          },
-        ]
-      : []
-    : step.stats;
+  // Launch state is owned by the caller (it waits for the API).
+  const launching = Boolean(launchingProp);
+  const live = Boolean(launchedLabel);
+  const stats = forecast
+    ? [
+        { label: step.liveReachLabel, value: forecast.reach, sub: '' },
+        {
+          label: step.liveClaimsLabel,
+          value: forecast.claims,
+          sub: step.liveClaimsSub,
+        },
+      ]
+    : [];
 
   function edit(_target: string) {
     onBack();
@@ -129,10 +118,6 @@ export function CampaignStep6ReviewScreen({
       onBack={onBack}
       onNext={() => {
         if (!agreed || launching || live) return;
-        if (!liveData) {
-          setLaunching(true);
-          setLive(true);
-        }
         onLaunch({ objectiveId, agreed, total: totalLabel });
       }}
       nextLabel={
@@ -157,7 +142,7 @@ export function CampaignStep6ReviewScreen({
               {step.impactTitle}
             </VemtapText>
             <VemtapText variant="caption" tone="secondary" numberOfLines={2}>
-              {liveData ? step.liveImpactMeta(durationDays) : step.impactMeta}
+              {step.liveImpactMeta(durationDays)}
             </VemtapText>
           </View>
           <View className="shrink-0 rounded-full bg-badge-discount-bg px-2 py-0.5">
@@ -166,7 +151,7 @@ export function CampaignStep6ReviewScreen({
               className="font-sans-semibold text-badge-discount-text"
               numberOfLines={1}
             >
-              {liveData ? step.liveImpactBadge : step.impactBadge}
+              {step.liveImpactBadge}
             </VemtapText>
           </View>
         </View>
@@ -239,17 +224,11 @@ export function CampaignStep6ReviewScreen({
           </VemtapText>
           <View className="flex-row items-center gap-2 rounded-lg bg-surface-subtle p-2">
             <View className="h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-surface-container">
-              <VemtapText
-                variant="micro"
-                className="font-sans-semibold text-primary"
-                numberOfLines={1}
-              >
-                {wizard.step2.items[0].badge}
-              </VemtapText>
+              <Icon name="localOffer" size={22} color={colors.primary} />
             </View>
             <View className="min-w-0 flex-1 gap-0.5">
               <VemtapText variant="micro" tone="secondary" numberOfLines={1}>
-                {step.contentStore}
+                {storeName ?? ''}
               </VemtapText>
               <VemtapText
                 variant="labelSm"
@@ -258,23 +237,6 @@ export function CampaignStep6ReviewScreen({
               >
                 {assetNames[0]}
               </VemtapText>
-              <View className="flex-row items-center gap-1.5">
-                <VemtapText
-                  variant="caption"
-                  className="font-sans-semibold text-primary"
-                  numberOfLines={1}
-                >
-                  {wizard.step2.items[0].price}
-                </VemtapText>
-                <VemtapText
-                  variant="caption"
-                  tone="tertiary"
-                  className="line-through"
-                  numberOfLines={1}
-                >
-                  {wizard.step2.items[0].was}
-                </VemtapText>
-              </View>
             </View>
           </View>
         </SetupSectionCard>
@@ -298,8 +260,7 @@ export function CampaignStep6ReviewScreen({
             />
           </View>
           <VemtapText variant="labelMd" className="font-sans-semibold" numberOfLines={1}>
-            {audienceSummary ??
-              `${cohortNames.length} Segments • ${wizard.step3.mixMeta.split(' ')[0]} Known Diners`}
+            {audienceSummary ?? `${cohortNames.length} Segments`}
           </VemtapText>
           <View className="gap-1.5">
             <View className="flex-row items-center gap-1.5">
@@ -373,20 +334,6 @@ export function CampaignStep6ReviewScreen({
               </VemtapText>
             </View>
           ))}
-          {liveData ? null : (
-            <View className="h-16 w-full items-center justify-center rounded-lg bg-surface-subtle">
-              <View className="flex-row items-center gap-1.5 rounded-full bg-surface px-2 py-1">
-                <Icon name="pinDrop" size={12} color={colors.primary} />
-                <VemtapText
-                  variant="micro"
-                  className="font-sans-semibold"
-                  numberOfLines={1}
-                >
-                  {step.mapBadge}
-                </VemtapText>
-              </View>
-            </View>
-          )}
         </SetupSectionCard>
 
         <SetupSectionCard tone="lowest" className="gap-2 p-4 shadow-sm">
@@ -421,19 +368,6 @@ export function CampaignStep6ReviewScreen({
               {`${step.daypartingLabel} ${daypartingLabel}`}
             </VemtapText>
           </View>
-          {liveData ? null : (
-            <View className="flex-row items-center gap-1.5">
-              <Icon name="speed" size={13} color={colors.textSecondary} />
-              <VemtapText
-                variant="caption"
-                tone="secondary"
-                className="min-w-0 flex-1"
-                numberOfLines={1}
-              >
-                {`${step.weightingLabel} ${step.weighting}`}
-              </VemtapText>
-            </View>
-          )}
         </SetupSectionCard>
 
         <SetupSectionCard tone="lowest" className="gap-2 p-4 shadow-sm">

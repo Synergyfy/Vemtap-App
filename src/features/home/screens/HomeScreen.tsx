@@ -24,11 +24,7 @@ import { useNearbyBusinesses } from '@features/home/hooks/useNearbyBusinesses';
 import { useNearbyProducts } from '@features/home/hooks/useNearbyProducts';
 import { useSearch, chipSearchTerm } from '@features/search/hooks/usePublicSearch';
 import { SearchResults } from '@features/search/components/SearchResults';
-import type {
-  FeaturedDeal,
-  NearbyDeal,
-  TrendingDeal,
-} from '@features/home/data/homeFeed';
+import type { FeaturedDeal, NearbyDeal, TrendingDeal } from '@features/home/types/feed';
 import { LoadingState } from '@components/shared/LoadingState';
 import { sponsoredTracker } from '@services/sponsoredTracker';
 import { EmptyState } from '@components/shared/EmptyState';

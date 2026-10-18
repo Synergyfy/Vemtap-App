@@ -17,13 +17,11 @@ import {
   BusinessStatusPill,
 } from '@features/business/components/BusinessPrimitives';
 import {
-  BusinessInfoStrip,
   BusinessLinkRow,
   BusinessMetricTile,
   BusinessPanel,
   BusinessProgressMeter,
 } from '@features/business/components/BusinessOpsPrimitives';
-import { businessOpsMedia } from '@features/business/data/businessOpsImages';
 import type {
   DealPerformanceView,
   DealPricingRole,
@@ -64,59 +62,6 @@ const pricingTile: Record<
   },
 };
 
-const PRICING_ROLES: DealPricingRole[] = ['original', 'deal', 'savings', 'fee'];
-
-/** The Stitch prototype as a view, so standalone renders share the live path. */
-const prototypeView: DealPerformanceView = {
-  title: copy.heroTitle,
-  eyebrow: copy.heroEyebrow,
-  statusLabel: copy.activeLive,
-  discount: copy.discount,
-  image: businessOpsMedia.dealLunchHero,
-  isPaused: false,
-  canEnd: true,
-  pricingBadge: copy.pricingBadge,
-  pricing: copy.pricing.map((tile, index) => ({
-    role: PRICING_ROLES[index],
-    label: tile.label,
-    value: tile.value,
-  })),
-  windowLabel: copy.redemptionWindow,
-  daysLeft: copy.daysLeft,
-  metrics: copy.metrics.map(metric => ({
-    label: metric.label,
-    value: metric.value,
-    sub: metric.sub,
-  })),
-  rateValue: copy.redemptionRate,
-  ratePercent: 69.5,
-  redeemedLabel: copy.redeemedAtPos,
-  unclaimedLabel: copy.activeUnclaimed,
-  itemsCount: copy.catalogCount,
-  items: copy.items.map((item, index) => ({
-    id: item.name,
-    name: item.name,
-    meta: item.meta,
-    qty: item.qty,
-    image: index === 0 ? businessOpsMedia.itemRibeye : businessOpsMedia.itemMojito,
-  })),
-  capLabel: copy.capLabel,
-  capValue: copy.capValue,
-  branchesCount: copy.branchesCount,
-  branches: copy.branches.map(branch => ({
-    id: branch.name,
-    name: branch.name,
-    meta: branch.address,
-    price: branch.price,
-    active: branch.active,
-  })),
-  copyFields: copy.copyFields.map((field, index) => ({
-    eyebrow: field.eyebrow,
-    body: field.body,
-    kind: index === 2 ? ('steps' as const) : ('text' as const),
-  })),
-};
-
 export interface DealDetailsPerformanceScreenProps {
   onBack?: () => void;
   onMoreActions?: () => void;
@@ -128,7 +73,7 @@ export interface DealDetailsPerformanceScreenProps {
   onPreviewCustomerView?: () => void;
   onEditLocationAssignment?: () => void;
   onViewLedger?: () => void;
-  /** Live deal; omit to render the Stitch prototype. */
+  /** The live deal; absent while it loads or when none is picked. */
   view?: DealPerformanceView;
   isLoading?: boolean;
   isError?: boolean;
@@ -167,10 +112,10 @@ export function DealDetailsPerformanceScreen({
       : [],
   };
 
-  if (!view && (isLoading || isError)) {
+  if (!view) {
     return (
       <BusinessScreenLayout header={header} contentContainerClassName="pb-8">
-        {isLoading ? (
+        {isLoading || !isError ? (
           <LoadingState className="mt-10" />
         ) : (
           <EmptyState
@@ -184,8 +129,8 @@ export function DealDetailsPerformanceScreen({
     );
   }
 
-  const deal = view ?? prototypeView;
-  const heroImage = deal.image ?? businessOpsMedia.dealLunchHero;
+  const deal = view;
+  const heroImage = deal.image;
 
   return (
     <BusinessScreenLayout
@@ -222,11 +167,17 @@ export function DealDetailsPerformanceScreen({
     >
       <View className="overflow-hidden rounded-card shadow-sm">
         <View className="relative h-44 w-full bg-surface-container-low">
-          <BusinessProductImage
-            source={heroImage}
-            alt={heroImage.alt}
-            className="h-full w-full"
-          />
+          {heroImage ? (
+            <BusinessProductImage
+              source={heroImage}
+              alt={heroImage.alt}
+              className="h-full w-full"
+            />
+          ) : (
+            <View className="h-full w-full items-center justify-center">
+              <Icon name="localOffer" size={36} color={colors.textTertiary} />
+            </View>
+          )}
           <LinearGradient
             colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.5)', 'rgba(0,0,0,0.9)']}
             locations={[0.3, 0.7, 1]}
@@ -384,13 +335,6 @@ export function DealDetailsPerformanceScreen({
           filledLabel={deal.redeemedLabel}
           remainingLabel={deal.unclaimedLabel}
         />
-        {view ? null : (
-          <BusinessInfoStrip
-            icon="schedule"
-            title={copy.redemptionWindowLabel}
-            body={copy.redemptionWindowValue}
-          />
-        )}
         {onViewLedger ? (
           <BusinessLinkRow label={copy.viewLedger} onPress={onViewLedger} />
         ) : null}

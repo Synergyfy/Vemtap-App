@@ -2,7 +2,7 @@ import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { BusinessDiscoveryCard } from '@components/discover/BusinessDiscoveryCard';
 import { strings } from '@constants/strings';
-import type { BusinessProfileSummary } from '@features/discover/data/discoverData';
+import type { BusinessProfileSummary } from '@features/discover/types';
 
 jest.mock('@features/accountHub/hooks/useSavedHub', () =>
   jest.requireActual('./helpers/mockCustomerHub').mockSavedHubModule(),

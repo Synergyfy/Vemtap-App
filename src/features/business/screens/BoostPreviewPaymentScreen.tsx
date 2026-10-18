@@ -26,10 +26,7 @@ import {
   type BusinessSegmentTab,
 } from '@features/business/components/BusinessOpsPrimitives';
 import { PushNotificationPreview } from '@features/business/components/PushNotificationPreview';
-import {
-  prototypeBoostPreviewView,
-  type BoostPreviewView,
-} from '@features/business/utils/boostMappers';
+import { type BoostPreviewView } from '@features/business/utils/boostMappers';
 
 cssInterop(Pressable, { className: 'style' });
 
@@ -49,22 +46,20 @@ export interface BoostPreviewPaymentScreenProps {
   onSaveDraft?: () => void;
   /** Opens Boost Wallet & Credits from the wallet payment method. */
   onOpenWallet?: () => void;
-  /** The live boost; the design's sample when absent. */
-  preview?: BoostPreviewView;
+  /** The live boost. */
+  preview: BoostPreviewView;
   initialMethod?: string;
-  /** Live callers own the launch (it waits for the API). */
+  /** The launch is waiting for the API. */
   launching?: boolean;
   error?: string;
 }
 
 function LaunchButton({
   launching,
-  done,
   label,
   onPress,
 }: {
   launching: boolean;
-  done: boolean;
   label: string;
   onPress: () => void;
 }) {
@@ -74,16 +69,9 @@ function LaunchButton({
       labelVariant="button"
       size="md"
       loading={launching}
-      disabled={done}
       accessibilityLabel={label}
       className="min-h-[56px] rounded-2xl"
-      leftIcon={
-        done ? (
-          <Icon name="checkCircle" size={20} color={colors.surface} />
-        ) : (
-          <Icon name="rocketLaunch" size={20} color={colors.surface} />
-        )
-      }
+      leftIcon={<Icon name="rocketLaunch" size={20} color={colors.surface} />}
       onPress={onPress}
     />
   );
@@ -103,18 +91,13 @@ export function BoostPreviewPaymentScreen({
   onOpenWallet,
   preview,
   initialMethod,
-  launching: launchingProp,
+  launching = false,
   error,
 }: BoostPreviewPaymentScreenProps) {
-  const view = preview ?? prototypeBoostPreviewView;
+  const view = preview;
   const [tab, setTab] = useState<string>('feed');
   const [method, setMethod] = useState<string>(initialMethod ?? view.methods[0].id);
   const [agreed, setAgreed] = useState(true);
-  const [launchingLocal, setLaunching] = useState(false);
-  const [doneLocal, setDone] = useState(false);
-  // The prototype fakes the launch; live callers report it.
-  const launching = preview ? Boolean(launchingProp) : launchingLocal;
-  const done = preview ? false : doneLocal;
 
   const methodCopy = view.methods.find(option => option.id === method) ?? view.methods[0];
 
@@ -126,17 +109,9 @@ export function BoostPreviewPaymentScreen({
         <BusinessActionDock>
           <LaunchButton
             launching={launching}
-            done={done}
-            label={done ? step.ctaDone : launching ? step.ctaLoading : view.cta}
+            label={launching ? step.ctaLoading : view.cta}
             onPress={() => {
-              if (!agreed || launching) {
-                if (!preview) setLaunching(false);
-                return;
-              }
-              if (!preview) {
-                setLaunching(true);
-                setDone(true);
-              }
+              if (!agreed || launching) return;
               onLaunch?.(methodCopy.id);
             }}
           />
@@ -256,25 +231,6 @@ export function BoostPreviewPaymentScreen({
                 </VemtapText>
                 <Icon name="arrowForward" size={16} color={colors.surface} />
               </View>
-              {view.feed.stats ? (
-                <View className="flex-row flex-wrap items-center gap-x-3 gap-y-1">
-                  {view.feed.stats.map((stat, index) => (
-                    <VemtapText
-                      key={stat}
-                      variant="micro"
-                      tone={
-                        index === view.feed.stats!.length - 1 ? undefined : 'secondary'
-                      }
-                      className={
-                        index === view.feed.stats!.length - 1 ? 'text-primary' : undefined
-                      }
-                      numberOfLines={1}
-                    >
-                      {stat}
-                    </VemtapText>
-                  ))}
-                </View>
-              ) : null}
             </View>
           ) : null}
 

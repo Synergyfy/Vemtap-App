@@ -59,6 +59,10 @@ export interface AddBranchLocationScreenProps {
   onChangeGps?: () => void;
   onEditHours?: () => void;
   initialValue?: Partial<BranchDraft>;
+  /** Where the branch is pinned; null until the owner pins it. */
+  coordinates?: { latitude: number; longitude: number } | null;
+  locating?: boolean;
+  saving?: boolean;
 }
 
 /**
@@ -71,25 +75,20 @@ export function AddBranchLocationScreen({
   onChangeGps,
   onEditHours,
   initialValue,
+  coordinates = null,
+  locating = false,
+  saving = false,
 }: AddBranchLocationScreenProps) {
-  const [name, setName] = useState(initialValue?.name ?? 'Garki District Flagship');
-  const [street, setStreet] = useState(
-    initialValue?.street ?? 'Plot 742, Tafawa Balewa Way, Area 11',
-  );
-  const [landmark, setLandmark] = useState(
-    initialValue?.landmark ?? 'Directly opposite Area 11 Post Office, Wing B',
-  );
-  const [district, setDistrict] = useState(
-    initialValue?.district ?? 'Abuja Municipal • Garki District, FCT',
-  );
-  const [phone, setPhone] = useState(initialValue?.phone ?? '809 111 4455');
-  const [email, setEmail] = useState(initialValue?.email ?? 'garki.store@urbangrill.ng');
+  const [name, setName] = useState(initialValue?.name ?? '');
+  const [street, setStreet] = useState(initialValue?.street ?? '');
+  const [landmark, setLandmark] = useState(initialValue?.landmark ?? '');
+  const [district, setDistrict] = useState(initialValue?.district ?? '');
+  const [phone, setPhone] = useState(initialValue?.phone ?? '');
+  const [email, setEmail] = useState(initialValue?.email ?? '');
   const [leadRole, setLeadRole] = useState(initialValue?.leadRole ?? roleTitles[0]);
-  const [leadName, setLeadName] = useState(initialValue?.leadName ?? 'Chidinma Okafor');
-  const [leadEmail, setLeadEmail] = useState(
-    initialValue?.leadEmail ?? 'chidinma@urbangrill.ng',
-  );
-  const [leadPhone, setLeadPhone] = useState(initialValue?.leadPhone ?? '803 762 9901');
+  const [leadName, setLeadName] = useState(initialValue?.leadName ?? '');
+  const [leadEmail, setLeadEmail] = useState(initialValue?.leadEmail ?? '');
+  const [leadPhone, setLeadPhone] = useState(initialValue?.leadPhone ?? '');
   const [grantAccess, setGrantAccess] = useState(
     initialValue?.grantDashboardAccess ?? true,
   );
@@ -188,9 +187,9 @@ export function AddBranchLocationScreen({
         <SetupSectionCard>
           <SetupSectionHeading
             title={copy.addBranch.locationTitle}
-            badge={copy.addBranch.gpsLinked}
+            badge={coordinates ? copy.addBranch.gpsLinked : undefined}
             badgeTone="success"
-            dot
+            dot={Boolean(coordinates)}
           />
           <View className="gap-3">
             <FieldInput
@@ -218,7 +217,11 @@ export function AddBranchLocationScreen({
           <View className="overflow-hidden rounded-field bg-surface-container shadow-sm">
             <View style={{ height: MAP_HEIGHT }}>
               <LocationMapView
-                region={primaryBranchRegion}
+                region={
+                  coordinates
+                    ? { ...primaryBranchRegion, ...coordinates }
+                    : primaryBranchRegion
+                }
                 style={StyleSheet.absoluteFill}
                 scrollEnabled={false}
                 zoomEnabled={false}
@@ -229,15 +232,28 @@ export function AddBranchLocationScreen({
                 <Icon name="pin" size={20} color={colors.primary} />
                 <View className="min-w-0 flex-1">
                   <VemtapText variant="labelSm" className="text-text" numberOfLines={1}>
-                    {copy.addBranch.coordinates}
+                    {coordinates
+                      ? copy.addBranch.coordinates(
+                          coordinates.latitude,
+                          coordinates.longitude,
+                        )
+                      : copy.addBranch.notPinned}
                   </VemtapText>
                   <VemtapText variant="caption" tone="tertiary">
-                    {copy.addBranch.coordinatesHint}
+                    {coordinates
+                      ? copy.addBranch.coordinatesHint
+                      : copy.addBranch.notPinnedHint}
                   </VemtapText>
                 </View>
               </View>
               <TextActionButton
-                label={copy.addBranch.changeGps}
+                label={
+                  locating
+                    ? copy.addBranch.locating
+                    : coordinates
+                      ? copy.addBranch.changeGps
+                      : copy.addBranch.pinGps
+                }
                 icon="editLocation"
                 tone="brand"
                 onPress={onChangeGps}
@@ -411,7 +427,8 @@ export function AddBranchLocationScreen({
 
       <View className="gap-3 px-6 pb-6 pt-0">
         <PrimaryActionButton
-          label={copy.addBranch.save}
+          label={saving ? copy.addBranch.saving : copy.addBranch.save}
+          disabled={saving}
           onPress={() => onSave?.(draft)}
         />
         <TextActionButton label={copy.addBranch.cancel} onPress={handleBack} />

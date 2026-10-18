@@ -10,6 +10,11 @@ import { CampaignStep6ReviewScreen } from '@features/business/screens/CampaignSt
 import { SegmentActionsSheet } from '@features/business/screens/SegmentActionsSheet';
 import { CreateCustomSegmentScreen } from '@features/business/screens/CreateCustomSegmentScreen';
 import { SegmentAudienceDetailsScreen } from '@features/business/screens/SegmentAudienceDetailsScreen';
+import {
+  campaignContentFixture,
+  promotionTiersFixture,
+  segmentDetailsFixture,
+} from './helpers/growthFixtures';
 
 const copy = strings.campaignWizard;
 
@@ -37,22 +42,31 @@ describe('create campaign — step 1 objective', () => {
 });
 
 describe('create campaign — step 2 content', () => {
-  it('filters the asset list and reports the selection count', async () => {
-    await render(<CampaignStep2ContentScreen onBack={noop} onContinue={noop} />);
+  const items = campaignContentFixture;
+
+  it('lists the live assets and reports the selection count', async () => {
+    await render(
+      <CampaignStep2ContentScreen
+        onBack={noop}
+        onContinue={noop}
+        items={items}
+        initialAssetIds={['deal-1']}
+      />,
+    );
+    expect(screen.getByText(copy.step2.selectedOne)).toBeTruthy();
+    await fireEvent.press(screen.getByLabelText(items[1].title));
     expect(
       screen.getByText(copy.step2.selectedMany.replace('{count}', '2')),
-    ).toBeTruthy();
-    await fireEvent.press(screen.getByLabelText(copy.step2.items[2].title));
-    expect(
-      screen.getByText(copy.step2.selectedMany.replace('{count}', '3')),
     ).toBeTruthy();
   });
 
   it('narrows to a single asset group', async () => {
-    await render(<CampaignStep2ContentScreen onBack={noop} onContinue={noop} />);
-    await fireEvent.press(screen.getByLabelText(copy.step2.filters[1].label));
-    expect(screen.queryByText(copy.step2.items[2].title)).toBeNull();
-    expect(screen.getByText(copy.step2.items[0].title)).toBeTruthy();
+    await render(
+      <CampaignStep2ContentScreen onBack={noop} onContinue={noop} items={items} />,
+    );
+    await fireEvent.press(screen.getByLabelText(`${copy.step2.liveFilters.deals} (1)`));
+    expect(screen.queryByText(items[1].title)).toBeNull();
+    expect(screen.getByText(items[0].title)).toBeTruthy();
   });
 });
 
@@ -70,15 +84,13 @@ describe('create campaign — step 3 audience', () => {
       <CampaignStep3AudienceScreen
         onBack={noop}
         onContinue={onContinue}
-        live
         initialSelection={{ strategy: 'segments', cohorts: [], segmentIds: ['seg-1'] }}
         segmentOptions={[{ id: 'seg-1', name: 'Lapsed regulars', size: 42 }]}
         branchOptions={[{ id: 'br-1', name: 'Wuse', address: '' }]}
       />,
     );
     expect(screen.getByText('Lapsed regulars')).toBeTruthy();
-    // Live mode drops the sample forecast, and has no districts to offer here.
-    expect(screen.queryByText(copy.step3.reachValue)).toBeNull();
+    // No districts to offer here.
     expect(screen.queryByText(copy.step3.clustersTitle)).toBeNull();
     await fireEvent.press(screen.getByLabelText(copy.step3.cta));
     const selection = onContinue.mock.calls[0][0];
@@ -93,7 +105,6 @@ describe('create campaign — step 3 audience', () => {
       <CampaignStep3AudienceScreen
         onBack={noop}
         onContinue={onContinue}
-        live
         branchOptions={[{ id: 'br-1', name: 'Wuse', address: '' }]}
         districtOptions={[
           { id: 'd-wuse', name: 'Wuse 2' },
@@ -102,8 +113,7 @@ describe('create campaign — step 3 audience', () => {
       />,
     );
     expect(screen.getByText(copy.step3.clustersTitle)).toBeTruthy();
-    // No sample clusters in live mode, and nothing picked until the owner does.
-    expect(screen.queryByText(copy.step3.clusters[0])).toBeNull();
+    // Nothing is picked until the owner does.
     await fireEvent.press(screen.getByLabelText('Central Business District'));
     await fireEvent.press(screen.getByLabelText(copy.step3.cta));
     expect(onContinue.mock.calls[0][0].clusters).toEqual(['d-cbd']);
@@ -115,7 +125,6 @@ describe('create campaign — step 4 schedule', () => {
     await render(<CampaignStep4ScheduleScreen onBack={noop} onContinue={noop} />);
     expect(screen.getByText(copy.step4.horizonTitle)).toBeTruthy();
     expect(screen.getByText(copy.step4.windows[0].name)).toBeTruthy();
-    expect(screen.getByText(copy.step4.tipFrom)).toBeTruthy();
   });
 
   it('hides the windows when dayparting is switched off', async () => {
@@ -136,24 +145,46 @@ describe('create campaign — step 4 schedule', () => {
 });
 
 describe('create campaign — step 5 budget', () => {
-  it('lists the investment tiers with their projections', async () => {
-    await render(<CampaignStep5BudgetScreen onBack={noop} onContinue={noop} />);
-    for (const tier of copy.step5.tiers) {
-      expect(screen.getByText(tier.name)).toBeTruthy();
-      expect(screen.getAllByText(tier.amount).length).toBeGreaterThan(0);
+  it('lists the investment tiers with their daily pace', async () => {
+    await render(
+      <CampaignStep5BudgetScreen
+        onBack={noop}
+        onContinue={noop}
+        tiers={promotionTiersFixture}
+      />,
+    );
+    for (const tier of promotionTiersFixture) {
+      expect(screen.getByText(tier.label)).toBeTruthy();
+      expect(
+        screen.getAllByText(`\u20a6${tier.amount.toLocaleString('en-NG')}`).length,
+      ).toBeGreaterThan(0);
     }
+    // The middle API tier is the suggested one.
+    expect(screen.getByText(copy.step5.popularBadge)).toBeTruthy();
     expect(screen.getAllByText(copy.step5.guardTitle).length).toBeGreaterThan(0);
   });
 
   it('asks for a top-up when the wallet cannot cover the campaign', async () => {
-    await render(<CampaignStep5BudgetScreen onBack={noop} onContinue={noop} />);
-    await fireEvent.press(screen.getByLabelText(copy.step5.tiers[2].name));
+    await render(
+      <CampaignStep5BudgetScreen
+        onBack={noop}
+        onContinue={noop}
+        walletSpendable={10_000}
+      />,
+    );
+    await fireEvent.press(screen.getByLabelText('Market Leader Surge'));
     expect(screen.getByText(copy.step5.topUpTitle)).toBeTruthy();
   });
 
   it('confirms full wallet coverage for the starter tier', async () => {
-    await render(<CampaignStep5BudgetScreen onBack={noop} onContinue={noop} />);
-    await fireEvent.press(screen.getByLabelText(copy.step5.tiers[0].name));
+    await render(
+      <CampaignStep5BudgetScreen
+        onBack={noop}
+        onContinue={noop}
+        walletSpendable={50_000}
+      />,
+    );
+    await fireEvent.press(screen.getByLabelText('Starter Booster'));
     expect(screen.getByText(copy.step5.fullyFunded)).toBeTruthy();
   });
 
@@ -163,7 +194,6 @@ describe('create campaign — step 5 budget', () => {
       <CampaignStep5BudgetScreen
         onBack={noop}
         onContinue={onContinue}
-        live
         walletSpendable={0}
         savedCard="Visa •• 4242"
       />,
@@ -184,11 +214,10 @@ describe('create campaign — step 5 budget', () => {
       <CampaignStep5BudgetScreen
         onBack={noop}
         onContinue={onContinue}
-        live
         walletSpendable={0}
       />,
     );
-    expect(screen.queryByText(copy.step5.linkedCard)).toBeNull();
+    expect(screen.queryByText(/•• [0-9]{4}/)).toBeNull();
     await fireEvent.press(screen.getByLabelText(copy.step5.liveSaveCard));
     await fireEvent.press(screen.getByLabelText(copy.reviewCta));
     expect(onContinue).toHaveBeenCalledWith(
@@ -205,21 +234,27 @@ describe('create campaign — step 6 review', () => {
         onLaunch={noop}
         objectiveId={copy.step1.objectives[4].id}
         objectiveTitle={copy.step1.objectives[4].title}
-        assetNames={[copy.step2.items[0].title]}
+        assetNames={['Jollof Combo']}
         cohortNames={[copy.step3.cohorts[0].name]}
-        branchNames={[copy.step3.branches[0].name]}
+        branchNames={['Jabi']}
         totalLabel={'\u20a670,000'}
       />,
     );
     expect(screen.getByText(copy.step1.objectives[4].title)).toBeTruthy();
     expect(screen.getByText('1 Active Assets Attached')).toBeTruthy();
-    expect(screen.getByText('1 Segments \u2022 436 Known Diners')).toBeTruthy();
+    expect(screen.getByText('1 Segments')).toBeTruthy();
     expect(screen.getByText(`${'\u20a670,000'} Total Allocation`)).toBeTruthy();
   });
 
   it('does not launch while the policy is unaccepted', async () => {
     const onLaunch = jest.fn();
-    await render(<CampaignStep6ReviewScreen onBack={noop} onLaunch={onLaunch} />);
+    await render(
+      <CampaignStep6ReviewScreen
+        onBack={noop}
+        onLaunch={onLaunch}
+        totalLabel={'\u20a635,000'}
+      />,
+    );
     await fireEvent.press(
       screen.getByLabelText(
         `${copy.step6.termsPrefix} ${copy.step6.termsSuffix.replace('{amount}', '\u20a635,000')}`,
@@ -233,7 +268,13 @@ describe('create campaign — step 6 review', () => {
 
   it('launches with the agreed objective', async () => {
     const onLaunch = jest.fn();
-    await render(<CampaignStep6ReviewScreen onBack={noop} onLaunch={onLaunch} />);
+    await render(
+      <CampaignStep6ReviewScreen
+        onBack={noop}
+        onLaunch={onLaunch}
+        totalLabel={'\u20a635,000'}
+      />,
+    );
     await fireEvent.press(
       screen.getByLabelText(copy.launchCta.replace('{amount}', '\u20a635,000')),
     );
@@ -244,13 +285,41 @@ describe('create campaign — step 6 review', () => {
 });
 
 describe('segment actions sheet', () => {
+  const summary = {
+    meta: '120 customers',
+    spend: '\u20a6540,000',
+    body: 'Visited 3+ times in 30 days',
+    pushReady: '96 Push/Feed ready',
+    messageReady: '40 SMS ready',
+  };
+
   it('uses the shared bottom sheet title tier and lists every action', async () => {
-    await render(<SegmentActionsSheet visible onClose={noop} />);
-    expect(screen.getByText(copy.segmentActions.title)).toBeTruthy();
+    await render(
+      <SegmentActionsSheet
+        visible
+        onClose={noop}
+        segmentName="Lunch regulars"
+        businessName="Aurora Grill"
+        summary={summary}
+      />,
+    );
+    expect(
+      screen.getByText(copy.segmentActions.liveTitle('Lunch regulars')),
+    ).toBeTruthy();
+    expect(screen.getByText('Aurora Grill')).toBeTruthy();
+    expect(screen.getByText(summary.spend)).toBeTruthy();
     for (const action of copy.segmentActions.actions) {
       expect(screen.getByText(action.title)).toBeTruthy();
     }
     expect(screen.getByText(copy.segmentActions.rulesTitle)).toBeTruthy();
+  });
+
+  it('shows no figures until the insights load', async () => {
+    await render(
+      <SegmentActionsSheet visible onClose={noop} segmentName="Lunch regulars" />,
+    );
+    expect(screen.queryByText(/Returning Customers|Urban Grill|294/)).toBeNull();
+    expect(screen.getAllByText('\u2026').length).toBeGreaterThan(0);
   });
 
   it('hands the campaign hand-off to step 3 and closes', async () => {
@@ -259,38 +328,44 @@ describe('segment actions sheet', () => {
     await render(
       <SegmentActionsSheet
         visible
+        segmentId="seg-1"
         onClose={onClose}
         onCreateCampaign={onCreateCampaign}
       />,
     );
     await fireEvent.press(screen.getByLabelText(copy.segmentActions.actions[0].cta));
-    expect(onCreateCampaign).toHaveBeenCalled();
+    expect(onCreateCampaign).toHaveBeenCalledWith('seg-1');
     expect(onClose).toHaveBeenCalled();
   });
 });
 
 describe('create custom segment', () => {
-  it('sizes the cohort from the active criteria', async () => {
-    await render(<CreateCustomSegmentScreen onClose={noop} />);
-    // Four active criteria size the pool above the base 184 figure.
+  it('shows the live audience size, and waits for it rather than estimating', async () => {
+    const view = await render(<CreateCustomSegmentScreen onClose={noop} />);
     expect(
-      screen.getByLabelText(copy.customSegment.saveCta.replace('{count}', '353')),
+      screen.getByLabelText(copy.customSegment.saveCta.replace('{count}', '\u2026')),
     ).toBeTruthy();
-    expect(screen.getByText('353')).toBeTruthy();
-    await fireEvent.press(
-      screen.getByLabelText(`${copy.customSegment.criteria[0].title}`),
+    await view.rerender(
+      <CreateCustomSegmentScreen
+        onClose={noop}
+        sizing={{ total: 200, push: 150, dm: 100 }}
+      />,
     );
-    // Dropping a criterion narrows the pool, so the live figure must change.
-    expect(screen.queryByText('353')).toBeNull();
-    expect(
-      screen.getByLabelText(copy.customSegment.saveCta.replace('{count}', '311')),
-    ).toBeTruthy();
+    expect(screen.getByText('200')).toBeTruthy();
+    expect(screen.getByText('150 (75%)')).toBeTruthy();
   });
 
   it('reveals the picker only for a checked criterion', async () => {
-    await render(<CreateCustomSegmentScreen onClose={noop} />);
-    await fireEvent.press(screen.getByLabelText(copy.customSegment.criteria[1].title));
-    expect(screen.getByText(copy.customSegment.criteria[0].picker[0])).toBeTruthy();
+    await render(
+      <CreateCustomSegmentScreen
+        onClose={noop}
+        initialSelection={{ criteria: [], pickers: {} }}
+        pickerOptions={{ claimed: [{ id: 'deal-1', label: 'Jollof Combo' }] }}
+      />,
+    );
+    expect(screen.queryByText('Jollof Combo')).toBeNull();
+    await fireEvent.press(screen.getByLabelText(copy.customSegment.criteria[0].title));
+    expect(screen.getByText('Jollof Combo')).toBeTruthy();
   });
 
   it('live: gives the district criterion real districts and truthful wording', async () => {
@@ -333,38 +408,52 @@ describe('create custom segment', () => {
     await render(<CreateCustomSegmentScreen onClose={noop} onSave={onSave} />);
     await fireEvent.press(screen.getByLabelText(copy.customSegment.clearAll));
     await fireEvent.press(
-      screen.getByLabelText(copy.customSegment.saveCta.replace('{count}', '184')),
+      screen.getByLabelText(copy.customSegment.saveCta.replace('{count}', '\u2026')),
     );
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ criteria: [] }));
   });
 });
 
 describe('segment audience details', () => {
-  it('renders the cohort hero, value panel and reachability channels', async () => {
-    await render(<SegmentAudienceDetailsScreen onClose={noop} />);
-    expect(screen.getByText('294 Diners')).toBeTruthy();
-    expect(screen.getByText(copy.segmentDetails.spendValue)).toBeTruthy();
-    for (const channel of copy.segmentDetails.channels) {
-      expect(screen.getByText(channel.label)).toBeTruthy();
-    }
+  const details = segmentDetailsFixture;
+
+  it('renders the live cohort hero, value panel and reachability channels', async () => {
+    await render(<SegmentAudienceDetailsScreen onClose={noop} details={details} />);
+    expect(screen.getByText(details.hero)).toBeTruthy();
+    expect(screen.getByText(details.spend)).toBeTruthy();
+    expect(screen.getByText(details.channels[0].label)).toBeTruthy();
     expect(screen.getByText(copy.segmentDetails.roiTitle)).toBeTruthy();
+  });
+
+  it('shows a loader until the segment loads', async () => {
+    await render(<SegmentAudienceDetailsScreen onClose={noop} />);
+    expect(screen.queryByText('294 Diners')).toBeNull();
+    expect(screen.queryByText(copy.segmentDetails.roiTitle)).toBeNull();
   });
 
   it('opens the actions sheet hand-off from the footer CTA', async () => {
     const onUseSegment = jest.fn();
     await render(
-      <SegmentAudienceDetailsScreen onClose={noop} onUseSegment={onUseSegment} />,
+      <SegmentAudienceDetailsScreen
+        onClose={noop}
+        details={details}
+        onUseSegment={onUseSegment}
+      />,
     );
     await fireEvent.press(screen.getByLabelText(copy.segmentDetails.cta));
-    expect(onUseSegment).toHaveBeenCalled();
+    expect(onUseSegment).toHaveBeenCalledWith('seg-1');
   });
 
   it('lists the patron sample with drill-down rows', async () => {
     const onOpenCustomer = jest.fn();
     await render(
-      <SegmentAudienceDetailsScreen onClose={noop} onOpenCustomer={onOpenCustomer} />,
+      <SegmentAudienceDetailsScreen
+        onClose={noop}
+        details={details}
+        onOpenCustomer={onOpenCustomer}
+      />,
     );
-    await fireEvent.press(screen.getByLabelText(copy.segmentDetails.patrons[0].name));
-    expect(onOpenCustomer).toHaveBeenCalledWith(copy.segmentDetails.patrons[0].id);
+    await fireEvent.press(screen.getByLabelText(details.patrons[0].name));
+    expect(onOpenCustomer).toHaveBeenCalledWith('cust-1');
   });
 });

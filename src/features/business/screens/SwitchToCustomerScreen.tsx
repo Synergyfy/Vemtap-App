@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { Button } from '@components/ui/Button';
 import { Avatar } from '@components/ui/Avatar';
-import { Icon } from '@components/ui/Icon';
+import { Icon, type IconName } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
 import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
@@ -17,10 +17,7 @@ import {
   BusinessPanel,
 } from '@features/business/components/BusinessOpsPrimitives';
 import { BusinessSettingRow } from '@features/business/components/BusinessPosPrimitives';
-import {
-  switchCustomerCards,
-  switchCustomerDeal,
-} from '@features/business/data/businessTrustSettingsData';
+import type { SwitchPreview } from '@api/activityApi';
 
 const copy = strings.switchToCustomer;
 
@@ -36,6 +33,8 @@ export interface SwitchToCustomerScreenProps {
   customerName?: string;
   /** Email (or phone) shown under the customer identity. */
   customerMeta?: string;
+  /** Active claims and saved counts on the customer side (`/me/activity/switch-preview`). */
+  preview?: SwitchPreview;
 }
 
 /**
@@ -52,13 +51,33 @@ export function SwitchToCustomerScreen({
   merchantName: merchantNameProp,
   customerName: customerNameProp,
   customerMeta: customerMetaProp,
+  preview,
 }: SwitchToCustomerScreenProps) {
   const display = useCurrentUserDisplay();
   const [askEveryTime, setAskEveryTime] = useState(true);
 
   const merchantName = merchantNameProp?.trim() || copy.fromName;
-  const customerName = customerNameProp?.trim() || copy.toName;
-  const customerMeta = customerMetaProp?.trim() || copy.toMeta;
+  const customerName = customerNameProp?.trim() || display.fullName;
+  const customerMeta = customerMetaProp?.trim() || display.email;
+  const cards = preview
+    ? [
+        {
+          id: 'claims',
+          label: copy.claimsLabel,
+          hint: copy.claimsHint(preview.activeClaims),
+          detail: copy.claimsDetail(preview.activeClaims),
+          icon: 'redeem' as IconName,
+        },
+        {
+          id: 'spots',
+          label: copy.spotsLabel,
+          hint: copy.spotsHint(preview.savedPlaces),
+          detail: copy.spotsDetail(preview.savedDeals),
+          icon: 'bookmark' as IconName,
+        },
+      ]
+    : [];
+  const latest = preview?.latestClaim?.offerId ? preview.latestClaim : null;
 
   return (
     <BusinessScreenLayout
@@ -155,12 +174,14 @@ export function SwitchToCustomerScreen({
             <BusinessStatusPill label={copy.toStatus} tone="success" />
           </View>
         </View>
-        <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-          {customerMeta}
-        </VemtapText>
+        {customerMeta ? (
+          <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
+            {customerMeta}
+          </VemtapText>
+        ) : null}
 
         <View className="mt-1 flex-row gap-2">
-          {switchCustomerCards.map(card => (
+          {cards.map(card => (
             <View
               key={card.id}
               className="min-w-0 flex-1 gap-1 rounded-field bg-surface-subtle p-2.5"
@@ -196,34 +217,33 @@ export function SwitchToCustomerScreen({
         />
       </View>
 
-      <BusinessPanel className="mt-3" icon="localOffer">
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={switchCustomerDeal.name}
-          onPress={() => onOpenDeal?.(switchCustomerDeal.id)}
-          className="flex-row items-center gap-2.5 rounded-field bg-surface-subtle p-3 active:bg-surface-container"
-        >
-          <BusinessIconWell icon="redeem" tone="success" size="md" />
-          <View className="min-w-0 flex-1">
-            <View className="flex-row items-center gap-1.5">
+      {latest ? (
+        <BusinessPanel className="mt-3" icon="localOffer">
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={latest.title ?? copy.claimsLabel}
+            onPress={() => latest.offerId && onOpenDeal?.(latest.offerId)}
+            className="flex-row items-center gap-2.5 rounded-field bg-surface-subtle p-3 active:bg-surface-container"
+          >
+            <BusinessIconWell icon="redeem" tone="success" size="md" />
+            <View className="min-w-0 flex-1">
               <VemtapText
                 variant="labelMd"
                 className="min-w-0 flex-1 font-sans-semibold"
                 numberOfLines={1}
               >
-                {switchCustomerDeal.name}
+                {latest.title}
               </VemtapText>
-              <BusinessStatusPill label={switchCustomerDeal.discount} tone="success" />
+              <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
+                {copy.dealHint(latest.businessName ?? '')}
+              </VemtapText>
             </View>
-            <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-              {switchCustomerDeal.hint}
-            </VemtapText>
-          </View>
-          <View className="shrink-0">
-            <Icon name="forward" size={18} color={colors.textTertiary} />
-          </View>
-        </Pressable>
-      </BusinessPanel>
+            <View className="shrink-0">
+              <Icon name="forward" size={18} color={colors.textTertiary} />
+            </View>
+          </Pressable>
+        </BusinessPanel>
+      ) : null}
 
       <View className="mt-3 flex-row items-start gap-1.5 rounded-field bg-surface-subtle p-2.5">
         <Icon name="info" size={14} color={colors.textTertiary} />
@@ -233,7 +253,7 @@ export function SwitchToCustomerScreen({
           className="min-w-0 flex-1"
           numberOfLines={3}
         >
-          {copy.footer}
+          {copy.footer(merchantName)}
         </VemtapText>
       </View>
     </BusinessScreenLayout>

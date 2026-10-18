@@ -9,10 +9,6 @@ import {
   screen,
 } from '@testing-library/react-native';
 import { strings } from '@constants/strings';
-import {
-  serviceBranches,
-  serviceFlowImages,
-} from '@features/business/data/serviceFlowData';
 import { AddServiceBasicsMediaScreen } from '@features/business/screens/AddServiceBasicsMediaScreen';
 import { AddServiceDurationPricingScreen } from '@features/business/screens/AddServiceDurationPricingScreen';
 import { AddServiceAvailabilityRulesScreen } from '@features/business/screens/AddServiceAvailabilityRulesScreen';
@@ -149,7 +145,7 @@ describe('live service screens', () => {
       mainImage: undefined,
       galleryImages: [],
     });
-    expect(onNext.mock.calls[0][0].mainImage).not.toBe(serviceFlowImages.cover.uri);
+    expect(onNext.mock.calls[0][0].mainImage ?? '').not.toMatch(/googleusercontent/);
   });
 
   it('pricing adds a tier through the dialog and emits the schedule', async () => {
@@ -158,7 +154,6 @@ describe('live service screens', () => {
       <AddServiceDurationPricingScreen
         onBack={jest.fn()}
         onNext={onNext}
-        live
         initialValue={{ basePrice: '15,000' }}
       />,
     );
@@ -197,7 +192,7 @@ describe('live service screens', () => {
       />,
     );
     expect(screen.getByText('Wuse II')).toBeTruthy();
-    expect(screen.queryByText(serviceBranches[0].name)).toBeNull();
+    expect(screen.queryByText(/Maitama|Wuse Studio|Garki/)).toBeNull();
     expect(screen.queryByText('Garki Branch')).toBeNull();
 
     await fireEvent.press(screen.getByText('Review & Publish'));
@@ -484,7 +479,6 @@ describe('blocked dates and branch schedules', () => {
       <AddServiceDurationPricingScreen
         onBack={jest.fn()}
         onNext={onNext}
-        live
         initialValue={{
           basePrice: '15,000',
           schedule: { blockouts: [{ date: '2026-12-25', reason: 'Christmas' }] },

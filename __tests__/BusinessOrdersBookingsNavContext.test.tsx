@@ -33,7 +33,7 @@ test('Orders and Bookings hubs mount inside the root stack without a navigation 
     fireEvent.press(screen.getByLabelText(shell.tabs.orders));
   });
   expect(
-    screen.queryByText(orders.alertTitle) ?? screen.getByText(orders.alertTitleFor(0)),
+    screen.queryAllByText('\u2026')[0] ?? screen.getByText(orders.alertTitleFor(0)),
   ).toBeTruthy();
 
   // Bookings is wired (see BusinessOrdersBookingsSwitch.test.tsx): pressing it
@@ -44,8 +44,7 @@ test('Orders and Bookings hubs mount inside the root stack without a navigation 
     fireEvent.press(bookingsTab);
   });
   expect(
-    screen.queryByText(bookings.summaryTitleFor(0)) ??
-      screen.queryByText(bookings.summaryTitle),
+    screen.queryByText(bookings.summaryTitleFor(0)) ?? screen.queryAllByText('\u2026')[0],
   ).toBeTruthy();
 
   const navContextErrors = consoleError.mock.calls.filter(call =>

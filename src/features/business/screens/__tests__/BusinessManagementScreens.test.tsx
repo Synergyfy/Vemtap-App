@@ -1,4 +1,6 @@
 import React from 'react';
+import type { BusinessOfferAdmin } from '@api/catalogueApi';
+import { toDealPerformanceView } from '@features/business/utils/dealPresentation';
 import { Alert } from 'react-native';
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
 import { strings } from '@constants/strings';
@@ -7,10 +9,6 @@ import { businessDashboardApi } from '@api/businessDashboardApi';
 import { BusinessManagementHubScreen } from '@features/business/screens/BusinessManagementHubScreen';
 import { CentralDealsManagementScreen } from '@features/business/screens/CentralDealsManagementScreen';
 import { DealDetailsPerformanceScreen } from '@features/business/screens/DealDetailsPerformanceScreen';
-import { CreateDealLocationAssignmentScreen } from '@features/business/screens/CreateDealLocationAssignmentScreen';
-import { DealLocationAssignmentPricingScreen } from '@features/business/screens/DealLocationAssignmentPricingScreen';
-import { LocationAssignmentBranchPricingScreen } from '@features/business/screens/LocationAssignmentBranchPricingScreen';
-import { BranchAvailabilityLocationPricingScreen } from '@features/business/screens/BranchAvailabilityLocationPricingScreen';
 import { CentralCatalogueScreen } from '@features/business/screens/CentralCatalogueScreen';
 import { ServicesCategoriesManagementScreen } from '@features/business/screens/ServicesCategoriesManagementScreen';
 import { AddProductBasicsMediaScreen } from '@features/business/screens/AddProductBasicsMediaScreen';
@@ -35,6 +33,12 @@ import type { TeamMember } from '@api/teamApi';
 import type { LoyaltyRule, Reward } from '@api/loyaltyApi';
 import type { BusinessBranch } from '@features/business/components/BusinessBranchSwitcher';
 import type { Branch } from '@api/branchApi';
+import {
+  catalogueItemsFixture,
+  categoryRowsFixture,
+  dealRowsFixture,
+  serviceRowsFixture,
+} from '../../../../../__tests__/helpers/catalogueFixtures';
 import {
   directoryFixture,
   dossierFixture,
@@ -63,7 +67,19 @@ const type = (element: Parameters<typeof fireEvent.changeText>[0], text: string)
   });
 
 jest.mock('@api/businessDashboardApi', () => ({
-  businessDashboardApi: { updateMyBusiness: jest.fn() },
+  businessDashboardApi: {
+    updateMyBusiness: jest.fn(),
+    getMyBusiness: jest.fn(async () => ({
+      id: 'biz-1',
+      name: 'Aurora Grill',
+      isVerified: true,
+      uniqueCode: 'AUR123XYZ',
+      description: 'Smoky jollof and grills in Jabi.',
+      phone: '+234 800 000 0000',
+      officialEmail: 'hello@aurora.test',
+      category: { name: 'Restaurant' },
+    })),
+  },
 }));
 
 describe('business profile preview', () => {
@@ -73,8 +89,12 @@ describe('business profile preview', () => {
     const view = await render(<BusinessProfilePreviewScreen />);
 
     expect(view.getByText(copy.headerTitle)).toBeTruthy();
-    expect(view.getByText(copy.name)).toBeTruthy();
+    expect(await view.findByText('Aurora Grill')).toBeTruthy();
     expect(view.getByText(copy.verifiedTitle)).toBeTruthy();
+    expect(view.getByText('Smoky jollof and grills in Jabi.')).toBeTruthy();
+    expect(view.getByText('hello@aurora.test')).toBeTruthy();
+    expect(view.getByText(copy.storeCode('AUR123XYZ'))).toBeTruthy();
+    expect(view.queryByText(/Urban Grill|urbangrill|Store #4082/)).toBeNull();
     expect(view.getByText(copy.contactsTitle)).toBeTruthy();
     copy.amenities.forEach(amenity => {
       expect(view.getByText(amenity.label)).toBeTruthy();
@@ -123,13 +143,31 @@ describe('business management hub', () => {
 
   it('renders the branch scope, quick stats and all seven modules', async () => {
     const onOpenModule = jest.fn();
+    const onChangeBranch = jest.fn();
     const view = await render(
-      <BusinessManagementHubScreen onOpenModule={onOpenModule} />,
+      <BusinessManagementHubScreen
+        onOpenModule={onOpenModule}
+        onChangeBranch={onChangeBranch}
+        branches={[
+          { id: 'br-1', name: 'Aurora Wuse', address: '', active: true },
+          { id: 'br-2', name: 'Aurora Garki', address: '', active: false },
+        ]}
+        activeBranchId="br-1"
+      />,
     );
 
-    expect(view.getAllByText(copy.title).length).toBeGreaterThan(0);
-    copy.quickStats.forEach(stat => expect(view.getByText(stat.value)).toBeTruthy());
+    expect(view.getAllByText('Aurora Wuse').length).toBeGreaterThan(0);
+    expect(view.getByText(copy.branchesOf(1, 2))).toBeTruthy();
     copy.menu.forEach(item => expect(view.getByText(item.title)).toBeTruthy());
+    // No invented counts.
+    expect(
+      view.queryByText(/482 Customers|42 Items|6 Staff|Live to 3 Sites|50 Live/),
+    ).toBeNull();
+
+    await act(async () => {
+      fireEvent.press(view.getByLabelText('Aurora Garki'));
+    });
+    expect(onChangeBranch).toHaveBeenCalledWith('br-2');
 
     fireEvent.press(view.getByText(copy.menu[0].title));
     await waitFor(() => expect(onOpenModule).toHaveBeenCalledWith(copy.menu[0].id));
@@ -142,9 +180,11 @@ describe('central deals management', () => {
   it.each(['hero', 'compact', 'discovery'] as const)(
     'renders every deal card in the %s layout',
     async layout => {
-      const view = await render(<CentralDealsManagementScreen layout={layout} />);
+      const view = await render(
+        <CentralDealsManagementScreen deals={dealRowsFixture} layout={layout} />,
+      );
 
-      copy.variants.forEach(deal => {
+      dealRowsFixture.forEach(deal => {
         expect(view.getByText(deal.title)).toBeTruthy();
         expect(view.getByText(deal.price)).toBeTruthy();
       });
@@ -152,7 +192,9 @@ describe('central deals management', () => {
   );
 
   it('switches the status segment', async () => {
-    const view = await render(<CentralDealsManagementScreen layout="discovery" />);
+    const view = await render(
+      <CentralDealsManagementScreen deals={dealRowsFixture} layout="discovery" />,
+    );
 
     fireEvent.press(view.getByText(copy.tabs[1].label));
 
@@ -164,64 +206,53 @@ describe('deal details and performance', () => {
   const copy = strings.dealPerformance;
 
   it('renders settlement, redemption, catalogue and branch sections', async () => {
-    const view = await render(<DealDetailsPerformanceScreen />);
+    const deal = {
+      id: 'offer-1',
+      dealGroupId: 'group-1',
+      name: 'Lunch Combo',
+      description: 'Rice and chicken',
+      status: 'active',
+      branchId: 'branch-1',
+      pricingType: 'percentage_discount',
+      discountValue: 20,
+      fixedPrice: null,
+      calculatedPrice: 8000,
+      originalPrice: 10000,
+      quantity: 40,
+      claimedCount: 10,
+      redeemedCount: 4,
+      itemIds: ['item-1'],
+      items: [{ id: 'item-1', name: 'Jollof Bowl', price: 6000, mainImage: null }],
+      branches: [
+        {
+          offerId: 'offer-1',
+          branchId: 'branch-1',
+          branchName: 'Aurora Wuse',
+          status: 'active',
+          calculatedPrice: 8000,
+          quantity: 20,
+          claimedCount: 6,
+          redeemedCount: 3,
+        },
+      ],
+    } as unknown as BusinessOfferAdmin;
+    const view = await render(
+      <DealDetailsPerformanceScreen view={toDealPerformanceView(deal, undefined)} />,
+    );
 
     expect(view.getByText(copy.headerTitle)).toBeTruthy();
-    expect(view.getByText(copy.heroTitle)).toBeTruthy();
+    expect(view.getByText('Lunch Combo')).toBeTruthy();
     expect(view.getByText(copy.pricingTitle)).toBeTruthy();
     expect(view.getByText(copy.redemptionTitle)).toBeTruthy();
     expect(view.getByText(copy.catalogTitle)).toBeTruthy();
     expect(view.getByText(copy.branchesTitle)).toBeTruthy();
-    copy.pricing.forEach(tile =>
-      expect(view.getAllByText(tile.value).length).toBeGreaterThan(0),
-    );
-    copy.branches.forEach(branch => expect(view.getByText(branch.name)).toBeTruthy());
+    expect(view.getAllByText('Aurora Wuse').length).toBeGreaterThan(0);
     expect(view.getByText(copy.boostCta)).toBeTruthy();
   });
-});
 
-describe('location assignment surfaces', () => {
-  const base = strings.dealLocationAssignment;
-
-  it('create deal assignment shows participation and the launch CTA', async () => {
-    const view = await render(<CreateDealLocationAssignmentScreen />);
-
-    expect(view.getByText(base.createDeal.headerTitle)).toBeTruthy();
-    expect(view.getByText(base.participationTitle)).toBeTruthy();
-    base.createDeal.branches.forEach(branch =>
-      expect(view.getByText(branch.name)).toBeTruthy(),
-    );
-    expect(view.getByText(base.createDeal.review)).toBeTruthy();
-  });
-
-  it('deal pricing matrix exposes both participating branches', async () => {
-    const view = await render(<DealLocationAssignmentPricingScreen />);
-
-    expect(view.getAllByText(base.contextTitle).length).toBeGreaterThan(0);
-    expect(view.getByText(base.branch1.name)).toBeTruthy();
-    expect(view.getByText(base.branch2.name)).toBeTruthy();
-    expect(view.getByText(base.branch3.name)).toBeTruthy();
-    expect(view.getByText(base.saveAssignment)).toBeTruthy();
-  });
-
-  it('product assignment renders stock tiles and the routing callout', async () => {
-    const view = await render(<LocationAssignmentBranchPricingScreen />);
-
-    expect(view.getByText(base.productSummary.branchesTitle)).toBeTruthy();
-    expect(view.getByText(base.productSummary.routingTitle)).toBeTruthy();
-    base.productSummary.branches.forEach(branch =>
-      expect(view.getByText(branch.name)).toBeTruthy(),
-    );
-  });
-
-  it('branch availability switches between standard and custom pricing', async () => {
-    const view = await render(<BranchAvailabilityLocationPricingScreen />);
-
-    const copy = base.lamb;
-    expect(view.getByText(copy.breakdownTitle)).toBeTruthy();
-    fireEvent.press(view.getByText(`${copy.standard} · ${copy.standardBase}`));
-    await waitFor(() => expect(view.getByText(copy.capacityTitle)).toBeTruthy());
-    expect(view.getByText(copy.saveCta)).toBeTruthy();
+  it('shows a loader, not a sample deal, before the deal arrives', async () => {
+    const view = await render(<DealDetailsPerformanceScreen isLoading />);
+    expect(view.queryByText(/Weekend Prime Lunch|Ribeye|Mojito/)).toBeNull();
   });
 });
 
@@ -231,9 +262,11 @@ describe('central catalogue', () => {
   it.each(['directory', 'businessHub'] as const)(
     'renders the catalogue rows in the %s layout',
     async layout => {
-      const view = await render(<CentralCatalogueScreen layout={layout} />);
+      const view = await render(
+        <CentralCatalogueScreen items={catalogueItemsFixture} layout={layout} />,
+      );
 
-      copy.items.forEach(item => {
+      catalogueItemsFixture.forEach(item => {
         expect(view.getByText(item.title)).toBeTruthy();
         expect(view.getByText(item.price)).toBeTruthy();
       });
@@ -243,16 +276,21 @@ describe('central catalogue', () => {
 
   it('toggles the publish switch for a catalogue row', async () => {
     const onToggleStock = jest.fn();
-    const view = await render(<CentralCatalogueScreen onToggleStock={onToggleStock} />);
+    const view = await render(
+      <CentralCatalogueScreen
+        items={catalogueItemsFixture}
+        onToggleStock={onToggleStock}
+      />,
+    );
 
     fireEvent(
-      view.getAllByLabelText(copy.publishToggleLabel(copy.items[0].title))[0],
+      view.getAllByLabelText(copy.publishToggleLabel(catalogueItemsFixture[0].title))[0],
       'valueChange',
       false,
     );
 
     await waitFor(() =>
-      expect(onToggleStock).toHaveBeenCalledWith(copy.items[0].id, false),
+      expect(onToggleStock).toHaveBeenCalledWith(catalogueItemsFixture[0].id, false),
     );
   });
 });
@@ -261,12 +299,19 @@ describe('services and categories management', () => {
   const copy = strings.servicesCategories;
 
   it('renders every service and category row', async () => {
-    const view = await render(<ServicesCategoriesManagementScreen />);
+    const view = await render(
+      <ServicesCategoriesManagementScreen
+        services={serviceRowsFixture}
+        categories={categoryRowsFixture}
+      />,
+    );
 
     expect(view.getByText(copy.servicesTitle)).toBeTruthy();
     expect(view.getByText(copy.categoriesTitle)).toBeTruthy();
-    copy.services.forEach(service => expect(view.getByText(service.name)).toBeTruthy());
-    copy.categories.forEach(category =>
+    serviceRowsFixture.forEach(service =>
+      expect(view.getByText(service.name)).toBeTruthy(),
+    );
+    categoryRowsFixture.forEach(category =>
       expect(view.getByText(category.title)).toBeTruthy(),
     );
   });
@@ -331,16 +376,48 @@ describe('locations and branches', () => {
   it('lists branches with their trading status and reach actions', async () => {
     const copy = strings.locationsBranches;
     const onViewDetails = jest.fn();
-    const view = await render(<LocationsBranchesScreen onViewDetails={onViewDetails} />);
+    const rows = [
+      {
+        id: 'b1',
+        name: 'Aurora Wuse',
+        tag: 'Main',
+        cluster: 'Abuja',
+        address: '1 Wuse',
+        status: 'Active',
+        active: true,
+      },
+      {
+        id: 'b2',
+        name: 'Aurora Garki',
+        tag: 'Branch',
+        cluster: 'Abuja',
+        address: '2 Garki',
+        status: 'Inactive / Paused',
+        active: false,
+      },
+    ];
+    const view = await render(
+      <LocationsBranchesScreen branches={rows} onViewDetails={onViewDetails} />,
+    );
 
     expect(view.getByText(copy.title)).toBeTruthy();
-    copy.branches.forEach(branch => {
+    rows.forEach(branch => {
       expect(view.getAllByText(branch.name).length).toBeGreaterThan(0);
       expect(view.getByText(branch.status)).toBeTruthy();
     });
 
     fireEvent.press(view.getAllByText(copy.viewDetails)[0]);
-    await waitFor(() => expect(onViewDetails).toHaveBeenCalledWith('wuse'));
+    await waitFor(() => expect(onViewDetails).toHaveBeenCalledWith('b1'));
+  });
+
+  it('shows no sample branches while loading or when there are none', async () => {
+    const copy = strings.locationsBranches;
+    const loading = await render(<LocationsBranchesScreen isLoading />);
+    expect(loading.getByText(copy.loading)).toBeTruthy();
+    expect(loading.queryByText(/Wuse Branch|Victoria Island|Garki/)).toBeNull();
+
+    const empty = await render(<LocationsBranchesScreen branches={[]} />);
+    expect(empty.getByText(copy.empty.title)).toBeTruthy();
   });
 
   it('branch detail renders the branch it was given, not a fixture', async () => {

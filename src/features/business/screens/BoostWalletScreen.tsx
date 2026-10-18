@@ -47,12 +47,10 @@ export interface BoostWalletScreenProps {
   onRemoveCard?: () => void;
   onToggleAutoReload?: (enabled: boolean) => void;
   onEditAutoReload?: () => void;
-  onCopyAccount?: () => void;
-  onTaxInvoices?: (period: string) => void;
+  onTaxInvoices?: () => void;
   /**
-   * The live wallet. Live mode drops what has no backend yet (the virtual
-   * account and the VAT panel); the card, auto-reload and invoices show when
-   * their handlers are given.
+   * The live wallet; the card, auto-reload, statement and invoices show when
+   * their data and handlers are given. Absent until it loads.
    */
   live?: {
     walletRef: string;
@@ -196,7 +194,6 @@ export function BoostWalletScreen({
   onFilterHistory,
   onViewLedger,
   onTopUp,
-  onCopyAccount,
   onTaxInvoices,
   onRemoveCard,
   onToggleAutoReload,
@@ -210,53 +207,44 @@ export function BoostWalletScreen({
   onRetry,
 }: BoostWalletScreenProps) {
   const liveCopy = wallet.live;
-  const [picked, setPrepack] = useState<string>(live?.prepacks[1]?.id ?? '25');
+  const [picked, setPrepack] = useState<string | null>(null);
   const [customAmount, setCustomAmount] = useState('');
   const customValue = Number(customAmount.replace(/[^0-9]/g, '')) || 0;
-  const packs = live
-    ? [
-        ...live.prepacks,
-        {
-          id: CUSTOM_PACK,
-          badge: wallet.prepacks[3].badge,
-          title: wallet.prepacks[3].title,
-          bonus: liveCopy.customMin,
-          tier: undefined,
-        },
-      ]
-    : wallet.prepacks;
+  const packs = [
+    ...(live?.prepacks ?? []),
+    {
+      id: CUSTOM_PACK,
+      badge: wallet.customBadge,
+      title: wallet.customTitle,
+      bonus: liveCopy.customMin,
+      tier: undefined,
+    },
+  ];
   // Live packs arrive after the first render; until the owner picks one, the
-  // popular pack (else the first) is selected rather than a sample id.
-  const prepack = packs.some(option => option.id === picked)
-    ? picked
-    : ((live?.prepacks[1] ?? live?.prepacks[0])?.id ?? CUSTOM_PACK);
-  const customInvalid =
-    live !== undefined && prepack === CUSTOM_PACK && customValue < live.minTopUp;
+  // popular pack (else the first) is selected.
+  const prepack =
+    picked && packs.some(option => option.id === picked)
+      ? picked
+      : ((live?.prepacks[1] ?? live?.prepacks[0])?.id ?? CUSTOM_PACK);
+  const customInvalid = prepack === CUSTOM_PACK && customValue < (live?.minTopUp ?? 0);
   const chosenPack = live?.prepacks.find(option => option.id === prepack);
-  const topUpLabel = live
-    ? prepack === CUSTOM_PACK
+  const topUpLabel =
+    prepack === CUSTOM_PACK
       ? customValue > 0
         ? liveCopy.topUpCta(`\u20a6${customValue.toLocaleString('en-NG')}`)
         : liveCopy.topUpChoose
       : chosenPack
         ? liveCopy.topUpCta(chosenPack.title.replace(/ Top-Up$/, ''))
-        : liveCopy.topUpChoose
-    : wallet.topUpCta;
+        : liveCopy.topUpChoose;
   const [saveCard, setSaveCard] = useState(false);
   const savedCard = live?.card ?? null;
   const topUp = (newCard = false) => {
-    if (!live) {
-      onTopUp?.(prepack);
-      return;
-    }
     if (customInvalid) return;
     onTopUp?.(prepack, prepack === CUSTOM_PACK ? customValue : undefined, {
       saveCard: !savedCard && saveCard,
       newCard,
     });
   };
-  const [autoReload, setAutoReload] = useState(true);
-  const [copied, setCopied] = useState(false);
 
   return (
     <BusinessScreenLayout
@@ -269,9 +257,6 @@ export function BoostWalletScreen({
             <Icon name="rocketLaunch" size={18} color={colors.surface} />
           </View>
         ),
-        actions: live
-          ? []
-          : [{ label: wallet.notifications, icon: 'bellRing', onPress: onStatement }],
         showAvatar: true,
       }}
       contentContainerClassName="gap-5 pb-8"
@@ -283,7 +268,7 @@ export function BoostWalletScreen({
           tone="brand"
           onPress={onBack}
         />
-        {live && !onStatement ? null : (
+        {!onStatement ? null : (
           <View className="min-w-0 flex-1">
             <TextActionButton
               label={wallet.statement}
@@ -302,9 +287,9 @@ export function BoostWalletScreen({
         </VemtapText>
       </View>
 
-      {isLoading ? <LoadingState /> : null}
+      {isLoading || (!live && !error) ? <LoadingState /> : null}
       {!isLoading && error ? <ErrorState description={error} onRetry={onRetry} /> : null}
-      {isLoading || error ? null : (
+      {isLoading || error || !live ? null : (
         <>
           <View className="overflow-hidden rounded-2xl bg-primary p-5 shadow-xl">
             <View className="flex-row items-center justify-between gap-2">
@@ -323,7 +308,7 @@ export function BoostWalletScreen({
                 className="shrink-0 text-surface"
                 numberOfLines={1}
               >
-                {live ? liveCopy.walletRef(live.walletRef) : wallet.walletRef}
+                {liveCopy.walletRef(live.walletRef)}
               </VemtapText>
             </View>
             <VemtapText
@@ -331,7 +316,7 @@ export function BoostWalletScreen({
               className="mt-2 font-sans-bold text-surface"
               numberOfLines={1}
             >
-              {live?.balance ?? wallet.balance}
+              {live.balance}
             </VemtapText>
             <View className="mt-3 flex-row gap-2 rounded-xl bg-surface/10 p-3">
               <View className="min-w-0 flex-1 gap-0.5">
@@ -343,7 +328,7 @@ export function BoostWalletScreen({
                   className="font-sans-semibold text-surface"
                   numberOfLines={1}
                 >
-                  {live?.reserved ?? wallet.reserved}
+                  {live.reserved}
                 </VemtapText>
               </View>
               <View className="min-w-0 flex-1 gap-0.5">
@@ -355,7 +340,7 @@ export function BoostWalletScreen({
                   className="font-sans-semibold text-badge-discount-bg"
                   numberOfLines={1}
                 >
-                  {live?.spendable ?? wallet.spendable}
+                  {live.spendable}
                 </VemtapText>
               </View>
             </View>
@@ -370,20 +355,20 @@ export function BoostWalletScreen({
                 disabled={topUpPending || customInvalid}
                 onPress={() => topUp()}
               />
-              {live && !onTaxInvoices ? null : (
+              {!onTaxInvoices ? null : (
                 <Button
                   label={wallet.invoiceCta}
                   labelVariant="labelMd"
                   variant="secondary"
                   size="sm"
                   className="min-h-[50px] flex-1"
-                  onPress={() => onTaxInvoices?.(wallet.vatCta)}
+                  onPress={() => onTaxInvoices?.()}
                 />
               )}
             </View>
           </View>
 
-          {live && live.card !== undefined ? (
+          {live.card !== undefined ? (
             savedCard ? (
               <TextActionButton
                 label={liveCopy.card.differentCard}
@@ -415,7 +400,7 @@ export function BoostWalletScreen({
                   variant="caption"
                   className="font-sans-semibold text-badge-discount-text"
                 >
-                  {live ? liveCopy.prepackBadge : wallet.prepackBadge}
+                  {liveCopy.prepackBadge}
                 </VemtapText>
               </View>
             </View>
@@ -430,12 +415,10 @@ export function BoostWalletScreen({
                   selected={option.id === prepack}
                   onPress={() => {
                     setPrepack(option.id);
-                    // Live: choosing a pack only selects it; Top Up pays.
-                    if (!live) onTopUp?.(option.id);
                   }}
                 />
               ))}
-              {live && prepack === CUSTOM_PACK ? (
+              {prepack === CUSTOM_PACK ? (
                 <View className="gap-1">
                   <BusinessNumberInput
                     label={liveCopy.customLabel}
@@ -452,88 +435,9 @@ export function BoostWalletScreen({
                 </View>
               ) : null}
             </View>
-
-            {live ? null : (
-              <SetupSectionCard tone="low" className="gap-2.5 p-4">
-                <View className="flex-row items-center justify-between gap-2">
-                  <VemtapText
-                    variant="labelSm"
-                    className="min-w-0 flex-1 font-sans-semibold uppercase tracking-wider text-text-secondary"
-                    numberOfLines={2}
-                  >
-                    {wallet.accountTitle}
-                  </VemtapText>
-                  <View className="shrink-0 flex-row items-center gap-1 rounded-full bg-badge-discount-bg px-2 py-0.5">
-                    <Icon name="offlineBolt" size={11} color={colors.badgeDiscountText} />
-                    <VemtapText
-                      variant="micro"
-                      className="font-sans-semibold text-badge-discount-text"
-                    >
-                      {wallet.accountStatus}
-                    </VemtapText>
-                  </View>
-                </View>
-                <View className="flex-row items-center gap-3 rounded-lg bg-surface p-3">
-                  <View className="h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary">
-                    <VemtapText
-                      variant="micro"
-                      className="font-sans-bold text-primary-foreground"
-                    >
-                      WEMA
-                    </VemtapText>
-                  </View>
-                  <View className="min-w-0 flex-1 gap-0.5">
-                    <VemtapText variant="caption" tone="tertiary" numberOfLines={1}>
-                      {wallet.accountBank}
-                    </VemtapText>
-                    <VemtapText
-                      variant="headingSm"
-                      className="font-sans-semibold tracking-wider"
-                      numberOfLines={1}
-                    >
-                      {wallet.accountNumber}
-                    </VemtapText>
-                  </View>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={wallet.copyAccount}
-                    onPress={() => {
-                      setCopied(true);
-                      onCopyAccount?.();
-                    }}
-                    className="h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-subtle"
-                  >
-                    <Icon
-                      name={copied ? 'checkCircle' : 'copy'}
-                      size={18}
-                      color={copied ? colors.badgeDiscountText : colors.textSecondary}
-                    />
-                  </Pressable>
-                </View>
-                {copied ? (
-                  <VemtapText variant="micro" className="text-success">
-                    {wallet.copied}
-                  </VemtapText>
-                ) : null}
-                <View className="gap-1.5">
-                  {wallet.channels.map(channel => (
-                    <View key={channel} className="flex-row items-center gap-1.5">
-                      <Icon name="check" size={13} color={colors.textSecondary} />
-                      <VemtapText
-                        variant="caption"
-                        tone="secondary"
-                        className="min-w-0 flex-1"
-                      >
-                        {channel}
-                      </VemtapText>
-                    </View>
-                  ))}
-                </View>
-              </SetupSectionCard>
-            )}
           </View>
 
-          {live && live.card !== undefined ? (
+          {live.card !== undefined ? (
             <SetupSectionCard tone="lowest" className="gap-3 p-4">
               <SetupSectionHeading title={liveCopy.card.title} />
               {savedCard ? (
@@ -559,7 +463,7 @@ export function BoostWalletScreen({
             </SetupSectionCard>
           ) : null}
 
-          {live?.autoReload ? (
+          {live.autoReload ? (
             <SetupSectionCard tone="lowest" className="gap-3 p-4">
               <View className="flex-row items-center justify-between gap-2">
                 <SetupSectionHeading
@@ -610,29 +514,6 @@ export function BoostWalletScreen({
             </SetupSectionCard>
           ) : null}
 
-          {live ? null : (
-            <SetupSectionCard tone="lowest" className="gap-3 p-4">
-              <View className="flex-row items-center justify-between gap-2">
-                <SetupSectionHeading
-                  title={wallet.guardTitle}
-                  badge={wallet.guardBadge}
-                  className="min-w-0 flex-1"
-                />
-              </View>
-              <ToggleRow
-                title={wallet.guardBody}
-                value={autoReload}
-                onValueChange={setAutoReload}
-              />
-              <SetupCallout
-                icon="verifiedUser"
-                body={wallet.guardNote}
-                tone="tint"
-                bodyVariant="caption"
-              />
-            </SetupSectionCard>
-          )}
-
           <View className="gap-3">
             <View className="flex-row items-center justify-between gap-2">
               <View className="min-w-0 flex-1 gap-0.5">
@@ -641,7 +522,7 @@ export function BoostWalletScreen({
                   {wallet.historySubtitle}
                 </VemtapText>
               </View>
-              {live && !onFilterHistory ? null : (
+              {!onFilterHistory ? null : (
                 <TextActionButton
                   label={
                     activeFilterLabel
@@ -655,12 +536,12 @@ export function BoostWalletScreen({
               )}
             </View>
             <View className="gap-2">
-              {live && live.transactions.length === 0 ? (
+              {live.transactions.length === 0 ? (
                 <VemtapText variant="caption" tone="tertiary">
                   {activeFilterLabel ? liveCopy.filter.empty : liveCopy.historyEmpty}
                 </VemtapText>
               ) : null}
-              {(live?.transactions ?? wallet.transactions).map(entry => (
+              {live.transactions.map(entry => (
                 <BusinessAnalyticsRow
                   key={entry.id}
                   title={entry.title}
@@ -672,9 +553,9 @@ export function BoostWalletScreen({
                 />
               ))}
             </View>
-            {live && !live.hasMore ? null : (
+            {!live.hasMore ? null : (
               <Button
-                label={live ? liveCopy.loadMore : wallet.ledgerCta}
+                label={liveCopy.loadMore}
                 labelVariant="labelMd"
                 variant="secondary"
                 size="md"
@@ -682,74 +563,6 @@ export function BoostWalletScreen({
               />
             )}
           </View>
-
-          {live ? null : (
-            <SetupSectionCard tone="lowest" className="gap-3 p-4">
-              <View className="flex-row items-center justify-between gap-2">
-                <View className="min-w-0 flex-1 flex-row items-center gap-2">
-                  <Icon name="policy" size={18} color={colors.primary} />
-                  <VemtapText
-                    variant="labelMd"
-                    className="min-w-0 flex-1 font-sans-semibold"
-                    numberOfLines={2}
-                  >
-                    {wallet.complianceTitle}
-                  </VemtapText>
-                </View>
-                <View className="shrink-0 rounded-full bg-surface-container px-2 py-0.5">
-                  <VemtapText
-                    variant="micro"
-                    className="font-sans-semibold text-text-secondary"
-                  >
-                    {wallet.complianceBadge}
-                  </VemtapText>
-                </View>
-              </View>
-              <VemtapText variant="bodyMd" tone="secondary">
-                {wallet.complianceLead}
-              </VemtapText>
-              <View className="gap-1 rounded-xl bg-surface-subtle p-3">
-                <VemtapText variant="caption" tone="tertiary">
-                  {wallet.tinLabel}
-                </VemtapText>
-                <View className="flex-row items-center justify-between gap-2">
-                  <VemtapText
-                    variant="headingSm"
-                    className="font-sans-semibold tracking-wider"
-                    numberOfLines={1}
-                  >
-                    {wallet.tin}
-                  </VemtapText>
-                  <VemtapText
-                    variant="caption"
-                    className="shrink-0 text-badge-discount-text"
-                  >
-                    {wallet.tinStatus}
-                  </VemtapText>
-                </View>
-              </View>
-              <View className="flex-row gap-2">
-                <Button
-                  label={wallet.vatCta}
-                  labelVariant="labelMd"
-                  variant="secondary"
-                  size="sm"
-                  className="min-h-[44px] flex-1"
-                  leftIcon={<Icon name="download" size={16} color={colors.text} />}
-                  onPress={() => onTaxInvoices?.(wallet.vatCta)}
-                />
-                <Button
-                  label={wallet.vatHistoryCta}
-                  labelVariant="labelMd"
-                  variant="secondary"
-                  size="sm"
-                  className="min-h-[44px] flex-1"
-                  leftIcon={<Icon name="calendar" size={16} color={colors.text} />}
-                  onPress={() => onTaxInvoices?.(wallet.vatHistoryCta)}
-                />
-              </View>
-            </SetupSectionCard>
-          )}
         </>
       )}
     </BusinessScreenLayout>

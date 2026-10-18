@@ -24,6 +24,7 @@ import type {
 import type { PresentedBooking } from '@features/business/hooks/useBusinessBookings';
 import { StatusPillTabs } from '@features/accountHub/components/HubPrimitives';
 import { cn } from '@utils/cn';
+import { LoadingState } from '@components/shared/LoadingState';
 
 cssInterop(Pressable, { className: 'style' });
 cssInterop(ScrollView, {
@@ -35,8 +36,8 @@ cssInterop(LinearGradient, { className: 'style' });
 const copy = strings.businessOrders;
 const shell = strings.businessShell;
 
-type OrderTone = (typeof copy.orders)[number]['channelTone'];
-type CtaStyle = NonNullable<(typeof copy.orders)[number]['ctaStyle']>;
+type OrderTone = PresentedOrder['channelTone'];
+type CtaStyle = NonNullable<PresentedOrder['ctaStyle']>;
 
 const channelIcons: Record<string, IconName> = {
   New: 'bolt',
@@ -86,29 +87,6 @@ const paymentIcons: Record<string, IconName> = {
   'pos-1049': 'pointOfSale',
   'vg-93988': 'accountBalance',
   'vg-93910': 'payments',
-};
-
-const paymentStyles: Record<string, { chip: string; text: string; icon: string }> = {
-  'vg-94021': {
-    chip: 'bg-surface-container-high',
-    text: 'text-on-surface-variant',
-    icon: colors.primary,
-  },
-  'pos-1049': {
-    chip: 'bg-surface-container-highest',
-    text: 'text-secondary',
-    icon: colors.secondary,
-  },
-  'vg-93988': {
-    chip: 'bg-badge-discount-bg',
-    text: 'text-badge-discount-text',
-    icon: colors.badgeDiscountText,
-  },
-  'vg-93910': {
-    chip: 'bg-surface-container-high',
-    text: 'text-on-surface-variant',
-    icon: colors.badgeDiscountText,
-  },
 };
 
 const defaultPaymentStyle = {
@@ -191,29 +169,10 @@ export function BusinessOrdersHubScreen({
   const [surface, setSurface] = useState(0);
   const [filter, setFilter] = useState(0);
 
-  /** Design copy, normalised to the live order shape for one render path. */
-  const fallbackOrders: PresentedOrder[] = copy.orders.map(order => ({
-    id: order.id,
-    reference: order.reference,
-    status: order.channel.toLowerCase(),
-    channel: order.channel,
-    channelTone: order.channelTone,
-    fulfilment: order.fulfilment,
-    time: order.time,
-    urgent: order.urgent,
-    customer: order.customer,
-    items: order.items,
-    amount: order.amount,
-    payment: order.payment,
-    cta: order.cta,
-    ctaStyle: order.ctaStyle,
-    nextStatus: undefined,
-    muted: order.muted,
-  }));
-  const list = orders ?? fallbackOrders;
+  const list = orders ?? [];
 
   const countFor = (index: number): string => {
-    if (!orderCounts) return copy.filters[index]?.count ?? '0';
+    if (!orderCounts) return '0';
     const status = FILTER_STATUSES[index];
     if (!status) return String(orderTotal ?? 0);
     return String(orderCounts[status as keyof typeof orderCounts] ?? 0);
@@ -223,16 +182,17 @@ export function BusinessOrdersHubScreen({
     count: countFor(index),
   }));
 
-  const switcherCounts: [string, string] = orderCounts
-    ? [String(orderTotal ?? 0), String(bookingTotal ?? 0)]
-    : [...copy.switcherCounts];
+  const switcherCounts: [string, string] = [
+    String(orderTotal ?? 0),
+    String(bookingTotal ?? 0),
+  ];
 
   const requiresAction = orderCounts ? orderCounts.new + orderCounts.processing : null;
   const alertTitle =
-    requiresAction === null ? copy.alertTitle : copy.alertTitleFor(requiresAction);
+    requiresAction === null ? '\u2026' : copy.alertTitleFor(requiresAction);
   const alertBody =
     requiresAction === null || !orderCounts
-      ? copy.alertBody
+      ? ''
       : copy.alertBodyFor(orderCounts.new, orderCounts.processing);
 
   const handleCta = (order: PresentedOrder) => {
@@ -268,7 +228,7 @@ export function BusinessOrdersHubScreen({
       >
         <View className="flex-row items-center justify-between gap-2">
           <BusinessBranchSwitcher
-            branches={branches ?? strings.businessBranchSwitcher.branches}
+            branches={branches ?? []}
             activeBranchId={activeBranchId}
             className="flex-1"
             onChangeBranch={onChangeBranch}
@@ -370,6 +330,7 @@ export function BusinessOrdersHubScreen({
               </LinearGradient>
             </Pressable>
 
+            {orders === undefined ? <LoadingState /> : null}
             {orders && orders.length === 0 ? (
               <View className="items-center gap-1 rounded-card bg-surface-container-lowest p-6 shadow-sm">
                 <Icon name="receipt" size={26} color={colors.textTertiary} />
@@ -385,7 +346,7 @@ export function BusinessOrdersHubScreen({
             <View className="gap-3">
               {list.map(order => {
                 const channel = channelStyles[order.channelTone];
-                const payment = paymentStyles[order.id] ?? defaultPaymentStyle;
+                const payment = defaultPaymentStyle;
                 const cta =
                   order.cta && order.ctaStyle ? ctaStyles[order.ctaStyle] : null;
                 return (

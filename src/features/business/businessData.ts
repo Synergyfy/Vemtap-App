@@ -1,9 +1,6 @@
 import type { ImageSourcePropType } from 'react-native';
 import type { IconName } from '@components/ui/Icon';
 
-const imgGrillSteak = require('../../../assets/images/saved-urban-grill.jpg');
-const imgTruffleBurger = require('../../../assets/images/urban-burger.svg');
-
 export interface BusinessPillar {
   id: string;
   icon: IconName;
@@ -125,22 +122,6 @@ export const introPillars: BusinessPillar[] = [
   },
 ];
 
-export const primaryCategories = [
-  'Restaurant & Dining',
-  'Spa & Wellness',
-  'Fashion & Apparel',
-  'Groceries & Market',
-  'Local Services & Repair',
-] as const;
-
-export const subcategorySpecialties = [
-  'Grill & Steakhouse',
-  'Bistro & Cafe',
-  'Fast Casual',
-  'Fine Dining',
-  'Bakery',
-] as const;
-
 export interface SocialPresence {
   id: string;
   label: string;
@@ -150,60 +131,6 @@ export interface SocialPresence {
   verified: boolean;
 }
 
-export const socialPresences: SocialPresence[] = [
-  {
-    id: 'instagram',
-    label: 'Instagram',
-    handle: '@urbangrill_lagos',
-    icon: 'camera',
-    iconTone: 'neutral',
-    verified: true,
-  },
-  {
-    id: 'whatsapp',
-    label: 'WhatsApp Direct',
-    handle: 'wa.me/2348035559821',
-    icon: 'whatsapp',
-    iconTone: 'success',
-    verified: true,
-  },
-  {
-    id: 'x',
-    label: 'X (Twitter)',
-    handle: '@urbangrillng',
-    icon: 'localOffer',
-    iconTone: 'neutral',
-    verified: false,
-  },
-];
-
-export const branchSummaries: BranchSummary[] = [
-  {
-    id: 'wuse',
-    name: '1 — Wuse Branch',
-    businessLine: 'Urban Grill & Bistro • Wuse 2, Abuja',
-    imageUri:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuDtfIdm0PJVpxgX9T0BGdNmwL_60wcP11Yoi8jOWp41Is39-kA5h1AxEP8yQOtQIzODYy_k2YqsZO0uOUJmnPcLasfJ_qdstZ7MfQ8kj7mYUeBO1WpXVl0CA6ORZG4oNNcIgfFm8E6zy45GybxpJs9fMXxEaaEP9cRSSZ1ZPYm6K9w3LoHBAbrOP9WDmZquq2SJGqm4wDFlFI8aM5bpokbcVBhUPzllqqpzQeu-jNZaG0NzCXgs3t9zOA',
-    isPrimary: true,
-    address: 'Plot 1428 Adetokunbo Ademola Cres',
-    phone: '+234 803 555 9821',
-    openStatus: 'Open today',
-    hours: '· 8:00 AM – 10:00 PM (Mon–Sun)',
-  },
-  {
-    id: 'garki',
-    name: '2 — Garki Branch',
-    businessLine: 'Urban Grill & Bistro • Area 11 Arcade, Garki',
-    imageUri:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuANJsmk1CZ7kqu-LkWt0xVGy3vQvAAan2Uh7Ae-lqlm1Rb8RiLOXtVOsxfmEPOizvnkLCegPcvq3NuOtbzguW_cqVTZV7750yTTpjC89dxUFwN3hFP4roCjyXSypNYEmwIgel6-zKkx9izBn56_TuVnPMWYVUx2G_5Axi-hkLlDfm8UQlIel1tu2ulnv3nGiT3Vtm8zhh7UaXbbP83y0fenbLPpvzRNj0A7mbkLzZpE7qRna9LuP2INkg',
-    isPrimary: false,
-    address: 'Suite 4B, Garki Mall',
-    phone: '+234 803 555 9825',
-    openStatus: 'Open today',
-    hours: '· 9:00 AM – 9:30 PM (Mon–Sat)',
-  },
-];
-
 export const roleTitles = [
   'Branch Manager',
   'Head Chef',
@@ -211,47 +138,6 @@ export const roleTitles = [
   'Salon Director',
   'Lead Host',
 ] as const;
-
-export const catalogItems: CatalogItem[] = [
-  {
-    id: 'ribeye',
-    kind: 'product',
-    category: 'Food & Dining • Grill',
-    title: 'Woodfire Aged Ribeye Steak',
-    image: imgGrillSteak,
-    priceSummary: '₦12,000 (Wuse) • ₦12,500 (Garki)',
-    multiPrice: true,
-    availability: 'Available at 2/2 branches',
-    availabilityIcon: 'storefront',
-    availabilityTone: 'success',
-    meta: 'Inventory: 48 units',
-  },
-  {
-    id: 'truffle-burger',
-    kind: 'product',
-    category: 'Food & Dining • Gourmet',
-    title: 'Artisanal Prime Truffle Burger',
-    image: imgTruffleBurger,
-    priceSummary: '₦9,600',
-    priceNote: 'Uniform price',
-    availability: 'Wuse Branch only',
-    availabilityIcon: 'locationOn',
-    availabilityTone: 'secondary',
-    meta: 'Ready in 20 mins',
-  },
-  {
-    id: 'tasting',
-    kind: 'service',
-    category: 'Dine-in Experience',
-    title: 'Executive Table Reservation & Tasting',
-    priceSummary: '₦25,000',
-    priceNote: 'per person • 90 mins',
-    availability: 'Available at all branches',
-    availabilityIcon: 'verified',
-    availabilityTone: 'success',
-    meta: 'Pre-booking required',
-  },
-];
 
 export const countryFlags = { nigeria: '🇳🇬' } as const;
 

@@ -1,4 +1,5 @@
 import React from 'react';
+import { businessDashboardApi, type MyBusiness } from '@api/businessDashboardApi';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react-native';
@@ -6,7 +7,10 @@ import type { ChatMessage, ConversationThread } from '@api/messagingApi';
 import { strings } from '@constants/strings';
 import { BusinessTabNavigator } from '@navigation/BusinessTabNavigator';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  jest.restoreAllMocks();
+});
 
 const { businessMessages: copy } = strings;
 const { conversation } = copy;
@@ -91,6 +95,12 @@ beforeEach(() => {
  * params and selects the transcript, so every row shares a single surface.
  */
 async function mountShell() {
+  // Replies are sent for the active branch, so the business needs a real one.
+  jest.spyOn(businessDashboardApi, 'getMyBusiness').mockResolvedValue({
+    id: 'biz-1',
+    name: 'Aurora Grill',
+    branches: [{ id: 'br-1', name: 'Aurora Wuse', isActive: true, isMainBranch: true }],
+  } as unknown as MyBusiness);
   const warnings: string[] = [];
   const originalError = console.error;
   console.error = (...args: unknown[]) => {
@@ -247,6 +257,7 @@ describe('business Messages hub opens a single conversation screen', () => {
       expect(mockSendReplyMutate).toHaveBeenCalledWith(
         expect.objectContaining({
           threadId: 'thread-sarah',
+          branchId: 'br-1',
           payload: { content: 'Table confirmed, see you at 7pm.' },
         }),
       );

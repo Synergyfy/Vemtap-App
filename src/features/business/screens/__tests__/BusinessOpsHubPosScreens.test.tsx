@@ -36,14 +36,19 @@ describe('business more hub (operations variant)', () => {
   const more = strings.businessMore;
 
   it('renders the identity block, POS grid, net sales and every link group', async () => {
-    const view = await render(<BusinessMoreHubOperationsScreen />);
+    const view = await render(
+      <BusinessMoreHubOperationsScreen
+        identity={{ name: 'Aurora Grill', plan: 'Growth', branch: 'Jabi' }}
+        netSales="₦24,400"
+      />,
+    );
 
     expect(view.getByText(copy.headerTitle)).toBeTruthy();
-    expect(view.getByText(copy.identityName)).toBeTruthy();
-    expect(view.getByText(copy.identityMeta)).toBeTruthy();
-    expect(view.getByText(copy.terminalStatus)).toBeTruthy();
+    expect(view.getByText('Aurora Grill')).toBeTruthy();
+    expect(view.getByText('Growth')).toBeTruthy();
+    expect(view.getByText('Jabi')).toBeTruthy();
     expect(view.getByText(copy.posTitle)).toBeTruthy();
-    expect(view.getByText(copy.netSalesValue)).toBeTruthy();
+    expect(view.getByText('₦24,400')).toBeTruthy();
 
     hubPosTiles.forEach(tile => {
       expect(view.getByLabelText(tile.label)).toBeTruthy();

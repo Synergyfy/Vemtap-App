@@ -80,7 +80,35 @@ export function BusinessProfilePreviewScreen({
   // logo come from what the owner actually uploaded, and the logo falls back to
   // the business's initials through the shared Avatar.
   const business = useMyBusiness();
-  const businessName = business.data?.name ?? copy.name;
+  const businessName = business.data?.name ?? '';
+  const verified =
+    business.data?.isVerified === true ||
+    business.data?.verificationStatus === 'verified';
+  const category = [business.data?.category?.name, business.data?.subcategory?.name]
+    .filter(Boolean)
+    .join(' \u2022 ');
+  const contacts: { icon: IconName; label: string; value: string }[] = [];
+  if (business.data?.phone) {
+    contacts.push({
+      icon: 'call',
+      label: copy.contactLabels.phone,
+      value: business.data.phone,
+    });
+  }
+  if (business.data?.officialEmail) {
+    contacts.push({
+      icon: 'alternateEmail',
+      label: copy.contactLabels.email,
+      value: business.data.officialEmail,
+    });
+  }
+  if (business.data?.website) {
+    contacts.push({
+      icon: 'web',
+      label: copy.contactLabels.website,
+      value: business.data.website,
+    });
+  }
   const coverUri = business.data?.coverImage || undefined;
   const logoUri = business.data?.logoUrl || undefined;
 
@@ -198,12 +226,14 @@ export function BusinessProfilePreviewScreen({
             {copy.changeCover}
           </VemtapText>
         </Pressable>
-        <View className="absolute bottom-2.5 right-2.5 flex-row items-center gap-1.5 rounded-full bg-surface px-2.5 py-1 shadow-sm">
-          <Icon name="storefront" size={14} color={colors.badgeDiscountText} />
-          <VemtapText variant="labelSm" className="font-sans-semibold">
-            {copy.storeNumber}
-          </VemtapText>
-        </View>
+        {business.data?.uniqueCode ? (
+          <View className="absolute bottom-2.5 right-2.5 flex-row items-center gap-1.5 rounded-full bg-surface px-2.5 py-1 shadow-sm">
+            <Icon name="storefront" size={14} color={colors.badgeDiscountText} />
+            <VemtapText variant="labelSm" className="font-sans-semibold">
+              {copy.storeCode(business.data.uniqueCode)}
+            </VemtapText>
+          </View>
+        ) : null}
       </View>
 
       <View className="-mt-9 flex-row items-end justify-between gap-3 px-3">
@@ -225,13 +255,15 @@ export function BusinessProfilePreviewScreen({
             <Icon name="edit" size={14} color={colors.surface} />
           </View>
         </Pressable>
-        <View className="pb-1">
-          <BusinessStatusPill
-            label={copy.activeVerified}
-            tone="success"
-            icon="verified"
-          />
-        </View>
+        {verified ? (
+          <View className="pb-1">
+            <BusinessStatusPill
+              label={copy.activeVerified}
+              tone="success"
+              icon="verified"
+            />
+          </View>
+        ) : null}
       </View>
 
       <View className="mt-3 gap-2">
@@ -244,17 +276,21 @@ export function BusinessProfilePreviewScreen({
           >
             {businessName}
           </VemtapText>
-          <Icon name="verified" size={18} color={colors.primary} />
+          {verified ? <Icon name="verified" size={18} color={colors.primary} /> : null}
         </View>
-        <View className="flex-row items-center gap-1.5 self-start rounded-full bg-surface-container px-2.5 py-1">
-          <Icon name="restaurant" size={14} color={colors.secondary} />
-          <VemtapText variant="labelSm" className="text-secondary" numberOfLines={1}>
-            {copy.category}
+        {category ? (
+          <View className="flex-row items-center gap-1.5 self-start rounded-full bg-surface-container px-2.5 py-1">
+            <Icon name="restaurant" size={14} color={colors.secondary} />
+            <VemtapText variant="labelSm" className="text-secondary" numberOfLines={1}>
+              {category}
+            </VemtapText>
+          </View>
+        ) : null}
+        {business.data?.description ? (
+          <VemtapText variant="bodyMd" tone="secondary" className="leading-snug">
+            {business.data.description}
           </VemtapText>
-        </View>
-        <VemtapText variant="bodyMd" tone="secondary" className="leading-snug">
-          {copy.bio}
-        </VemtapText>
+        ) : null}
         <View className="mt-1 flex-row gap-2">
           <Button
             label={copy.publicStorefront}
@@ -274,55 +310,56 @@ export function BusinessProfilePreviewScreen({
         </View>
       </View>
 
-      <View className="relative mt-4">
-        <View className="absolute -bottom-3 -right-3 h-24 w-24 rounded-full bg-badge-discount-bg opacity-60" />
-        <View className="relative gap-3">
-          <View className="flex-row items-start gap-3">
-            <View className="h-10 w-10 shrink-0 items-center justify-center rounded-full bg-badge-discount-bg">
-              <Icon name="shield" size={22} color={colors.badgeDiscountText} />
-            </View>
-            <View className="min-w-0 flex-1">
-              <View className="flex-row items-center justify-between gap-2">
-                <VemtapText
-                  variant="labelMd"
-                  className="min-w-0 flex-1 font-sans-semibold"
-                >
-                  {copy.verifiedTitle}
-                </VemtapText>
-                <BusinessStatusPill label={copy.verifiedTier} tone="brand" />
+      {verified ? (
+        <View className="relative mt-4">
+          <View className="absolute -bottom-3 -right-3 h-24 w-24 rounded-full bg-badge-discount-bg opacity-60" />
+          <View className="relative gap-3">
+            <View className="flex-row items-start gap-3">
+              <View className="h-10 w-10 shrink-0 items-center justify-center rounded-full bg-badge-discount-bg">
+                <Icon name="shield" size={22} color={colors.badgeDiscountText} />
               </View>
-              <VemtapText
-                variant="caption"
-                tone="secondary"
-                className="mt-1 leading-snug"
-              >
-                {copy.verifiedBody}
-              </VemtapText>
-            </View>
-          </View>
-          <View className="flex-row gap-2 border-t border-border pt-2">
-            {copy.verifiedChecks.map(check => (
-              <View
-                key={check.label}
-                className="min-w-0 flex-1 flex-row items-center gap-1"
-              >
-                <Icon
-                  name={check.icon as IconName}
-                  size={14}
-                  color={colors.badgeDiscountText}
-                />
+              <View className="min-w-0 flex-1">
+                <View className="flex-row items-center justify-between gap-2">
+                  <VemtapText
+                    variant="labelMd"
+                    className="min-w-0 flex-1 font-sans-semibold"
+                  >
+                    {copy.verifiedTitle}
+                  </VemtapText>
+                </View>
                 <VemtapText
-                  variant="micro"
-                  className="min-w-0 flex-1 font-sans-medium text-badge-discount-text"
-                  numberOfLines={2}
+                  variant="caption"
+                  tone="secondary"
+                  className="mt-1 leading-snug"
                 >
-                  {check.label}
+                  {copy.verifiedBody}
                 </VemtapText>
               </View>
-            ))}
+            </View>
+            <View className="flex-row gap-2 border-t border-border pt-2">
+              {copy.verifiedChecks.map(check => (
+                <View
+                  key={check.label}
+                  className="min-w-0 flex-1 flex-row items-center gap-1"
+                >
+                  <Icon
+                    name={check.icon as IconName}
+                    size={14}
+                    color={colors.badgeDiscountText}
+                  />
+                  <VemtapText
+                    variant="micro"
+                    className="min-w-0 flex-1 font-sans-medium text-badge-discount-text"
+                    numberOfLines={2}
+                  >
+                    {check.label}
+                  </VemtapText>
+                </View>
+              ))}
+            </View>
           </View>
         </View>
-      </View>
+      ) : null}
 
       <View className="mt-4">
         <View className="mb-2 flex-row items-center justify-between gap-2">
@@ -341,13 +378,18 @@ export function BusinessProfilePreviewScreen({
           </Pressable>
         </View>
         <BusinessPanel className="gap-1">
-          {copy.contacts.map(contact => (
+          {contacts.length === 0 ? (
+            <VemtapText variant="caption" tone="tertiary" className="px-1 py-2">
+              {copy.contactsEmpty}
+            </VemtapText>
+          ) : null}
+          {contacts.map(contact => (
             <View
               key={contact.label}
               className="flex-row items-center gap-3 rounded-field px-1 py-2"
             >
               <View className="h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-tint">
-                <Icon name={contact.icon as IconName} size={18} color={colors.primary} />
+                <Icon name={contact.icon} size={18} color={colors.primary} />
               </View>
               <View className="min-w-0 flex-1">
                 <VemtapText variant="caption" tone="tertiary" numberOfLines={1}>
@@ -357,44 +399,17 @@ export function BusinessProfilePreviewScreen({
                   {contact.value}
                 </VemtapText>
               </View>
-              {contact.trailing === copy.contactVerified ? (
-                <BusinessStatusPill label={contact.trailing} tone="success" />
-              ) : (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={`${contact.label}: ${contact.value}`}
-                  hitSlop={8}
-                  onPress={() => onCopyValue?.(contact.value)}
-                >
-                  <Icon
-                    name={contact.trailing === copy.contactCopy ? 'copy' : 'forward'}
-                    size={18}
-                    color={colors.textTertiary}
-                  />
-                </Pressable>
-              )}
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${contact.label}: ${contact.value}`}
+                hitSlop={8}
+                onPress={() => onCopyValue?.(contact.value)}
+              >
+                <Icon name="copy" size={18} color={colors.textTertiary} />
+              </Pressable>
             </View>
           ))}
           <View className="mt-1 flex-row items-center justify-between gap-2 border-t border-border px-1 pt-3">
-            {copy.socials.map(social => (
-              <View
-                key={social.label}
-                className="flex-row items-center gap-1.5 rounded-full bg-surface-container px-3 py-1.5"
-              >
-                <Icon
-                  name={social.icon as IconName}
-                  size={14}
-                  color={colors.textSecondary}
-                />
-                <VemtapText
-                  variant="caption"
-                  className="font-sans-medium"
-                  numberOfLines={1}
-                >
-                  {social.label}
-                </VemtapText>
-              </View>
-            ))}
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={copy.addSocial}

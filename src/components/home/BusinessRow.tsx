@@ -3,7 +3,7 @@ import { Image, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
-import type { NearbyBusiness } from '@features/home/data/homeFeed';
+import type { NearbyBusiness } from '@features/home/types/feed';
 import { colors } from '@theme/colors';
 
 cssInterop(View, { className: 'style' });

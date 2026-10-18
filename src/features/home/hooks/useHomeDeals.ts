@@ -8,11 +8,7 @@ import {
   mapOfferToHomeNearby,
   mapOfferToHomeTrending,
 } from '@features/home/utils/homeOfferMapper';
-import type {
-  FeaturedDeal,
-  NearbyDeal,
-  TrendingDeal,
-} from '@features/home/data/homeFeed';
+import type { FeaturedDeal, NearbyDeal, TrendingDeal } from '@features/home/types/feed';
 
 /**
  * How many deals the Featured Deals rail rotates through. The rail shows one

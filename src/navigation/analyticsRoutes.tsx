@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useStartNewDeal } from '@navigation/useStartNewDeal';
 import { View } from 'react-native';
 import { strings } from '@constants/strings';
 import { useAuthStore } from '@store/authStore';
@@ -312,6 +313,7 @@ export function BusinessPerformanceAnalyticsRoute() {
 }
 
 export function BusinessCustomerIntelligenceRoute() {
+  const startNewDeal = useStartNewDeal();
   const navigation = useBusinessNavigation();
   const window = useAnalyticsWindow(strings.customerIntelligenceAnalytics.dateRanges);
   const firstName = useAuthStore(state => state.user?.firstName ?? '');
@@ -335,7 +337,7 @@ export function BusinessCustomerIntelligenceRoute() {
         onOpenCustomer={() => navigation.navigate('CustomerCrmDirectory')}
         onViewAllCustomers={() => navigation.navigate('CustomerCrmDirectory')}
         onOpenLoyalty={() => navigation.navigate('LoyaltyProgramme')}
-        onCreateDeal={() => navigation.navigate('CreateDealLocationAssignment')}
+        onCreateDeal={startNewDeal}
         onExport={() => navigation.navigate('AnalyticsExportReport')}
         onOpenLoyaltyProgramme={() => navigation.navigate('LoyaltyProgramme')}
         onOpenDeals={() => navigation.navigate('CentralDealsManagement')}

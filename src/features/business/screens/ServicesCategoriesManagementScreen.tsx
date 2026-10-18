@@ -76,14 +76,8 @@ export function ServicesCategoriesManagementScreen({
   const [filter, setFilter] = useState('all');
   const [sheetService, setSheetService] = useState<string | null>(null);
 
-  // Fall back to prototype copy when the navigator feeds no live data. The
-  // copy arrays are `as const` (readonly), so map them into mutable rows.
-  const shownServices: ServicesManagementRow[] = services
-    ? [...services]
-    : copy.services.map(service => ({ ...service }));
-  const shownCategories: CategoryManagementRow[] = categories
-    ? [...categories]
-    : copy.categories.map(category => ({ ...category }));
+  const shownServices: ServicesManagementRow[] = services ? [...services] : [];
+  const shownCategories: CategoryManagementRow[] = categories ? [...categories] : [];
 
   return (
     <BusinessScreenLayout
@@ -211,11 +205,7 @@ export function ServicesCategoriesManagementScreen({
         />
       </BusinessPanel>
 
-      <BusinessInfoStrip
-        className="mt-3"
-        icon="support"
-        body={strings.dealLocationAssignment.catalogCalloutBody}
-      />
+      <BusinessInfoStrip className="mt-3" icon="support" body={copy.catalogCalloutBody} />
 
       <BottomSheet
         visible={Boolean(sheetService)}

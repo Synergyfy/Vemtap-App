@@ -3,6 +3,11 @@ import { View } from 'react-native';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
+import {
+  DEFAULT_BUDGET_TIERS,
+  DEFAULT_MIN_BUDGET,
+  type BudgetTier,
+} from '@features/business/hooks/useBudgetTiers';
 import { colors } from '@theme/colors';
 import { CampaignWizardStepLayout } from '@features/business/components/CampaignWizardStepLayout';
 import {
@@ -25,25 +30,10 @@ import {
 const copy = strings.campaignWizard;
 const step = copy.step5;
 
-const MIN_BUDGET = 5000;
-const WALLET_BALANCE = 25000;
-
 const modeTabs: BusinessSegmentTab[] = [
   { key: 'total', label: step.modes[0] },
   { key: 'daily', label: step.modes[1] },
 ];
-
-/** Budget (₦) per investment tier; the API's promotion tiers use the same ids. */
-export const CAMPAIGN_BUDGET_TIERS = {
-  starter: 15000,
-  growth: 35000,
-  surge: 70000,
-} as const;
-
-const tierAmounts = CAMPAIGN_BUDGET_TIERS;
-
-const tierAmount = (tierId: string): number =>
-  Number(tierAmounts[tierId as keyof typeof tierAmounts]);
 
 function naira(value: number): string {
   return `\u20a6${value.toLocaleString('en-NG')}`;
@@ -54,15 +44,10 @@ export interface CampaignStep5BudgetScreenProps {
   onContinue: (selection: CampaignBudgetSelection) => void;
   onSaveDraft?: () => void;
   initialDays?: number;
-  /** Starting choices; the design's sample budget when absent. */
+  /** Starting choices; the design's defaults when absent. */
   initialSelection?: Partial<
     Pick<CampaignBudgetSelection, 'mode' | 'total' | 'funding' | 'saveCard'>
   >;
-  /**
-   * Live mode reads the wallet and the tier estimates from the API, and drops
-   * the design's sample card, projections and testimonial.
-   */
-  live?: boolean;
   /** Spendable ad-wallet balance (₦); `undefined` while it loads. */
   walletSpendable?: number;
   /**
@@ -72,6 +57,10 @@ export interface CampaignStep5BudgetScreenProps {
   savedCard?: string;
   /** Reach and claims estimate per tier id. */
   tierForecasts?: Partial<Record<string, { reach: string; claims: string }>>;
+  /** Smallest total budget the API accepts (`/promotions/options` `minBudget`). */
+  minBudget?: number;
+  /** The API's investment tiers (`/promotions/options` `budgetTiers`). */
+  tiers?: readonly BudgetTier[];
 }
 
 export interface CampaignBudgetSelection {
@@ -94,16 +83,19 @@ export function CampaignStep5BudgetScreen({
   onSaveDraft,
   initialDays = 7,
   initialSelection,
-  live = false,
   walletSpendable,
   savedCard,
   tierForecasts,
+  minBudget = DEFAULT_MIN_BUDGET,
+  tiers = DEFAULT_BUDGET_TIERS.promotion,
 }: CampaignStep5BudgetScreenProps) {
-  const initialTotal = initialSelection?.total ?? tierAmounts.growth;
+  // The middle tier is the suggested starting point.
+  const suggested = tiers[Math.floor(tiers.length / 2)] ?? tiers[0];
+  const initialTotal = initialSelection?.total ?? suggested?.amount ?? minBudget;
   const initialTier =
-    (Object.keys(tierAmounts) as (keyof typeof tierAmounts)[]).find(
-      id => tierAmounts[id] === initialTotal,
-    ) ?? 'growth';
+    tiers.find(option => option.amount === initialTotal)?.id ?? suggested?.id ?? '';
+  const tierAmount = (tierId: string): number =>
+    tiers.find(option => option.id === tierId)?.amount ?? 0;
   const [mode, setMode] = useState<string>(initialSelection?.mode ?? 'total');
   const [tier, setTier] = useState<string>(initialTier);
   const [custom, setCustom] = useState<string>(initialTotal.toLocaleString('en-NG'));
@@ -117,16 +109,14 @@ export function CampaignStep5BudgetScreen({
   const usingCustom = customValue > 0 && customValue !== tierAmount(tier);
   const total = usingCustom ? customValue : tierAmount(tier);
   const daily = Math.round(total / days);
-  const balance = live ? walletSpendable : WALLET_BALANCE;
+  const balance = walletSpendable;
   const shortfall = balance === undefined ? 0 : Math.max(0, total - balance);
   // Live: a wallet that cannot cover the budget needs the card for the rest.
-  const blocked = total < MIN_BUDGET || (live && shortfall > 0 && !autoDebit);
+  const blocked = total < minBudget || (shortfall > 0 && !autoDebit);
 
   function selectTier(id: string) {
     setTier(id);
-    setCustom(
-      String(tierAmounts[id as keyof typeof tierAmounts].toLocaleString('en-NG')),
-    );
+    setCustom(String(tierAmount(id).toLocaleString('en-NG')));
   }
 
   return (
@@ -141,8 +131,8 @@ export function CampaignStep5BudgetScreen({
           mode,
           total,
           daily,
-          funding: autoDebit ? (live ? 'card' : 'split') : 'wallet',
-          ...(live && autoDebit && !savedCard && { saveCard }),
+          funding: autoDebit ? 'card' : 'wallet',
+          ...(autoDebit && !savedCard && { saveCard }),
         })
       }
       disabled={blocked}
@@ -204,26 +194,24 @@ export function CampaignStep5BudgetScreen({
         <View className="flex-row items-center justify-between gap-2">
           <SetupSectionHeading title={step.tiersTitle} className="min-w-0 flex-1" />
           <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-            {live ? step.liveTiersMeta(days) : step.tiersMeta}
+            {step.liveTiersMeta(days)}
           </VemtapText>
         </View>
-        {step.tiers.map(option => {
+        {tiers.map(option => {
           const selected = !usingCustom && tier === option.id;
           const forecast = tierForecasts?.[option.id];
-          const stats = live
-            ? forecast
-              ? [
-                  { label: step.liveReach, value: forecast.reach },
-                  { label: step.liveClaims, value: forecast.claims },
-                ]
-              : []
-            : option.stats;
+          const stats = forecast
+            ? [
+                { label: step.liveReach, value: forecast.reach },
+                { label: step.liveClaims, value: forecast.claims },
+              ]
+            : [];
           return (
             <BusinessScopeCard
               key={option.id}
-              title={option.name}
-              body={option.pace}
-              tag={'badge' in option && option.badge ? option.badge : undefined}
+              title={option.label}
+              body={step.tierPace(naira(Math.round(tierAmount(option.id) / days)))}
+              tag={option.id === suggested?.id ? step.popularBadge : undefined}
               selected={selected}
               onPress={() => selectTier(option.id)}
             >
@@ -232,7 +220,7 @@ export function CampaignStep5BudgetScreen({
                 className="mt-1 font-sans-bold text-primary"
                 numberOfLines={1}
               >
-                {option.amount}
+                {naira(option.amount)}
               </VemtapText>
               <View className="mt-2 flex-row flex-wrap gap-1.5">
                 {stats.map(stat => (
@@ -253,18 +241,6 @@ export function CampaignStep5BudgetScreen({
                   </View>
                 ))}
               </View>
-              {!live && 'projection' in option && option.projection ? (
-                <View className="mt-2 flex-row items-center gap-1.5 rounded-lg bg-badge-discount-bg px-2 py-1.5">
-                  <Icon name="pointOfSale" size={13} color={colors.badgeDiscountText} />
-                  <VemtapText
-                    variant="micro"
-                    className="min-w-0 flex-1 text-badge-discount-text"
-                    numberOfLines={2}
-                  >
-                    {option.projection}
-                  </VemtapText>
-                </View>
-              ) : null}
             </BusinessScopeCard>
           );
         })}
@@ -276,7 +252,7 @@ export function CampaignStep5BudgetScreen({
             {step.customTitle}
           </VemtapText>
           <VemtapText variant="caption" tone="tertiary" numberOfLines={1}>
-            {step.customMeta}
+            {step.customMeta(naira(minBudget))}
           </VemtapText>
         </View>
         <BusinessNumberInput
@@ -286,9 +262,9 @@ export function CampaignStep5BudgetScreen({
           leadingText="\u20a6"
           accessibilityLabel={step.customTitle}
         />
-        {customValue > 0 && customValue < MIN_BUDGET ? (
+        {customValue > 0 && customValue < minBudget ? (
           <VemtapText variant="caption" className="text-error">
-            {step.customMeta}
+            {step.customMeta(naira(minBudget))}
           </VemtapText>
         ) : null}
         <View className="flex-row items-center gap-1.5">
@@ -332,11 +308,9 @@ export function CampaignStep5BudgetScreen({
               className="shrink-0 font-sans-bold"
               numberOfLines={1}
             >
-              {live
-                ? walletSpendable === undefined
-                  ? step.liveWalletLoading
-                  : step.liveWalletAvailable(naira(walletSpendable))
-                : step.walletAvailable}
+              {walletSpendable === undefined
+                ? step.liveWalletLoading
+                : step.liveWalletAvailable(naira(walletSpendable))}
             </VemtapText>
             <Icon name="checkCircle" size={16} color={colors.success} />
           </View>
@@ -374,18 +348,12 @@ export function CampaignStep5BudgetScreen({
             </View>
           )}
           <ToggleRow
-            title={live && !savedCard ? step.liveAutoDebitTitle : step.autoDebitTitle}
-            body={
-              live
-                ? savedCard
-                  ? step.liveSavedCardBody(savedCard)
-                  : step.liveAutoDebitBody
-                : step.autoDebitBody
-            }
+            title={!savedCard ? step.liveAutoDebitTitle : step.autoDebitTitle}
+            body={savedCard ? step.liveSavedCardBody(savedCard) : step.liveAutoDebitBody}
             value={autoDebit}
             onValueChange={setAutoDebit}
           />
-          {live && shortfall > 0 && !autoDebit ? (
+          {shortfall > 0 && !autoDebit ? (
             <VemtapText
               variant="caption"
               className="text-error"
@@ -394,7 +362,7 @@ export function CampaignStep5BudgetScreen({
               {step.liveTopUpRequired}
             </VemtapText>
           ) : null}
-          {live && autoDebit && !savedCard ? (
+          {autoDebit && !savedCard ? (
             <BusinessCheckRow
               title={step.liveSaveCard}
               subtitle={step.liveSaveCardBody}
@@ -402,18 +370,18 @@ export function CampaignStep5BudgetScreen({
               onPress={() => setSaveCard(current => !current)}
             />
           ) : null}
-          {live && !savedCard ? null : (
+          {!savedCard ? null : (
             <View className="flex-row items-center justify-between gap-2">
               <View className="min-w-0 flex-1 flex-row items-center gap-1.5">
                 <Icon name="creditCard" size={14} color={colors.textSecondary} />
                 <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-                  {savedCard ?? step.linkedCard}
+                  {savedCard}
                 </VemtapText>
               </View>
               <View className="shrink-0 flex-row items-center gap-1">
                 <Icon name="lock" size={12} color={colors.success} />
                 <VemtapText variant="micro" className="text-success" numberOfLines={1}>
-                  {live ? step.liveSavedCardBadge : step.linkedCardBadge}
+                  {step.liveSavedCardBadge}
                 </VemtapText>
               </View>
             </View>
@@ -428,16 +396,6 @@ export function CampaignStep5BudgetScreen({
         tone="tint"
         bodyVariant="caption"
       />
-
-      {live ? null : (
-        <SetupCallout
-          icon="autoAwesome"
-          body={`\u201c${step.proof}\u201d`}
-          title={step.proofBy}
-          tone="subtle"
-          bodyVariant="caption"
-        />
-      )}
     </CampaignWizardStepLayout>
   );
 }

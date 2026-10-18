@@ -8,6 +8,7 @@ import { colors } from '@theme/colors';
 import { BusinessSelectionChip } from '@features/business/components/BusinessPrimitives';
 import type { PresentedBooking } from '@features/business/hooks/useBusinessBookings';
 import { cn } from '@utils/cn';
+import { LoadingState } from '@components/shared/LoadingState';
 
 cssInterop(Pressable, { className: 'style' });
 cssInterop(ScrollView, {
@@ -17,10 +18,8 @@ cssInterop(ScrollView, {
 
 const copy = strings.businessBookings;
 
-type BookingTone = (typeof copy.bookings)[number]['tone'];
-
 const toneStyles: Record<
-  BookingTone,
+  PresentedBooking['tone'],
   { time: string; duration: string; accent: string }
 > = {
   brand: {
@@ -88,7 +87,7 @@ function nextDays() {
 }
 
 export interface BusinessBookingFeedProps {
-  /** Live data from the route; omitted renders the designed fallback copy. */
+  /** Live bookings from the route; `undefined` while they load. */
   bookings?: readonly PresentedBooking[];
   onOpenBooking?: (id: string) => void;
   onCheckIn?: (id: string) => void;
@@ -111,23 +110,9 @@ export function BusinessBookingFeed({
   const [day, setDay] = useState(0);
   const [filter, setFilter] = useState(0);
 
-  const fallbackBookings: PresentedBooking[] = copy.bookings.map(booking => ({
-    id: booking.id,
-    time: booking.time,
-    duration: booking.duration,
-    startsSoon: booking.startsSoon,
-    tone: booking.tone,
-    customer: booking.customer,
-    badge: booking.badge,
-    service: booking.service,
-    staff: booking.staff,
-    note: booking.note,
-    cta: booking.cta,
-    nextStatus: undefined,
-  }));
-  const list = bookings ?? fallbackBookings;
+  const list = bookings ?? [];
 
-  const days = useMemo(() => (bookings ? nextDays() : copy.days), [bookings]);
+  const days = useMemo(() => nextDays(), []);
 
   return (
     <>
@@ -194,8 +179,8 @@ export function BusinessBookingFeed({
         >
           {copy.filters.map((item, index) => (
             <BusinessSelectionChip
-              key={`${item.label}-${item.count}`}
-              label={`${item.label} ${item.count}`}
+              key={item.label}
+              label={item.label}
               selected={index === filter}
               onPress={() => {
                 setFilter(index);
@@ -214,18 +199,12 @@ export function BusinessBookingFeed({
         </View>
         <View className="min-w-0 flex-1">
           <VemtapText variant="labelMd" className="font-sans-semibold" numberOfLines={1}>
-            {bookings ? copy.summaryTitleFor(list.length) : copy.summaryTitle}
-          </VemtapText>
-          <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-            {`${copy.summaryMetaLabel} `}
-            <VemtapText variant="caption" className="font-sans-semibold text-primary">
-              {copy.summaryMeta}
-            </VemtapText>
-            {` ${copy.summaryMetaHint}`}
+            {bookings ? copy.summaryTitleFor(list.length) : '\u2026'}
           </VemtapText>
         </View>
       </View>
 
+      {bookings === undefined ? <LoadingState /> : null}
       {bookings && bookings.length === 0 ? (
         <View className="items-center gap-1 rounded-card bg-surface-container-low p-6">
           <Icon name="calendar" size={26} color={colors.textTertiary} />

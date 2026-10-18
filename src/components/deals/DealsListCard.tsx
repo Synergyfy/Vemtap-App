@@ -6,7 +6,7 @@ import { VemtapText } from '@components/ui/Text';
 import { DealEngagementRow } from '@components/shared/DealEngagementRow';
 import { colors } from '@theme/colors';
 import { cn } from '@utils/cn';
-import type { DealListItem } from '@features/deals/data/dealsFeed';
+import type { DealListItem } from '@features/deals/types';
 
 cssInterop(View, { className: 'style' });
 cssInterop(Pressable, { className: 'style' });

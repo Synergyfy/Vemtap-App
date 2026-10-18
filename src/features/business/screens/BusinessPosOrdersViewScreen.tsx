@@ -15,6 +15,9 @@ import {
 } from '@features/business/components/BusinessPrimitives';
 import { cn } from '@utils/cn';
 import { formatCompactNaira } from '@utils/formatters';
+import { LoadingState } from '@components/shared/LoadingState';
+import type { PosSale } from '@api/posApi';
+import { clock, naira, tenderLabel } from '@features/business/utils/posMappers';
 
 cssInterop(Pressable, { className: 'style' });
 cssInterop(TextInput, { className: 'style' });
@@ -24,6 +27,13 @@ cssInterop(ScrollView, {
 });
 
 const copy = strings.businessPos;
+
+/** Order type each filter chip keeps; `undefined` keeps every sale. */
+const FILTER_TYPES: (PosOrderRow['orderType'] | undefined)[] = [
+  undefined,
+  'dine_in',
+  'takeaway',
+];
 
 const channelTone: Record<string, string> = {
   brand: 'bg-primary text-primary-foreground',
@@ -58,11 +68,58 @@ export function presentPosTerminal(data?: PosTerminalSource): PosTerminalView {
   const held = Number(data?.heldSalesCount ?? 0);
 
   return {
-    volumeValue: data ? formatCompactNaira(revenue) : copy.volumeValue,
+    volumeValue: data ? formatCompactNaira(revenue) : '\u2014',
     volumeMeta: data
       ? `/ ${transactions} transaction${transactions === 1 ? '' : 's'}`
-      : copy.volumeMeta,
+      : '',
     heldSalesCount: held,
+  };
+}
+
+/** One sale on the in-store activity list. */
+export interface PosOrderRow {
+  id: string;
+  reference: string;
+  time: string;
+  orderType: 'dine_in' | 'takeaway';
+  channel: string;
+  channelTone: 'brand' | 'neutral' | 'success';
+  items: { id: string; name: string; price: string }[];
+  method: string;
+  meta: string;
+  totalLabel: string;
+  total: string;
+}
+
+/** A `/pos/sales` row as the activity list shows it. */
+export function presentPosSaleRow(sale: PosSale): PosOrderRow {
+  const dineIn = sale.orderType === 'dine_in';
+  const refunded = sale.status !== 'completed';
+  return {
+    id: sale.id,
+    reference: `#${sale.receiptNumber}`,
+    time: clock(sale.orderedAt ?? sale.createdAt),
+    orderType: sale.orderType,
+    channel: refunded
+      ? copy.live.refunded
+      : dineIn
+        ? copy.live.dineIn
+        : copy.live.takeaway,
+    channelTone: refunded ? 'neutral' : dineIn ? 'brand' : 'success',
+    items: (sale.items ?? []).map(item => ({
+      id: item.id,
+      name: `${item.quantity}x ${item.productName ?? copy.live.item}`,
+      price: naira(item.totalPrice),
+    })),
+    method: copy.live.paidWith(tenderLabel(sale.paymentMethod)),
+    meta: [
+      sale.customerName,
+      sale.cashierName ? copy.live.cashier(sale.cashierName) : null,
+    ]
+      .filter(Boolean)
+      .join(' \u00b7 '),
+    totalLabel: copy.live.total,
+    total: naira(sale.total),
   };
 }
 
@@ -72,9 +129,14 @@ export interface BusinessPosOrdersViewScreenProps {
   onOpenPos?: () => void;
   onOpenOrder?: (id: string) => void;
   onPrintReceipt?: (id: string) => void;
-  /** Raw `GET /pos/dashboard` totals for the terminal row; omitted keeps the
-   * designed figures. The screen presents them, so callers pass the payload. */
+  /** Raw `GET /pos/dashboard` totals for the terminal row (dashes until loaded). */
   pos?: PosTerminalSource;
+  /** Today's sales; `undefined` while they load. */
+  orders?: PosOrderRow[];
+  branchName?: string;
+  /** The open till's name, when a register session is open. */
+  tillName?: string;
+  online?: boolean;
 }
 
 export function BusinessPosOrdersViewScreen({
@@ -84,12 +146,19 @@ export function BusinessPosOrdersViewScreen({
   onOpenOrder,
   onPrintReceipt,
   pos,
+  orders,
+  branchName,
+  tillName,
+  online = true,
 }: BusinessPosOrdersViewScreenProps) {
   const terminal = presentPosTerminal(pos);
   const [filter, setFilter] = useState(0);
   const [query, setQuery] = useState('');
 
-  const visible = copy.orders.filter(order => {
+  const rows = orders ?? [];
+  const filterType = FILTER_TYPES[filter];
+  const visible = rows.filter(order => {
+    if (filterType && order.orderType !== filterType) return false;
     const term = query.trim().toLowerCase();
     if (!term) return true;
     return `${order.reference} ${order.method} ${order.meta} ${order.total}`
@@ -112,7 +181,7 @@ export function BusinessPosOrdersViewScreen({
           titleVariant: 'labelMd',
           accessory: (
             <BusinessInlineAction
-              label={copy.branch}
+              label={branchName ?? copy.branchLabel}
               icon="storefront"
               onPress={onOpenBranchSwitcher}
             />
@@ -144,7 +213,11 @@ export function BusinessPosOrdersViewScreen({
             {copy.filters.map((item, index) => (
               <BusinessSelectionChip
                 key={item.label}
-                label={`${item.label} (${item.count})`}
+                label={`${item.label} (${
+                  FILTER_TYPES[index]
+                    ? rows.filter(order => order.orderType === FILTER_TYPES[index]).length
+                    : rows.length
+                })`}
                 selected={index === filter}
                 onPress={() => setFilter(index)}
                 tone="neutral"
@@ -157,12 +230,21 @@ export function BusinessPosOrdersViewScreen({
           <View className="flex-row items-center justify-between gap-2">
             <View className="min-w-0 flex-1">
               <VemtapText variant="labelSm" tone="secondary" numberOfLines={1}>
-                {copy.terminalName}
+                {tillName ?? copy.live.noTill}
               </VemtapText>
               <View className="mt-0.5 flex-row items-center gap-1.5">
-                <View className="h-2 w-2 rounded-full bg-success" />
-                <VemtapText variant="caption" className="text-success" numberOfLines={1}>
-                  {copy.terminalStatus}
+                <View
+                  className={cn(
+                    'h-2 w-2 rounded-full',
+                    online ? 'bg-success' : 'bg-error',
+                  )}
+                />
+                <VemtapText
+                  variant="caption"
+                  className={online ? 'text-success' : 'text-error'}
+                  numberOfLines={1}
+                >
+                  {online ? copy.live.online : copy.live.offline}
                 </VemtapText>
                 {/* Only surfaced when sales are actually stuck offline. */}
                 {terminal.heldSalesCount > 0 ? (
@@ -211,6 +293,12 @@ export function BusinessPosOrdersViewScreen({
           </VemtapText>
         </View>
 
+        {orders === undefined ? <LoadingState /> : null}
+        {orders && visible.length === 0 ? (
+          <VemtapText variant="caption" tone="tertiary">
+            {copy.live.empty}
+          </VemtapText>
+        ) : null}
         <View className="gap-3">
           {visible.map(order => (
             <SetupCard key={order.reference} className="gap-3">
@@ -262,30 +350,6 @@ export function BusinessPosOrdersViewScreen({
                       </VemtapText>
                     </View>
                   ))}
-                </View>
-              ) : null}
-
-              {order.dealTitle ? (
-                <View className="flex-row items-start gap-2 rounded-lg bg-badge-discount-bg p-2.5">
-                  <View className="pt-0.5">
-                    <Icon name="localOffer" size={15} color={colors.badgeDiscountText} />
-                  </View>
-                  <View className="min-w-0 flex-1">
-                    <VemtapText
-                      variant="labelSm"
-                      className="font-sans-semibold text-badge-discount-text"
-                      numberOfLines={1}
-                    >
-                      {order.dealTitle}
-                    </VemtapText>
-                    <VemtapText
-                      variant="micro"
-                      className="text-badge-discount-text"
-                      numberOfLines={1}
-                    >
-                      {order.dealMeta}
-                    </VemtapText>
-                  </View>
                 </View>
               ) : null}
 

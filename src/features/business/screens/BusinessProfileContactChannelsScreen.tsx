@@ -7,11 +7,7 @@ import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { colors } from '@theme/colors';
 import { businessProfileCopy as copy } from '@features/business/businessCopy';
-import {
-  countryFlags,
-  socialPresences,
-  type SocialPresence,
-} from '@features/business/businessData';
+import { countryFlags, type SocialPresence } from '@features/business/businessData';
 import { SocialPresenceRow } from '@features/business/components/BusinessSetupCards';
 import {
   FieldInput,
@@ -67,13 +63,11 @@ export function BusinessProfileContactChannelsScreen({
   onEditPresence,
   initialValue,
 }: BusinessProfileContactChannelsScreenProps) {
-  const [phone, setPhone] = useState(initialValue?.phone ?? '803 555 9821');
-  const [email, setEmail] = useState(initialValue?.email ?? 'hello@urbangrill.ng');
-  const [website, setWebsite] = useState(
-    initialValue?.website ?? 'https://www.urbangrill.ng',
-  );
+  const [phone, setPhone] = useState(initialValue?.phone ?? '');
+  const [email, setEmail] = useState(initialValue?.email ?? '');
+  const [website, setWebsite] = useState(initialValue?.website ?? '');
   const [presences, setPresences] = useState<SocialPresence[]>(
-    initialValue?.presences ?? socialPresences,
+    initialValue?.presences ?? [],
   );
   const [allowChat, setAllowChat] = useState(initialValue?.allowInAppChat ?? true);
   const [whatsappAlerts, setWhatsappAlerts] = useState(

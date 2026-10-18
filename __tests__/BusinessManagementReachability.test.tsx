@@ -5,6 +5,7 @@ import { BusinessTabNavigator } from '@navigation/BusinessTabNavigator';
 import { strings } from '@constants/strings';
 import { catalogueApi } from '@api/catalogueApi';
 import { teamApi } from '@api/teamApi';
+import { businessDashboardApi, type MyBusiness } from '@api/businessDashboardApi';
 import { businessCustomersApi } from '@api/businessCustomersApi';
 import { useCatalogueDraftStore } from '@store/catalogueDraftStore';
 import { directoryFixture } from './helpers/crmFixtures';
@@ -50,9 +51,24 @@ describe('business management surfaces are reachable', () => {
   const module = (id: string) => hub.modules.find(entry => entry.id === id)!.title;
 
   it('reaches locations & branches, then the Wuse branch details', async () => {
+    // The list shows the business's own branches only, so give it one.
+    jest.spyOn(businessDashboardApi, 'getMyBusiness').mockResolvedValue({
+      id: 'biz-1',
+      name: 'Aurora Grill',
+      branches: [
+        {
+          id: 'br-1',
+          name: 'Aurora Wuse',
+          address: '1 Wuse',
+          isActive: true,
+          isMainBranch: true,
+        },
+      ],
+    } as unknown as MyBusiness);
     await expectToReach([module('locations')], strings.locationsBranches.title);
 
     // Every branch card carries the same CTA; target the first.
+    await screen.findAllByLabelText(strings.locationsBranches.viewDetails);
     await act(async () => {
       fireEvent.press(screen.getAllByLabelText(strings.locationsBranches.viewDetails)[0]);
     });
@@ -76,7 +92,7 @@ describe('business management surfaces are reachable', () => {
     ).toBeGreaterThan(0);
   });
 
-  it('walks the product flow: basics & media -> location pricing -> branch availability', async () => {
+  it('walks the product flow: basics & media -> pricing -> branch availability', async () => {
     await expectToReach([module('products')], strings.centralCatalogue.headerTitle);
 
     // Step 1: add a product.
@@ -87,23 +103,19 @@ describe('business management surfaces are reachable', () => {
       screen.getAllByText(strings.addProductBasics.headerTitle).length,
     ).toBeGreaterThan(0);
 
-    // Step 2: location assignment (pricing + branch scope).
+    // Step 2: pricing & variants.
     await act(async () => {
       fireEvent.press(screen.getByLabelText(strings.addProductBasics.continue));
     });
-    expect(
-      screen.getAllByText(strings.dealLocationAssignment.productSummary.headerTitle)
-        .length,
-    ).toBeGreaterThan(0);
+    expect(screen.getAllByText('Continue to Branch Availability').length).toBeGreaterThan(
+      0,
+    );
 
-    // Step 3: saving scope lands on branch availability + location pricing.
-    // The CTA embeds the active-branch count, so match on its stable prefix.
+    // Step 3: branch availability (only the business's own branches).
     await act(async () => {
-      fireEvent.press(screen.getByLabelText(/^Save Location Assignment/));
+      fireEvent.press(screen.getByText('Continue to Branch Availability'));
     });
-    expect(
-      screen.getAllByText(strings.dealLocationAssignment.lamb.headerTitle).length,
-    ).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Step 2 of 4/).length).toBeGreaterThan(0);
   });
 
   it('reaches deals management, deal performance and location assignment pricing', async () => {
@@ -301,7 +313,7 @@ describe('business management surfaces are reachable', () => {
     const cases: [string, string][] = [
       ['deals', strings.centralDeals.headerTitle],
       ['deals-flash', strings.centralDeals.flashAlert],
-      ['deals-campaigns', strings.centralDeals.pulseTitle],
+      ['deals-campaigns', strings.centralDeals.branchSelector],
       // design 1 renders the campaign cards, not a pulse or alert banner.
     ];
 
@@ -326,7 +338,7 @@ describe('business management surfaces are reachable', () => {
   it('reaches both numbered catalogue designs from the management hub', async () => {
     const cases: [string, string][] = [
       ['catalogue', strings.centralCatalogue.headerTitle],
-      ['catalogue-hub', strings.centralCatalogue.tabsBusiness[0].label],
+      ['catalogue-hub', `${strings.centralCatalogue.tabs[0].label} (0)`],
     ];
 
     await cases.reduce(async (previous, [moduleId, heading]) => {

@@ -6,7 +6,7 @@ import { VemtapText } from '@components/ui/Text';
 import { DealEngagementRow } from '@components/shared/DealEngagementRow';
 import { cn } from '@utils/cn';
 import { strings } from '@constants/strings';
-import type { NearbyDeal } from '@features/home/data/homeFeed';
+import type { NearbyDeal } from '@features/home/types/feed';
 import { colors } from '@theme/colors';
 
 cssInterop(View, { className: 'style' });

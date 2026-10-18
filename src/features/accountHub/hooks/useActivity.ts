@@ -4,6 +4,7 @@ import {
   type ActivityFilter,
   type ActivityPage,
   type ActivitySummary,
+  type SwitchPreview,
 } from '@api/activityApi';
 import { useAuthStore } from '@store/authStore';
 
@@ -35,6 +36,17 @@ export function useActivitySummary(from: string | null) {
     queryKey: activityKeys.summary(from),
     queryFn: () => activityApi.summary(from ? { from } : {}),
     enabled: isCustomer,
+    staleTime: 60_000,
+  });
+}
+
+/** Active claims and saved counts for the profile-switch screen (any role). */
+export function useSwitchPreview() {
+  const signedIn = useAuthStore(state => Boolean(state.user));
+  return useQuery<SwitchPreview>({
+    queryKey: [...activityKeys.all, 'switch-preview'],
+    queryFn: () => activityApi.switchPreview(),
+    enabled: signedIn,
     staleTime: 60_000,
   });
 }

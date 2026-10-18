@@ -42,3 +42,34 @@ export async function requestCurrentLocation(): Promise<CurrentLocationResult> {
     return { ok: false, reason: 'unavailable' };
   }
 }
+
+/** The parts of a device position's address the setup screens show. */
+export interface ResolvedAddress {
+  line: string;
+  street?: string;
+  district?: string;
+  city?: string;
+  state?: string;
+}
+
+/**
+ * Address for a device position via the platform geocoder; `null` when it has
+ * nothing (no network, no match) so callers keep what the owner typed.
+ */
+export async function reverseGeocode(
+  coords: CurrentLocationCoords,
+): Promise<ResolvedAddress | null> {
+  try {
+    const [place] = await Location.reverseGeocodeAsync(coords);
+    if (!place) return null;
+    const street =
+      [place.streetNumber, place.street].filter(Boolean).join(' ') || undefined;
+    const district = place.district ?? place.subregion ?? undefined;
+    const city = place.city ?? undefined;
+    const state = place.region ?? undefined;
+    const line = [street ?? place.name, district, city].filter(Boolean).join(', ');
+    return line ? { line, street, district, city, state } : null;
+  } catch {
+    return null;
+  }
+}

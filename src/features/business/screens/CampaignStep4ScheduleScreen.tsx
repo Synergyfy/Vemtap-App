@@ -7,7 +7,6 @@ import { strings } from '@constants/strings';
 import { colors } from '@theme/colors';
 import { CampaignWizardStepLayout } from '@features/business/components/CampaignWizardStepLayout';
 import {
-  SetupCallout,
   SetupSectionCard,
   SetupSectionHeading,
   SwitchToggle,
@@ -36,13 +35,8 @@ export interface CampaignStep4ScheduleScreenProps {
   onContinue: (selection: CampaignScheduleSelection) => void;
   onSaveDraft?: () => void;
   initialDays?: number;
-  /** Starting choices; the design's sample schedule when absent. */
+  /** Starting choices; the design's defaults when absent. */
   initialSelection?: Partial<CampaignScheduleSelection>;
-  /**
-   * Live mode shows real start/end dates and drops the design's sample dates,
-   * the weekend-weighting claim and the testimonial.
-   */
-  live?: boolean;
   /** Clock for the live dates (tests pin it). */
   now?: Date;
 }
@@ -75,7 +69,6 @@ export function CampaignStep4ScheduleScreen({
   onSaveDraft,
   initialDays = 7,
   initialSelection,
-  live = false,
   now,
 }: CampaignStep4ScheduleScreenProps) {
   const [duration, setDuration] = useState<string>(
@@ -93,10 +86,8 @@ export function CampaignStep4ScheduleScreen({
 
   const days = Number.parseInt(duration, 10) || 7;
   const start = now ?? new Date();
-  const startValue = live ? step.liveStartNow(formatDay(start)) : step.startValue;
-  const endValue = live
-    ? formatDay(new Date(start.getTime() + days * 86_400_000))
-    : step.endValue;
+  const startValue = step.liveStartNow(formatDay(start));
+  const endValue = formatDay(new Date(start.getTime() + days * 86_400_000));
   const totalDays = step.durations.find(option => option.id === duration);
 
   return (
@@ -356,35 +347,16 @@ export function CampaignStep4ScheduleScreen({
             );
           })}
         </View>
-        {live ? null : (
-          <SetupCallout
-            icon="autoAwesome"
-            title={step.weekendNote}
-            body={step.weekendBody}
-            tone="tint"
-            bodyVariant="caption"
-          />
-        )}
       </View>
 
       <SetupSectionCard tone="lowest" className="p-4 shadow-sm">
         <ToggleRow
           title={step.renewTitle}
-          body={live ? step.liveRenewBody : step.renewBody}
+          body={step.liveRenewBody}
           value={autoRenew}
           onValueChange={setAutoRenew}
         />
       </SetupSectionCard>
-
-      {live ? null : (
-        <SetupCallout
-          icon="autoAwesome"
-          title={step.tipFrom}
-          body={step.tipBody}
-          tone="subtle"
-          bodyVariant="caption"
-        />
-      )}
     </CampaignWizardStepLayout>
   );
 }

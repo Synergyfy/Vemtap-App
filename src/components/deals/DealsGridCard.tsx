@@ -5,7 +5,7 @@ import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { colors } from '@theme/colors';
 import { cn } from '@utils/cn';
-import type { DealGridItem } from '@features/deals/data/dealsFeed';
+import type { DealGridItem } from '@features/deals/types';
 
 cssInterop(View, { className: 'style' });
 cssInterop(Pressable, { className: 'style' });

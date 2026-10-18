@@ -11,7 +11,7 @@ import type {
   NearbyBusiness,
   NearbyDeal,
   PopularProduct,
-} from '@features/home/data/homeFeed';
+} from '@features/home/types/feed';
 
 /**
  * Search across deals, businesses, products and categories from one endpoint.

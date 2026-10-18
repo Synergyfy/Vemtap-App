@@ -28,10 +28,20 @@ const badgeTones: Record<string, string> = {
   HOT: 'bg-tertiary-fixed text-tertiary-container',
   Active: 'bg-badge-discount-bg text-badge-discount-text',
   Insights: 'bg-surface-tint-blue text-primary',
-  '3 new': 'bg-primary text-primary-foreground',
-  '4 unread': 'bg-primary text-primary-foreground',
-  'Tier 3 Verified': 'bg-badge-discount-bg text-badge-discount-text',
 };
+
+const rowBadgeTones = {
+  brand: 'bg-primary text-primary-foreground',
+  success: 'bg-badge-discount-bg text-badge-discount-text',
+  neutral: 'bg-surface-container text-text-secondary',
+} as const;
+
+/** A live line or badge for one row, replacing the row's generic copy. */
+export interface MoreRowStatus {
+  meta?: string;
+  badge?: string;
+  badgeTone?: keyof typeof rowBadgeTones;
+}
 
 const actionTones: Record<string, string> = {
   success: 'text-badge-discount-text',
@@ -55,6 +65,12 @@ export interface BusinessMoreHubScreenProps {
   activeBranchId?: string;
   /** Live business identity; omitted renders the designed fallback copy. */
   hub?: BusinessHubView;
+  /** Current plan name, shown as the pill beside the account code. */
+  planName?: string | null;
+  /** Live meta / badge per row id (`reviews`, `notifications`, `billing`, …). */
+  rowStatus?: Partial<Record<string, MoreRowStatus>>;
+  /** App version for the footer. */
+  appVersion?: string | null;
 }
 
 export function BusinessMoreHubScreen({
@@ -70,9 +86,13 @@ export function BusinessMoreHubScreen({
   branches,
   activeBranchId,
   hub,
+  planName,
+  rowStatus = {},
+  appVersion,
 }: BusinessMoreHubScreenProps) {
   const activeBranchName = branches?.find(branch => branch.id === activeBranchId)?.name;
-  const locationLabel = activeBranchName || hub?.branchNames || copy.location;
+  const locationLabel = activeBranchName || hub?.branchNames || '';
+  const businessName = hub?.name ?? copy.nameFallback;
   // Dense hub: many rows read at a glance, so the subtree (navbar included)
   // uses the compact type density rather than per-row size overrides.
   return (
@@ -83,11 +103,11 @@ export function BusinessMoreHubScreen({
           centerTitle: false,
           showAvatar: true,
           avatarUri: hub?.logoUrl,
-          avatarName: hub?.name ?? copy.name,
+          avatarName: businessName,
           titleAccessory: (
             <BusinessBranchSwitcher
               size="sm"
-              branches={branches ?? strings.businessBranchSwitcher.branches}
+              branches={branches ?? []}
               activeBranchId={activeBranchId}
               onChangeBranch={onChangeBranch}
               onAddBranch={onAddBranch}
@@ -106,17 +126,17 @@ export function BusinessMoreHubScreen({
         <View className="overflow-hidden rounded-card-lg bg-surface-container-lowest shadow-sm">
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={hub?.name ?? copy.name}
+            accessibilityLabel={businessName}
             onPress={onOpenProfileDeck}
             className="flex-row items-center gap-3 p-3.5"
           >
             <Avatar
               uri={hub?.logoUrl}
-              name={hub?.name ?? copy.name}
+              name={businessName}
               size="lg"
               tone="brand"
               className="rounded-2xl"
-              accessibilityLabel={`${hub?.name ?? copy.name} logo`}
+              accessibilityLabel={`${businessName} logo`}
             />
             <View className="min-w-0 flex-1 gap-0.5">
               <View className="min-w-0 flex-row items-center gap-1.5">
@@ -125,32 +145,38 @@ export function BusinessMoreHubScreen({
                   className="min-w-0 font-sans-semibold"
                   numberOfLines={1}
                 >
-                  {hub?.name ?? copy.name}
+                  {businessName}
                 </VemtapText>
-                {!hub || hub.isVerified ? (
+                {hub?.isVerified ? (
                   <Icon name="verified" size={16} color={colors.primary} />
                 ) : null}
               </View>
               <View className="flex-row flex-wrap items-center gap-1.5">
-                <VemtapText variant="caption" tone="tertiary" numberOfLines={1}>
-                  {hub?.uniqueCode ?? copy.accountId}
-                </VemtapText>
-                <View className="rounded-full bg-surface-tint-blue px-2 py-0.5">
-                  <VemtapText
-                    variant="micro"
-                    className="font-sans-semibold text-primary"
-                    numberOfLines={1}
-                  >
-                    {copy.plan}
+                {hub?.uniqueCode ? (
+                  <VemtapText variant="caption" tone="tertiary" numberOfLines={1}>
+                    {hub.uniqueCode}
+                  </VemtapText>
+                ) : null}
+                {planName ? (
+                  <View className="rounded-full bg-surface-tint-blue px-2 py-0.5">
+                    <VemtapText
+                      variant="micro"
+                      className="font-sans-semibold text-primary"
+                      numberOfLines={1}
+                    >
+                      {planName}
+                    </VemtapText>
+                  </View>
+                ) : null}
+              </View>
+              {locationLabel ? (
+                <View className="flex-row items-center gap-1">
+                  <Icon name="locationOn" size={13} color={colors.textSecondary} />
+                  <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
+                    {locationLabel}
                   </VemtapText>
                 </View>
-              </View>
-              <View className="flex-row items-center gap-1">
-                <Icon name="locationOn" size={13} color={colors.textSecondary} />
-                <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-                  {locationLabel}
-                </VemtapText>
-              </View>
+              ) : null}
             </View>
             <Pressable
               accessibilityRole="button"
@@ -162,24 +188,23 @@ export function BusinessMoreHubScreen({
             </Pressable>
           </Pressable>
 
-          <View className="flex-row items-center justify-between gap-2 border-t border-border px-3.5 py-2.5">
-            <View className="min-w-0 flex-row items-center gap-1.5">
-              <View className="h-2 w-2 shrink-0 rounded-full bg-badge-discount-text" />
-              <VemtapText
-                variant="caption"
-                className="min-w-0 font-sans-medium"
-                numberOfLines={1}
-              >
-                {copy.terminalStatus}
-              </VemtapText>
-            </View>
-            <View className="shrink-0 flex-row items-center gap-1.5">
-              <Icon name="cloudDone" size={14} color={colors.textTertiary} />
+          {hub?.readerStatus ? (
+            <View className="flex-row items-center justify-between gap-2 border-t border-border px-3.5 py-2.5">
+              <View className="min-w-0 flex-row items-center gap-1.5">
+                <View className="h-2 w-2 shrink-0 rounded-full bg-badge-discount-text" />
+                <VemtapText
+                  variant="caption"
+                  className="min-w-0 font-sans-medium"
+                  numberOfLines={1}
+                >
+                  {copy.terminalsLabel}
+                </VemtapText>
+              </View>
               <VemtapText variant="caption" tone="tertiary" numberOfLines={1}>
-                {copy.terminalSynced}
+                {hub.readerStatus}
               </VemtapText>
             </View>
-          </View>
+          ) : null}
         </View>
 
         {copy.sections.map(section => (
@@ -222,59 +247,71 @@ export function BusinessMoreHubScreen({
             </View>
 
             <SetupCard className="gap-0 overflow-hidden p-0">
-              {section.items.map((item, index) => (
-                <Pressable
-                  key={item.id}
-                  accessibilityRole="button"
-                  accessibilityLabel={item.label}
-                  onPress={() => onOpenRow?.(item.id)}
-                  className={cn(
-                    'flex-row items-center gap-3 p-3.5 active:bg-surface-subtle',
-                    index > 0 && 'border-t border-border',
-                  )}
-                >
-                  <View className="h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-surface-tint">
-                    <Icon name={item.icon as IconName} size={20} color={colors.primary} />
-                  </View>
-                  <View className="min-w-0 flex-1">
-                    <View className="min-w-0 flex-row items-center gap-2">
+              {section.items.map((item, index) => {
+                const live = rowStatus[item.id];
+                const badge = live?.badge ?? item.badge;
+                const badgeClass = live?.badge
+                  ? rowBadgeTones[live.badgeTone ?? 'brand']
+                  : badge
+                    ? (badgeTones[badge] ?? 'bg-surface-container text-text-secondary')
+                    : '';
+                return (
+                  <Pressable
+                    key={item.id}
+                    accessibilityRole="button"
+                    accessibilityLabel={item.label}
+                    onPress={() => onOpenRow?.(item.id)}
+                    className={cn(
+                      'flex-row items-center gap-3 p-3.5 active:bg-surface-subtle',
+                      index > 0 && 'border-t border-border',
+                    )}
+                  >
+                    <View className="h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-surface-tint">
+                      <Icon
+                        name={item.icon as IconName}
+                        size={20}
+                        color={colors.primary}
+                      />
+                    </View>
+                    <View className="min-w-0 flex-1">
+                      <View className="min-w-0 flex-row items-center gap-2">
+                        <VemtapText
+                          variant="labelMd"
+                          className="min-w-0 flex-1 font-sans-semibold"
+                          numberOfLines={1}
+                        >
+                          {item.label}
+                        </VemtapText>
+                        {badge ? (
+                          <View
+                            className={cn(
+                              'shrink-0 rounded-full px-2 py-0.5',
+                              badgeClass,
+                            )}
+                          >
+                            <VemtapText
+                              variant="micro"
+                              className="font-sans-semibold"
+                              numberOfLines={1}
+                            >
+                              {badge}
+                            </VemtapText>
+                          </View>
+                        ) : null}
+                      </View>
                       <VemtapText
-                        variant="labelMd"
-                        className="min-w-0 flex-1 font-sans-semibold"
+                        variant="caption"
+                        tone="secondary"
+                        className="mt-0.5"
                         numberOfLines={1}
                       >
-                        {item.label}
+                        {live?.meta ?? item.meta}
                       </VemtapText>
-                      {item.badge ? (
-                        <View
-                          className={cn(
-                            'shrink-0 rounded-full px-2 py-0.5',
-                            badgeTones[item.badge] ??
-                              'bg-surface-container text-text-secondary',
-                          )}
-                        >
-                          <VemtapText
-                            variant="micro"
-                            className="font-sans-semibold"
-                            numberOfLines={1}
-                          >
-                            {item.badge}
-                          </VemtapText>
-                        </View>
-                      ) : null}
                     </View>
-                    <VemtapText
-                      variant="caption"
-                      tone="secondary"
-                      className="mt-0.5"
-                      numberOfLines={1}
-                    >
-                      {item.meta}
-                    </VemtapText>
-                  </View>
-                  <Icon name="forward" size={18} color={colors.textTertiary} />
-                </Pressable>
-              ))}
+                    <Icon name="forward" size={18} color={colors.textTertiary} />
+                  </Pressable>
+                );
+              })}
             </SetupCard>
           </View>
         ))}
@@ -323,17 +360,13 @@ export function BusinessMoreHubScreen({
           </VemtapText>
         </Pressable>
 
-        <View className="mt-2 items-center gap-1">
-          <VemtapText variant="micro" tone="tertiary" className="text-center">
-            {copy.buildFootnote}
-          </VemtapText>
-          <View className="flex-row items-center gap-1">
-            <Icon name="lock" size={12} color={colors.textTertiary} />
+        {appVersion ? (
+          <View className="mt-2 items-center gap-1">
             <VemtapText variant="micro" tone="tertiary" className="text-center">
-              {copy.complianceFootnote}
+              {copy.buildFootnote(appVersion)}
             </VemtapText>
           </View>
-        </View>
+        ) : null}
       </BusinessScreenLayout>
     </TypeDensityProvider>
   );

@@ -11,6 +11,7 @@ import { CreateDealStep2LimitsGiftingRulesScreen } from '@features/business/scre
 import { CreateDealStep3ParticipatingBranchesScheduleScreen } from '@features/business/screens/CreateDealStep3ParticipatingBranchesScheduleScreen';
 import { CreateDealStep4ReviewLaunchScreen } from '@features/business/screens/CreateDealStep4ReviewLaunchScreen';
 import { CreateDealOfferAutoImportedScreen } from '@features/business/screens/CreateDealOfferAutoImportedScreen';
+import { reviewFixture } from './helpers/dealReviewFixture';
 
 afterEach(cleanup);
 
@@ -77,7 +78,11 @@ describe('deal step 4 — review & launch', () => {
   test('launch button fires onLaunch', async () => {
     const onLaunch = jest.fn();
     await render(
-      <CreateDealStep4ReviewLaunchScreen onBack={jest.fn()} onLaunch={onLaunch} />,
+      <CreateDealStep4ReviewLaunchScreen
+        review={reviewFixture()}
+        onBack={jest.fn()}
+        onLaunch={onLaunch}
+      />,
     );
 
     await fireEvent.press(screen.getByText(/publish deal to nearby feeds/i));
@@ -91,7 +96,11 @@ describe('deal auto-imported screen', () => {
   test('emits offer value on publish', async () => {
     const onPublish = jest.fn();
     await render(
-      <CreateDealOfferAutoImportedScreen onBack={jest.fn()} onPublish={onPublish} />,
+      <CreateDealOfferAutoImportedScreen
+        onBack={jest.fn()}
+        onPublish={onPublish}
+        initialBranchIds={['br-1']}
+      />,
     );
 
     await fireEvent.press(screen.getByText(/publish|launch|create deal/i));

@@ -4,6 +4,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { strings } from '@constants/strings';
 import { BusinessTabNavigator } from '@navigation/BusinessTabNavigator';
 import { usePosTicketStore } from '@store/posTicketStore';
+import { hubPosTiles } from '@features/business/data/businessOpsHubData';
 import {
   catalogueApiFixtures,
   fixtureMyBusiness,
@@ -63,7 +64,6 @@ void fixtureMyBusiness;
 
 const shell = strings.businessShell;
 const more = strings.businessMore;
-const ops = strings.businessMoreHubOperations;
 const posHome = strings.posHomeSalesOperations;
 
 async function press(label: string, index = 0) {
@@ -105,7 +105,7 @@ async function openOperationsHub() {
 /** ... then the POS register home. */
 async function openRegisterHome() {
   await openOperationsHub();
-  const tile = ops.posTiles.find(item => item.id === 'pos-home');
+  const tile = hubPosTiles.find(item => item.id === 'pos-home');
   if (!tile) throw new Error('No operations-hub tile with id "pos-home"');
   await press(tile.label);
   await expectText('Test Kitchen');
@@ -219,12 +219,12 @@ describe('pos surface reachability', () => {
     await openBusinessShell();
     await press(shell.tabs.orders);
     await press(
-      screen.queryByLabelText(strings.businessOrders.alertTitle)
-        ? strings.businessOrders.alertTitle
+      screen.queryByLabelText('\u2026')
+        ? '\u2026'
         : strings.businessOrders.alertTitleFor(0),
     );
     await expectText(strings.businessPos.title);
-    await press(strings.businessPos.orders[0].reference);
+    await press('#RCT-20261016-001');
     await expectText(strings.customerDisplayOrderTotal.orderLabel);
     await pressText(strings.customerDisplayOrderTotal.payCta);
     await expectText(strings.customerDisplayTapQrPay.totalDueLabel);

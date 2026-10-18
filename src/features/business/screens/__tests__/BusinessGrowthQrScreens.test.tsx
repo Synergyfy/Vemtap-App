@@ -7,18 +7,17 @@ import { BoostEngineScreen } from '@features/business/screens/BoostEngineScreen'
 import { BusinessQrScreen } from '@features/business/screens/BusinessQrScreen';
 import { LocationQrScreen } from '@features/business/screens/LocationQrScreen';
 import { BusinessDiscoveryFeedScreen } from '@features/business/screens/BusinessDiscoveryFeedScreen';
-import {
-  boostAudiences,
-  boostBudgetTiers,
-  boostRadii,
-  campaigns,
-  campaignRetention,
-  customerSegments,
-} from '@features/business/data/businessGrowthData';
+import { boostAudiences, boostRadii } from '@features/business/data/businessGrowthData';
 import { toBusinessQrView, toLocationQrView } from '@features/business/utils/qrMappers';
 import { toDiscoveryView } from '@features/business/utils/networkMappers';
 import { qrSummaryFixture } from '../../../../../__tests__/helpers/qrFixtures';
 import { discoveryFixture } from '../../../../../__tests__/helpers/networkFixtures';
+import {
+  boostEngineLiveFixture,
+  boostTiersFixture,
+  campaignCardsFixture,
+  segmentCardsFixture,
+} from '../../../../../__tests__/helpers/growthFixtures';
 
 afterEach(cleanup);
 
@@ -41,21 +40,27 @@ async function pressAndSettle(view: Awaited<ReturnType<typeof render>>, label: s
 
 describe('campaigns hub', () => {
   const copy = strings.campaignsHub;
+  const campaigns = campaignCardsFixture;
+  const playbook = { subtitle: 'Win Back 12 Lapsed Customers', body: '12 lapsed.' };
 
-  it('renders the header, live figures, every campaign and the playbook', async () => {
-    const view = await render(<CampaignsHubScreen />);
+  it('renders the header, every live campaign and the playbook', async () => {
+    const view = await render(
+      <CampaignsHubScreen campaigns={campaigns} playbook={playbook} />,
+    );
 
     expect(view.getByText(copy.headerTitle)).toBeTruthy();
     expect(view.getByText(copy.headerSubtitle)).toBeTruthy();
-    expect(view.getByText(copy.reachValue)).toBeTruthy();
-    expect(view.getByText(copy.gmvValue)).toBeTruthy();
     campaigns.forEach(campaign => {
       expect(view.getAllByText(campaign.name).length).toBeGreaterThan(0);
-      expect(view.getAllByText(campaign.offer).length).toBeGreaterThan(0);
     });
     // The playbook subtitle heads both the panel and its CTA.
-    expect(view.getAllByText(campaignRetention.subtitle).length).toBeGreaterThan(0);
-    expect(view.getByText(campaignRetention.offer)).toBeTruthy();
+    expect(view.getAllByText(playbook.subtitle).length).toBeGreaterThan(0);
+  });
+
+  it('shows no figures or playbook until they load', async () => {
+    const view = await render(<CampaignsHubScreen campaigns={[]} />);
+    expect(view.getAllByText('\u2014').length).toBeGreaterThan(0);
+    expect(view.queryByText(copy.playbookTitle)).toBeNull();
   });
 
   it('filters the campaign list and pauses a campaign', async () => {
@@ -63,6 +68,7 @@ describe('campaigns hub', () => {
     const onPauseCampaign = jest.fn();
     const view = await render(
       <CampaignsHubScreen
+        campaigns={campaigns}
         onApplyFilter={onApplyFilter}
         onPauseCampaign={onPauseCampaign}
       />,
@@ -83,6 +89,7 @@ describe('campaigns hub', () => {
     const onExport = jest.fn();
     const view = await render(
       <CampaignsHubScreen
+        campaigns={campaigns}
         onCreateCampaign={onCreateCampaign}
         onEditSetup={onEditSetup}
         onPreviewPush={onPreviewPush}
@@ -93,8 +100,9 @@ describe('campaigns hub', () => {
     await pressAndSettle(view, copy.createCta);
     expect(onCreateCampaign).toHaveBeenCalledTimes(1);
 
-    await pressFirst(view, copy.editSetupCta);
-    expect(onEditSetup).toHaveBeenCalledWith(campaigns[0].id);
+    // Only a draft can be set up further.
+    await pressFirst(view, copy.live.continueCta);
+    expect(onEditSetup).toHaveBeenCalledWith(campaigns[1].id);
 
     await pressFirst(view, copy.previewPushCta);
     expect(onPreviewPush).toHaveBeenCalledWith(campaigns[0].id);
@@ -106,92 +114,96 @@ describe('campaigns hub', () => {
 
 describe('customer segments', () => {
   const copy = strings.customerSegments;
+  const segments = segmentCardsFixture;
 
-  it('renders the scope, footfall figures and every smart segment', async () => {
-    const view = await render(<CustomerSegmentsScreen />);
-
-    expect(view.getByText(copy.headerTitle)).toBeTruthy();
-    expect(view.getByText(copy.footfallValue)).toBeTruthy();
-    expect(view.getByText(copy.scopeLabel)).toBeTruthy();
-    customerSegments.forEach(segment => {
-      expect(view.getAllByText(segment.name).length).toBeGreaterThan(0);
-      expect(view.getAllByText(segment.detail).length).toBeGreaterThan(0);
-    });
-    copy.customFilters.forEach(filter => {
-      expect(view.getByText(filter.label)).toBeTruthy();
-    });
-  });
-
-  it('changes the target district, saves a cohort and runs a segment action', async () => {
-    const onSaveCohort = jest.fn();
-    const onRunSegmentAction = jest.fn();
+  it('renders the scope, live figures and every segment', async () => {
     const view = await render(
       <CustomerSegmentsScreen
-        onSaveCohort={onSaveCohort}
-        onRunSegmentAction={onRunSegmentAction}
+        segments={segments}
+        metrics={{ footfall: '320', reach: '210' }}
+        scopeLabel="Jabi"
       />,
     );
 
-    await pressAndSettle(view, `${copy.targetDistrictLabel}: ${copy.targetDistricts[1]}`);
-    expect(view.getByText(copy.saveCohortCta)).toBeTruthy();
-
-    await pressAndSettle(view, copy.saveCohortCta);
-    expect(onSaveCohort).toHaveBeenCalledTimes(1);
-
-    await pressAndSettle(view, customerSegments[0].cta);
-    expect(onRunSegmentAction).toHaveBeenCalledWith(customerSegments[0].id);
+    expect(view.getByText(copy.headerTitle)).toBeTruthy();
+    expect(view.getByText('320')).toBeTruthy();
+    expect(view.getByText('Jabi')).toBeTruthy();
+    segments.forEach(segment => {
+      expect(view.getAllByText(segment.name).length).toBeGreaterThan(0);
+      expect(view.getAllByText(segment.detail).length).toBeGreaterThan(0);
+    });
+    expect(view.queryByText(/Wuse|Maitama|1,842/)).toBeNull();
   });
 
-  it('opens a segment and the custom filter matrix', async () => {
+  it('runs a segment action and opens a segment', async () => {
+    const onRunSegmentAction = jest.fn();
     const onOpenSegment = jest.fn();
     const onConfigureMatrix = jest.fn();
     const view = await render(
       <CustomerSegmentsScreen
+        segments={segments}
+        onRunSegmentAction={onRunSegmentAction}
         onOpenSegment={onOpenSegment}
         onConfigureMatrix={onConfigureMatrix}
       />,
     );
 
+    await pressAndSettle(view, segments[0].cta);
+    expect(onRunSegmentAction).toHaveBeenCalledWith(segments[0].id);
+
     await pressAndSettle(view, copy.customMatrixCta);
     expect(onConfigureMatrix).toHaveBeenCalledTimes(1);
 
-    await pressAndSettle(view, customerSegments[0].name);
-    expect(onOpenSegment).toHaveBeenCalledWith(customerSegments[0].id);
+    await pressAndSettle(view, segments[0].name);
+    expect(onOpenSegment).toHaveBeenCalledWith(segments[0].id);
   });
 });
 
 describe('boost engine', () => {
   const copy = strings.boostEngine;
 
-  it('renders metrics, the boosted deal, radius, audience and budget', async () => {
-    const view = await render(<BoostEngineScreen />);
+  it('renders live metrics, the boosted deal, radius, audience and budget', async () => {
+    const view = await render(
+      <BoostEngineScreen live={boostEngineLiveFixture} tiers={boostTiersFixture} />,
+    );
 
     expect(view.getByText(copy.headerTitle)).toBeTruthy();
-    expect(view.getByText(copy.activeBanner)).toBeTruthy();
-    expect(view.getByText('4.6x')).toBeTruthy();
+    expect(view.getByText('1,240')).toBeTruthy();
     boostRadii.forEach(radius => {
       expect(view.getByText(radius.title)).toBeTruthy();
     });
-    boostAudiences.forEach(audience => {
-      expect(view.getByText(audience.title)).toBeTruthy();
-    });
-    boostBudgetTiers.forEach(tier => {
-      expect(view.getByText(tier.name)).toBeTruthy();
+    boostTiersFixture.forEach(tier => {
+      expect(view.getByText(tier.label)).toBeTruthy();
     });
     expect(view.getByText(copy.investmentTitle)).toBeTruthy();
   });
 
-  it('recalculates the investment when the tier or duration changes', async () => {
-    const view = await render(<BoostEngineScreen />);
+  it('uses the API tier as the whole budget, whatever the duration', async () => {
+    const onLaunch = jest.fn();
+    const view = await render(
+      <BoostEngineScreen
+        live={boostEngineLiveFixture}
+        tiers={boostTiersFixture}
+        onLaunch={onLaunch}
+      />,
+    );
 
-    // 5,000/day x 7 days.
-    expect(view.getByText('₦35,000')).toBeTruthy();
+    // The middle tier is suggested; its amount is the total for the run.
+    expect(view.getAllByText('₦25,000').length).toBeGreaterThan(0);
 
     await pressAndSettle(view, `${copy.budgetTitle}: ${copy.durations[2]}`);
-    expect(view.getByText('₦70,000')).toBeTruthy();
+    await pressAndSettle(view, copy.launchCta.replace('{amount}', '₦25,000'));
+    expect(onLaunch).toHaveBeenLastCalledWith(
+      '₦25,000',
+      expect.objectContaining({ days: 14, total: 25_000 }),
+    );
 
-    await pressAndSettle(view, `${copy.budgetTitle}: ${boostBudgetTiers[2].name}`);
-    expect(view.getByText('₦140,000')).toBeTruthy();
+    await pressAndSettle(view, `${copy.budgetTitle}: ${boostTiersFixture[2].label}`);
+    await pressAndSettle(view, copy.launchCta.replace('{amount}', '₦50,000'));
+    expect(onLaunch).toHaveBeenLastCalledWith(
+      '₦50,000',
+      expect.objectContaining({ total: 50_000 }),
+    );
   });
 
   it('launches, changes the deal, previews and opens history', async () => {
@@ -201,6 +213,7 @@ describe('boost engine', () => {
     const onViewHistory = jest.fn();
     const view = await render(
       <BoostEngineScreen
+        live={boostEngineLiveFixture}
         onLaunch={onLaunch}
         onChangeDeal={onChangeDeal}
         onClaimDeal={onClaimDeal}
@@ -208,10 +221,11 @@ describe('boost engine', () => {
       />,
     );
 
-    await pressAndSettle(view, copy.launchCta.replace('{amount}', '₦35,000'));
+    // Default tiers mirror the API's until `/boosts/options` answers.
+    await pressAndSettle(view, copy.launchCta.replace('{amount}', '₦20,000'));
     expect(onLaunch).toHaveBeenCalledWith(
-      '₦35,000',
-      expect.objectContaining({ radiusKm: 3, days: 7, total: 35_000 }),
+      '₦20,000',
+      expect.objectContaining({ radiusKm: 3, days: 7, total: 20_000 }),
     );
 
     await pressAndSettle(view, copy.changeDealCta);
@@ -227,13 +241,7 @@ describe('boost engine', () => {
 
 describe('boost engine live audiences', () => {
   const copy = strings.boostEngine;
-  const live = {
-    metrics: [],
-    asset: { name: 'Jollof Combo', badge: 'Deal' },
-    radiusReach: {},
-    tierClaims: {},
-    preview: { name: 'Jollof Combo', branch: 'Wuse', distance: '0.4 km' },
-  };
+  const live = { ...boostEngineLiveFixture, metrics: [] };
   const audienceLabel = (title: string) => `${copy.audienceTitle}: ${title}`;
   const [regulars, competitors, walkins] = boostAudiences;
 
@@ -248,7 +256,7 @@ describe('boost engine live audiences', () => {
     const onLaunch = jest.fn();
     const view = await render(<BoostEngineScreen live={live} onLaunch={onLaunch} />);
     const launch = () =>
-      pressAndSettle(view, copy.launchCta.replace('{amount}', '₦35,000'));
+      pressAndSettle(view, copy.launchCta.replace('{amount}', '₦20,000'));
 
     await launch();
     expect(onLaunch.mock.calls[0][1].audience).toBe('');

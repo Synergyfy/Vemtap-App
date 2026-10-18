@@ -13,9 +13,10 @@ import {
 } from '@features/business/components/BusinessPrimitives';
 import { ProductStatusSnapshot } from '@features/business/components/BusinessProductContent';
 import {
-  businessMedia,
-  productIdentity,
-} from '@features/business/data/businessSetupData';
+  branchesLabel,
+  priceRangeLabel,
+  type ProductSnapshot,
+} from '@features/business/utils/productSnapshot';
 
 cssInterop(LinearGradient, { className: 'style' });
 
@@ -27,6 +28,8 @@ export interface ProductPublishedOrSavedAsDraftScreenProps {
   onViewCatalog?: () => void;
   onAddAnother?: () => void;
   onStatusChange?: (status: ProductPublishedStatus) => void;
+  /** The product that was just saved (from the setup draft). */
+  product?: ProductSnapshot;
 }
 
 export function ProductPublishedOrSavedAsDraftScreen({
@@ -34,6 +37,7 @@ export function ProductPublishedOrSavedAsDraftScreen({
   onMakeDeal,
   onViewCatalog,
   onAddAnother,
+  product,
   onStatusChange,
 }: ProductPublishedOrSavedAsDraftScreenProps) {
   const [status, setStatus] = useState<ProductPublishedStatus>('live');
@@ -99,32 +103,42 @@ export function ProductPublishedOrSavedAsDraftScreen({
 
       <View className="mt-3 gap-4">
         <ProductStatusSnapshot
-          image={businessMedia.ribeyeAlternate}
-          imageAlt="Woodfire Aged Ribeye Steak"
-          imageBadge="2 Locs"
-          name={productIdentity.name}
+          image={product?.image ? { uri: product.image } : undefined}
+          imageAlt={product?.name || 'Product photo'}
+          imageBadge={
+            product?.branchNames.length
+              ? `${product.branchNames.length} Loc${product.branchNames.length === 1 ? '' : 's'}`
+              : undefined
+          }
+          name={product?.name || 'Untitled product'}
           price={
             <VemtapText>
-              ₦12,000{' '}
-              <VemtapText className="text-caption text-text-secondary">to</VemtapText>{' '}
-              ₦19,500
+              {(product && priceRangeLabel(product)) ?? 'Price not set'}
             </VemtapText>
           }
           statusLabel={live ? 'Active in Catalog' : 'Draft Mode'}
           statusTone={live ? 'success' : 'neutral'}
-          catalogId={`ID #${productIdentity.catalogId}`}
+          catalogId={
+            product?.itemId
+              ? `ID #${product.itemId.slice(0, 8).toUpperCase()}`
+              : undefined
+          }
           footer={
             <View className="flex-row flex-wrap items-center justify-between gap-2 rounded-lg bg-surface-subtle p-2">
               <View className="flex-row items-center gap-1.5">
                 <Icon name="inventory" size={16} color={colors.secondary} />
                 <VemtapText variant="labelSm" tone="secondary">
-                  48 units in stock
+                  {product?.stock != null
+                    ? `${product.stock} unit${product.stock === 1 ? '' : 's'} in stock`
+                    : product?.inStock === false
+                      ? 'Out of stock'
+                      : 'In stock'}
                 </VemtapText>
               </View>
               <View className="flex-row items-center gap-1.5">
                 <Icon name="storefront" size={16} color={colors.secondary} />
-                <VemtapText variant="labelSm" tone="secondary">
-                  Victoria Island & Lekki 1
+                <VemtapText variant="labelSm" tone="secondary" numberOfLines={1}>
+                  {product ? branchesLabel(product) : 'No branch selected'}
                 </VemtapText>
               </View>
             </View>
@@ -166,21 +180,9 @@ export function ProductPublishedOrSavedAsDraftScreen({
               Boost Foot Traffic with a VEMTAP Deal 🔥
             </VemtapText>
             <VemtapText tone="secondary">
-              Transform this Ribeye Steak into a featured promotional voucher. Photos,
-              pricing, and branches will pre-fill into Deal Studio automatically.
+              Turn {product?.name || 'this product'} into a featured promotional voucher.
+              Photos, pricing, and branches pre-fill into Deal Studio automatically.
             </VemtapText>
-            <View className="flex-row items-center gap-2 rounded-lg bg-surface/90 p-2 shadow-sm">
-              <View className="h-8 w-8 shrink-0 items-center justify-center rounded-full bg-badge-discount-bg">
-                <Icon name="trendingUp" size={18} color={colors.badgeDiscountText} />
-              </View>
-              <VemtapText variant="labelSm" className="min-w-0 flex-1">
-                Deals get{' '}
-                <VemtapText className="font-sans-bold text-primary">
-                  3.8x more views
-                </VemtapText>{' '}
-                on the Hyperlocal Map & Deals radar.
-              </VemtapText>
-            </View>
             <Button
               label="Make as a Deal 🔥"
               labelVariant="labelMd"

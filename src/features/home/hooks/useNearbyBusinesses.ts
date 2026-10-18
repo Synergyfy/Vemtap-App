@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { dealsApi, type PublicBusiness } from '@api/dealsApi';
 import { useLocationStore } from '@store/locationStore';
 import { discoveryOrigin } from '@utils/geo';
-import type { NearbyBusiness } from '@features/home/data/homeFeed';
+import type { NearbyBusiness } from '@features/home/types/feed';
 import { strings } from '@constants/strings';
 
 /**

@@ -22,8 +22,6 @@ import {
 
 const copy = strings.campaignWizard.customSegment;
 
-const SIZING = { total: 184, push: 168, dm: 142 } as const;
-
 /** One choice under a criterion (a deal, a dish, a branch…). */
 export interface CriterionOption {
   id: string;
@@ -47,13 +45,13 @@ export interface CreateCustomSegmentScreenProps {
   onClose: () => void;
   onSave?: (segment: CustomSegmentSelection) => void;
   onCancel?: () => void;
-  /** Starting values; the design's sample segment when absent. */
+  /** Starting values; the design's default criteria when absent. */
   initialName?: string;
   initialMemo?: string;
   initialSelection?: CustomSegmentCriteriaSelection;
   /** Criteria to offer; every designed criterion when absent. */
   criterionIds?: readonly string[];
-  /** Live picker options per criterion, replacing the design's samples. */
+  /** Live picker options per criterion. */
   pickerOptions?: Partial<Record<string, readonly CriterionOption[]>>;
   /**
    * Live wording per criterion: a body where the design describes data VEMTAP
@@ -61,9 +59,8 @@ export interface CreateCustomSegmentScreenProps {
    * without one (its options come from `pickerOptions`).
    */
   criterionOverrides?: Partial<Record<string, { body?: string; pickerLabel?: string }>>;
-  /** Live sizing; the design's estimate when absent and not pending. */
+  /** Live sizing; absent until the count arrives. */
   sizing?: CustomSegmentSizing;
-  sizingPending?: boolean;
   sizingNote?: string;
   businessName?: string;
   onSelectionChange?: (selection: CustomSegmentCriteriaSelection) => void;
@@ -102,9 +99,8 @@ export function CreateCustomSegmentScreen({
   pickerOptions,
   criterionOverrides,
   sizing,
-  sizingPending = false,
   sizingNote = copy.sizingNote,
-  businessName = strings.campaignWizard.segmentActions.business,
+  businessName = '',
   onSelectionChange,
   isSaving = false,
   error,
@@ -134,12 +130,11 @@ export function CreateCustomSegmentScreen({
   }
 
   // Prototype only: every active criterion widens the pool by ~23% of base.
-  const estimate = Math.min(400, Math.round(SIZING.total * (1 + criteria.length * 0.23)));
-  const sized = sizing?.total ?? estimate;
-  const pushSized = sizing?.push ?? Math.round(estimate * 0.91);
-  const dmSized = sizing?.dm ?? Math.round(estimate * 0.77);
-  const sizeLabel = sizingPending && !sizing ? '\u2026' : String(sized);
-  const ratio = (part: number) => (sized > 0 ? Math.round((part / sized) * 100) : 0);
+  const sizeLabel = sizing ? String(sizing.total) : '\u2026';
+  const share = (part: number | undefined) =>
+    sizing && part !== undefined
+      ? `${part} (${sizing.total > 0 ? Math.round((part / sizing.total) * 100) : 0}%)`
+      : '\u2026';
   const canSave = name.trim().length > 0 && !isSaving;
 
   return (
@@ -231,7 +226,7 @@ export function CreateCustomSegmentScreen({
               className="font-sans-semibold"
               numberOfLines={1}
             >
-              {`${pushSized} (${ratio(pushSized)}%)`}
+              {share(sizing?.push)}
             </VemtapText>
           </View>
           <View className="min-w-0 flex-1 gap-0.5 rounded-lg bg-surface p-2.5">
@@ -246,7 +241,7 @@ export function CreateCustomSegmentScreen({
               className="font-sans-semibold"
               numberOfLines={1}
             >
-              {`${dmSized} (${ratio(dmSized)}%)`}
+              {share(sizing?.dm)}
             </VemtapText>
           </View>
         </View>
@@ -341,7 +336,7 @@ export function CreateCustomSegmentScreen({
                 const override = criterionOverrides?.[criterion.id];
                 const pickerLabel =
                   override?.pickerLabel ??
-                  ('picker' in criterion ? criterion.pickerLabel : undefined);
+                  ('pickerLabel' in criterion ? criterion.pickerLabel : undefined);
                 return (
                   <View key={criterion.id} className="gap-1.5">
                     <BusinessCheckRow

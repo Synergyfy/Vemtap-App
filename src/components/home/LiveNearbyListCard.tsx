@@ -5,7 +5,7 @@ import {
   useDealReaction,
   useDealSave,
 } from '@features/deals/hooks/useDealEngagementActions';
-import type { NearbyDeal } from '@features/home/data/homeFeed';
+import type { NearbyDeal } from '@features/home/types/feed';
 
 /**
  * A Home list row wired to the real engagement endpoints, shared by Home's

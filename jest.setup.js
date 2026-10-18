@@ -413,6 +413,7 @@ jest.mock('expo-web-browser', () => ({
 }));
 
 jest.mock('expo-location', () => ({
+  reverseGeocodeAsync: jest.fn(async () => []),
   requestForegroundPermissionsAsync: jest.fn(async () => ({
     status: 'granted',
     granted: true,

@@ -24,11 +24,10 @@ afterEach(cleanup);
 const copy = strings.locationsBranches;
 
 describe('operating-view scope trigger', () => {
-  it('shows the active branch as the current scope', async () => {
-    const view = await render(<LocationsBranchesScreen />);
+  it('has no scope trigger until there are branches to pick from', async () => {
+    const view = await render(<LocationsBranchesScreen branches={[]} />);
 
-    // The prototype list opens on its first branch, so that is the scope.
-    expect(view.getByLabelText(copy.branches[0].name)).toBeTruthy();
+    expect(view.queryByText(copy.operatingView)).toBeNull();
   });
 
   it('shows the live branch name once real data is supplied', async () => {

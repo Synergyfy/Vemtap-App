@@ -1,6 +1,6 @@
 import { formatCurrency } from '@utils/formatters';
 import { toAmount } from '@features/deals/utils/offerMapper';
-import type { PopularProduct } from '@features/home/data/homeFeed';
+import type { PopularProduct } from '@features/home/types/feed';
 
 /**
  * Catalogue/search product → the Home product card view model.

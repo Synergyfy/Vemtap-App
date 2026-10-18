@@ -32,7 +32,12 @@ describe('business intro, profile and location screens', () => {
 
   it('renders the basic information step with live preview', async () => {
     const onContinue = jest.fn();
-    const view = await render(<BusinessProfileBasicInfoScreen onContinue={onContinue} />);
+    const view = await render(
+      <BusinessProfileBasicInfoScreen
+        onContinue={onContinue}
+        initialValue={{ name: 'Aurora Grill' }}
+      />,
+    );
 
     expect(view.getByText(businessProfileCopy.basicInfo.title)).toBeTruthy();
     // Nothing is pre-selected: the old defaults were invented categories with no
@@ -170,12 +175,32 @@ describe('business intro, profile and location screens', () => {
   });
 
   it('renders the contact channels step with presence rows', async () => {
-    const view = await render(<BusinessProfileContactChannelsScreen />);
+    const view = await render(
+      <BusinessProfileContactChannelsScreen
+        initialValue={{
+          presences: [
+            {
+              id: 'instagram',
+              label: 'Instagram',
+              handle: '@aurora_grill',
+              icon: 'camera',
+              iconTone: 'neutral',
+              verified: true,
+            },
+          ],
+        }}
+      />,
+    );
 
     expect(view.getByText(businessProfileCopy.contactChannels.title)).toBeTruthy();
-    expect(view.getByText('@urbangrill_lagos')).toBeTruthy();
-    expect(view.getByText('wa.me/2348035559821')).toBeTruthy();
+    expect(view.getByText('@aurora_grill')).toBeTruthy();
     expect(view.getByText('Complete Profile Setup')).toBeTruthy();
+  });
+
+  it('starts the contact step blank instead of with sample details', async () => {
+    const view = await render(<BusinessProfileContactChannelsScreen />);
+    expect(view.queryByDisplayValue(/urbangrill|803 555/)).toBeNull();
+    expect(view.queryByText(/urbangrill/)).toBeNull();
   });
 
   it('renders the location pin screen with resolved territory', async () => {
@@ -185,9 +210,16 @@ describe('business intro, profile and location screens', () => {
     );
 
     expect(view.getByText(businessLocationCopy.whereLocated.title)).toBeTruthy();
-    expect(view.getByText('Wuse Commercial Hub Cluster #04')).toBeTruthy();
-    expect(view.getByText('Wuse 2')).toBeTruthy();
+    // No address or territory is invented before the owner gives one.
+    expect(view.queryByText(/Wuse|Cluster #04|Adetokunbo/)).toBeNull();
+    expect(view.getAllByText('\u2014').length).toBeGreaterThan(0);
 
+    await act(async () => {
+      fireEvent.changeText(
+        view.getByLabelText(businessLocationCopy.whereLocated.streetLabel),
+        '12 Jabi Lake Road',
+      );
+    });
     await act(async () => {
       fireEvent.press(view.getByText('Continue to Branch Details'));
     });
@@ -195,11 +227,29 @@ describe('business intro, profile and location screens', () => {
   });
 
   it('renders the multi-branch list and collapses to the primary branch', async () => {
-    const view = await render(<BusinessLocationsMultiBranchScreen />);
+    const branch = (id: string, name: string, isPrimary: boolean) => ({
+      id,
+      name,
+      businessLine: 'Aurora Grill',
+      imageUri: '',
+      isPrimary,
+      address: '1 Main St',
+      phone: '',
+      openStatus: 'Active',
+      hours: '',
+    });
+    const view = await render(
+      <BusinessLocationsMultiBranchScreen
+        branches={[
+          branch('b1', 'Main Branch', true),
+          branch('b2', 'Second Branch', false),
+        ]}
+      />,
+    );
 
     expect(view.getByText(businessLocationCopy.locations.title)).toBeTruthy();
-    expect(view.getByText('1 — Wuse Branch')).toBeTruthy();
-    expect(view.getByText('2 — Garki Branch')).toBeTruthy();
+    expect(view.getByText('Main Branch')).toBeTruthy();
+    expect(view.getByText('Second Branch')).toBeTruthy();
 
     await act(async () => {
       fireEvent(
@@ -208,30 +258,51 @@ describe('business intro, profile and location screens', () => {
         false,
       );
     });
-    expect(view.queryByText('2 — Garki Branch')).toBeNull();
+    expect(view.queryByText('Second Branch')).toBeNull();
   });
 
   it('renders the add branch form with inherited identity and lead fields', async () => {
     const onSave = jest.fn();
-    const view = await render(<AddBranchLocationScreen onSave={onSave} />);
+    const view = await render(
+      <AddBranchLocationScreen onSave={onSave} initialValue={{ name: 'Aurora Garki' }} />,
+    );
 
     expect(view.getByText(businessLocationCopy.addBranch.inheritTitle)).toBeTruthy();
-    expect(view.getByDisplayValue('Garki District Flagship')).toBeTruthy();
-    expect(view.getByText('9.0348° N, 7.4891° E')).toBeTruthy();
+    expect(view.getByDisplayValue('Aurora Garki')).toBeTruthy();
+    expect(view.getByText(businessLocationCopy.addBranch.notPinned)).toBeTruthy();
 
     await act(async () => {
       fireEvent.press(view.getByText('Save & Add Branch Location'));
     });
     expect(onSave).toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'Garki District Flagship' }),
+      expect.objectContaining({ name: 'Aurora Garki' }),
     );
   });
 
   it('renders the catalog step and removes an item', async () => {
-    const view = await render(<AddProductsOrServicesScreen />);
+    const item = (id: string, title: string, kind: 'product' | 'service') => ({
+      id,
+      kind,
+      category: 'Food & Dining',
+      title,
+      priceSummary: '₦4,000',
+      availability: 'Available at 1/1 branches',
+      availabilityIcon: 'storefront' as const,
+      availabilityTone: 'success' as const,
+      meta: '',
+    });
+    const view = await render(
+      <AddProductsOrServicesScreen
+        items={[
+          item('jollof', 'Jollof Combo', 'product'),
+          item('truffle-burger', 'Artisanal Prime Truffle Burger', 'product'),
+          item('tasting', 'Chef Tasting Table', 'service'),
+        ]}
+      />,
+    );
 
-    expect(view.getByText('Woodfire Aged Ribeye Steak')).toBeTruthy();
-    expect(view.getByText('Executive Table Reservation & Tasting')).toBeTruthy();
+    expect(view.getByText('Jollof Combo')).toBeTruthy();
+    expect(view.getByText('Chef Tasting Table')).toBeTruthy();
     expect(view.getByLabelText('Filter')).toBeTruthy();
 
     await act(async () => {
@@ -261,7 +332,14 @@ describe('business intro, profile and location screens', () => {
   it('blocks Contact Channels on an invalid email and names the requirement', async () => {
     const onComplete = jest.fn();
     const view = await render(
-      <BusinessProfileContactChannelsScreen onComplete={onComplete} />,
+      <BusinessProfileContactChannelsScreen
+        onComplete={onComplete}
+        initialValue={{
+          phone: '803 555 9821',
+          email: 'hello@aurora.test',
+          website: 'https://aurora.test',
+        }}
+      />,
     );
 
     await act(async () => {
@@ -283,7 +361,14 @@ describe('business intro, profile and location screens', () => {
   it('blocks Contact Channels with a missing phone number', async () => {
     const onComplete = jest.fn();
     const view = await render(
-      <BusinessProfileContactChannelsScreen onComplete={onComplete} />,
+      <BusinessProfileContactChannelsScreen
+        onComplete={onComplete}
+        initialValue={{
+          phone: '803 555 9821',
+          email: 'hello@aurora.test',
+          website: 'https://aurora.test',
+        }}
+      />,
     );
 
     await act(async () => {
@@ -304,12 +389,19 @@ describe('business intro, profile and location screens', () => {
   it('re-enables the Contact CTA as soon as the last field is valid, without blurring', async () => {
     const onComplete = jest.fn();
     const view = await render(
-      <BusinessProfileContactChannelsScreen onComplete={onComplete} />,
+      <BusinessProfileContactChannelsScreen
+        onComplete={onComplete}
+        initialValue={{
+          phone: '803 555 9821',
+          email: 'hello@aurora.test',
+          website: 'https://aurora.test',
+        }}
+      />,
     );
     const cta = () => view.getByLabelText(businessProfileCopy.contactChannels.complete);
 
     await act(async () => {
-      fireEvent.changeText(view.getByDisplayValue('hello@urbangrill.ng'), '');
+      fireEvent.changeText(view.getByDisplayValue('hello@aurora.test'), '');
     });
     expect(cta().props.accessibilityState.disabled).toBe(true);
     expect(

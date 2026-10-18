@@ -22,45 +22,13 @@ import type { SegmentDetailsView } from '@features/business/utils/segmentMappers
 
 const copy = strings.campaignWizard.segmentDetails;
 
-const TOTAL_DINERS = 294;
-const TOTAL_SPEND = 3_280_000;
-
-function naira(value: number): string {
-  return `\u20a6${value.toLocaleString('en-NG')}`;
-}
-
-/** The design's sample segment, shown when no live segment is passed. */
-const prototypeView: SegmentDetailsView = {
-  id: 'returning-customers',
-  name: copy.title,
-  updated: copy.updated,
-  hero: `${TOTAL_DINERS} Diners`,
-  badge: copy.badge,
-  body: copy.body.replace('{business}', strings.campaignWizard.segmentActions.business),
-  tags: copy.tags,
-  spend: naira(TOTAL_SPEND),
-  spendDelta: copy.spendDelta,
-  aov: copy.aovValue,
-  aovDelta: copy.aovDelta,
-  aovNote: copy.aovNote,
-  frequency: copy.frequencyValue,
-  frequencyNote: copy.frequencyNote,
-  branchesMeta: copy.branchesMeta,
-  branches: copy.branches,
-  channels: copy.channels,
-  privacyTitle: copy.privacyTitle,
-  favourites: copy.favorites,
-  sampleMeta: copy.sampleMeta,
-  patrons: copy.patrons,
-};
-
 export interface SegmentAudienceDetailsScreenProps {
   onClose: () => void;
   onUseSegment?: (segmentId: string) => void;
   onEditRules?: () => void;
   onOpenCustomer?: (customerId: string) => void;
   onOpenCrm?: () => void;
-  /** The live segment; the design's sample is shown when absent. */
+  /** The live segment; absent until it loads. */
   details?: SegmentDetailsView;
   isLoading?: boolean;
   /** Shown in place of the figures when the segment fails to load. */
@@ -86,8 +54,8 @@ export function SegmentAudienceDetailsScreen({
   error,
   onRetry,
 }: SegmentAudienceDetailsScreenProps) {
-  const view = details ?? prototypeView;
-  const ready = !isLoading && !error;
+  const view = details;
+  const ready = !isLoading && !error && view !== undefined;
   return (
     <BusinessScreenLayout
       header={{
@@ -107,7 +75,7 @@ export function SegmentAudienceDetailsScreen({
             className="min-h-[52px] rounded-xl"
             leftIcon={<Icon name="bolt" size={18} color={colors.surface} />}
             disabled={!ready}
-            onPress={() => onUseSegment?.(view.id)}
+            onPress={() => view && onUseSegment?.(view.id)}
           />
           <TextActionButton
             label={copy.editCta}
@@ -130,13 +98,13 @@ export function SegmentAudienceDetailsScreen({
           </VemtapText>
         </View>
         <VemtapText variant="micro" className="shrink-0 text-primary" numberOfLines={1}>
-          {view.updated}
+          {view?.updated ?? ''}
         </VemtapText>
       </View>
 
-      {isLoading ? <LoadingState /> : null}
+      {isLoading || (!view && !error) ? <LoadingState /> : null}
       {!isLoading && error ? <ErrorState description={error} onRetry={onRetry} /> : null}
-      {ready ? (
+      {!isLoading && !error && view ? (
         <>
           <View className="gap-2">
             <VemtapText

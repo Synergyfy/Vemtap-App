@@ -1,6 +1,5 @@
 import { useCallback, useMemo } from 'react';
 import { useAuthStore } from '@store/authStore';
-import { strings } from '@constants/strings';
 import {
   toBranchList,
   useMyBusiness,
@@ -8,7 +7,7 @@ import {
 import type { BusinessBranch } from '@features/business/components/BusinessBranchSwitcher';
 
 export interface ActiveBranchState {
-  /** Live branches when the API answered, designed list while offline. */
+  /** The business's own branches; empty until `my-business` answers. */
   branches: readonly BusinessBranch[];
   activeBranchId: string | null;
   setActiveBranch: (branchId: string) => void;
@@ -28,7 +27,8 @@ export function useActiveBranch(): ActiveBranchState {
 
   const liveBranches = useMemo(() => toBranchList(myBusiness.data), [myBusiness.data]);
   const isLive = liveBranches.length > 0;
-  const branches = isLive ? liveBranches : strings.businessBranchSwitcher.branches;
+  // Never sample branches: their ids would be sent to branch-scoped APIs.
+  const branches = liveBranches;
 
   const activeBranchId = useMemo(() => {
     if (storedBranchId && branches.some(branch => branch.id === storedBranchId)) {

@@ -21,7 +21,7 @@ import { EnrollmentPrompt } from '@components/home/EnrollmentPrompt';
 import { colors } from '@theme/colors';
 import { navbarBottomShadow } from '@theme/shadows';
 import { FeaturedDealsCard } from '@features/home/components/FeaturedDealsCard';
-import { type FeaturedListing } from '@features/home/data/featuredDeals';
+import { type FeaturedListing } from '@features/home/types/featuredDeals';
 import { mapOfferToFeaturedListing } from '@features/home/utils/homeOfferMapper';
 import { usePublicOffersFeed } from '@features/deals/hooks/usePublicOffers';
 import { useSponsoredOffers } from '@features/deals/hooks/useSponsoredOffers';

@@ -3,7 +3,7 @@ import { Image, Pressable, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { VemtapText } from '@components/ui/Text';
 import { DealEngagementRow } from '@components/shared/DealEngagementRow';
-import type { TrendingDeal } from '@features/home/data/homeFeed';
+import type { TrendingDeal } from '@features/home/types/feed';
 
 cssInterop(View, { className: 'style' });
 cssInterop(Pressable, { className: 'style' });

@@ -24,10 +24,6 @@ import {
   BusinessSegmentTabs,
   BusinessSheetActionRow,
 } from '@features/business/components/BusinessOpsPrimitives';
-import {
-  businessOpsImageById,
-  businessOpsMedia,
-} from '@features/business/data/businessOpsImages';
 import { EmptyState } from '@components/shared/EmptyState';
 import { LoadingState } from '@components/shared/LoadingState';
 import type { DealTab } from '@features/business/utils/dealPresentation';
@@ -53,7 +49,6 @@ export interface CentralDealRow {
   branches: string;
   status: string;
   schedule: string;
-  branches2?: string;
   logistics: string;
   claims: number | string;
   redeemed: number | string;
@@ -92,14 +87,16 @@ export interface CentralDealsManagementScreenProps {
   onDealActions?: (dealId: string) => void;
   onViewLedger?: () => void;
   onOpenDeal?: (dealId: string) => void;
-  /** Optional live deals from API. When provided, renders live data instead of prototype copy. */
-  deals?: CentralDealRow[];
+  /** The business's deals. */
+  deals: CentralDealRow[];
   /** Live branch scope: `all` first, then one option per branch. */
   scopeOptions?: CentralDealsScopeOption[];
   /** Controlled scope value; omit to let the picker own it. */
   scope?: string;
   /** Live 30-day net revenue for the commission card, already formatted. */
   netRevenue?: string;
+  /** Today's pulse from `/catalogue/offers/summary`, already formatted. */
+  pulse?: { activeDeals: string; claimsToday: string; redeemedToday: string };
   isLoading?: boolean;
   isError?: boolean;
   onRetry?: () => void;
@@ -108,7 +105,7 @@ export interface CentralDealsManagementScreenProps {
 
 interface DealCardProps {
   deal: CentralDealRow;
-  imageUri: string;
+  imageUri?: string;
   imageAlt: string;
   layout: CentralDealsLayout;
   onBoost?: () => void;
@@ -179,11 +176,17 @@ function DealCard({
           onPress={onOpen}
           className="relative h-40 w-full bg-surface-container-high"
         >
-          <BusinessProductImage
-            source={{ uri: imageUri }}
-            alt={imageAlt}
-            className="h-full w-full"
-          />
+          {imageUri ? (
+            <BusinessProductImage
+              source={{ uri: imageUri }}
+              alt={imageAlt}
+              className="h-full w-full"
+            />
+          ) : (
+            <View className="h-full w-full items-center justify-center">
+              <Icon name="localOffer" size={28} color={colors.textTertiary} />
+            </View>
+          )}
           <LinearGradient
             colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.45)']}
             locations={[0.4, 1]}
@@ -299,11 +302,17 @@ function DealCard({
     <View className="gap-3 rounded-card bg-surface p-3 shadow-sm">
       <View className="flex-row gap-3">
         <View className="relative h-24 w-24 shrink-0 overflow-hidden rounded-card bg-surface-container shadow-sm">
-          <BusinessProductImage
-            source={{ uri: imageUri }}
-            alt={imageAlt}
-            className="h-full w-full"
-          />
+          {imageUri ? (
+            <BusinessProductImage
+              source={{ uri: imageUri }}
+              alt={imageAlt}
+              className="h-full w-full"
+            />
+          ) : (
+            <View className="h-full w-full items-center justify-center">
+              <Icon name="localOffer" size={28} color={colors.textTertiary} />
+            </View>
+          )}
           <View className="absolute left-1.5 top-1.5 rounded-full bg-badge-discount-bg px-1.5 py-0.5">
             <VemtapText
               variant="micro"
@@ -407,6 +416,7 @@ export function CentralDealsManagementScreen({
   scopeOptions,
   scope: controlledScope,
   netRevenue,
+  pulse,
   isLoading = false,
   isError = false,
   onRetry,
@@ -416,23 +426,22 @@ export function CentralDealsManagementScreen({
   const [ownScope, setOwnScope] = useState('wuse');
   const scope = controlledScope ?? ownScope;
   const [sheetDeal, setSheetDeal] = useState<string | null>(null);
-  // Live rows bucket into tabs; the prototype keeps its designed counts and list.
-  const isLive = Boolean(deals);
+  // Rows bucket into tabs.
   const liveCounts = DEAL_TABS.reduce<Record<DealTab, number>>(
     (counts, key) => ({
       ...counts,
-      [key]: (deals ?? []).filter(deal => deal.tab === key).length,
+      [key]: deals.filter(deal => deal.tab === key).length,
     }),
     { active: 0, scheduled: 0, expired: 0, drafts: 0 },
   );
   const tabs = copy.tabs.map(entry => ({
     key: entry.key,
     label: entry.label,
-    count: isLive ? liveCounts[entry.key] : entry.count,
+    count: liveCounts[entry.key],
   }));
-  const pickerOptions: CentralDealsScopeOption[] =
-    scopeOptions ??
-    copy.branches2.map(option => ({ label: option.label, value: option.value }));
+  const pickerOptions: CentralDealsScopeOption[] = scopeOptions ?? [
+    { label: copy.allLocations, value: 'all' },
+  ];
 
   const isDiscovery = layout === 'discovery';
   const isCompact = layout === 'compact';
@@ -442,7 +451,7 @@ export function CentralDealsManagementScreen({
         title:
           pickerOptions.find(option => option.value === scope)?.label ??
           pickerOptions[0]?.label ??
-          copy.branches2[1].label,
+          copy.allLocations,
         eyebrow: copy.branchSelector,
         centerTitle: false,
         titleVariant: 'labelMd' as const,
@@ -512,7 +521,7 @@ export function CentralDealsManagementScreen({
     >
       <View className="z-10 flex-row items-center justify-between gap-2">
         <BusinessScopePicker
-          label={pickerOptions[0]?.label ?? copy.branches2[1].label}
+          label={pickerOptions[0]?.label ?? copy.allLocations}
           value={scope}
           options={pickerOptions}
           onChange={value => {
@@ -593,7 +602,7 @@ export function CentralDealsManagementScreen({
         />
       </View>
 
-      {isDiscovery ? (
+      {isDiscovery && pulse ? (
         <View className="mt-3 gap-3 rounded-card-lg bg-surface-container p-4">
           <View className="flex-row items-center justify-between gap-2">
             <View className="min-w-0 flex-1 flex-row items-center gap-1.5">
@@ -609,7 +618,11 @@ export function CentralDealsManagementScreen({
             <BusinessStatusPill label={copy.pulseSynced} tone="neutral" />
           </View>
           <View className="flex-row gap-2">
-            {copy.pulseStats.map((stat, index) => (
+            {[
+              { label: copy.pulseLabels.activeDeals, value: pulse.activeDeals },
+              { label: copy.pulseLabels.claimsToday, value: pulse.claimsToday },
+              { label: copy.pulseLabels.redeemedToday, value: pulse.redeemedToday },
+            ].map((stat, index) => (
               <View key={stat.label} className="min-w-0 flex-1">
                 <VemtapText
                   variant="headingLg"
@@ -628,17 +641,12 @@ export function CentralDealsManagementScreen({
               </View>
             ))}
           </View>
-          <BusinessProgressMeter
-            label={copy.pulseProgressLabel}
-            value={copy.pulseProgressDelta}
-            percent={76}
-          />
         </View>
       ) : null}
 
-      {isLive && isLoading && !deals?.length ? (
+      {isLoading && !deals.length ? (
         <LoadingState className="mt-6" />
-      ) : isLive && isError && !deals?.length ? (
+      ) : isError && !deals.length ? (
         <EmptyState
           title={copy.loadError}
           actionLabel={copy.retry}
@@ -648,10 +656,8 @@ export function CentralDealsManagementScreen({
       ) : (
         <View className="mt-3 gap-3">
           {(() => {
-            const sourceDeals: CentralDealRow[] = isLive
-              ? (deals ?? []).filter(deal => deal.tab === tab)
-              : [...copy.variants];
-            if (isLive && !sourceDeals.length) {
+            const sourceDeals: CentralDealRow[] = deals.filter(deal => deal.tab === tab);
+            if (!sourceDeals.length) {
               return (
                 <EmptyState
                   title={copy.emptyByTab[tab].title}
@@ -663,15 +669,14 @@ export function CentralDealsManagementScreen({
               );
             }
             return sourceDeals.map(deal => {
-              const image =
-                deal.image ?? businessOpsImageById[deal.id] ?? businessOpsMedia.dealLunch;
+              const { image } = deal;
               const actionId = deal.dealGroupId ?? deal.id;
               return (
                 <DealCard
                   key={deal.id}
                   deal={deal}
-                  imageUri={image.uri}
-                  imageAlt={image.alt}
+                  imageUri={image?.uri}
+                  imageAlt={image?.alt ?? deal.title}
                   layout={layout}
                   onBoost={() => onBoostDeal?.(actionId)}
                   onEdit={() => onEditDeal?.(actionId)}
@@ -694,7 +699,7 @@ export function CentralDealsManagementScreen({
         >
           <View className="flex-row items-center justify-between gap-2">
             <VemtapText variant="headingLg" className="font-sans-bold">
-              {copy.netRevenue}
+              {netRevenue ?? '\u2014'}
             </VemtapText>
             <BusinessStatusPill label={copy.zeroCommission} tone="success" />
           </View>
@@ -749,7 +754,7 @@ export function CentralDealsManagementScreen({
               {copy.netRevenueEyebrow}
             </VemtapText>
             <VemtapText variant="headingLg" className="font-sans-bold" numberOfLines={1}>
-              {netRevenue ?? copy.netRevenue}
+              {netRevenue ?? '\u2014'}
             </VemtapText>
             {netRevenue ? (
               <VemtapText variant="caption" tone="secondary">

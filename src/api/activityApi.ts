@@ -52,6 +52,22 @@ export const activitySummarySchema = z.object({
 });
 export type ActivitySummary = z.infer<typeof activitySummarySchema>;
 
+/** The customer side of this account, shown before an owner switches modes. */
+export const switchPreviewSchema = z.object({
+  activeClaims: z.number().catch(0),
+  savedPlaces: z.number().catch(0),
+  savedDeals: z.number().catch(0),
+  latestClaim: z
+    .object({
+      offerId: z.string().nullable(),
+      title: z.string().nullable(),
+      businessName: z.string().nullable(),
+    })
+    .nullable()
+    .catch(null),
+});
+export type SwitchPreview = z.infer<typeof switchPreviewSchema>;
+
 export const activityApi = {
   async list(
     query: { kind?: ActivityFilter; from?: string; page?: number; limit?: number } = {},
@@ -60,6 +76,13 @@ export const activityApi = {
     return requestValidated(
       { method: 'GET', url: '/me/activity', params: query, ...options },
       activityPageSchema,
+    );
+  },
+
+  async switchPreview(options: ApiRequestOptions = {}): Promise<SwitchPreview> {
+    return requestValidated(
+      { method: 'GET', url: '/me/activity/switch-preview', ...options },
+      switchPreviewSchema,
     );
   },
 

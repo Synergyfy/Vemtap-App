@@ -12,17 +12,11 @@ import {
   BusinessProgress,
   BusinessScreenLayout,
   BusinessSectionHeading,
-  BusinessSelectField,
   BusinessStatusPill,
   BusinessSwitchRow,
   BusinessTextArea,
   SetupCard,
 } from '@features/business/components/BusinessPrimitives';
-import {
-  businessMedia,
-  productBranches,
-  productIdentity,
-} from '@features/business/data/businessSetupData';
 import { LoadingSkeletonList } from '@components/shared/LoadingState';
 import { useBusinessBranches } from '@features/business/hooks/useCatalogueMutations';
 
@@ -40,7 +34,11 @@ export interface AddProductLocationPricingScreenProps {
   onSave?: (value: ProductLocationPricingValue) => void;
   onDiscard?: () => void;
   onChangePhoto?: () => void;
-  onSelectCategory?: () => void;
+  /** Values already in the draft (`catalogueDraftStore`). */
+  initialValue?: Partial<ProductLocationPricingValue>;
+  /** The product's cover photo, once uploaded. */
+  image?: string;
+  uploadingPhoto?: boolean;
 }
 
 export function AddProductLocationPricingScreen({
@@ -48,29 +46,28 @@ export function AddProductLocationPricingScreen({
   onSave,
   onDiscard,
   onChangePhoto,
-  onSelectCategory,
+  initialValue,
+  image,
+  uploadingPhoto = false,
 }: AddProductLocationPricingScreenProps) {
-  const [productName, setProductName] = useState<string>(productIdentity.name);
-  const [category, setCategory] = useState<string>(productIdentity.category);
-  const [description, setDescription] = useState<string>(
-    productIdentity.locationDescription,
+  const [productName, setProductName] = useState<string>(initialValue?.productName ?? '');
+  const [category, setCategory] = useState<string>(initialValue?.category ?? '');
+  const [description, setDescription] = useState<string>(initialValue?.description ?? '');
+  const [selectedOverride, setSelectedOverride] = useState<string[] | null>(
+    initialValue?.selectedBranchIds?.length ? initialValue.selectedBranchIds : null,
   );
-  const [selectedOverride, setSelectedOverride] = useState<string[] | null>(null);
-  const [pricingMode, setPricingMode] = useState<'uniform' | 'branch'>('branch');
-  const [inStock, setInStock] = useState(true);
+  const [pricingMode, setPricingMode] = useState<'uniform' | 'branch'>(
+    initialValue?.pricingMode ?? 'branch',
+  );
+  const [inStock, setInStock] = useState(initialValue?.inStock ?? true);
 
   // Live branches only: the picker shows a loader until they arrive, so a tap
   // or "continue" can never submit a placeholder id the API does not know.
   // The first two branches are preselected until the owner overrides it.
   const branchesQuery = useBusinessBranches();
-  const availableBranches: ReadonlyArray<{
-    id: string;
-    name: string;
-    address?: string | null;
-  }> = branchesQuery.data ?? productBranches;
   const defaultBranchIds = useMemo<string[]>(
-    () => availableBranches.slice(0, 2).map(branch => branch.id),
-    [availableBranches],
+    () => (branchesQuery.data ?? []).slice(0, 2).map(branch => branch.id),
+    [branchesQuery.data],
   );
   const selectedBranchIds = selectedOverride ?? defaultBranchIds;
   const shownBranches = (branchesQuery.data ?? []).map(branch => ({
@@ -145,30 +142,32 @@ export function AddProductLocationPricingScreen({
           </VemtapText>
         </View>
         <View className="flex-row items-center gap-4 rounded-lg bg-surface-subtle p-3">
-          <View className="h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-surface-container shadow-sm">
-            <BusinessProductImage
-              source={businessMedia.ribeyeCover}
-              alt="Woodfire aged ribeye steak prepared for the product catalogue"
-              className="h-full w-full"
-            />
-            <View className="absolute bottom-1 right-1 h-5 w-5 items-center justify-center rounded-full bg-primary shadow-sm">
-              <Icon name="check" size={12} color={colors.surface} />
-            </View>
+          <View className="h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-surface-container shadow-sm">
+            {image ? (
+              <BusinessProductImage
+                source={{ uri: image }}
+                alt={productName || 'Product photo'}
+                className="h-full w-full"
+              />
+            ) : (
+              <Icon name="camera" size={24} color={colors.textTertiary} />
+            )}
           </View>
           <View className="min-w-0 flex-1">
             <VemtapText variant="labelMd" numberOfLines={1}>
-              woodfire-ribeye-final.jpg
+              {image ? 'Cover photo added' : 'No photo yet'}
             </VemtapText>
             <VemtapText variant="caption" tone="secondary">
-              1080 x 1080px • JPEG
+              {image ? 'Shown on the product card' : 'Add a clear photo of the product'}
             </VemtapText>
             <Button
-              label="Change Photo"
+              label={uploadingPhoto ? 'Uploading…' : image ? 'Change Photo' : 'Add Photo'}
               labelVariant="labelSm"
               variant="secondary"
               size="sm"
               fullWidth={false}
-              className="mb-2 min-h-9 self-start rounded-md border-0 bg-surface-container-high px-3"
+              disabled={uploadingPhoto}
+              className="mb-2 mt-1 min-h-9 self-start rounded-md border-0 bg-surface-container-high px-3"
               leftIcon={<Icon name="camera" size={16} color={colors.primary} />}
               onPress={onChangePhoto}
             />
@@ -184,14 +183,15 @@ export function AddProductLocationPricingScreen({
             className="bg-surface-subtle"
             fieldClassName="bg-surface-subtle"
           />
-          <BusinessSelectField
+          <Input
             label="Category"
             value={category}
-            leadingIcon="category"
-            onPress={() => {
-              onSelectCategory?.();
-              setCategory(productIdentity.category);
-            }}
+            onChangeText={setCategory}
+            placeholder="e.g. Grills, Drinks, Skincare"
+            accessibilityLabel="Category"
+            containerClassName="gap-1.5"
+            className="bg-surface-subtle"
+            fieldClassName="bg-surface-subtle"
           />
           <BusinessTextArea
             label="Description"

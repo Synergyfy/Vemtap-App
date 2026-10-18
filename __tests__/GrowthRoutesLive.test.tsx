@@ -185,8 +185,7 @@ describe('customer segments (live)', () => {
     expect(screen.getByText('Lapsed regulars')).toBeTruthy();
     expect(screen.getByText('1,840')).toBeTruthy();
     expect(screen.queryByText('VIP Patrons (Top 5%)')).toBeNull();
-    // The prototype's district matrix has no live source.
-    expect(screen.queryByText(strings.customerSegments.customTitle)).toBeNull();
+    expect(screen.queryByText(/Wuse II & Maitama|Save Cohort/)).toBeNull();
     expect(segmentsApi.listSegments).toHaveBeenCalledWith({ branchId: BRANCH_ID });
   });
 });
@@ -511,7 +510,7 @@ describe('boost preview (live)', () => {
 
     // Real listing and wallet, not the sample "Prime Lunch Combo".
     expect(screen.getAllByText('Jollof Combo').length).toBeGreaterThan(0);
-    expect(screen.queryByText(strings.boostWizard.preview.feedName)).toBeNull();
+    expect(screen.queryByText(/Prime Lunch Combo|Urban Grill/)).toBeNull();
 
     await act(async () => {
       fireEvent.press(screen.getByLabelText('Launch Boost Campaign (₦10,000)'));
@@ -574,9 +573,8 @@ describe('boost wallet (live)', () => {
     await renderRoutes('BoostWallet');
 
     expect(screen.getByText('Ref: VEM-WAL-ABC123')).toBeTruthy();
-    // No backend yet for these sample sections.
-    expect(screen.queryByText(strings.boostWizard.wallet.accountNumber)).toBeNull();
-    expect(screen.queryByText(strings.boostWizard.wallet.complianceTitle)).toBeNull();
+    // No sample virtual account or tax panel.
+    expect(screen.queryByText(/9940284411|TIN-8894102-NG|NDPR & Tax/)).toBeNull();
 
     await act(async () => {
       fireEvent.press(screen.getByLabelText('Top Up ₦25,000'));

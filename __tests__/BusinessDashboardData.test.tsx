@@ -144,8 +144,7 @@ describe('business dashboard — live data', () => {
     expect(view.queryByText('3 New Orders')).toBeNull();
     expect(view.queryByText('2 Unread Messages')).toBeNull();
     // The designed placeholders are gone once the API answered.
-    expect(view.queryByText(copy.metrics.viewsValue)).toBeNull();
-    expect(view.queryByText(copy.posAmount)).toBeNull();
+    expect(view.queryByText('₦312,400.00')).toBeNull();
   });
 
   it('renders "—" for stats the response does not carry', async () => {
@@ -154,9 +153,9 @@ describe('business dashboard — live data', () => {
 
     await waitFor(() => expect(view.getByText('Aurora Grill')).toBeTruthy());
     await waitFor(() => expect(view.getAllByText('—').length).toBe(4));
-    expect(view.queryByText(copy.metrics.viewsValue)).toBeNull();
+    expect(view.queryByText('1,248')).toBeNull();
     // No growth deltas are published, so no fabricated percentages either.
-    expect(view.queryByText(copy.metrics.viewsDelta)).toBeNull();
+    expect(view.queryByText('14%')).toBeNull();
   });
 
   it('switches branch through the API branch list and refetches', async () => {
@@ -216,10 +215,7 @@ describe('business dashboard — API unavailable', () => {
     await waitFor(() => expect(view.getByText('Something went wrong')).toBeTruthy());
     expect(view.getByText(strings.common.retry)).toBeTruthy();
     // Nothing fabricated stands in for the data we could not load.
-    expect(view.queryByText(copy.pageTitle)).toBeNull();
-    expect(view.queryByText(copy.metrics.viewsValue)).toBeNull();
-    expect(view.queryByText(copy.posAmount)).toBeNull();
-    expect(view.queryByText(copy.growthTrial)).toBeNull();
+    expect(view.queryByText(/Urban Grill|1,248|₦312,400/)).toBeNull();
     copy.activity.forEach(row => {
       expect(view.queryByText(row.title)).toBeNull();
     });
@@ -240,8 +236,7 @@ describe('business dashboard — API unavailable', () => {
     const view = await renderDashboard();
 
     expect(view.getByLabelText(copy.bodyLoadingLabel)).toBeTruthy();
-    expect(view.queryByText(copy.metrics.viewsValue)).toBeNull();
-    expect(view.queryByText(copy.pageTitle)).toBeNull();
+    expect(view.queryByText(/Urban Grill|1,248/)).toBeNull();
 
     // Settle before the test ends so the in-flight query cannot outlive it.
     await act(async () => {

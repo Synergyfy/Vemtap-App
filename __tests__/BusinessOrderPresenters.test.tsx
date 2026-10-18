@@ -271,9 +271,8 @@ describe('order detail live rendering', () => {
     expect(view.getByText('Amina Bello')).toBeTruthy();
     expect(view.getByText('Ribeye Steak')).toBeTruthy();
     expect(view.getByText(liveDetail.totalLabel)).toBeTruthy();
-    // Unbacked design blocks are hidden for live orders.
-    expect(view.queryByText(detailCopy.statusEstimate)).toBeNull();
-    expect(view.queryByText(detailCopy.customerMeta)).toBeNull();
+    // No sample order stands in for the live one.
+    expect(view.queryByText('#VG-94021')).toBeNull();
 
     await act(async () => {
       fireEvent.press(view.getByLabelText(detailCopy.triageAccept));

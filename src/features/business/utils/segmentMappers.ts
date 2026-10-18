@@ -220,7 +220,7 @@ export function segmentToCard(segment: Segment): CustomerSegmentCard {
   };
 }
 
-/** Everything SegmentAudienceDetails renders, live or from the prototype copy. */
+/** Everything SegmentAudienceDetails renders. */
 export interface SegmentDetailsView {
   id: string;
   name: string;

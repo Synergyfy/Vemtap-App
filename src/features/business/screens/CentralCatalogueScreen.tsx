@@ -23,7 +23,6 @@ import {
   BusinessSegmentTabs,
   BusinessSheetActionRow,
 } from '@features/business/components/BusinessOpsPrimitives';
-import { businessOpsImageById } from '@features/business/data/businessOpsImages';
 import {
   CatalogueCategoryRow,
   type CategoryManagementRow,
@@ -145,7 +144,7 @@ function CatalogueRow({
   onPressMenu: () => void;
   onEdit: () => void;
 }) {
-  const image = item.image ?? businessOpsImageById[item.id];
+  const { image } = item;
   const draft = item.status === DRAFT_STATUS;
   const isDeal = item.status === DEAL_STATUS;
 
@@ -333,19 +332,10 @@ export function CentralCatalogueScreen({
 
   const isDirectory = layout === 'directory';
 
-  // Live rows when the navigator supplies them, otherwise the prototype copy.
-  const sourceItems: CentralCatalogueItemRow[] =
-    items ??
-    copy.items.map(item => ({
-      ...item,
-      image: businessOpsImageById[item.id],
-    }));
+  const sourceItems: CentralCatalogueItemRow[] = items ?? [];
   const products = sourceItems.filter(item => item.kind !== 'service');
-  const shownServices: ServicesManagementRow[] =
-    services ?? strings.servicesCategories.services.map(service => ({ ...service }));
-  const shownCategories: CategoryManagementRow[] =
-    categories ??
-    strings.servicesCategories.categories.map(category => ({ ...category }));
+  const shownServices: ServicesManagementRow[] = services ?? [];
+  const shownCategories: CategoryManagementRow[] = categories ?? [];
   const isCategories = tab === 'categories';
   const isServices = tab === 'services';
   const visibleItems = products.filter(item => matchesFilter(item, filter));
@@ -359,32 +349,23 @@ export function CentralCatalogueScreen({
     services: shownServices.length,
     categories: shownCategories.length,
   };
-  // The prototype keeps its designed counts; live data counts itself.
-  const isLive = Boolean(items);
-  const catalogueTabs = copy.tabs.map((entry, index) => {
+  const catalogueTabs = copy.tabs.map(entry => {
     if (isDirectory) {
       return {
         key: entry.key,
         label: entry.label,
-        count: isLive ? tabCounts[entry.key] : entry.count,
+        count: tabCounts[entry.key],
       };
     }
     return {
       key: entry.key,
-      label: isLive
-        ? `${entry.label} (${tabCounts[entry.key]})`
-        : copy.tabsBusiness[index].label,
+      label: `${entry.label} (${tabCounts[entry.key]})`,
     };
   });
 
   const allScopeLabel = isDirectory ? copy.allLocations : copy.allLocationsTwo;
   const pickerOptions: CentralCatalogueScopeOption[] = scopeOptions ?? [
-    { label: allScopeLabel, value: 'all', meta: copy.scopeBranches[0].meta },
-    ...copy.scopeBranches.map(option => ({
-      label: option.label,
-      value: option.value,
-      meta: option.meta,
-    })),
+    { label: allScopeLabel, value: 'all' },
   ];
   const emptyTitle = isServices ? copy.emptyServicesTitle : copy.emptyTitle;
   const narrowFooter = width < NARROW_FOOTER_WIDTH;

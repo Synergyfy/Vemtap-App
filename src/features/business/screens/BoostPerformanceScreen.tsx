@@ -19,10 +19,7 @@ import {
 import { BusinessProgressMeter } from '@features/business/components/BusinessOpsPrimitives';
 import { ErrorState } from '@components/shared/ErrorState';
 import { LoadingState } from '@components/shared/LoadingState';
-import {
-  prototypePerformanceView,
-  type PerformanceView,
-} from '@features/business/utils/campaignPerformanceMappers';
+import { type PerformanceView } from '@features/business/utils/campaignPerformanceMappers';
 
 const copy = strings.boostWizard;
 const perf = copy.performance;
@@ -34,9 +31,7 @@ export interface BoostPerformanceScreenProps {
   onPause?: () => void;
   onResume?: () => void;
   onEndCampaign?: () => void;
-  /** Ending a campaign refunds unspent budget, so it lands in the wallet. */
-  onOpenWallet?: () => void;
-  /** The live boost or campaign; the design's sample shows when absent. */
+  /** The live boost or campaign; absent until it loads. */
   performance?: PerformanceView;
   isLoading?: boolean;
   error?: string;
@@ -58,16 +53,15 @@ export function BoostPerformanceScreen({
   onPause,
   onResume,
   onEndCampaign,
-  onOpenWallet,
   performance,
   isLoading = false,
   error,
   onRetry,
   busy = false,
 }: BoostPerformanceScreenProps) {
-  const view = performance ?? prototypePerformanceView;
-  const { spend, redemptions } = view.kpis;
-  const ready = !isLoading && !error;
+  const view = performance;
+  const spend = view?.kpis.spend;
+  const redemptions = view?.kpis.redemptions;
 
   return (
     <BusinessScreenLayout
@@ -87,7 +81,7 @@ export function BoostPerformanceScreen({
     >
       <View className="flex-row items-center gap-2">
         <TextActionButton
-          label={view.backLabel}
+          label={view?.backLabel ?? perf.live.backToBoosts}
           icon="back"
           tone="brand"
           onPress={onBack}
@@ -102,12 +96,12 @@ export function BoostPerformanceScreen({
         </View>
       </View>
       <VemtapText variant="caption" tone="secondary">
-        {view.headerSub}
+        {perf.live.headerSub}
       </VemtapText>
 
-      {isLoading ? <LoadingState /> : null}
+      {isLoading || (!view && !error) ? <LoadingState /> : null}
       {!isLoading && error ? <ErrorState description={error} onRetry={onRetry} /> : null}
-      {ready ? (
+      {!isLoading && !error && view && spend && redemptions ? (
         <>
           <SetupSectionCard tone="lowest" className="gap-2.5 p-4">
             <View className="flex-row flex-wrap items-center gap-1.5">
@@ -466,8 +460,6 @@ export function BoostPerformanceScreen({
                   disabled={busy}
                   onPress={() => {
                     onEndCampaign?.();
-                    // Live callers open the wallet once the refund has landed.
-                    if (!performance) onOpenWallet?.();
                   }}
                 />
               ) : null}

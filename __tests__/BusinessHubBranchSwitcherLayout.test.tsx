@@ -4,6 +4,10 @@ import { strings } from '@constants/strings';
 import { BusinessHubCentralManagementScreen } from '@features/business/screens/BusinessHubCentralManagementScreen';
 
 const copy = strings.businessHub;
+const branches = [
+  { id: 'br-1', name: 'Main Branch', address: '' },
+  { id: 'br-2', name: 'Wuse Branch', address: '' },
+];
 
 afterEach(cleanup);
 
@@ -66,21 +70,23 @@ describe('business hub branch switcher row', () => {
   });
 
   it('clamps the branch popover to the viewport', async () => {
-    await render(<BusinessHubCentralManagementScreen />);
-    await fireEvent.press(
-      screen.getByLabelText(`${copy.viewingPrefix}: ${copy.branchOptions[0]}`),
-    );
+    await render(<BusinessHubCentralManagementScreen branches={branches} />);
+    await fireEvent.press(screen.getByLabelText(`${copy.viewingPrefix}: Main Branch`));
     const popover = byClass(screen.toJSON(), 'w-64')[0];
     expect(popover.props?.className).toContain('max-w-[70vw]');
   });
 
   it('switches branches from the popover', async () => {
-    await render(<BusinessHubCentralManagementScreen />);
-    const label = `${copy.viewingPrefix}: ${copy.branchOptions[0]}`;
-    await fireEvent.press(screen.getByLabelText(label));
-    await fireEvent.press(screen.getByLabelText(copy.branchOptions[1]));
-    expect(
-      screen.getByLabelText(`${copy.viewingPrefix}: ${copy.branchOptions[1]}`),
-    ).toBeTruthy();
+    const onChangeBranch = jest.fn();
+    await render(
+      <BusinessHubCentralManagementScreen
+        branches={branches}
+        activeBranchId="br-1"
+        onChangeBranch={onChangeBranch}
+      />,
+    );
+    await fireEvent.press(screen.getByLabelText(`${copy.viewingPrefix}: Main Branch`));
+    await fireEvent.press(screen.getByLabelText('Wuse Branch'));
+    expect(onChangeBranch).toHaveBeenCalledWith('br-2');
   });
 });

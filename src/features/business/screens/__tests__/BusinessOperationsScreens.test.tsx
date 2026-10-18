@@ -28,6 +28,12 @@ import {
 } from '@features/business/hooks/useBusinessDashboardData';
 import { useActiveBranch as _useActiveBranch } from '@features/business/hooks/useActiveBranch';
 import type { PresentedBooking } from '@features/business/hooks/useBusinessBookings';
+import {
+  bookingsFixture,
+  orderDetailFixture,
+  ordersFixture,
+  posOrdersFixture,
+} from '../../../../../__tests__/helpers/opsFixtures';
 
 const shell = strings.businessShell;
 
@@ -274,13 +280,13 @@ describe('business dashboard overview', () => {
     const view = await renderWithClient(<BusinessDashboardOverviewScreen />);
     const copy = strings.businessDashboard;
 
-    expect(view.getByText(copy.branchLive)).toBeTruthy();
+    expect(view.getByText('Wuse II Branch')).toBeTruthy();
     expect(view.getByText(copy.growthTipTitle)).toBeTruthy();
     expect(view.getByText(copy.overviewTitle)).toBeTruthy();
-    expect(view.getByText(copy.metrics.viewsValue)).toBeTruthy();
-    expect(view.getByText(copy.metrics.customersValue)).toBeTruthy();
-    expect(view.getByText(copy.metrics.dealsClaimedValue)).toBeTruthy();
-    expect(view.getByText(copy.metrics.ordersBookingsVolume)).toBeTruthy();
+    expect(view.getByText('1,248')).toBeTruthy();
+    expect(view.getByText('84')).toBeTruthy();
+    expect(view.getByText('19')).toBeTruthy();
+    expect(view.getByText('₦48.2k vol')).toBeTruthy();
     // Live POS amount formats without .00 for integer naira values
     expect(view.getByText('₦312,400')).toBeTruthy();
     expect(view.getByText(copy.activityTitle)).toBeTruthy();
@@ -326,29 +332,14 @@ describe('business dashboard overview', () => {
     });
     expect(onBoostDeal).toHaveBeenCalled();
   });
-
-  it.skip('opens the branch sheet from the shared modal shell and switches branch', async () => {
-    const view = await renderWithClient(<BusinessDashboardOverviewScreen />);
-    const copy = strings.businessDashboard;
-
-    expect(view.queryByText(copy.branchSheetTitle)).toBeNull();
-
-    await act(async () => {
-      fireEvent.press(view.getAllByLabelText(copy.allBranches)[0]);
-    });
-    expect(view.getByText(copy.branchSheetTitle)).toBeTruthy();
-    expect(view.getByText(copy.branchSheetSubtitle)).toBeTruthy();
-    expect(view.getByText(copy.addBranch)).toBeTruthy();
-
-    await act(async () => {
-      fireEvent.press(view.getByLabelText(copy.branches[1].name));
-    });
-    expect(view.queryByText(copy.branchSheetTitle)).toBeNull();
-  });
 });
 
 describe('branch switching across the business shell', () => {
   const copy = strings.businessBranchSwitcher;
+  const testBranches = [
+    { id: 'br-1', name: 'Main Branch', address: '1 Main St', active: true },
+    { id: 'br-2', name: 'Second Branch', address: '2 Side St', active: false },
+  ];
 
   /** Press a branch control and let the shared sheet finish animating in. */
   async function openSheet(view: Awaited<ReturnType<typeof render>>, branchName: string) {
@@ -359,15 +350,16 @@ describe('branch switching across the business shell', () => {
   }
 
   it('opens the shared sheet on each surface', async () => {
-    const first = strings.businessBranchSwitcher.branches[0];
-    const orders = await render(<BusinessOrdersHubScreen />);
+    const first = testBranches[0];
+    const orders = await render(
+      <BusinessOrdersHubScreen branches={testBranches} activeBranchId="br-1" />,
+    );
     await openSheet(orders, first.name);
     orders.unmount();
   });
 
   it.skip('reflects the branch selection on the pill', async () => {
-    const first = strings.businessBranchSwitcher.branches[0];
-    const second = strings.businessBranchSwitcher.branches[1];
+    const [first, second] = testBranches;
     const dashboard = await renderWithClient(<BusinessDashboardOverviewScreen />);
     await openSheet(dashboard, first.name);
     await act(async () => {
@@ -379,38 +371,49 @@ describe('branch switching across the business shell', () => {
   });
 
   it('opens the shared sheet from the More hub', async () => {
-    const more = await render(<BusinessMoreHubScreen />);
-    await openSheet(more, strings.businessBranchSwitcher.branches[0].name);
+    const more = await render(
+      <BusinessMoreHubScreen branches={testBranches} activeBranchId="br-1" />,
+    );
+    await openSheet(more, testBranches[0].name);
   });
 });
 
 describe('business orders hub', () => {
+  const counts = { new: 1, processing: 1, ready: 0, completed: 1, cancelled: 0 };
+
   it('renders the switcher, status chips, alert strip and every order row', async () => {
-    const view = await render(<BusinessOrdersHubScreen />);
+    const view = await render(
+      <BusinessOrdersHubScreen
+        orders={ordersFixture}
+        orderCounts={counts}
+        orderTotal={3}
+        bookingTotal={2}
+      />,
+    );
     const copy = strings.businessOrders;
 
-    expect(view.getAllByText(copy.title).length).toBeGreaterThan(0);
     copy.switcher.forEach(label =>
       expect(view.getAllByText(label).length).toBeGreaterThan(0),
     );
-    copy.filters.forEach(chip =>
-      expect(view.getByText(`${chip.label} (${chip.count})`)).toBeTruthy(),
-    );
-    expect(view.getByText(copy.alertTitle)).toBeTruthy();
-    expect(view.getByText(copy.alertBody)).toBeTruthy();
-    copy.orders.forEach(order => {
+    expect(view.getByText(`${copy.filters[0].label} (3)`)).toBeTruthy();
+    expect(view.getByText(copy.alertTitleFor(2))).toBeTruthy();
+    ordersFixture.forEach(order => {
       expect(view.getByText(order.reference)).toBeTruthy();
       expect(view.getByText(order.customer)).toBeTruthy();
       expect(view.getByText(order.amount)).toBeTruthy();
     });
   });
 
-  it('keeps order card copy compact and contained', async () => {
+  it('shows a loader and no sample orders until they load', async () => {
     const view = await render(<BusinessOrdersHubScreen />);
-    const copy = strings.businessOrders;
+    expect(view.queryByText(/#VG-|Amina Bello|Zainab/)).toBeNull();
+  });
+
+  it('keeps order card copy compact and contained', async () => {
+    const view = await render(<BusinessOrdersHubScreen orders={ordersFixture} />);
 
     // Compact-hub tokens: no heading-scale text inside the order cards.
-    copy.orders.forEach(order => {
+    ordersFixture.forEach(order => {
       const reference = view.getByText(order.reference);
       const amount = view.getByText(order.amount);
       const customer = view.getByText(order.customer);
@@ -423,36 +426,48 @@ describe('business orders hub', () => {
     });
 
     // Payment chips truncate instead of pushing the CTA out of the row.
-    expect(view.getAllByText(copy.orders[0].payment)[0].props.numberOfLines).toBe(1);
+    expect(view.getAllByText(ordersFixture[0].payment)[0].props.numberOfLines).toBe(1);
   });
 
   it('reports accepting an order and opening one', async () => {
-    const onAcceptOrder = jest.fn();
+    const onUpdateOrderStatus = jest.fn();
     const onOpenOrder = jest.fn();
     const view = await render(
-      <BusinessOrdersHubScreen onAcceptOrder={onAcceptOrder} onOpenOrder={onOpenOrder} />,
+      <BusinessOrdersHubScreen
+        orders={ordersFixture}
+        onUpdateOrderStatus={onUpdateOrderStatus}
+        onOpenOrder={onOpenOrder}
+      />,
     );
-    const copy = strings.businessOrders;
+    const order = ordersFixture[0];
 
     await act(async () => {
-      fireEvent.press(view.getByLabelText(copy.orders[0].cta));
+      fireEvent.press(view.getByLabelText(order.cta!));
     });
-    expect(onAcceptOrder).toHaveBeenCalledWith(copy.orders[0].id);
+    expect(onUpdateOrderStatus).toHaveBeenCalledWith(order.id, order.nextStatus);
 
     await act(async () => {
-      fireEvent.press(view.getByLabelText(copy.orders[0].reference));
+      fireEvent.press(view.getByLabelText(order.reference));
     });
-    expect(onOpenOrder).toHaveBeenCalledWith(copy.orders[0].id);
+    expect(onOpenOrder).toHaveBeenCalledWith(order.id);
   });
 
   it('switches to the bookings feed in place and back', async () => {
-    const view = await render(<BusinessOrdersHubScreen />);
+    const view = await render(
+      <BusinessOrdersHubScreen
+        orders={ordersFixture}
+        orderCounts={counts}
+        bookings={bookingsFixture}
+      />,
+    );
     const ordersCopy = strings.businessOrders;
     const bookingsCopy = strings.businessBookings;
+    const alert = ordersCopy.alertTitleFor(2);
+    const summary = bookingsCopy.summaryTitleFor(bookingsFixture.length);
 
     // Orders surface: the alert strip is up, the bookings feed is not.
-    expect(view.getByText(ordersCopy.alertTitle)).toBeTruthy();
-    expect(view.queryByText(bookingsCopy.summaryTitle)).toBeNull();
+    expect(view.getByText(alert)).toBeTruthy();
+    expect(view.queryByText(summary)).toBeNull();
 
     const tabs = view.getAllByRole('tab');
     await act(async () => {
@@ -460,28 +475,31 @@ describe('business orders hub', () => {
     });
 
     // Bookings surface: the feed took over and the orders content is gone.
-    expect(view.getByText(bookingsCopy.summaryTitle)).toBeTruthy();
-    bookingsCopy.bookings.forEach(booking => {
+    expect(view.getByText(summary)).toBeTruthy();
+    bookingsFixture.forEach(booking => {
       expect(view.getByText(booking.time)).toBeTruthy();
     });
-    expect(view.queryByText(ordersCopy.alertTitle)).toBeNull();
-    expect(view.queryByText(ordersCopy.orders[0].reference)).toBeNull();
+    expect(view.queryByText(alert)).toBeNull();
+    expect(view.queryByText(ordersFixture[0].reference)).toBeNull();
 
     await act(async () => {
       fireEvent.press(tabs[0]);
     });
-    expect(view.getByText(ordersCopy.alertTitle)).toBeTruthy();
-    expect(view.queryByText(bookingsCopy.summaryTitle)).toBeNull();
+    expect(view.getByText(alert)).toBeTruthy();
+    expect(view.queryByText(summary)).toBeNull();
   });
 
   it('reports opening a booking and checking one in from the bookings surface', async () => {
     const onOpenBooking = jest.fn();
     const onCheckIn = jest.fn();
     const view = await render(
-      <BusinessOrdersHubScreen onOpenBooking={onOpenBooking} onCheckIn={onCheckIn} />,
+      <BusinessOrdersHubScreen
+        bookings={bookingsFixture}
+        onOpenBooking={onOpenBooking}
+        onCheckIn={onCheckIn}
+      />,
     );
-    const bookingsCopy = strings.businessBookings;
-    const booking = bookingsCopy.bookings[0];
+    const booking = bookingsFixture[0];
 
     await act(async () => {
       fireEvent.press(view.getAllByRole('tab')[1]);
@@ -493,7 +511,7 @@ describe('business orders hub', () => {
     expect(onOpenBooking).toHaveBeenCalledWith(booking.id);
 
     await act(async () => {
-      fireEvent.press(view.getByLabelText(booking.cta));
+      fireEvent.press(view.getAllByLabelText(booking.cta!)[0]);
     });
     expect(onCheckIn).toHaveBeenCalledWith(booking.id);
   });
@@ -541,11 +559,7 @@ describe('business orders hub', () => {
     expect(onSelectDay).toHaveBeenCalled();
 
     await act(async () => {
-      fireEvent.press(
-        view.getByText(
-          `${bookingsCopy.filters[1].label} ${bookingsCopy.filters[1].count}`,
-        ),
-      );
+      fireEvent.press(view.getAllByText(bookingsCopy.filters[1].label).slice(-1)[0]);
     });
     expect(onSelectFilter).toHaveBeenCalledWith({ date: 'today' });
   });
@@ -569,8 +583,12 @@ describe('business orders hub', () => {
       );
     };
 
-    // Fallback copy: New count is '3', so the dot renders.
-    const fallback = await render(<BusinessOrdersHubScreen />);
+    // Live counts with New above zero: the dot renders.
+    const fallback = await render(
+      <BusinessOrdersHubScreen
+        orderCounts={{ new: 3, processing: 1, ready: 0, completed: 4, cancelled: 0 }}
+      />,
+    );
     expect(countDots(fallback)).toHaveLength(1);
     await fallback.unmount();
 
@@ -713,10 +731,9 @@ describe('business hub and more', () => {
     );
     const copy = strings.businessHub;
 
-    expect(view.getByText(copy.name)).toBeTruthy();
-    expect(view.getByText(copy.category)).toBeTruthy();
-    expect(view.getByText(copy.phone)).toBeTruthy();
-    expect(view.getByText(copy.website)).toBeTruthy();
+    // Without live data the deck is neutral: no sample business, phone or site.
+    expect(view.getAllByText(copy.nameFallback).length).toBeGreaterThan(0);
+    expect(view.queryByText(/Urban Grill|\+234 803 900|urbangrill/)).toBeNull();
     expect(view.getByText(copy.modulesTitle)).toBeTruthy();
     copy.modules.forEach(module => {
       expect(view.getByText(module.title)).toBeTruthy();
@@ -741,16 +758,15 @@ describe('business hub and more', () => {
     );
     const copy = strings.businessMore;
 
-    expect(view.getByText(copy.name)).toBeTruthy();
-    expect(view.getByText(copy.plan)).toBeTruthy();
-    expect(view.getByText(copy.terminalStatus)).toBeTruthy();
+    // No live data: a neutral name, no invented plan, terminal or ID.
+    expect(view.getAllByText(copy.nameFallback).length).toBeGreaterThan(0);
+    expect(view.queryByText(/Urban Grill|Growth Plan|Terminal 01|#VG-/)).toBeNull();
     copy.sections.forEach(section => {
       expect(view.getAllByText(section.title).length).toBeGreaterThan(0);
       section.items.forEach(item => {
         expect(view.getByLabelText(item.label)).toBeTruthy();
       });
     });
-    expect(view.getByText(copy.buildFootnote)).toBeTruthy();
 
     await act(async () => {
       fireEvent.press(view.getByLabelText(copy.switchToCustomer));
@@ -764,39 +780,50 @@ describe('business hub and more', () => {
   });
 });
 
-describe('order detail #VG-94021', () => {
+describe('order detail', () => {
   it('renders the status hero, triage, customer, items, ledger, timeline and modifiers', async () => {
-    const view = await render(<OrderDetailScreen onBack={jest.fn()} />);
+    const view = await render(
+      <OrderDetailScreen onBack={jest.fn()} detail={orderDetailFixture} />,
+    );
     const copy = strings.businessOrderDetail;
 
-    expect(view.getByText(copy.reference)).toBeTruthy();
-    expect(view.getByText(copy.statusLabel)).toBeTruthy();
-    expect(view.getByText(copy.statusTitle)).toBeTruthy();
-    expect(view.getByText(copy.statusEstimateValue)).toBeTruthy();
-    expect(view.getByText(copy.customerName)).toBeTruthy();
-    expect(view.getByText(copy.customerMeta)).toBeTruthy();
+    expect(view.getByText(orderDetailFixture.reference)).toBeTruthy();
+    expect(view.getByText(orderDetailFixture.statusLabel)).toBeTruthy();
+    expect(view.getByText(orderDetailFixture.statusTitle)).toBeTruthy();
+    expect(view.getAllByText('Amina Bello').length).toBeGreaterThan(0);
     expect(view.getByText(copy.callCustomer)).toBeTruthy();
     expect(view.getByText(copy.vemtapChat)).toBeTruthy();
-    copy.items.forEach(item => expect(view.getByText(item.name)).toBeTruthy());
-    expect(view.getByText(copy.subtotalValue)).toBeTruthy();
-    expect(view.getByText(copy.totalValue)).toBeTruthy();
-    expect(view.getByText(copy.settlementMethod)).toBeTruthy();
-    copy.timeline.forEach(step => expect(view.getByText(step.title)).toBeTruthy());
-    expect(view.getByText(copy.branchValue)).toBeTruthy();
-    expect(view.getByText(copy.stationValue)).toBeTruthy();
+    expect(view.getByText('Ribeye Steak')).toBeTruthy();
+    expect(view.getByText(orderDetailFixture.totalLabel)).toBeTruthy();
+    orderDetailFixture.timeline.forEach(step =>
+      expect(view.getByText(step.title)).toBeTruthy(),
+    );
     expect(view.getByText(copy.modifiersTitle)).toBeTruthy();
+  });
+
+  it('shows a loader until the order loads, and an error with retry', async () => {
+    const loading = await render(<OrderDetailScreen onBack={jest.fn()} />);
+    expect(loading.queryByText('#VG-94021')).toBeNull();
+    await loading.unmount();
+
+    const onRetry = jest.fn();
+    const failed = await render(
+      <OrderDetailScreen onBack={jest.fn()} isError onRetry={onRetry} />,
+    );
+    expect(failed.queryByText(strings.businessOrderDetail.callCustomer)).toBeNull();
   });
 
   it('declines, accepts (revealing the kitchen notice) and fires state modifiers', async () => {
     const onAcceptOrder = jest.fn();
     const onDeclineOrder = jest.fn();
-    const onMarkReady = jest.fn();
+    const onMarkProcessing = jest.fn();
     const view = await render(
       <OrderDetailScreen
         onBack={jest.fn()}
+        detail={orderDetailFixture}
         onAcceptOrder={onAcceptOrder}
         onDeclineOrder={onDeclineOrder}
-        onMarkReady={onMarkReady}
+        onMarkProcessing={onMarkProcessing}
       />,
     );
     const copy = strings.businessOrderDetail;
@@ -813,30 +840,19 @@ describe('order detail #VG-94021', () => {
       fireEvent.press(view.getByLabelText(copy.triageDecline));
     });
     expect(onDeclineOrder).toHaveBeenCalled();
-
-    await act(async () => {
-      fireEvent.press(view.getByLabelText(copy.markReady));
-    });
-    expect(onMarkReady).toHaveBeenCalled();
   });
 });
 
 describe('business bookings hub', () => {
   it('renders the calendar strip, filters, summary and every booking', async () => {
-    const view = await render(<BusinessBookingsHubScreen />);
+    const view = await render(<BusinessBookingsHubScreen bookings={bookingsFixture} />);
     const copy = strings.businessBookings;
 
-    expect(view.getAllByText(copy.title).length).toBeGreaterThan(0);
-    copy.days.forEach(d => {
-      expect(view.getByText(d.day)).toBeTruthy();
-      expect(view.getByText(d.date)).toBeTruthy();
-      expect(view.getAllByText(d.month).length).toBeGreaterThan(0);
-    });
     copy.filters.forEach(f =>
-      expect(view.getByText(`${f.label} ${f.count}`)).toBeTruthy(),
+      expect(view.getAllByText(f.label).length).toBeGreaterThan(0),
     );
-    expect(view.getByText(copy.summaryTitle)).toBeTruthy();
-    copy.bookings.forEach(booking => {
+    expect(view.getByText(copy.summaryTitleFor(bookingsFixture.length))).toBeTruthy();
+    bookingsFixture.forEach(booking => {
       expect(view.getByText(booking.time)).toBeTruthy();
       expect(view.getByText(booking.customer)).toBeTruthy();
     });
@@ -846,9 +862,12 @@ describe('business bookings hub', () => {
     const onOpenOrders = jest.fn();
     const onCheckIn = jest.fn();
     const view = await render(
-      <BusinessBookingsHubScreen onOpenOrders={onOpenOrders} onCheckIn={onCheckIn} />,
+      <BusinessBookingsHubScreen
+        bookings={bookingsFixture}
+        onOpenOrders={onOpenOrders}
+        onCheckIn={onCheckIn}
+      />,
     );
-    const copy = strings.businessBookings;
 
     const switcherTabs = view.getAllByRole('tab');
     await act(async () => {
@@ -857,9 +876,9 @@ describe('business bookings hub', () => {
     expect(onOpenOrders).toHaveBeenCalled();
 
     await act(async () => {
-      fireEvent.press(view.getAllByLabelText(copy.bookings[0].cta)[0]);
+      fireEvent.press(view.getAllByLabelText(bookingsFixture[0].cta!)[0]);
     });
-    expect(onCheckIn).toHaveBeenCalledWith(copy.bookings[0].id);
+    expect(onCheckIn).toHaveBeenCalledWith(bookingsFixture[0].id);
   });
 });
 
@@ -868,7 +887,9 @@ describe('business POS orders view', () => {
     // A dense register list: scanning many tickets, not reading prose. A
     // `heading*` token creeping back in is what makes every label look like it
     // is shouting, so the rendered tree is checked directly.
-    const view = await render(<BusinessPosOrdersViewScreen onBack={jest.fn()} />);
+    const view = await render(
+      <BusinessPosOrdersViewScreen onBack={jest.fn()} orders={posOrdersFixture} />,
+    );
 
     const sizes: number[] = [];
     const walk = (node: unknown) => {
@@ -884,24 +905,40 @@ describe('business POS orders view', () => {
     expect(Math.max(...sizes)).toBeLessThanOrEqual(18);
   });
 
-  it('renders the terminal banner, volume and the unified order stream', async () => {
-    const view = await render(<BusinessPosOrdersViewScreen onBack={jest.fn()} />);
+  it('renders the terminal banner, volume and the live sales stream', async () => {
+    const view = await render(
+      <BusinessPosOrdersViewScreen
+        onBack={jest.fn()}
+        orders={posOrdersFixture}
+        pos={{ revenue: 24400, transactionCount: 2 }}
+        tillName="Front Counter"
+      />,
+    );
     const copy = strings.businessPos;
 
-    expect(view.getByText(copy.terminalName)).toBeTruthy();
-    expect(view.getByText(copy.terminalStatus)).toBeTruthy();
-    expect(view.getByText(copy.volumeValue)).toBeTruthy();
+    expect(view.getByText('Front Counter')).toBeTruthy();
+    expect(view.getByText(copy.live.online)).toBeTruthy();
+    expect(view.getByText('/ 2 transactions')).toBeTruthy();
     expect(view.getByText(copy.activityTitle)).toBeTruthy();
-    copy.orders.forEach(order => {
-      expect(view.getByText(order.reference)).toBeTruthy();
-      expect(view.getByText(order.total)).toBeTruthy();
+    posOrdersFixture.forEach(order => {
+      expect(view.getAllByText(order.reference).length).toBeGreaterThan(0);
+      expect(view.getAllByText(order.total).length).toBeGreaterThan(0);
     });
+  });
+
+  it('shows no sample tickets before the sales load', async () => {
+    const view = await render(<BusinessPosOrdersViewScreen onBack={jest.fn()} />);
+    expect(view.queryByText(/#POS-|#MNP-|₦142,500/)).toBeNull();
   });
 
   it('filters the stream by the search field and opens the register', async () => {
     const onOpenPos = jest.fn();
     const view = await render(
-      <BusinessPosOrdersViewScreen onBack={jest.fn()} onOpenPos={onOpenPos} />,
+      <BusinessPosOrdersViewScreen
+        onBack={jest.fn()}
+        onOpenPos={onOpenPos}
+        orders={posOrdersFixture}
+      />,
     );
     const copy = strings.businessPos;
 
@@ -911,10 +948,10 @@ describe('business POS orders view', () => {
     expect(onOpenPos).toHaveBeenCalled();
 
     await act(async () => {
-      fireEvent.changeText(view.getByLabelText(copy.searchPlaceholder), 'MNP-9204');
+      fireEvent.changeText(view.getByLabelText(copy.searchPlaceholder), 'POS-1048');
     });
-    expect(view.queryByText(copy.orders[0].reference)).toBeNull();
-    expect(view.getByText(copy.orders[2].reference)).toBeTruthy();
+    expect(view.queryByText(posOrdersFixture[0].reference)).toBeNull();
+    expect(view.getAllByText(posOrdersFixture[1].reference).length).toBeGreaterThan(0);
   });
 });
 

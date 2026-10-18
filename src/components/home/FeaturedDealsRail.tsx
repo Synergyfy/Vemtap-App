@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { cn } from '@utils/cn';
-import type { FeaturedDeal } from '@features/home/data/homeFeed';
+import type { FeaturedDeal } from '@features/home/types/feed';
 import { FeaturedDealCard } from './FeaturedDealCard';
 import { useEnriched } from './LiveNearbyListCard';
 

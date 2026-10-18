@@ -12,7 +12,6 @@ import {
   ServiceSection,
   ServiceSectionHeader,
 } from '@features/business/components/ServiceFlowPrimitives';
-import { serviceBranches } from '@features/business/data/serviceFlowData';
 import { strings } from '@constants/strings';
 import {
   LocationScheduleSheet,
@@ -57,11 +56,8 @@ export interface AddServiceAvailabilityRulesScreenProps {
   onBack: () => void;
   onNext?: (value: ServiceAvailabilityValue) => void;
   onSaveDraft?: (value: ServiceAvailabilityValue) => void;
-  /**
-   * The business's real branches. Without them the design's sample outlets
-   * show, whose ids the API cannot accept, so live callers always pass these.
-   */
-  branches?: readonly { id: string; name: string; address?: string | null }[];
+  /** The business's real branches (only these ids are accepted by the API). */
+  branches: readonly { id: string; name: string; address?: string | null }[];
   /** Branches ticked on arrival (all of them when absent). */
   initialBranchIds?: readonly string[];
   /** The base price from the pricing step, for the universal-price card. */
@@ -96,8 +92,7 @@ export function AddServiceAvailabilityRulesScreen({
     ),
   );
   const [scheduling, setScheduling] = useState<{ id: string; name: string } | null>(null);
-  const live = branches !== undefined;
-  const outlets = branches ?? serviceBranches;
+  const outlets = branches;
   const [selectedOutlets, setSelectedOutlets] = useState(
     () => new Set<string>(initialBranchIds ?? outlets.map(branch => branch.id)),
   );
@@ -108,7 +103,7 @@ export function AddServiceAvailabilityRulesScreen({
   const [branchPrices, setBranchPrices] = useState<Record<string, string>>(
     initialBranchPrices ?? {},
   );
-  const tiered = live && pricingMode === 'tiered';
+  const tiered = pricingMode === 'tiered';
   // A branch with no price of its own starts from the base price.
   const priceFor = (branchId: string) =>
     branchPrices[branchId] ?? (basePrice ?? '').replace(/[^0-9.,]/g, '');
@@ -167,7 +162,7 @@ export function AddServiceAvailabilityRulesScreen({
       footer={
         <ServiceFlowFooter
           primaryLabel="Review & Publish"
-          primaryDisabled={live && (selectedOutlets.size === 0 || missingPrice)}
+          primaryDisabled={selectedOutlets.size === 0 || missingPrice}
           onPrimary={() => onNext?.(currentValue)}
           backLabel="Back"
           onBack={onBack}
@@ -194,7 +189,7 @@ export function AddServiceAvailabilityRulesScreen({
             onAction={toggleAllOutlets}
           />
           <View className="gap-3">
-            {live && outlets.length === 0 ? (
+            {outlets.length === 0 ? (
               <VemtapText variant="caption" tone="secondary">
                 {copy.noBranches}
               </VemtapText>
@@ -241,7 +236,7 @@ export function AddServiceAvailabilityRulesScreen({
                             </VemtapText>
                           </View>
                         ) : null}
-                        {live && selected && schedules[branch.id] ? (
+                        {selected && schedules[branch.id] ? (
                           <View className="rounded-full bg-surface-tint px-2 py-0.5">
                             <VemtapText
                               variant="caption"
@@ -257,18 +252,6 @@ export function AddServiceAvailabilityRulesScreen({
                           {branch.address}
                         </VemtapText>
                       ) : null}
-                      {'rooms' in branch ? (
-                        <View className="mt-2 flex-row items-center gap-1.5">
-                          <View className="h-2 w-2 rounded-full bg-success" />
-                          <VemtapText
-                            variant="caption"
-                            tone="success"
-                            className="font-sans-medium"
-                          >
-                            {branch.rooms}
-                          </VemtapText>
-                        </View>
-                      ) : null}
                     </View>
                   </View>
                   {tiered && selected ? (
@@ -281,12 +264,11 @@ export function AddServiceAvailabilityRulesScreen({
                       trailingLabel="NGN"
                     />
                   ) : null}
-                  {live && !selected ? null : (
+                  {!selected ? null : (
                     <View className="flex-row justify-end pt-1">
                       <Pressable
                         accessibilityRole="button"
                         accessibilityLabel={`Edit Location Schedule for ${branch.name}`}
-                        disabled={!live}
                         onPress={() =>
                           setScheduling({ id: branch.id, name: branch.name })
                         }
@@ -306,29 +288,6 @@ export function AddServiceAvailabilityRulesScreen({
                 </ServiceSection>
               );
             })}
-            {live ? null : (
-              <View className="flex-row items-start gap-3 rounded-card-lg bg-surface-muted/80 p-4 opacity-70">
-                <View className="h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-container-high">
-                  <Icon name="lock" size={14} color={colors.textTertiary} />
-                </View>
-                <View className="min-w-0 flex-1">
-                  <View className="flex-row flex-wrap items-center gap-2">
-                    <VemtapText
-                      variant="bodyMd"
-                      className="font-sans-semibold text-text-secondary"
-                    >
-                      Garki Branch
-                    </VemtapText>
-                    <View className="rounded-full bg-surface-container-high px-2 py-0.5">
-                      <VemtapText variant="caption">Opening June</VemtapText>
-                    </View>
-                  </View>
-                  <VemtapText variant="caption" tone="tertiary" numberOfLines={1}>
-                    Area 11 Commercial District, Garki
-                  </VemtapText>
-                </View>
-              </View>
-            )}
           </View>
         </View>
 
@@ -338,11 +297,7 @@ export function AddServiceAvailabilityRulesScreen({
             <ServiceChoiceCard
               title="Universal Session Price"
               description={
-                live
-                  ? basePrice
-                    ? copy.universalPrice(basePrice)
-                    : copy.universalPriceUnset
-                  : 'Uniform ₦16,000 baseline across all active Abuja studios.'
+                basePrice ? copy.universalPrice(basePrice) : copy.universalPriceUnset
               }
               selected={pricingMode === 'universal'}
               onPress={() => setPricingMode('universal')}
@@ -352,7 +307,7 @@ export function AddServiceAvailabilityRulesScreen({
             />
             <ServiceChoiceCard
               title="Tiered Branch Pricing"
-              description="Customize per studio (e.g. Maitama VIP suites premium or rent differentials)."
+              description="Set a different price at each branch (e.g. higher-rent locations)."
               selected={pricingMode === 'tiered'}
               onPress={() => setPricingMode('tiered')}
               selectionPosition="left"
@@ -512,7 +467,7 @@ export function AddServiceAvailabilityRulesScreen({
           </ServiceSection>
         </View>
       </View>
-      {live && serviceSchedule ? (
+      {serviceSchedule ? (
         <LocationScheduleSheet
           visible={scheduling !== null}
           onClose={() => setScheduling(null)}

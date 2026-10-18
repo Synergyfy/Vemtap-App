@@ -6,7 +6,7 @@ import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
 import { colors } from '@theme/colors';
 import { cn } from '@utils/cn';
-import type { FeaturedListing } from '@features/home/data/featuredDeals';
+import type { FeaturedListing } from '@features/home/types/featuredDeals';
 
 cssInterop(View, { className: 'style' });
 cssInterop(Pressable, { className: 'style' });

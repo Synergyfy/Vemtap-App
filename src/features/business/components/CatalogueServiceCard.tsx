@@ -8,7 +8,6 @@ import {
   BusinessProductImage,
   BusinessStatusPill,
 } from '@features/business/components/BusinessPrimitives';
-import { businessOpsImageById } from '@features/business/data/businessOpsImages';
 
 cssInterop(Pressable, { className: 'style' });
 
@@ -43,7 +42,7 @@ export function CatalogueServiceCard({
   service,
   onPressMenu,
 }: CatalogueServiceCardProps) {
-  const image = service.image ?? businessOpsImageById[service.id];
+  const { image } = service;
   const isDraft = service.status === DRAFT_SERVICE_STATUS;
 
   return (

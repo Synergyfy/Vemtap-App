@@ -13,9 +13,11 @@ import {
   SetupCard,
 } from '@features/business/components/BusinessPrimitives';
 import {
-  businessMedia,
-  productIdentity,
-} from '@features/business/data/businessSetupData';
+  branchesLabel,
+  formatNairaWhole,
+  priceRangeLabel,
+  type ProductSnapshot,
+} from '@features/business/utils/productSnapshot';
 
 export type QuickSetupDeal = {
   discountPercent: number;
@@ -28,20 +30,29 @@ export interface ProductPublishedMakeItADealScreenProps {
   onConvertToDeal?: (deal: QuickSetupDeal) => void;
   onQuickSetupOpen?: () => void;
   onKeepRegularProduct?: () => void;
+  /** The product that was just published (from the setup draft). */
+  product?: ProductSnapshot;
 }
 
-const discountOptions = [
-  { percent: 15, price: '₦10,200' },
-  { percent: 20, price: '₦9,600' },
-  { percent: 25, price: '₦9,000' },
-];
+const DISCOUNTS = [15, 20, 25] as const;
+const VOUCHERS_PER_DAY = 25;
 
 export function ProductPublishedMakeItADealScreen({
   onBack,
   onConvertToDeal,
   onQuickSetupOpen,
   onKeepRegularProduct,
+  product,
 }: ProductPublishedMakeItADealScreenProps) {
+  const basePrice = product?.priceMin ?? null;
+  // Member price follows the product's own price; without one there is none to show.
+  const discountOptions = DISCOUNTS.map(percent => ({
+    percent,
+    price:
+      basePrice !== null
+        ? formatNairaWhole(Math.round(basePrice * (1 - percent / 100)))
+        : '',
+  }));
   const [quickSetupVisible, setQuickSetupVisible] = useState(false);
   const [discountPercent, setDiscountPercent] = useState(15);
   const selectedDiscount =
@@ -55,7 +66,7 @@ export function ProductPublishedMakeItADealScreen({
     onConvertToDeal?.({
       discountPercent,
       memberPrice: selectedDiscount.price,
-      vouchersPerDay: 25,
+      vouchersPerDay: VOUCHERS_PER_DAY,
     });
     setQuickSetupVisible(false);
   };
@@ -104,11 +115,17 @@ export function ProductPublishedMakeItADealScreen({
         </View>
         <View className="flex-row items-center gap-3 rounded-lg bg-surface-container-low p-3">
           <View className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-surface-container">
-            <BusinessProductImage
-              source={businessMedia.ribeyeAlternate}
-              alt="Woodfire Aged Ribeye Steak"
-              className="h-full w-full"
-            />
+            {product?.image ? (
+              <BusinessProductImage
+                source={{ uri: product.image }}
+                alt={product.name || 'Product photo'}
+                className="h-full w-full"
+              />
+            ) : (
+              <View className="h-full w-full items-center justify-center">
+                <Icon name="inventory" size={22} color={colors.textTertiary} />
+              </View>
+            )}
             <View className="absolute bottom-1 left-1 rounded bg-surface-dark/80 px-1">
               <VemtapText variant="caption" className="font-sans-medium text-surface">
                 Active
@@ -121,22 +138,24 @@ export function ProductPublishedMakeItADealScreen({
               className="font-sans-semibold"
               numberOfLines={1}
             >
-              {productIdentity.name}
+              {product?.name || 'Your product'}
             </VemtapText>
-            <VemtapText variant="button" className="mt-0.5 text-primary">
-              ₦12,000 - ₦15,000
-            </VemtapText>
+            {product && priceRangeLabel(product) ? (
+              <VemtapText variant="button" className="mt-0.5 text-primary">
+                {priceRangeLabel(product)}
+              </VemtapText>
+            ) : null}
             <View className="mt-1 flex-row flex-wrap items-center gap-2">
               <View className="flex-row items-center gap-1">
                 <Icon name="storefront" size={13} color={colors.primary} />
-                <VemtapText variant="caption" tone="secondary">
-                  2 branches active
+                <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
+                  {product ? branchesLabel(product) : 'No branch selected'}
                 </VemtapText>
               </View>
               <View className="flex-row items-center gap-1">
                 <View className="h-1.5 w-1.5 rounded-full bg-badge-discount-text" />
                 <VemtapText variant="caption" className="text-badge-discount-text">
-                  In Stock
+                  {product?.inStock === false ? 'Out of Stock' : 'In Stock'}
                 </VemtapText>
               </View>
             </View>
@@ -191,8 +210,8 @@ export function ProductPublishedMakeItADealScreen({
             className="min-w-0 min-w-0 flex-1"
           >
             <VemtapText className="font-sans-semibold">Merchant Pro Tip:</VemtapText> You
-            do not have to discount everything. Pick signature dishes like this Ribeye
-            Steak as magnet offers to pull first-time diners through your doors!
+            do not have to discount everything. Pick a signature item as a magnet offer to
+            pull first-time customers through your doors!
           </VemtapText>
         </View>
       </SetupCard>
@@ -256,7 +275,7 @@ export function ProductPublishedMakeItADealScreen({
       <BottomSheet
         visible={quickSetupVisible}
         onClose={() => setQuickSetupVisible(false)}
-        title="Quick Setup: Woodfire Ribeye"
+        title={`Quick Setup: ${product?.name || 'New deal'}`}
       >
         <View className="gap-4 px-6 pb-2">
           <View>
@@ -320,7 +339,7 @@ export function ProductPublishedMakeItADealScreen({
               </View>
             </View>
             <VemtapText variant="button" className="shrink-0 font-sans-bold text-primary">
-              25 Vouchers / Day
+              {`${VOUCHERS_PER_DAY} Vouchers / Day`}
             </VemtapText>
           </View>
           <Button

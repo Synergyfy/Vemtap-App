@@ -19,7 +19,7 @@ import {
   useDealEngagement,
 } from '@features/deals/hooks/usePublicOffers';
 import { useDealReaction } from '@features/deals/hooks/useDealEngagementActions';
-import type { DealListItem, FeaturedDealOfDay } from '@features/deals/data/dealsFeed';
+import type { DealListItem, FeaturedDealOfDay } from '@features/deals/types';
 import { DealCommentsSheet } from '@features/dealDetail/components/DealCommentsSheet';
 import { useConsumerTargeting } from '@features/home/hooks/useConsumerTargeting';
 import { usePullToRefresh } from '@hooks/usePullToRefresh';
@@ -200,11 +200,13 @@ export function DealsDiscoveryScreen({
                       {strings.deals.featuredEyebrow}
                     </VemtapText>
                   </View>
-                  <View className="rounded-full bg-badge-discount-bg px-2 py-0.5">
-                    <VemtapText className="font-sans-bold text-caption text-badge-discount-text">
-                      {strings.deals.featuredPercentOff}
-                    </VemtapText>
-                  </View>
+                  {featuredDealOfDay?.specialPromo ? (
+                    <View className="rounded-full bg-badge-discount-bg px-2 py-0.5">
+                      <VemtapText className="font-sans-bold text-caption text-badge-discount-text">
+                        {featuredDealOfDay.specialPromo}
+                      </VemtapText>
+                    </View>
+                  ) : null}
                 </View>
                 {featuredDealOfDay ? (
                   <FeaturedDealCard

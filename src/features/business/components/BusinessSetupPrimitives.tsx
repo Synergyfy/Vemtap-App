@@ -817,11 +817,17 @@ export function Thumbnail({ uri, source, label, onPress, className }: ThumbnailP
         className,
       )}
     >
-      <BusinessProductImage
-        source={source ?? { uri }}
-        alt={label ?? uri ?? 'Business image'}
-        className="h-full w-full"
-      />
+      {source || uri ? (
+        <BusinessProductImage
+          source={source ?? { uri }}
+          alt={label ?? uri ?? 'Business image'}
+          className="h-full w-full"
+        />
+      ) : (
+        <View className="h-full w-full items-center justify-center bg-surface-tint-blue">
+          <Icon name="storefront" size={22} color={colors.primary} />
+        </View>
+      )}
     </Pressable>
   );
 }

@@ -7,10 +7,7 @@ import {
   ServiceFlowPage,
   ServiceSection,
 } from '@features/business/components/ServiceFlowPrimitives';
-import {
-  serviceFlowDraft,
-  serviceFlowImages,
-} from '@features/business/data/serviceFlowData';
+import { useBusinessBranches } from '@features/business/hooks/useCatalogueMutations';
 import { BusinessProductImage } from '@features/business/components/BusinessPrimitives';
 import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
@@ -42,6 +39,16 @@ export function ServicePublishedStatusScreen({
   onStatusChange,
   draft,
 }: ServicePublishedStatusScreenProps) {
+  const liveBranches = useBusinessBranches();
+  const studioNames = (liveBranches.data ?? [])
+    .filter(branch => (draft?.branchIds ?? []).includes(branch.id))
+    .map(branch => branch.name);
+  const studiosLabel =
+    studioNames.length === 0
+      ? 'No branch selected'
+      : studioNames.length <= 2
+        ? studioNames.join(' & ')
+        : `${studioNames.length} branches`;
   const [status, setStatus] = useState<'live' | 'draft'>('live');
 
   const selectStatus = (nextStatus: 'live' | 'draft') => {
@@ -149,24 +156,28 @@ export function ServicePublishedStatusScreen({
       <ServiceSection className="gap-3">
         <View className="flex-row items-start gap-3">
           <View className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-surface-container">
-            <BusinessProductImage
-              source={
-                draft?.mainImage
-                  ? { uri: draft.mainImage }
-                  : { uri: serviceFlowImages.status.uri }
-              }
-              alt={draft?.name || serviceFlowImages.status.alt}
-              className="h-full w-full"
-              resizeMode="cover"
-            />
-            <View className="absolute bottom-1 right-1 rounded bg-inverse-surface/80 px-1.5 py-0.5">
-              <VemtapText
-                variant="micro"
-                className="font-sans-medium text-inverse-on-surface"
-              >
-                {serviceFlowDraft.studioCount}
-              </VemtapText>
-            </View>
+            {draft?.mainImage ? (
+              <BusinessProductImage
+                source={{ uri: draft.mainImage }}
+                alt={draft.name || 'Service photo'}
+                className="h-full w-full"
+                resizeMode="cover"
+              />
+            ) : (
+              <View className="h-full w-full items-center justify-center">
+                <Icon name="spa" size={26} color={colors.textTertiary} />
+              </View>
+            )}
+            {studioNames.length ? (
+              <View className="absolute bottom-1 right-1 rounded bg-inverse-surface/80 px-1.5 py-0.5">
+                <VemtapText
+                  variant="micro"
+                  className="font-sans-medium text-inverse-on-surface"
+                >
+                  {`${studioNames.length} Branch${studioNames.length === 1 ? '' : 'es'}`}
+                </VemtapText>
+              </View>
+            ) : null}
           </View>
           <View className="min-w-0 flex-1">
             <View className="mb-1 flex-row flex-wrap items-center justify-between gap-1">
@@ -179,23 +190,25 @@ export function ServicePublishedStatusScreen({
                   Active in Catalog
                 </VemtapText>
               </View>
-              <VemtapText variant="caption" tone="tertiary">
-                {serviceFlowDraft.reference}
-              </VemtapText>
+              {draft?.publishedServiceId ? (
+                <VemtapText variant="caption" tone="tertiary">
+                  {`#${draft.publishedServiceId.slice(0, 8).toUpperCase()}`}
+                </VemtapText>
+              ) : null}
             </View>
             <VemtapText
               variant="headingSm"
               className="truncate text-heading-sm text-text"
               numberOfLines={1}
             >
-              {draft?.name || serviceFlowDraft.shortTitle}
+              {draft?.name || 'Untitled service'}
             </VemtapText>
             <VemtapText
               variant="labelMd"
               tone="brand"
               className="mt-0.5 font-sans-semibold"
             >
-              {draft?.basePrice ? `₦${draft.basePrice}` : serviceFlowDraft.priceRange}
+              {draft?.basePrice ? `₦${draft.basePrice}` : 'Price not set'}
             </VemtapText>
           </View>
         </View>
@@ -203,13 +216,13 @@ export function ServicePublishedStatusScreen({
           <View className="flex-row items-center gap-1">
             <Icon name="schedule" size={16} color={colors.primary} />
             <VemtapText variant="labelSm" tone="secondary">
-              {serviceFlowDraft.durationRange}
+              {draft?.duration || 'Duration not set'}
             </VemtapText>
           </View>
           <View className="flex-row items-center gap-1">
             <Icon name="storefront" size={16} color={colors.primary} />
-            <VemtapText variant="labelSm" tone="secondary">
-              {serviceFlowDraft.studios}
+            <VemtapText variant="labelSm" tone="secondary" numberOfLines={1}>
+              {studiosLabel}
             </VemtapText>
           </View>
         </View>

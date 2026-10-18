@@ -3,8 +3,7 @@ import type { Promotion, PromotionStats } from '@api/promotionsApi';
 
 /**
  * Boost / campaign performance (`/{boosts,promotions}/:id` + `/stats`) in the
- * shape BoostPerformanceScreen renders. The same view also carries the
- * design's sample figures, so the screen has one rendering path.
+ * shape BoostPerformanceScreen renders.
  */
 
 const perf = strings.boostWizard.performance;
@@ -52,7 +51,7 @@ export interface PerformanceView {
   attributionTitle: string;
   attributionBody: string;
   rhythmSubtitle: string;
-  /** Views bars are only in the sample; the API reports claims per hour. */
+  /** Whether the rhythm carries views as well as claims per hour. */
   showViews: boolean;
   rhythm: readonly { id: string; label: string; views: number; claims: number }[];
   peak?: { index: number; tag: string; title: string; body: string; value: string };
@@ -77,46 +76,6 @@ export interface PerformanceView {
   endLabel: string;
   endedNote?: string;
 }
-
-/** The design's sample campaign. */
-export const prototypePerformanceView: PerformanceView = {
-  backLabel: perf.backToHub,
-  headerSub: perf.headerSub,
-  badge: perf.dealBadge,
-  idLabel: perf.dealId,
-  name: perf.dealName,
-  sub: perf.dealSub,
-  banner: perf.liveBanner,
-  pulseEyebrow: perf.pulseEyebrow,
-  kpis: {
-    spend: perf.kpis[0],
-    redemptions: perf.kpis[1],
-    reach: perf.kpis[2],
-    cost: perf.kpis[3],
-  },
-  funnel: perf.funnel,
-  funnelCaption: perf.funnelCaption,
-  attributionTitle: perf.attributionTitle,
-  attributionBody: perf.attributionBody,
-  rhythmSubtitle: perf.rhythmSubtitle,
-  showViews: true,
-  rhythm: perf.rhythm,
-  peak: {
-    index: 2,
-    tag: perf.rhythm[2].peak,
-    title: perf.peakTitle,
-    body: perf.peakBody,
-    value: perf.peakValue,
-  },
-  geoTitle: perf.geoTitle,
-  geoSubtitle: perf.geoSubtitle,
-  geo: perf.geo,
-  canAddBudget: true,
-  canPause: true,
-  canResume: false,
-  canEnd: true,
-  endLabel: perf.endCta,
-};
 
 /** Add Budget extends the run by this many days at its current daily spend. */
 export const ADD_BUDGET_DAYS = 2;

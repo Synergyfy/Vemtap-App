@@ -4,6 +4,11 @@ import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
+import {
+  DEFAULT_BUDGET_TIERS,
+  DEFAULT_MIN_BUDGET,
+  type BudgetTier,
+} from '@features/business/hooks/useBudgetTiers';
 import { colors } from '@theme/colors';
 import {
   BusinessActionDock,
@@ -40,11 +45,8 @@ export interface BoostBudgetScheduleScreenProps {
   onSelectionChange?: (selection: BoostBudgetSelection) => void;
   /** Starting choices; the design's defaults when absent. */
   initialSelection?: Partial<BoostBudgetSelection>;
-  /**
-   * Live mode: the asset line, tier estimates and forecast come from the API
-   * and the dates from the clock, replacing the design's sample model.
-   */
-  live?: {
+  /** The asset line, tier estimates and forecast from the API. */
+  live: {
     assetName: string;
     assetGoal: string;
     tierForecasts: Partial<Record<string, { reach: string; claims: string }>>;
@@ -52,6 +54,10 @@ export interface BoostBudgetScheduleScreenProps {
   };
   /** Clock for the live dates (tests pin it). */
   now?: Date;
+  /** Smallest total budget the API accepts (`/boosts/options` `minBudget`). */
+  minBudget?: number;
+  /** The API's budget tiers (`/boosts/options` `budgetTiers`). */
+  tiers?: readonly BudgetTier[];
 }
 
 function formatDay(date: Date): string {
@@ -68,8 +74,6 @@ export interface BoostBudgetSelection {
   dayparting: boolean;
 }
 
-/** Bottom of the tier ladder: the design's own ₦3,000 floor. */
-const MIN_BUDGET = 3000;
 const MIN_DAYS = 3;
 
 function formatNaira(value: number): string {
@@ -89,8 +93,13 @@ export function BoostBudgetScheduleScreen({
   initialSelection,
   live,
   now,
+  minBudget = DEFAULT_MIN_BUDGET,
+  tiers = DEFAULT_BUDGET_TIERS.boost,
 }: BoostBudgetScheduleScreenProps) {
-  const initialBudget = initialSelection?.budget ?? 20000;
+  // The middle tier is the suggested starting point.
+  const suggested = tiers[Math.floor(tiers.length / 2)] ?? tiers[0];
+  const minLabel = formatNaira(minBudget);
+  const initialBudget = initialSelection?.budget ?? suggested?.amount ?? minBudget;
   const initialDays = initialSelection?.days;
   const [mode, setMode] = useState<string>('total');
   const [budget, setBudget] = useState<number>(initialBudget);
@@ -102,7 +111,7 @@ export function BoostBudgetScheduleScreen({
   const [dayparting, setDayparting] = useState(initialSelection?.dayparting ?? true);
 
   const customValue = Number(custom.replace(/[^0-9]/g, '')) || 0;
-  const invalid = customValue > 0 && customValue < MIN_BUDGET;
+  const invalid = customValue > 0 && customValue < minBudget;
   const activeDays = Number.parseInt(days, 10) || initialDays || MIN_DAYS;
   // Daily mode spends the amount every day of the run.
   const activeBudget = mode === 'daily' ? budget * activeDays : budget;
@@ -119,20 +128,8 @@ export function BoostBudgetScheduleScreen({
   }, [activeBudget, activeDays, dayparting]);
 
   const start = now ?? new Date();
-  const startValue = live ? copy.live.startNow(formatDay(start)) : step.startValue;
-  const endValue = live
-    ? formatDay(new Date(start.getTime() + activeDays * 86_400_000))
-    : step.endValue;
-
-  // The design's own model: reach 0.55–0.82 of spend, claims 0.0045–0.0068,
-  // with a 1.15x lift while lunch dayparting is on.
-  const lift = dayparting ? 1.15 : 1;
-  const reachLow = Math.round((activeBudget * 0.55 * lift) / 50) * 50;
-  const reachHigh = Math.round((activeBudget * 0.82 * lift) / 50) * 50;
-  const claimsLow = Math.round(activeBudget * 0.0045 * lift);
-  const claimsHigh = Math.round(activeBudget * 0.0068 * lift);
-  const revenueLow = claimsLow * 9600;
-  const revenueHigh = claimsHigh * 9600;
+  const startValue = copy.live.startNow(formatDay(start));
+  const endValue = formatDay(new Date(start.getTime() + activeDays * 86_400_000));
 
   return (
     <BusinessScreenLayout
@@ -169,12 +166,12 @@ export function BoostBudgetScheduleScreen({
       <SetupSectionCard tone="low" className="flex-row items-center gap-3 p-3">
         <View className="min-w-0 flex-1 gap-0.5">
           <VemtapText variant="labelMd" className="font-sans-semibold" numberOfLines={1}>
-            {live?.assetName ?? step.assetName}
+            {live.assetName}
           </VemtapText>
           <View className="flex-row items-center gap-1.5">
             <View className="h-1.5 w-1.5 rounded-full bg-primary" />
             <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-              {live?.assetGoal ?? step.assetGoal}
+              {live.assetGoal}
             </VemtapText>
           </View>
         </View>
@@ -194,8 +191,9 @@ export function BoostBudgetScheduleScreen({
           accessibilityLabel={step.budgetTitle}
         />
         <View className="gap-2">
-          {step.tiers.map(tier => {
-            const selected = budget === Number(tier.id) * 1000;
+          {tiers.map(tier => {
+            const selected = budget === tier.amount;
+            const amountLabel = formatNaira(tier.amount);
             return (
               <SetupSectionCard
                 key={tier.id}
@@ -210,42 +208,41 @@ export function BoostBudgetScheduleScreen({
                         className="font-sans-semibold"
                         numberOfLines={1}
                       >
-                        {tier.amount}
+                        {amountLabel}
                       </VemtapText>
-                      {'tier' in tier ? (
-                        <View className="rounded-full bg-surface-container px-2 py-0.5">
-                          <VemtapText variant="micro" tone="secondary">
-                            {tier.tier}
-                          </VemtapText>
-                        </View>
-                      ) : null}
-                      {'badge' in tier ? (
+                      {tier.id === suggested?.id ? (
                         <View className="rounded-full bg-primary px-2 py-0.5">
                           <VemtapText
                             variant="micro"
                             className="font-sans-semibold text-primary-foreground"
                           >
-                            {tier.badge}
+                            {tier.label}
                           </VemtapText>
                         </View>
-                      ) : null}
+                      ) : (
+                        <View className="rounded-full bg-surface-container px-2 py-0.5">
+                          <VemtapText variant="micro" tone="secondary">
+                            {tier.label}
+                          </VemtapText>
+                        </View>
+                      )}
                     </View>
                     <VemtapText
                       variant="labelSm"
                       className={
-                        'pace' in tier && selected
+                        selected
                           ? 'font-sans-semibold text-primary'
                           : 'text-text-secondary'
                       }
                       numberOfLines={1}
                     >
-                      {tier.pace}
+                      {step.tierPace(formatNaira(Math.round(tier.amount / activeDays)))}
                     </VemtapText>
                   </View>
                   <View
                     accessibilityRole="radio"
                     accessibilityState={{ selected }}
-                    accessibilityLabel={tier.amount}
+                    accessibilityLabel={amountLabel}
                     className={
                       selected
                         ? 'h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary'
@@ -261,13 +258,13 @@ export function BoostBudgetScheduleScreen({
                   <View className="min-w-0 flex-1 flex-row items-center gap-1">
                     <Icon name="group" size={13} color={colors.textSecondary} />
                     <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-                      {live ? (live.tierForecasts[tier.id]?.reach ?? '') : tier.reach}
+                      {live.tierForecasts[tier.id]?.reach ?? ''}
                     </VemtapText>
                   </View>
                   <View className="min-w-0 flex-1 flex-row items-center gap-1">
                     <Icon name="receipt" size={13} color={colors.textSecondary} />
                     <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-                      {live ? (live.tierForecasts[tier.id]?.claims ?? '') : tier.claims}
+                      {live.tierForecasts[tier.id]?.claims ?? ''}
                     </VemtapText>
                   </View>
                 </View>
@@ -276,11 +273,11 @@ export function BoostBudgetScheduleScreen({
                   labelVariant="labelSm"
                   variant={selected ? 'primary' : 'secondary'}
                   size="sm"
-                  accessibilityLabel={`${tier.amount} budget tier`}
+                  accessibilityLabel={`${amountLabel} budget tier`}
                   onPress={() => {
                     setMode('total');
-                    setBudget(Number(tier.id) * 1000);
-                    setCustom(tier.amount.replace('\u20a6', ''));
+                    setBudget(tier.amount);
+                    setCustom(tier.amount.toLocaleString('en-NG'));
                   }}
                 />
               </SetupSectionCard>
@@ -290,7 +287,7 @@ export function BoostBudgetScheduleScreen({
 
         <SetupSectionCard tone="low" className="gap-2 p-4">
           <BusinessNumberInput
-            label={step.customLabel}
+            label={step.customLabel(minLabel)}
             value={custom}
             onChangeText={changeCustom}
             leadingText="\u20a6"
@@ -298,7 +295,7 @@ export function BoostBudgetScheduleScreen({
           />
           {invalid ? (
             <VemtapText variant="caption" className="text-error">
-              {step.customError}
+              {step.customError(minLabel)}
             </VemtapText>
           ) : null}
         </SetupSectionCard>
@@ -418,9 +415,7 @@ export function BoostBudgetScheduleScreen({
                 className="font-sans-semibold"
                 numberOfLines={1}
               >
-                {live
-                  ? (live.forecast?.reach ?? '\u2026')
-                  : `${reachLow.toLocaleString('en-NG')} \u2013 ${reachHigh.toLocaleString('en-NG')}`}
+                {live.forecast?.reach ?? '\u2026'}
               </VemtapText>
               <VemtapText variant="micro" tone="secondary" numberOfLines={1}>
                 {step.reachMeta}
@@ -435,16 +430,14 @@ export function BoostBudgetScheduleScreen({
                 className="font-sans-semibold"
                 numberOfLines={1}
               >
-                {live
-                  ? (live.forecast?.claims ?? '\u2026')
-                  : `${claimsLow} \u2013 ${claimsHigh}`}
+                {live.forecast?.claims ?? '\u2026'}
               </VemtapText>
               <VemtapText variant="micro" tone="secondary" numberOfLines={1}>
                 {step.claimsMeta}
               </VemtapText>
             </View>
           </View>
-          {live && !live.forecast?.revenue ? null : (
+          {!live.forecast?.revenue ? null : (
             <View className="flex-row items-center justify-between gap-2 rounded-field bg-surface-subtle p-3">
               <VemtapText variant="caption" tone="secondary" className="min-w-0 flex-1">
                 {step.revenueLabel}
@@ -454,17 +447,16 @@ export function BoostBudgetScheduleScreen({
                 className="font-sans-semibold"
                 numberOfLines={1}
               >
-                {live?.forecast?.revenue ??
-                  `${formatNaira(revenueLow)} \u2013 ${formatNaira(revenueHigh)}`}
+                {live.forecast.revenue}
               </VemtapText>
             </View>
           )}
           <View className="flex-row items-center justify-between gap-2">
             <VemtapText variant="micro" tone="tertiary" className="min-w-0 flex-1">
-              {live ? copy.live.forecastNote : step.forecastNote}
+              {copy.live.forecastNote}
             </VemtapText>
             <VemtapText variant="micro" className="shrink-0 text-primary">
-              {live ? (live.forecast?.revenueMeta ?? '') : step.revenueMeta}
+              {live.forecast?.revenueMeta ?? ''}
             </VemtapText>
           </View>
         </SetupSectionCard>
@@ -473,7 +465,7 @@ export function BoostBudgetScheduleScreen({
       {invalid ? (
         <SetupCallout
           icon="alert"
-          body={step.minBudgetAlert}
+          body={step.minBudgetAlert(minLabel)}
           tone="subtle"
           iconTone="tertiary"
         />

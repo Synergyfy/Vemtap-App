@@ -56,6 +56,7 @@ import { useBusinessCatalogue } from '@features/business/hooks/useBusinessCatalo
 import { catalogueItemToSetupCard } from '@features/business/utils/catalogueHubRowMappers';
 import {
   businessCatalogCopy as copy,
+  businessLocationCopy,
   businessProfileCopy,
 } from '@features/business/businessCopy';
 import { useUpgradeOwnerRegistration } from '@features/business/hooks/useUpgradeOwnerRegistration';
@@ -103,6 +104,17 @@ import {
   verificationKeys,
 } from '@features/business/hooks/useVerification';
 import { useMyBusiness } from '@features/business/hooks/useBusinessDashboardData';
+import {
+  useCreateBranch,
+  useUpdateBranch,
+} from '@features/business/hooks/useBranchMutations';
+import { useInviteStaff } from '@features/business/hooks/useTeam';
+import { requestCurrentLocation } from '@features/location/utils/currentLocation';
+import type { ProfileBranch } from '@api/businessProfileApi';
+import type { BranchSummary } from '@features/business/businessData';
+import type { BranchDraft } from '@features/business/screens/AddBranchLocationScreen';
+import { usePickBusinessImages } from '@features/business/hooks/usePickBusinessImages';
+import { productSnapshot } from '@features/business/utils/productSnapshot';
 import {
   reasonCopy,
   verificationApi,
@@ -638,30 +650,167 @@ function BusinessLocationRoute() {
   );
 }
 
+/** A live branch as the setup card shows it. */
+function toBranchSummary(
+  branch: ProfileBranch,
+  businessName: string | undefined,
+): BranchSummary {
+  return {
+    id: branch.id,
+    name: branch.name,
+    businessLine: [businessName, branch.city].filter(Boolean).join(' \u2022 '),
+    imageUri: branch.logoUrl ?? '',
+    isPrimary: Boolean(branch.isMainBranch),
+    address: branch.address ?? '',
+    phone: branch.phone ?? '',
+    openStatus: branch.isActive === false ? 'Paused' : 'Active',
+    hours: '',
+  };
+}
+
 function BusinessLocationsRoute() {
   const navigation = useFlowNavigation();
+  const openSupport = useOpenSupport();
   const setBranches = useBusinessOnboardingStore(state => state.setBranches);
+  const myBusiness = useMyBusiness();
+  const branches = (myBusiness.data?.branches ?? []).map(branch =>
+    toBranchSummary(branch, myBusiness.data?.name),
+  );
   return (
     <BusinessLocationsMultiBranchScreen
+      branches={branches}
       onBack={navigation.goBack}
       onContinue={value => {
         setBranches(value);
         navigation.navigate('AddProductsOrServices');
       }}
       onAddBranch={() => navigation.navigate('AddBranchLocation')}
-      onEditBranch={() => undefined}
-      onManageHours={() => undefined}
-      onContactConcierge={() => undefined}
+      onEditBranch={branch =>
+        navigation.navigate('AddBranchLocation', { branchId: branch.id })
+      }
+      onManageHours={branch =>
+        navigation.navigate('AddBranchLocation', { branchId: branch.id })
+      }
+      onContactConcierge={openSupport}
     />
   );
 }
 
 function AddBranchLocationRoute() {
   const navigation = useFlowNavigation();
+  const route = useRoute<RouteProp<BusinessSetupStackParamList, 'AddBranchLocation'>>();
+  const branchId = route.params?.branchId;
+  const myBusiness = useMyBusiness();
+  const createBranch = useCreateBranch();
+  const updateBranch = useUpdateBranch();
+  const inviteStaff = useInviteStaff();
+  const editing = branchId
+    ? myBusiness.data?.branches?.find(branch => branch.id === branchId)
+    : undefined;
+  const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(
+    null,
+  );
+  const [locating, setLocating] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const addCopy = businessLocationCopy.addBranch;
+
+  const pinned =
+    coords ??
+    (editing?.latitude != null && editing?.longitude != null
+      ? { latitude: Number(editing.latitude), longitude: Number(editing.longitude) }
+      : null);
+
+  const pin = async () => {
+    setLocating(true);
+    const result = await requestCurrentLocation();
+    setLocating(false);
+    if (result.ok) {
+      setCoords(result.coords);
+      return;
+    }
+    showError(
+      result.reason === 'denied' ? addCopy.locationDenied : addCopy.locationUnavailable,
+    );
+  };
+
+  const save = async (draft: BranchDraft) => {
+    const name = draft.name.trim();
+    if (!name) {
+      showError(addCopy.nameRequired);
+      return;
+    }
+    const address = [draft.street, draft.landmark]
+      .map(part => part.trim())
+      .filter(Boolean);
+    const fields = {
+      name,
+      ...(address.length ? { address: address.join(', ') } : {}),
+      ...(draft.district.trim() ? { city: draft.district.trim() } : {}),
+      ...(draft.phone.trim() ? { phone: draft.phone.trim() } : {}),
+      ...(draft.email.trim() ? { officialEmail: draft.email.trim() } : {}),
+    };
+    setSaving(true);
+    try {
+      const saved = editing
+        ? await updateBranch.mutateAsync({
+            branchId: editing.id,
+            ...fields,
+            ...(coords ?? {}),
+          })
+        : await createBranch.mutateAsync(fields);
+      const savedId = (saved as { id?: string } | undefined)?.id ?? editing?.id;
+      // Creating takes no coordinates; the pin is saved straight after.
+      if (!editing && coords && savedId) {
+        await updateBranch.mutateAsync({ branchId: savedId, ...coords });
+      }
+      const [firstName, ...rest] = draft.leadName.trim().split(/\s+/);
+      if (
+        !editing &&
+        draft.grantDashboardAccess &&
+        savedId &&
+        firstName &&
+        draft.leadEmail.trim()
+      ) {
+        await inviteStaff
+          .mutateAsync({
+            firstName,
+            lastName: rest.join(' ') || firstName,
+            email: draft.leadEmail.trim(),
+            ...(draft.leadPhone.trim() ? { phone: draft.leadPhone.trim() } : {}),
+            role: draft.leadRole === 'Branch Manager' ? 'manager' : 'staff',
+            jobTitle: draft.leadRole,
+            branchId: savedId,
+          })
+          .catch(() => showError(addCopy.inviteFailed));
+      }
+      showSuccess(addCopy.saved);
+      navigation.goBack();
+    } catch (error) {
+      showError(error instanceof Error ? error.message : addCopy.saveFailed);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <AddBranchLocationScreen
+      key={editing?.id ?? 'new'}
+      initialValue={
+        editing
+          ? {
+              name: editing.name,
+              street: editing.address ?? '',
+              district: editing.city ?? '',
+              phone: editing.phone ?? '',
+            }
+          : undefined
+      }
+      coordinates={pinned}
+      locating={locating}
+      saving={saving}
       onBack={navigation.goBack}
-      onSave={() => navigation.goBack()}
+      onChangeGps={pin}
+      onSave={save}
     />
   );
 }
@@ -753,12 +902,46 @@ function ServicePublishedRoute() {
   );
 }
 
+/** The product draft as the publish / deal screens summarise it. */
+function useProductSnapshot() {
+  const draft = useCatalogueDraftStore(state => state.product);
+  const branches = useBusinessBranches();
+  return productSnapshot(draft, branches.data ?? []);
+}
+
+/** Upload photos into the product draft (cover first). */
+function useProductPhotos() {
+  const setProduct = useCatalogueDraftStore(state => state.setProduct);
+  const { pick, uploading } = usePickBusinessImages();
+  const add = async () => {
+    const urls = await pick();
+    if (!urls.length) return;
+    const { product } = useCatalogueDraftStore.getState();
+    const gallery = [...product.galleryImages, ...urls];
+    setProduct({ galleryImages: gallery, mainImage: product.mainImage ?? gallery[0] });
+  };
+  return { add, uploading };
+}
+
 function AddProductLocationPricingRoute() {
   const navigation = useFlowNavigation();
   const setProduct = useCatalogueDraftStore(state => state.setProduct);
   const resetProduct = useCatalogueDraftStore(state => state.resetProduct);
+  const draft = useCatalogueDraftStore(state => state.product);
+  const photos = useProductPhotos();
   return (
     <AddProductLocationPricingScreen
+      initialValue={{
+        productName: draft.name,
+        category: draft.categoryName ?? '',
+        description: draft.description,
+        selectedBranchIds: draft.branchIds,
+        pricingMode: draft.pricingMode === 'branch' ? 'branch' : 'uniform',
+        inStock: draft.inStock,
+      }}
+      image={draft.mainImage}
+      uploadingPhoto={photos.uploading}
+      onChangePhoto={photos.add}
       onBack={navigation.goBack}
       onSave={value => {
         setProduct({
@@ -783,8 +966,28 @@ function AddProductBasicsRoute() {
   const navigation = useFlowNavigation();
   const setProduct = useCatalogueDraftStore(state => state.setProduct);
   const saveProductDraft = useSaveProductDraft();
+  const draft = useCatalogueDraftStore(state => state.product);
+  const photos = useProductPhotos();
+  const images = [draft.mainImage, ...draft.galleryImages].filter(
+    (uri, index, all): uri is string => Boolean(uri) && all.indexOf(uri) === index,
+  );
   return (
     <AddProductBasicsCategoryScreen
+      initialValue={{
+        title: draft.name,
+        brand: draft.brand,
+        unbranded: draft.unbranded,
+        description: draft.description,
+        categoryPath: draft.categoryName ?? '',
+        ...(draft.condition === 'Fresh / New' ||
+        draft.condition === 'Packaged' ||
+        draft.condition === 'Surplus'
+          ? { condition: draft.condition }
+          : {}),
+      }}
+      images={images}
+      uploadingPhoto={photos.uploading}
+      onChangePhoto={photos.add}
       onBack={navigation.goBack}
       onContinue={value => {
         setProduct({
@@ -806,8 +1009,18 @@ function AddProductPricingVariantsRoute() {
   const navigation = useFlowNavigation();
   const setProduct = useCatalogueDraftStore(state => state.setProduct);
   const saveProductDraft = useSaveProductDraft();
+  const draft = useCatalogueDraftStore(state => state.product);
   return (
     <AddProductPricingVariantsScreen
+      initialValue={{
+        regularPrice: draft.regularPrice,
+        compareAtPrice: draft.compareAtPrice,
+        costPerItem: draft.costPrice,
+        variants: draft.variants,
+        sku: draft.sku,
+        lowStockThreshold: draft.lowStockThreshold,
+        continueWhenOutOfStock: draft.backorder,
+      }}
       onBack={navigation.goBack}
       onContinue={value => {
         setProduct({
@@ -830,8 +1043,16 @@ function AddProductBranchAvailabilityRoute() {
   const navigation = useFlowNavigation();
   const setProduct = useCatalogueDraftStore(state => state.setProduct);
   const saveProductDraft = useSaveProductDraft();
+  const draft = useCatalogueDraftStore(state => state.product);
   return (
     <AddProductBranchAvailabilityScreen
+      initialValue={{
+        selectedBranchIds: draft.branchIds,
+        ...(draft.pricingMode === 'unified' || draft.pricingMode === 'custom'
+          ? { pricingMode: draft.pricingMode }
+          : {}),
+        fulfillment: draft.fulfillmentModes,
+      }}
       onBack={navigation.goBack}
       onContinue={value => {
         setProduct({
@@ -879,8 +1100,10 @@ function ProductPublishedRoute() {
   const navigation = useFlowNavigation();
   const itemId = useCatalogueDraftStore(state => state.product.publishedItemId);
   const updateStatus = useUpdateCatalogueItemStatus();
+  const product = useProductSnapshot();
   return (
     <ProductPublishedOrSavedAsDraftScreen
+      product={product}
       onBack={navigation.goBack}
       onMakeDeal={() => navigation.navigate('ProductMakeDeal')}
       onViewCatalog={() => navigation.navigate('BusinessQrReady')}
@@ -900,8 +1123,10 @@ function ProductMakeDealRoute() {
   const navigation = useFlowNavigation();
   const setDeal = useCatalogueDraftStore(state => state.setDeal);
   const product = useCatalogueDraftStore(state => state.product);
+  const snapshot = useProductSnapshot();
   return (
     <ProductPublishedMakeItADealScreen
+      product={snapshot}
       onBack={navigation.goBack}
       onConvertToDeal={() => {
         setDeal({
@@ -924,6 +1149,8 @@ function CreateDealAutoImportedRoute() {
   const setDeal = useCatalogueDraftStore(state => state.setDeal);
   const publish = usePublishCatalogueOffer();
   const branches = useBusinessBranches();
+  const snapshot = useProductSnapshot();
+  const productDraft = useCatalogueDraftStore(state => state.product);
 
   const submit = (status: 'active' | 'inactive') => {
     const { deal } = useCatalogueDraftStore.getState();
@@ -947,6 +1174,8 @@ function CreateDealAutoImportedRoute() {
 
   return (
     <CreateDealOfferAutoImportedScreen
+      product={snapshot}
+      initialBranchIds={productDraft.branchIds}
       onBack={navigation.goBack}
       onPublish={value => {
         setDeal({

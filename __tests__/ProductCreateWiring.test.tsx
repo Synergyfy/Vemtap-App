@@ -44,14 +44,14 @@ describe('product basics screen', () => {
     const onContinue = jest.fn();
     await render(<AddProductBasicsMediaScreen onContinue={onContinue} />);
 
-    const title = screen.getByDisplayValue(strings.addProductBasics.titleValue);
+    const title = screen.getByPlaceholderText(strings.addProductBasics.titlePlaceholder);
     await fireEvent.changeText(title, 'Spicy Grilled Turkey');
     await fireEvent.press(screen.getByText(strings.addProductBasics.continue));
 
     expect(onContinue).toHaveBeenCalledTimes(1);
     const value = onContinue.mock.calls[0][0];
     expect(value.title).toBe('Spicy Grilled Turkey');
-    expect(value.description).toBeTruthy();
+    expect(value.description).toBe('');
     expect(Array.isArray(value.attributes)).toBe(true);
     expect(Array.isArray(value.gallery)).toBe(true);
   });
@@ -63,10 +63,8 @@ describe('product basics screen', () => {
     await fireEvent.press(screen.getByText(strings.addProductBasics.saveDraft));
 
     expect(onSaveDraft).toHaveBeenCalledTimes(1);
-    expect(onSaveDraft.mock.calls[0][0]).toMatchObject({
-      title: strings.addProductBasics.titleValue,
-      producer: strings.addProductBasics.producerValue,
-    });
+    // A new product starts blank, never with sample text.
+    expect(onSaveDraft.mock.calls[0][0]).toMatchObject({ title: '', producer: '' });
   });
 });
 

@@ -17,7 +17,6 @@ import {
   BusinessSwitchRow,
   SetupCard,
 } from '@features/business/components/BusinessPrimitives';
-import { businessMedia } from '@features/business/data/businessSetupData';
 
 export type CreateDealLimitsValue = {
   totalVouchers: number;
@@ -41,6 +40,8 @@ export interface CreateDealStep2LimitsGiftingRulesScreenProps {
     CreateDealLimitsValue,
     'totalVouchers' | 'claimFrequency' | 'maxClaimsPerMonth' | 'acceptGifting'
   >;
+  /** The deal being built, for the customer badge preview. */
+  preview?: { name?: string; image?: string; discountLabel?: string };
 }
 
 export function CreateDealStep2LimitsGiftingRulesScreen({
@@ -48,6 +49,7 @@ export function CreateDealStep2LimitsGiftingRulesScreen({
   onContinue,
   onSave,
   initialValue,
+  preview,
 }: CreateDealStep2LimitsGiftingRulesScreenProps) {
   const [vouchers, setVouchers] = useState(initialValue?.totalVouchers ?? 50);
   const [autoPause, setAutoPause] = useState(true);
@@ -358,25 +360,35 @@ export function CreateDealStep2LimitsGiftingRulesScreen({
             </View>
           </View>
           <View className="flex-row items-center gap-3 overflow-hidden rounded-lg bg-surface-container p-3">
-            <BusinessProductImage
-              source={businessMedia.jollofPreview}
-              alt="Nigerian party jollof rice with grilled chicken"
-              className="h-16 w-16 shrink-0 rounded-lg shadow-sm"
-            />
+            {preview?.image ? (
+              <BusinessProductImage
+                source={{ uri: preview.image }}
+                alt={preview.name || 'Deal photo'}
+                className="h-16 w-16 shrink-0 rounded-lg shadow-sm"
+              />
+            ) : (
+              <View className="h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-surface">
+                <Icon name="localOffer" size={22} color={colors.textTertiary} />
+              </View>
+            )}
             <View className="min-w-0 flex-1">
               <View className="flex-row flex-wrap items-center gap-1.5">
-                <BusinessStatusPill label="50 Left" tone="success" />
+                <BusinessStatusPill label={`${vouchers} Left`} tone="success" />
                 <View className="rounded-full bg-surface px-2 py-0.5 shadow-sm">
                   <VemtapText variant="caption" className="font-sans-medium text-primary">
-                    1 Per Diner
+                    {claimFrequency === 'once'
+                      ? '1 per customer'
+                      : `${maxClaims} per month`}
                   </VemtapText>
                 </View>
               </View>
               <VemtapText variant="headingSm" className="mt-1" numberOfLines={1}>
-                20% Off Weekend Dining
+                {preview?.name || preview?.discountLabel || 'Your deal'}
               </VemtapText>
               <VemtapText variant="caption" tone="secondary">
-                Min spend ₦5,000 • Dine-in & Pickup
+                {[dineInWalkIns ? 'Dine-in' : null, takeoutPickup ? 'Pickup' : null]
+                  .filter(Boolean)
+                  .join(' & ') || 'In store'}
               </VemtapText>
             </View>
           </View>

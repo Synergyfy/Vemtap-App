@@ -3,7 +3,7 @@ import { render } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { CustomerDashboardScreen } from '@features/accountHub/screens/CustomerDashboardScreen';
 import { strings } from '@constants/strings';
-import type { DealListItem } from '@features/deals/data/dealsFeed';
+import type { DealListItem } from '@features/deals/types';
 import { claimFixture } from './helpers/mockCustomerHub';
 
 const mockBalance = jest.fn();

@@ -4,6 +4,7 @@ import { CreateDealStep1DiscountStrategyScreen } from '@features/business/screen
 import { CreateDealStep4ReviewLaunchScreen } from '@features/business/screens/CreateDealStep4ReviewLaunchScreen';
 import { HelpCentreScreen } from '@features/accountHub/screens/HelpCentreScreen';
 import { strings } from '@constants/strings';
+import { reviewFixture } from '../../../../../__tests__/helpers/dealReviewFixture';
 
 const { step1, step4 } = strings.businessCreateDeal;
 const { helpCentre: help } = strings.accountScreens;
@@ -11,13 +12,15 @@ const { helpCentre: help } = strings.accountScreens;
 describe('create deal step 1 discount strategy', () => {
   it('renders the synced catalog item, strategies and live pricing math', async () => {
     const view = await render(
-      <CreateDealStep1DiscountStrategyScreen onBack={jest.fn()} />,
+      <CreateDealStep1DiscountStrategyScreen
+        onBack={jest.fn()}
+        item={{ name: 'Aurora Ribeye', basePrice: 12000 }}
+      />,
     );
 
     expect(view.getByText(step1.stepLabel)).toBeTruthy();
-    expect(view.getByText('Woodfire Aged Ribeye Steak')).toBeTruthy();
+    expect(view.getByText('Aurora Ribeye')).toBeTruthy();
     expect(view.getByText('Synced Catalog Item')).toBeTruthy();
-    expect(view.getByText('2 Branches')).toBeTruthy();
     expect(view.getByText('Percentage Discount (% Off)')).toBeTruthy();
     expect(view.getByText('Fixed Amount Off (₦ Off)')).toBeTruthy();
     expect(view.getByText('Combo & Bundle Deal')).toBeTruthy();
@@ -30,7 +33,10 @@ describe('create deal step 1 discount strategy', () => {
 
   it('recalculates the member price when a preset is pressed', async () => {
     const view = await render(
-      <CreateDealStep1DiscountStrategyScreen onBack={jest.fn()} />,
+      <CreateDealStep1DiscountStrategyScreen
+        item={{ name: 'Aurora Ribeye', basePrice: 12000 }}
+        onBack={jest.fn()}
+      />,
     );
 
     await act(async () => {
@@ -45,6 +51,7 @@ describe('create deal step 1 discount strategy', () => {
     const onContinue = jest.fn();
     const view = await render(
       <CreateDealStep1DiscountStrategyScreen
+        item={{ name: 'Aurora Ribeye', basePrice: 12000 }}
         onBack={jest.fn()}
         onContinue={onContinue}
       />,
@@ -66,18 +73,20 @@ describe('create deal step 1 discount strategy', () => {
 
 describe('create deal step 4 review and launch', () => {
   it('renders every summary article and the launch dock', async () => {
-    const view = await render(<CreateDealStep4ReviewLaunchScreen onBack={jest.fn()} />);
+    const view = await render(
+      <CreateDealStep4ReviewLaunchScreen review={reviewFixture()} onBack={jest.fn()} />,
+    );
 
     expect(view.getByText(step4.celebrateTitle)).toBeTruthy();
     expect(view.getByText(step4.readyPill)).toBeTruthy();
     expect(view.getByText('Offer Showcase')).toBeTruthy();
-    expect(view.getByText('20% Off Woodfire Aged Ribeye Steak')).toBeTruthy();
     expect(view.getByText('Limits, Rules & Gifting')).toBeTruthy();
     expect(view.getByText('Branches & Schedule')).toBeTruthy();
-    expect(view.getByText('Audience Reach & Forecast')).toBeTruthy();
-    expect(view.getByText('Wuse II Flagship')).toBeTruthy();
-    expect(view.getByText('Garki II Branch')).toBeTruthy();
-    expect(view.getByText('~1,420')).toBeTruthy();
+    expect(view.getByText('Aurora Wuse')).toBeTruthy();
+    // The prototype's sample offer, branches and reach estimate are gone.
+    expect(
+      view.queryByText(/Woodfire|Wuse II Flagship|Garki II|~1,420|Audience Reach/),
+    ).toBeNull();
     expect(view.getByText(step4.publishLabel)).toBeTruthy();
     expect(view.getByText(step4.saveDraft)).toBeTruthy();
   });
@@ -87,7 +96,11 @@ describe('create deal step 4 review and launch', () => {
     // even sent, so a failed save still looked published.
     const onLaunch = jest.fn();
     const view = await render(
-      <CreateDealStep4ReviewLaunchScreen onBack={jest.fn()} onLaunch={onLaunch} />,
+      <CreateDealStep4ReviewLaunchScreen
+        review={reviewFixture()}
+        onBack={jest.fn()}
+        onLaunch={onLaunch}
+      />,
     );
     await act(async () => {
       fireEvent.press(view.getByText(step4.publishLabel));
@@ -97,20 +110,22 @@ describe('create deal step 4 review and launch', () => {
 
     await view.rerender(
       <CreateDealStep4ReviewLaunchScreen
+        review={reviewFixture()}
         onBack={jest.fn()}
         onLaunch={onLaunch}
         phase="publishing"
         isBusy
       />,
     );
-    expect(view.getByText(step4.publishingLabel)).toBeTruthy();
+    expect(view.getByText(step4.publishingLive)).toBeTruthy();
     await act(async () => {
-      fireEvent.press(view.getByText(step4.publishingLabel));
+      fireEvent.press(view.getByText(step4.publishingLive));
     });
     expect(onLaunch).toHaveBeenCalledTimes(1);
 
     await view.rerender(
       <CreateDealStep4ReviewLaunchScreen
+        review={reviewFixture()}
         onBack={jest.fn()}
         onLaunch={onLaunch}
         phase="published"
@@ -151,7 +166,7 @@ describe('create deal step 4 review and launch', () => {
     expect(view.getByText('Show the voucher')).toBeTruthy();
     // prototype-only sections are gone
     expect(view.queryByText('~1,420')).toBeNull();
-    expect(view.queryByText(step4.offerTitle)).toBeNull();
+    expect(view.queryByText(/Ribeye/)).toBeNull();
     expect(view.queryByText(step4.orderTypes)).toBeNull();
   });
 
@@ -194,7 +209,11 @@ describe('create deal step 4 review and launch', () => {
 
   it('reviews an edit with a Save Changes action and no draft option', async () => {
     const view = await render(
-      <CreateDealStep4ReviewLaunchScreen onBack={jest.fn()} mode="edit" />,
+      <CreateDealStep4ReviewLaunchScreen
+        review={reviewFixture()}
+        onBack={jest.fn()}
+        mode="edit"
+      />,
     );
     expect(view.getByText(step4.saveChanges)).toBeTruthy();
     expect(view.queryByText(step4.saveDraft)).toBeNull();
@@ -205,6 +224,7 @@ describe('create deal step 4 review and launch', () => {
     const onSaveDraft = jest.fn();
     const view = await render(
       <CreateDealStep4ReviewLaunchScreen
+        review={reviewFixture()}
         onBack={jest.fn()}
         onLaunch={onLaunch}
         onSaveDraft={onSaveDraft}

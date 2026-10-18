@@ -4,6 +4,10 @@ import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
+import {
+  DEFAULT_BUDGET_TIERS,
+  type BudgetTier,
+} from '@features/business/hooks/useBudgetTiers';
 import { colors } from '@theme/colors';
 import type { IconName } from '@components/ui/Icon';
 import {
@@ -25,10 +29,7 @@ import {
 } from '@features/business/components/BusinessPosPrimitives';
 import {
   boostAudiences,
-  boostBudgetTiers,
-  boostFeedPreview,
   boostRadii,
-  boostSelection,
   growthSubTabIcon,
   growthSubTabs,
 } from '@features/business/data/businessGrowthData';
@@ -41,8 +42,6 @@ const growthTabs = growthSubTabs.map(label => ({
   icon: growthSubTabIcon[label],
 }));
 
-/** Daily price per tier, used to derive the investment total. */
-const tierDailyPrice: Record<string, number> = { starter: 3000, top: 5000, turbo: 10000 };
 const durationDays: Record<string, number> = {
   [copy.durations[0]]: 3,
   [copy.durations[1]]: 7,
@@ -62,9 +61,6 @@ export const BOOST_ENGINE_RADIUS_KM: Record<string, number> = {
 /** Boost audiences the API serves (`BOOST_AUDIENCE_TYPES`). */
 const LIVE_AUDIENCE_IDS: readonly string[] = ['regulars', 'walkins'];
 
-/** Daily budget (₦) per engine tier. */
-export const BOOST_ENGINE_TIER_DAILY = tierDailyPrice;
-
 export interface BoostEngineSelection {
   radius: string;
   radiusKm: number;
@@ -73,11 +69,11 @@ export interface BoostEngineSelection {
   tier: string;
   duration: string;
   days: number;
-  /** Total budget (₦): daily tier price × days. */
+  /** Total budget (₦): the chosen API tier, spread across the run. */
   total: number;
 }
 
-/** Live figures; the design's sample engine shows when absent. */
+/** The engine's live figures. */
 export interface BoostEngineLive {
   /** The running boost's banner; omitted when nothing is boosting. */
   activeBanner?: string;
@@ -114,7 +110,9 @@ export interface BoostEngineScreenProps {
   onViewHistory?: () => void;
   onClaimDeal?: () => void;
   onOpenProfile?: () => void;
-  live?: BoostEngineLive;
+  live: BoostEngineLive;
+  /** The API's budget tiers (`/boosts/options` `budgetTiers`), each a total for the run. */
+  tiers?: readonly BudgetTier[];
   initialSelection?: Partial<Pick<BoostEngineSelection, 'radius' | 'tier' | 'duration'>>;
   onSelectionChange?: (selection: BoostEngineSelection) => void;
 }
@@ -134,6 +132,7 @@ export function BoostEngineScreen({
   onClaimDeal,
   onOpenProfile,
   live,
+  tiers = DEFAULT_BUDGET_TIERS.boost,
   initialSelection,
   onSelectionChange,
 }: BoostEngineScreenProps) {
@@ -141,19 +140,21 @@ export function BoostEngineScreen({
   const [radius, setRadius] = useState(initialSelection?.radius ?? boostRadii[0].id);
   // Live: optional, and only the audiences built from the business's own
   // data; targeting rivals' claimers is not offered.
-  const audiences = live
-    ? boostAudiences.filter(option => LIVE_AUDIENCE_IDS.includes(option.id))
-    : boostAudiences;
-  const [audience, setAudience] = useState<string>(live ? '' : boostAudiences[0].id);
+  const audiences = boostAudiences.filter(option =>
+    LIVE_AUDIENCE_IDS.includes(option.id),
+  );
+  const [audience, setAudience] = useState<string>('');
   const chooseAudience = (id: string) =>
-    setAudience(current => (live && current === id ? '' : id));
-  const [tier, setTier] = useState(initialSelection?.tier ?? 'top');
+    setAudience(current => (current === id ? '' : id));
+  // The middle tier is the suggested starting point.
+  const suggested = tiers[Math.floor(tiers.length / 2)] ?? tiers[0];
+  const [tier, setTier] = useState(initialSelection?.tier ?? suggested?.id ?? '');
   const [duration, setDuration] = useState<string>(
     initialSelection?.duration ?? copy.durations[1],
   );
 
   const days = durationDays[duration] ?? 7;
-  const total = (tierDailyPrice[tier] ?? 0) * days;
+  const total = tiers.find(option => option.id === tier)?.amount ?? 0;
   const totalLabel = formatNaira(total);
   const selection: BoostEngineSelection = {
     radius,
@@ -171,9 +172,9 @@ export function BoostEngineScreen({
   }, [radius, audience, tier, duration]);
 
   const liveCopy = copy.live;
-  const asset = live ? live.asset : undefined;
-  const canLaunch = !live || Boolean(live.asset);
-  const preview = live?.preview ?? boostFeedPreview;
+  const { asset } = live;
+  const canLaunch = Boolean(asset);
+  const { preview } = live;
 
   return (
     <BusinessScreenLayout
@@ -213,7 +214,7 @@ export function BoostEngineScreen({
         </BusinessActionDock>
       }
     >
-      {live && !live.activeBanner ? null : (
+      {!live.activeBanner ? null : (
         <View className="flex-row flex-wrap items-center gap-1.5 rounded-full bg-badge-discount-bg px-3 py-1.5">
           <Icon name="bolt" size={15} color={colors.badgeDiscountText} />
           <VemtapText
@@ -221,7 +222,7 @@ export function BoostEngineScreen({
             className="min-w-0 flex-1 font-sans-semibold text-badge-discount-text"
             numberOfLines={2}
           >
-            {live?.activeBanner ?? copy.activeBanner}
+            {live.activeBanner}
           </VemtapText>
         </View>
       )}
@@ -244,54 +245,10 @@ export function BoostEngineScreen({
         badgeTone="neutral"
       >
         <BusinessMetricGrid
-          cells={
-            live
-              ? live.metrics.map(metric => ({ ...metric }))
-              : [
-                  {
-                    label: 'Spend ROI',
-                    value: '4.6x',
-                    noteIcon: 'verified',
-                    noteTone: 'success',
-                    icon: 'insights',
-                  },
-                  {
-                    label: 'Est. Reach',
-                    value: '12.5k+',
-                    note: '5km Abuja radius',
-                    icon: 'group',
-                  },
-                  {
-                    label: 'Deal Views',
-                    value: '2,840',
-                    note: '+34% boost',
-                    noteIcon: 'trendingUp',
-                    noteTone: 'success',
-                    icon: 'visibility',
-                  },
-                  {
-                    label: 'Wallet Claims',
-                    value: '412',
-                    note: '8.2% conversion',
-                    icon: 'redeem',
-                  },
-                ]
-          }
+          cells={live.metrics.map(metric => ({ ...metric }))}
           columns={2}
           variant="bare"
         />
-        {live ? null : (
-          <View className="flex-row items-center gap-1.5">
-            <Icon name="speed" size={14} color={colors.badgeDiscountText} />
-            <VemtapText
-              variant="caption"
-              className="min-w-0 flex-1 text-badge-discount-text"
-              numberOfLines={2}
-            >
-              High consumer claim velocity in Wuse II
-            </VemtapText>
-          </View>
-        )}
       </BusinessPanel>
 
       <BusinessPanel
@@ -301,7 +258,7 @@ export function BoostEngineScreen({
         badge={copy.feedSubtitle}
         badgeTone="neutral"
       >
-        {live && !asset ? (
+        {!asset ? (
           <View className="gap-1 rounded-field bg-surface-subtle p-3">
             <VemtapText variant="labelMd" className="font-sans-semibold">
               {liveCopy.noAssetTitle}
@@ -321,35 +278,32 @@ export function BoostEngineScreen({
                 className="font-sans-semibold"
                 numberOfLines={1}
               >
-                {asset?.name ?? boostSelection.dealName}
+                {asset.name}
               </VemtapText>
               <View className="mt-1 flex-row flex-wrap items-baseline gap-1.5">
-                {asset && !asset.was ? null : (
+                {!asset.was ? null : (
                   <VemtapText
                     variant="labelSm"
                     className="font-sans-semibold text-text-tertiary line-through"
                     numberOfLines={1}
                   >
-                    {asset?.was ?? boostSelection.dealWas}
+                    {asset.was}
                   </VemtapText>
                 )}
-                {asset && !asset.now ? null : (
+                {!asset.now ? null : (
                   <VemtapText
                     variant="labelMd"
                     className="font-sans-bold text-primary"
                     numberOfLines={1}
                   >
-                    {asset?.now ?? boostSelection.dealNow}
+                    {asset.now}
                   </VemtapText>
                 )}
-                <BusinessStatusPill
-                  label={asset?.badge ?? boostSelection.dealDiscount}
-                  tone="success"
-                />
+                <BusinessStatusPill label={asset.badge} tone="success" />
               </View>
-              {asset && !asset.note ? null : (
+              {!asset.note ? null : (
                 <VemtapText variant="micro" tone="tertiary" numberOfLines={1}>
-                  {asset?.note ?? boostSelection.dealNote}
+                  {asset.note}
                 </VemtapText>
               )}
             </View>
@@ -379,9 +333,8 @@ export function BoostEngineScreen({
           options={boostRadii.map(option => ({
             id: option.id,
             title: option.title,
-            value: live ? (live.radiusReach[option.id] ?? '') : option.reach,
+            value: live.radiusReach[option.id] ?? '',
             hint: option.id === 'hyperlocal' ? copy.recommended : undefined,
-            footnote: live ? undefined : option.detail,
             icon: option.icon,
           }))}
           value={radius}
@@ -402,7 +355,7 @@ export function BoostEngineScreen({
           }))}
           value={audience}
           onChange={chooseAudience}
-          columns={live ? 2 : 3}
+          columns={2}
           accessibilityLabel={copy.audienceTitle}
         />
       </BusinessPanel>
@@ -415,12 +368,12 @@ export function BoostEngineScreen({
         badgeTone="brand"
       >
         <BusinessOptionGrid
-          options={boostBudgetTiers.map(option => ({
+          options={tiers.map(option => ({
             id: option.id,
-            title: option.name,
-            value: `${option.price}/d`,
-            hint: option.recommended ? copy.recommended : undefined,
-            footnote: live ? live.tierClaims[option.id] : option.detail,
+            title: option.label,
+            value: formatNaira(option.amount),
+            hint: option.id === suggested?.id ? copy.recommended : undefined,
+            footnote: live.tierClaims[option.id],
           }))}
           value={tier}
           onChange={setTier}
@@ -465,9 +418,7 @@ export function BoostEngineScreen({
               {copy.investmentTitle}
             </VemtapText>
             <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-              {live
-                ? liveCopy.investmentNote(duration)
-                : `${duration} • Zero commission markup`}
+              {liveCopy.investmentNote(duration)}
             </VemtapText>
           </View>
           <VemtapText
@@ -485,7 +436,7 @@ export function BoostEngineScreen({
             className="min-w-0 flex-1 text-badge-discount-text"
             numberOfLines={1}
           >
-            {live ? (live.estimate ?? '') : 'Guaranteed 24k+ Impressions'}
+            {live.estimate ?? ''}
           </VemtapText>
         </View>
       </BusinessPanel>

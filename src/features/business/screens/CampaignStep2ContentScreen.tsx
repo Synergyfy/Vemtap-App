@@ -21,8 +21,8 @@ export interface CampaignStep2ContentScreenProps {
   onContinue: (assetIds: string[]) => void;
   onSaveDraft?: () => void;
   initialAssetIds?: string[];
-  /** Live eligible assets; the design's samples show when absent. */
-  items?: readonly CampaignContentItem[];
+  /** The eligible assets. */
+  items: readonly CampaignContentItem[];
   isLoading?: boolean;
   error?: string;
   onRetry?: () => void;
@@ -53,7 +53,7 @@ export function CampaignStep2ContentScreen({
   onBack,
   onContinue,
   onSaveDraft,
-  initialAssetIds = [step.items[0].id, step.items[1].id],
+  initialAssetIds = [],
   items,
   isLoading = false,
   error,
@@ -62,24 +62,19 @@ export function CampaignStep2ContentScreen({
   const [filter, setFilter] = useState<string>('all');
   const [assets, setAssets] = useState<string[]>(initialAssetIds);
 
-  const source: readonly ContentItem[] = items ?? step.items;
-  const filters = items
-    ? [
-        { id: 'all', label: `${step.liveFilters.all} (${items.length})` },
-        ...LIVE_GROUPS.map(group => ({
-          id: group,
-          count: items.filter(item => item.group === group).length,
-        }))
-          .filter(group => group.count > 0)
-          .map(group => ({
-            id: group.id,
-            label: `${step.liveFilters[group.id]} (${group.count})`,
-          })),
-      ]
-    : step.filters.map(option => ({
-        id: option.id,
-        label: 'count' in option ? `${option.label} ${option.count}` : option.label,
-      }));
+  const source: readonly ContentItem[] = items;
+  const filters = [
+    { id: 'all', label: `${step.liveFilters.all} (${items.length})` },
+    ...LIVE_GROUPS.map(group => ({
+      id: group,
+      count: items.filter(item => item.group === group).length,
+    }))
+      .filter(group => group.count > 0)
+      .map(group => ({
+        id: group.id,
+        label: `${step.liveFilters[group.id]} (${group.count})`,
+      })),
+  ];
   const visible =
     filter === 'all' ? source : source.filter(item => item.group === filter);
 
@@ -97,7 +92,7 @@ export function CampaignStep2ContentScreen({
       heroBody={step.heroBody}
       onBack={onBack}
       onNext={() => onContinue(assets)}
-      disabled={items !== undefined && assets.length === 0}
+      disabled={assets.length === 0}
       nextLabel={step.cta}
       backLabel={step.back}
       draftLabel={copy.saveDraft}

@@ -6,6 +6,14 @@ import { BoostBudgetScheduleScreen } from '@features/business/screens/BoostBudge
 import { BoostPreviewPaymentScreen } from '@features/business/screens/BoostPreviewPaymentScreen';
 import { BoostPerformanceScreen } from '@features/business/screens/BoostPerformanceScreen';
 import { BoostWalletScreen } from '@features/business/screens/BoostWalletScreen';
+import {
+  boostBudgetLiveFixture,
+  boostGoalLiveFixture,
+  boostPerformanceFixture,
+  boostPreviewFixture,
+  boostTiersFixture,
+  boostWalletLiveFixture,
+} from './helpers/growthFixtures';
 
 const copy = strings.boostWizard;
 const { goalStep: goal, budgetStep: budget, preview, performance: perf, wallet } = copy;
@@ -13,25 +21,28 @@ const { goalStep: goal, budgetStep: budget, preview, performance: perf, wallet }
 afterEach(cleanup);
 
 describe('boost wizard step 1 — goal & audience', () => {
-  it('renders the asset, every goal and the default radius reach', async () => {
-    await render(<BoostGoalAudienceScreen />);
-    expect(screen.getByText(goal.assetName)).toBeTruthy();
+  it('renders the asset, every goal and the live radius reach', async () => {
+    await render(<BoostGoalAudienceScreen live={boostGoalLiveFixture} />);
+    expect(screen.getByText('Jollof Combo')).toBeTruthy();
     for (const option of goal.goals) {
       expect(screen.getByText(option.title)).toBeTruthy();
     }
-    expect(screen.getByText(goal.radiusReach['3'].reach)).toBeTruthy();
+    expect(screen.getByText(boostGoalLiveFixture.reach!.value)).toBeTruthy();
     expect(screen.getByText(goal.cta)).toBeTruthy();
   });
 
-  it('changes the projected reach when a wider radius is picked', async () => {
-    await render(<BoostGoalAudienceScreen />);
-    await fireEvent.press(screen.getByLabelText(goal.radiusOptions[3].label));
-    expect(screen.getByText(goal.radiusReach['10'].reach)).toBeTruthy();
+  it('waits for the reach estimate instead of inventing one', async () => {
+    await render(
+      <BoostGoalAudienceScreen live={{ ...boostGoalLiveFixture, reach: undefined }} />,
+    );
+    expect(screen.getByText('\u2026')).toBeTruthy();
   });
 
   it('hands the selection to the continue handler', async () => {
     const onContinue = jest.fn();
-    await render(<BoostGoalAudienceScreen onContinue={onContinue} />);
+    await render(
+      <BoostGoalAudienceScreen live={boostGoalLiveFixture} onContinue={onContinue} />,
+    );
     await fireEvent.press(screen.getByLabelText(goal.placements[2].title));
     await fireEvent.press(screen.getByLabelText(goal.cta));
     expect(onContinue).toHaveBeenCalledWith(
@@ -47,8 +58,7 @@ describe('boost wizard step 1 — goal & audience', () => {
 
 describe('boost wizard step 1 — live districts and clusters', () => {
   const live = (clusters = [{ id: 'cl-banex', name: 'Banex Plaza' }]) => ({
-    asset: { badge: 'Deal', business: 'Urban Grill', name: 'Jollof Combo', claims: '3' },
-    geofencePlace: 'Wuse • 3 km radius',
+    ...boostGoalLiveFixture,
     areas: {
       districts: [
         { id: 'd-wuse', name: 'Wuse 2' },
@@ -102,27 +112,57 @@ describe('boost wizard step 1 — live districts and clusters', () => {
 });
 
 describe('boost wizard step 2 — budget & schedule', () => {
-  it('renders every budget tier and the paced forecast', async () => {
-    await render(<BoostBudgetScheduleScreen />);
-    for (const tier of budget.tiers) {
-      expect(screen.getAllByText(tier.amount).length).toBeGreaterThan(0);
-    }
+  it('renders every budget tier with its live forecast', async () => {
+    await render(<BoostBudgetScheduleScreen live={boostBudgetLiveFixture} />);
     expect(screen.getByText(budget.forecastTitle)).toBeTruthy();
+    expect(screen.getByText('2k \u2013 3k')).toBeTruthy();
+    expect(screen.getByText('4k \u2013 6k')).toBeTruthy();
     expect(screen.getAllByText(`${'\u20a6'}20,000`).length).toBeGreaterThan(0);
+  });
+
+  it('lists the tiers the API serves and starts on the middle one', async () => {
+    const onContinue = jest.fn();
+    await render(
+      <BoostBudgetScheduleScreen
+        live={boostBudgetLiveFixture}
+        tiers={boostTiersFixture}
+        onContinue={onContinue}
+      />,
+    );
+    for (const tier of boostTiersFixture) {
+      expect(screen.getAllByText(tier.label).length).toBeGreaterThan(0);
+      expect(
+        screen.getAllByText(`\u20a6${tier.amount.toLocaleString('en-NG')}`).length,
+      ).toBeGreaterThan(0);
+    }
+    expect(screen.queryByText('\u20a610,000')).toBeNull();
+    await fireEvent.press(screen.getByLabelText(budget.cta));
+    expect(onContinue).toHaveBeenCalledWith(expect.objectContaining({ budget: 25_000 }));
   });
 
   it('blocks the CTA while the custom budget is under the floor', async () => {
     const onContinue = jest.fn();
-    await render(<BoostBudgetScheduleScreen onContinue={onContinue} />);
-    const input = screen.getByLabelText(budget.customLabel);
+    await render(
+      <BoostBudgetScheduleScreen live={boostBudgetLiveFixture} onContinue={onContinue} />,
+    );
+    const input = screen.getByLabelText(budget.customLabel('₦2,000'));
     await fireEvent.changeText(input, '1000');
-    expect(screen.getByText(budget.customError)).toBeTruthy();
+    expect(screen.getByText(budget.customError('₦2,000'))).toBeTruthy();
     await fireEvent.press(screen.getByLabelText(budget.cta));
     expect(onContinue).not.toHaveBeenCalled();
   });
 
+  it('accepts any custom budget from the API minimum (₦2,000) up', async () => {
+    await render(<BoostBudgetScheduleScreen live={boostBudgetLiveFixture} />);
+    await fireEvent.changeText(
+      screen.getByLabelText(budget.customLabel('₦2,000')),
+      '2500',
+    );
+    expect(screen.queryByText(budget.customError('₦2,000'))).toBeNull();
+  });
+
   it('toggles lunch dayparting through the shared switch row', async () => {
-    await render(<BoostBudgetScheduleScreen />);
+    await render(<BoostBudgetScheduleScreen live={boostBudgetLiveFixture} />);
     await fireEvent(screen.getByLabelText(budget.daypartTitle), 'valueChange', false);
     expect(screen.getByLabelText(budget.daypartTitle).props.value).toBe(false);
   });
@@ -130,77 +170,91 @@ describe('boost wizard step 2 — budget & schedule', () => {
 
 describe('boost wizard step 3 — preview & payment', () => {
   it('swaps the live preview pane from the feed to the spotlight', async () => {
-    await render(<BoostPreviewPaymentScreen />);
-    expect(screen.getAllByText(preview.feedName).length).toBeGreaterThan(0);
+    await render(<BoostPreviewPaymentScreen preview={boostPreviewFixture} />);
+    expect(screen.getAllByText(boostPreviewFixture.feed.name).length).toBeGreaterThan(0);
     await fireEvent.press(screen.getByLabelText(preview.previewTabs[1]));
     expect(screen.getByText(preview.spotlightEyebrow)).toBeTruthy();
   });
 
   it('shows the push notice copy on the push tab', async () => {
-    await render(<BoostPreviewPaymentScreen />);
+    await render(<BoostPreviewPaymentScreen preview={boostPreviewFixture} />);
     await fireEvent.press(screen.getByLabelText(preview.previewTabs[2]));
-    expect(screen.getByText(preview.pushTitle)).toBeTruthy();
+    expect(screen.getByText(boostPreviewFixture.push.title)).toBeTruthy();
   });
 
-  it('refuses to launch until the advertising terms are accepted', async () => {
+  it('launches with the wallet by default', async () => {
     const onLaunch = jest.fn();
-    await render(<BoostPreviewPaymentScreen onLaunch={onLaunch} />);
-    await fireEvent.press(screen.getByLabelText(preview.cta));
-    expect(onLaunch).toHaveBeenCalledWith(preview.methods[0].id);
+    await render(
+      <BoostPreviewPaymentScreen preview={boostPreviewFixture} onLaunch={onLaunch} />,
+    );
+    await fireEvent.press(screen.getByLabelText(boostPreviewFixture.cta));
+    expect(onLaunch).toHaveBeenCalledWith('wallet');
   });
 
   it('selects an alternative payment method', async () => {
     const onLaunch = jest.fn();
-    await render(<BoostPreviewPaymentScreen onLaunch={onLaunch} />);
-    await fireEvent.press(screen.getByLabelText(preview.methods[1].title));
-    await fireEvent.press(screen.getByLabelText(preview.cta));
-    expect(onLaunch).toHaveBeenCalledWith(preview.methods[1].id);
+    await render(
+      <BoostPreviewPaymentScreen preview={boostPreviewFixture} onLaunch={onLaunch} />,
+    );
+    await fireEvent.press(screen.getByLabelText(boostPreviewFixture.methods[1].title));
+    await fireEvent.press(screen.getByLabelText(boostPreviewFixture.cta));
+    expect(onLaunch).toHaveBeenCalledWith('card');
   });
 });
 
 describe('boost performance analytics', () => {
-  it('renders the executive pulse, funnel and geofence clusters', async () => {
+  it('renders the executive pulse, funnel and branches', async () => {
+    await render(<BoostPerformanceScreen performance={boostPerformanceFixture} />);
+    expect(screen.getByText(boostPerformanceFixture.name)).toBeTruthy();
+    expect(
+      screen.getAllByText(boostPerformanceFixture.kpis.spend.value).length,
+    ).toBeGreaterThan(0);
+    expect(screen.getByText(boostPerformanceFixture.funnel[0].label)).toBeTruthy();
+    expect(screen.getByText('Jabi')).toBeTruthy();
+  });
+
+  it('shows a loader until the stats arrive', async () => {
     await render(<BoostPerformanceScreen />);
-    expect(screen.getByText(perf.dealName)).toBeTruthy();
-    expect(screen.getAllByText(perf.kpis[0].value).length).toBeGreaterThan(0);
-    expect(screen.getByText(perf.funnel[0].label)).toBeTruthy();
-    expect(screen.getByText(perf.geo[0].name)).toBeTruthy();
+    expect(screen.queryByText(perf.pauseCta)).toBeNull();
   });
 
   it('exposes the in-flight optimisation actions', async () => {
     const onPause = jest.fn();
     const onAddBudget = jest.fn();
-    await render(<BoostPerformanceScreen onPause={onPause} onAddBudget={onAddBudget} />);
+    await render(
+      <BoostPerformanceScreen
+        performance={boostPerformanceFixture}
+        onPause={onPause}
+        onAddBudget={onAddBudget}
+      />,
+    );
     await fireEvent.press(screen.getByLabelText(perf.pauseCta));
-    await fireEvent.press(screen.getByLabelText(perf.addBudget));
+    await fireEvent.press(screen.getByLabelText(boostPerformanceFixture.addBudgetLabel!));
     expect(onPause).toHaveBeenCalled();
     expect(onAddBudget).toHaveBeenCalled();
   });
 });
 
 describe('boost wallet & advertising credits', () => {
-  it('renders the escrow balance, partitions and ledger rows', async () => {
+  it('renders the live balance, partitions and ledger rows', async () => {
+    await render(<BoostWalletScreen live={boostWalletLiveFixture} />);
+    expect(screen.getByText('\u20a625,000')).toBeTruthy();
+    expect(screen.getByText('\u20a65,000')).toBeTruthy();
+    expect(screen.getByText('\u20a620,000')).toBeTruthy();
+    expect(screen.getByText('Wallet top-up')).toBeTruthy();
+    expect(screen.queryByText(/9940284411|TIN-/)).toBeNull();
+  });
+
+  it('shows a loader until the wallet arrives', async () => {
     await render(<BoostWalletScreen />);
-    expect(screen.getByText(wallet.balance)).toBeTruthy();
-    expect(screen.getByText(wallet.reserved)).toBeTruthy();
-    expect(screen.getByText(wallet.spendable)).toBeTruthy();
-    for (const entry of wallet.transactions) {
-      expect(screen.getByText(entry.title)).toBeTruthy();
-    }
+    expect(screen.queryByText(wallet.prepackTitle)).toBeNull();
   });
 
-  it('confirms the virtual account copy action', async () => {
-    const onCopyAccount = jest.fn();
-    await render(<BoostWalletScreen onCopyAccount={onCopyAccount} />);
-    await fireEvent.press(screen.getByLabelText(wallet.copyAccount));
-    expect(onCopyAccount).toHaveBeenCalled();
-    expect(screen.getByText(wallet.copied)).toBeTruthy();
-  });
-
-  it('selects a top-up pre-pack', async () => {
+  it('selects a pre-pack and tops it up', async () => {
     const onTopUp = jest.fn();
-    await render(<BoostWalletScreen onTopUp={onTopUp} />);
-    await fireEvent.press(screen.getAllByLabelText(wallet.prepacks[2].title)[0]);
-    expect(onTopUp).toHaveBeenCalledWith(wallet.prepacks[2].id);
+    await render(<BoostWalletScreen live={boostWalletLiveFixture} onTopUp={onTopUp} />);
+    await fireEvent.press(screen.getAllByLabelText('\u20a610,000 Top-Up')[0]);
+    await fireEvent.press(screen.getByLabelText(wallet.live.topUpCta('\u20a610,000')));
+    expect(onTopUp).toHaveBeenCalledWith('p10', undefined, expect.anything());
   });
 });

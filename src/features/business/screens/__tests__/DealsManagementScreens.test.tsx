@@ -89,7 +89,7 @@ describe('Deals & Promotions (live)', () => {
       <CentralDealsManagementScreen deals={liveDeals} netRevenue="₦8,500" />,
     );
     expect(view.queryByText('₦8,500')).toBeTruthy();
-    expect(view.queryByText(deals.netRevenue)).toBeNull();
+    expect(view.queryByText('₦1,248,000')).toBeNull();
   });
 });
 

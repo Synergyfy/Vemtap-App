@@ -8,7 +8,6 @@ import { VemtapText } from '@components/ui/Text';
 import { showError } from '@components/shared';
 import { strings } from '@constants/strings';
 import { colors } from '@theme/colors';
-import { businessOpsMedia } from '@features/business/data/businessOpsImages';
 import { uploadBusinessImage } from '@features/business/utils/uploadBusinessMedia';
 import {
   BusinessProductImage,
@@ -63,9 +62,9 @@ export function AddProductBasicsMediaScreen({
   onChangeCategory,
   onAddMedia,
 }: AddProductBasicsMediaScreenProps) {
-  const [title, setTitle] = useState<string>(copy.titleValue);
-  const [producer, setProducer] = useState<string>(copy.producerValue);
-  const [description, setDescription] = useState<string>(copy.descriptionValue);
+  const [title, setTitle] = useState<string>('');
+  const [producer, setProducer] = useState<string>('');
+  const [description, setDescription] = useState<string>('');
   const [unbranded, setUnbranded] = useState(false);
   const [attributes, setAttributes] = useState<string[]>([]);
   const [condition, setCondition] = useState('fresh');
@@ -191,11 +190,25 @@ export function AddProductBasicsMediaScreen({
       <BusinessPanel className="mt-3">
         <SetupSectionHeading title={copy.mediaTitle} badge={copy.mediaRequired} />
         <View className="relative h-48 w-full overflow-hidden rounded-card bg-surface-container-highest">
-          <BusinessProductImage
-            source={gallery[0] ? { uri: gallery[0] } : businessOpsMedia.productLamb}
-            alt={copy.coverPhoto}
-            className="h-full w-full"
-          />
+          {gallery[0] ? (
+            <BusinessProductImage
+              source={{ uri: gallery[0] }}
+              alt={copy.coverPhoto}
+              className="h-full w-full"
+            />
+          ) : (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={copy.addTile}
+              onPress={addMedia}
+              className="h-full w-full items-center justify-center gap-1"
+            >
+              <Icon name="camera" size={32} color={colors.textTertiary} />
+              <VemtapText variant="caption" tone="tertiary">
+                {uploading ? 'Uploading…' : copy.addTile}
+              </VemtapText>
+            </Pressable>
+          )}
           <View className="absolute left-2.5 top-2.5 flex-row items-center gap-1.5">
             <View className="flex-row items-center gap-1 rounded-full bg-inverse-surface px-2.5 py-1">
               <Icon name="starFilled" size={12} color={colors.badgeDiscountBg} />
@@ -240,29 +253,6 @@ export function AddProductBasicsMediaScreen({
               />
             </Pressable>
           ))}
-          {gallery.length
-            ? null
-            : [
-                businessOpsMedia.productLamb,
-                businessOpsMedia.dealLunch,
-                businessOpsMedia.dealSpa,
-              ].map((image, index) => (
-                <Pressable
-                  key={image.uri}
-                  accessibilityRole="image"
-                  accessibilityLabel={`${copy.coverPhoto} ${index + 1}`}
-                  onPress={addMedia}
-                  className={`h-16 w-16 shrink-0 overflow-hidden rounded-field ${
-                    index === 0 ? 'border-2 border-primary' : 'bg-surface-subtle'
-                  }`}
-                >
-                  <BusinessProductImage
-                    source={image}
-                    alt={image.alt}
-                    className="h-full w-full"
-                  />
-                </Pressable>
-              ))}
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={copy.addTile}
@@ -308,7 +298,7 @@ export function AddProductBasicsMediaScreen({
           onTrailingIconPress={() => setTitle('')}
         />
         <VemtapText variant="micro" tone="tertiary" className="-mt-1 self-end">
-          {copy.titleCounter}
+          {`${title.length} / 80`}
         </VemtapText>
         <FieldInput
           label={copy.producerLabel}

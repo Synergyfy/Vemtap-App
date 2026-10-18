@@ -1,10 +1,10 @@
 import type { NavigatorScreenParams } from '@react-navigation/native';
-import type { BusinessProfileSummary } from '@features/discover/data/discoverData';
+import type { BusinessProfileSummary } from '@features/discover/types';
 import type { GeoCoords } from '@constants/locations';
 import type { IdentityIdType } from '@api/verificationApi';
 import type { BillingPeriod } from '@api/subscriptionsApi';
 
-export type { BusinessProfileSummary } from '@features/discover/data/discoverData';
+export type { BusinessProfileSummary } from '@features/discover/types';
 
 /**
  * The customer personal flow: a plain pushed stack, not a bottom-tab shell.
@@ -80,8 +80,6 @@ export type BusinessStackParamList = {
   /** Claims and redemptions; opened pre-filtered from a deal or a branch scope. */
   DealRedemptionLedger:
     { dealGroupId?: string; dealName?: string; branchId?: string } | undefined;
-  CreateDealLocationAssignment: undefined;
-  DealLocationAssignmentPricing: undefined;
   /**
    * The full create-deal wizard, reachable from the hub (Central Deals →
    * Create Deal) so deals collect name/items/discount before launch. Shared
@@ -91,8 +89,10 @@ export type BusinessStackParamList = {
   CreateDealStep2: undefined;
   CreateDealStep3: undefined;
   CreateDealStep4: undefined;
-  ProductLocationAssignment: undefined;
-  BranchAvailabilityLocationPricing: undefined;
+  /** Hub product flow after basics & media: pricing → branches → review. */
+  ProductPricing: undefined;
+  ProductAvailability: undefined;
+  ProductReview: undefined;
   CentralCatalogue: { layout?: 'directory' | 'businessHub' } | undefined;
   /** `central_products_services_catalogue_2` — the business-hub treatment. */
   BusinessHubCatalogue: { layout?: 'businessHub' } | undefined;
@@ -263,7 +263,8 @@ export type BusinessSetupStackParamList = {
   BusinessAccountResetPin: { fromGate?: boolean } | undefined;
   BusinessLocation: undefined;
   BusinessLocations: undefined;
-  AddBranchLocation: undefined;
+  /** `branchId` edits that branch; omitted adds a new one. */
+  AddBranchLocation: { branchId?: string } | undefined;
   AddProductsOrServices: undefined;
   AddServiceBasics: undefined;
   AddServiceDurationPricing: undefined;

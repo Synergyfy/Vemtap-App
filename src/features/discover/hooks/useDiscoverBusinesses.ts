@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { dealsApi, type PublicBusiness } from '@api/dealsApi';
 import { strings } from '@constants/strings';
-import type { BusinessProfileSummary } from '@features/discover/data/discoverData';
+import type { BusinessProfileSummary } from '@features/discover/types';
 
 /** Fallback logo URI used when a business has no logo URL. */
 const FALLBACK_LOGO_URI =

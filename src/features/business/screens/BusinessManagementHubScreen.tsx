@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Pressable, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { Icon, type IconName } from '@components/ui/Icon';
@@ -20,7 +20,23 @@ import {
   SetupCallout,
 } from '@features/business/components/BusinessSetupPrimitives';
 
+import type { BusinessBranch } from '@features/business/components/BusinessBranchSwitcher';
+import type {
+  BusinessHubModuleId,
+  BusinessHubView,
+} from '@features/business/hooks/useBusinessHubData';
+
 cssInterop(Pressable, { className: 'style' });
+
+/** Menu row id → the hub module whose live count line it shows. */
+const MODULE_FOR_ROW: Partial<Record<string, BusinessHubModuleId>> = {
+  deals: 'deals',
+  catalogue: 'products',
+  crm: 'crm',
+  loyalty: 'loyalty',
+  locations: 'locations',
+  staff: 'staff',
+};
 
 const copy = strings.businessManagementHub;
 
@@ -30,6 +46,11 @@ export interface BusinessManagementHubScreenProps {
   onChangeBranch?: (value: string) => void;
   onOpenModule?: (id: string) => void;
   onExploreArchitecture?: () => void;
+  /** The business's branches and the one in focus (`useActiveBranch`). */
+  branches?: readonly BusinessBranch[];
+  activeBranchId?: string | null;
+  /** Live identity and module counts (`useBusinessHubData`). */
+  hub?: BusinessHubView;
 }
 
 /**
@@ -42,22 +63,42 @@ export function BusinessManagementHubScreen({
   onChangeBranch,
   onOpenModule,
   onExploreArchitecture,
+  branches = [],
+  activeBranchId,
+  hub,
 }: BusinessManagementHubScreenProps) {
-  const [branch, setBranch] = useState<string>(copy.branches[0].value);
-
-  const selectBranch = (value: string, label: string) => {
-    setBranch(value);
-    onChangeBranch?.(value);
-    return label;
-  };
-
   const activeBranch =
-    copy.branches.find(option => option.value === branch) ?? copy.branches[0];
+    branches.find(option => option.id === activeBranchId) ?? branches[0];
+  const activeCount = branches.filter(option => option.active !== false).length;
+  const statusLine = [
+    hub?.isVerified ? copy.verified : null,
+    branches.length ? copy.branchesActive(activeCount) : null,
+  ]
+    .filter(Boolean)
+    .join(' \u2022 ');
+  const quickStats = [
+    {
+      label: copy.branchesStat,
+      value: branches.length
+        ? copy.branchesOf(activeCount, branches.length)
+        : copy.emptyValue,
+      icon: 'store' as IconName,
+      accent: 'brand',
+      live: activeCount > 0,
+    },
+    {
+      label: copy.catalogueStat,
+      value: hub?.moduleBodies.products ?? copy.emptyValue,
+      icon: 'bolt' as IconName,
+      accent: 'tertiary',
+      live: false,
+    },
+  ];
 
   return (
     <BusinessScreenLayout
       header={{
-        title: activeBranch.label,
+        title: activeBranch?.name ?? copy.title,
         eyebrow: copy.eyebrow,
         centerTitle: false,
         titleVariant: 'headingSm',
@@ -66,11 +107,15 @@ export function BusinessManagementHubScreen({
       contentContainerClassName="pb-8"
     >
       <View className="flex-row items-center justify-between gap-2">
-        <BusinessStatusPill
-          label={copy.verifiedBranches}
-          tone="success"
-          icon="verified"
-        />
+        {statusLine ? (
+          <BusinessStatusPill
+            label={statusLine}
+            tone={hub?.isVerified ? 'success' : 'neutral'}
+            icon={hub?.isVerified ? 'verified' : 'store'}
+          />
+        ) : (
+          <View />
+        )}
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={copy.help}
@@ -95,26 +140,24 @@ export function BusinessManagementHubScreen({
       </View>
 
       <HorizontallyScrollableRow>
-        {copy.branches.map(option => {
-          const selected = option.value === branch;
+        {branches.map(option => {
+          const selected = option.id === activeBranch?.id;
           return (
             <Pressable
-              key={option.value}
+              key={option.id}
               accessibilityRole="button"
               accessibilityState={{ selected }}
-              accessibilityLabel={option.label}
-              onPress={() => selectBranch(option.value, option.label)}
+              accessibilityLabel={option.name}
+              onPress={() => onChangeBranch?.(option.id)}
               className={`min-h-9 shrink-0 flex-row items-center gap-1.5 rounded-full px-3 py-1.5 ${
                 selected ? 'bg-surface-tint shadow-sm' : 'bg-surface-container-low'
               }`}
             >
-              {'icon' in option && option.icon ? (
-                <Icon
-                  name={option.icon as IconName}
-                  size={15}
-                  color={selected ? colors.primary : colors.textSecondary}
-                />
-              ) : null}
+              <Icon
+                name="store"
+                size={15}
+                color={selected ? colors.primary : colors.textSecondary}
+              />
               <VemtapText
                 variant="labelSm"
                 className={
@@ -122,7 +165,7 @@ export function BusinessManagementHubScreen({
                 }
                 numberOfLines={1}
               >
-                {option.label}
+                {option.name}
               </VemtapText>
               {selected ? (
                 <Icon name="expandMore" size={14} color={colors.primary} />
@@ -133,7 +176,7 @@ export function BusinessManagementHubScreen({
       </HorizontallyScrollableRow>
 
       <View className="mt-2 flex-row gap-2">
-        {copy.quickStats.map(stat => (
+        {quickStats.map(stat => (
           <View
             key={stat.label}
             className="min-w-0 flex-1 flex-row items-center gap-3 rounded-card bg-surface p-3 shadow-sm"
@@ -173,17 +216,29 @@ export function BusinessManagementHubScreen({
       </View>
 
       <View className="mt-3 gap-2">
-        {copy.menu.map(item => (
-          <BusinessMenuRow
-            key={item.id}
-            title={item.title}
-            subtitle={item.subtitle}
-            icon={item.icon as IconName}
-            accent={item.accent as BusinessMenuAccent}
-            meta={item.meta as unknown as BusinessMenuMeta[]}
-            onPress={() => onOpenModule?.(item.id)}
-          />
-        ))}
+        {copy.menu.map(item => {
+          const moduleId = MODULE_FOR_ROW[item.id];
+          const live = moduleId ? hub?.moduleBodies[moduleId] : undefined;
+          const meta: BusinessMenuMeta[] =
+            item.id === 'profile'
+              ? hub?.isVerified
+                ? [{ label: copy.verified, tone: 'success' }]
+                : []
+              : live
+                ? [{ label: live, tone: 'brandContainer' }]
+                : (item.meta as unknown as BusinessMenuMeta[]);
+          return (
+            <BusinessMenuRow
+              key={item.id}
+              title={item.title}
+              subtitle={item.subtitle}
+              icon={item.icon as IconName}
+              accent={item.accent as BusinessMenuAccent}
+              meta={meta}
+              onPress={() => onOpenModule?.(item.id)}
+            />
+          );
+        })}
       </View>
 
       <SetupCallout

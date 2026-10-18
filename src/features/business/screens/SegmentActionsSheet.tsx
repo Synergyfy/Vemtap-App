@@ -14,7 +14,7 @@ import {
 
 const copy = strings.campaignWizard.segmentActions;
 
-/** Live figures for the segment header; the design's sample shows when absent. */
+/** Live figures for the segment header; absent while they load. */
 export interface SegmentActionsSummary {
   meta: string;
   spend: string;
@@ -28,6 +28,8 @@ export interface SegmentActionsSheetProps {
   /** The segment the actions apply to; handed to every action callback. */
   segmentId?: string;
   segmentName?: string;
+  /** The business the segment belongs to. */
+  businessName?: string;
   summary?: SegmentActionsSummary;
   onClose: () => void;
   onCreateCampaign?: (segmentId: string) => void;
@@ -48,7 +50,8 @@ export interface SegmentActionsSheetProps {
 export function SegmentActionsSheet({
   visible,
   segmentId,
-  segmentName = 'Returning Customers',
+  segmentName = '',
+  businessName,
   summary,
   onClose,
   onCreateCampaign,
@@ -60,7 +63,7 @@ export function SegmentActionsSheet({
     <BottomSheet
       visible={visible}
       onClose={onClose}
-      title={summary ? copy.liveTitle(segmentName) : copy.title}
+      title={copy.liveTitle(segmentName)}
       titleVariant="headingXl"
       titleClassName="text-heading-xl"
     >
@@ -77,14 +80,9 @@ export function SegmentActionsSheet({
           <View className="flex-row items-center gap-1">
             <View className="h-1.5 w-1.5 rounded-full bg-success" />
             <VemtapText variant="labelMd" tone="secondary" numberOfLines={1}>
-              {summary?.meta ?? copy.meta}
+              {summary?.meta ?? '\u2026'}
             </VemtapText>
           </View>
-          {summary ? null : (
-            <VemtapText variant="labelMd" tone="tertiary" numberOfLines={1}>
-              {`\u2022 ${copy.rate}`}
-            </VemtapText>
-          )}
         </View>
 
         <SetupSectionCard tone="low" className="gap-2 p-4">
@@ -100,9 +98,11 @@ export function SegmentActionsSheet({
                   {segmentName}
                 </VemtapText>
               </View>
-              <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-                {copy.business}
-              </VemtapText>
+              {businessName ? (
+                <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
+                  {businessName}
+                </VemtapText>
+              ) : null}
             </View>
             <View className="shrink-0 items-end">
               <VemtapText variant="micro" tone="tertiary">
@@ -113,24 +113,26 @@ export function SegmentActionsSheet({
                 className="font-sans-bold"
                 numberOfLines={1}
               >
-                {summary?.spend ?? copy.spend}
+                {summary?.spend ?? '\u2026'}
               </VemtapText>
             </View>
           </View>
-          <VemtapText variant="caption" tone="secondary">
-            {summary?.body ?? copy.body}
-          </VemtapText>
+          {summary?.body ? (
+            <VemtapText variant="caption" tone="secondary">
+              {summary.body}
+            </VemtapText>
+          ) : null}
           <View className="flex-row flex-wrap items-center gap-x-3 gap-y-1 rounded-lg bg-surface p-2.5">
             <View className="flex-row items-center gap-1.5">
               <Icon name="sensors" size={13} color={colors.textSecondary} />
               <VemtapText variant="micro" tone="secondary" numberOfLines={1}>
-                {summary?.pushReady ?? copy.pushReady}
+                {summary?.pushReady ?? '\u2026'}
               </VemtapText>
             </View>
             <View className="flex-row items-center gap-1.5">
               <Icon name="message" size={13} color={colors.textSecondary} />
               <VemtapText variant="micro" tone="secondary" numberOfLines={1}>
-                {summary?.messageReady ?? copy.messageReady}
+                {summary?.messageReady ?? '\u2026'}
               </VemtapText>
             </View>
           </View>

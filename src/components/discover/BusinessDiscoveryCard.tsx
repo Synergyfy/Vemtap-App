@@ -9,7 +9,7 @@ import {
   useBusinessSaveStatus,
   useToggleBusinessSave,
 } from '@features/accountHub/hooks/useSavedHub';
-import type { BusinessProfileSummary } from '@features/discover/data/discoverData';
+import type { BusinessProfileSummary } from '@features/discover/types';
 
 cssInterop(View, { className: 'style' });
 cssInterop(Pressable, { className: 'style' });

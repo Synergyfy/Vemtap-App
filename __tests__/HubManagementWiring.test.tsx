@@ -3,8 +3,12 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react-nativ
 import { CentralCatalogueScreen } from '@features/business/screens/CentralCatalogueScreen';
 import { CentralDealsManagementScreen } from '@features/business/screens/CentralDealsManagementScreen';
 import { ServicesCategoriesManagementScreen } from '@features/business/screens/ServicesCategoriesManagementScreen';
-import { CreateDealLocationAssignmentScreen } from '@features/business/screens/CreateDealLocationAssignmentScreen';
-import { DealLocationAssignmentPricingScreen } from '@features/business/screens/DealLocationAssignmentPricingScreen';
+import {
+  catalogueItemsFixture,
+  categoryRowsFixture,
+  dealRowsFixture,
+  serviceRowsFixture,
+} from './helpers/catalogueFixtures';
 
 afterEach(cleanup);
 
@@ -12,7 +16,11 @@ describe('central catalogue screen — item actions', () => {
   test('toggle stock fires with item id and value', async () => {
     const onToggleStock = jest.fn();
     await render(
-      <CentralCatalogueScreen layout="directory" onToggleStock={onToggleStock} />,
+      <CentralCatalogueScreen
+        items={catalogueItemsFixture}
+        layout="directory"
+        onToggleStock={onToggleStock}
+      />,
     );
 
     const toggle = screen.getAllByRole('switch')[0];
@@ -23,7 +31,13 @@ describe('central catalogue screen — item actions', () => {
 
   test('edit item fires with item id', async () => {
     const onEditItem = jest.fn();
-    await render(<CentralCatalogueScreen layout="directory" onEditItem={onEditItem} />);
+    await render(
+      <CentralCatalogueScreen
+        items={catalogueItemsFixture}
+        layout="directory"
+        onEditItem={onEditItem}
+      />,
+    );
 
     const menus = screen.getAllByLabelText(/options/i);
     await fireEvent.press(menus[0]);
@@ -44,7 +58,11 @@ describe('central catalogue screen — item actions', () => {
   test('sheet archive action fires onSheetAction with delete and item id', async () => {
     const onSheetAction = jest.fn();
     await render(
-      <CentralCatalogueScreen layout="directory" onSheetAction={onSheetAction} />,
+      <CentralCatalogueScreen
+        items={catalogueItemsFixture}
+        layout="directory"
+        onSheetAction={onSheetAction}
+      />,
     );
 
     const menus = screen.getAllByLabelText(/options/i);
@@ -59,7 +77,11 @@ describe('central deals management screen — deal actions', () => {
   test('pause deal fires with deal id', async () => {
     const onPauseDeal = jest.fn();
     await render(
-      <CentralDealsManagementScreen layout="hero" onPauseDeal={onPauseDeal} />,
+      <CentralDealsManagementScreen
+        deals={dealRowsFixture}
+        layout="hero"
+        onPauseDeal={onPauseDeal}
+      />,
     );
 
     const pauseButtons = screen.getAllByText(/pause/i);
@@ -72,7 +94,13 @@ describe('central deals management screen — deal actions', () => {
 describe('services categories screen — actions', () => {
   test('add category fires', async () => {
     const onAddCategory = jest.fn();
-    await render(<ServicesCategoriesManagementScreen onAddCategory={onAddCategory} />);
+    await render(
+      <ServicesCategoriesManagementScreen
+        categories={categoryRowsFixture}
+        services={serviceRowsFixture}
+        onAddCategory={onAddCategory}
+      />,
+    );
 
     await fireEvent.press(screen.getByText(/add category/i));
     expect(onAddCategory).toHaveBeenCalledTimes(1);
@@ -83,6 +111,8 @@ describe('services categories screen — actions', () => {
     const onServiceAction = jest.fn();
     await render(
       <ServicesCategoriesManagementScreen
+        categories={categoryRowsFixture}
+        services={serviceRowsFixture}
         onEditService={onEditService}
         onServiceAction={onServiceAction}
       />,
@@ -94,7 +124,13 @@ describe('services categories screen — actions', () => {
 
   test('add service fires', async () => {
     const onAddService = jest.fn();
-    await render(<ServicesCategoriesManagementScreen onAddService={onAddService} />);
+    await render(
+      <ServicesCategoriesManagementScreen
+        categories={categoryRowsFixture}
+        services={serviceRowsFixture}
+        onAddService={onAddService}
+      />,
+    );
 
     await fireEvent.press(screen.getByText('Add Service'));
     expect(onAddService).toHaveBeenCalledTimes(1);
@@ -102,7 +138,13 @@ describe('services categories screen — actions', () => {
 
   test('category edit fires with category id', async () => {
     const onEditCategory = jest.fn();
-    await render(<ServicesCategoriesManagementScreen onEditCategory={onEditCategory} />);
+    await render(
+      <ServicesCategoriesManagementScreen
+        categories={categoryRowsFixture}
+        services={serviceRowsFixture}
+        onEditCategory={onEditCategory}
+      />,
+    );
 
     const editButtons = screen.getAllByLabelText(/^Edit /);
     await fireEvent.press(editButtons[0]);
@@ -112,48 +154,15 @@ describe('services categories screen — actions', () => {
   test('category archive fires with category id', async () => {
     const onArchiveCategory = jest.fn();
     await render(
-      <ServicesCategoriesManagementScreen onArchiveCategory={onArchiveCategory} />,
+      <ServicesCategoriesManagementScreen
+        categories={categoryRowsFixture}
+        services={serviceRowsFixture}
+        onArchiveCategory={onArchiveCategory}
+      />,
     );
 
     const archiveButtons = screen.getAllByLabelText(/^Archive /);
     await fireEvent.press(archiveButtons[0]);
     expect(onArchiveCategory).toHaveBeenCalledWith(expect.any(String));
-  });
-});
-
-describe('hub deal location assignment screen', () => {
-  test('review launch fires', async () => {
-    const onReviewLaunch = jest.fn();
-    await render(
-      <CreateDealLocationAssignmentScreen
-        onBack={jest.fn()}
-        onReviewLaunch={onReviewLaunch}
-      />,
-    );
-
-    await fireEvent.press(screen.getByText('Review & Launch Deal'));
-    expect(onReviewLaunch).toHaveBeenCalledTimes(1);
-  });
-
-  test('save draft fires', async () => {
-    const onSaveDraft = jest.fn();
-    await render(
-      <CreateDealLocationAssignmentScreen onBack={jest.fn()} onSaveDraft={onSaveDraft} />,
-    );
-
-    await fireEvent.press(screen.getByText('Save Deal as Draft'));
-    expect(onSaveDraft).toHaveBeenCalledTimes(1);
-  });
-});
-
-describe('hub deal location pricing screen', () => {
-  test('save fires', async () => {
-    const onSave = jest.fn();
-    await render(
-      <DealLocationAssignmentPricingScreen onBack={jest.fn()} onSave={onSave} />,
-    );
-
-    await fireEvent.press(screen.getByText('Save Location Assignment & Pricing'));
-    expect(onSave).toHaveBeenCalledTimes(1);
   });
 });

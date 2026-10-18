@@ -3,6 +3,7 @@ import { Pressable, View } from 'react-native';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
+import { appVersion } from '@utils/appVersion';
 import { colors } from '@theme/colors';
 import {
   BusinessActionDock,
@@ -53,6 +54,10 @@ function HubLinkList({
 export interface BusinessMoreHubOperationsScreenProps {
   /** Live hints per POS tile id (SKU count, today's sales, offline queue). */
   tileHints?: Partial<Record<string, string>>;
+  /** The business, its plan and the active branch. */
+  identity?: { name: string; plan?: string | null; branch?: string | null };
+  /** Today's POS revenue at the active branch, formatted; absent while it loads. */
+  netSales?: string;
   onBack?: () => void;
   onOpenNotifications?: () => void;
   onOpenProfile?: () => void;
@@ -72,6 +77,8 @@ export interface BusinessMoreHubOperationsScreenProps {
  */
 export function BusinessMoreHubOperationsScreen({
   tileHints,
+  identity,
+  netSales,
   onBack,
   onOpenNotifications,
   onOpenProfile,
@@ -81,6 +88,7 @@ export function BusinessMoreHubOperationsScreen({
   onSignOut,
 }: BusinessMoreHubOperationsScreenProps) {
   const more = strings.businessMore;
+  const version = appVersion();
   /** Flattened management rows inherited from the standard More hub. */
   const managementRows: {
     id: string;
@@ -150,13 +158,15 @@ export function BusinessMoreHubOperationsScreen({
             className="min-w-0 flex-1 font-sans-semibold"
             numberOfLines={1}
           >
-            {copy.identityName}
+            {identity?.name ?? '\u2026'}
           </VemtapText>
           <Icon name="verified" size={17} color={colors.primary} />
         </View>
-        <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-          {copy.identityMeta}
-        </VemtapText>
+        {identity?.plan ? (
+          <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
+            {identity.plan}
+          </VemtapText>
+        ) : null}
         <View className="flex-row items-center justify-between gap-2">
           <View className="min-w-0 flex-row items-center gap-1.5">
             <Icon name="locationOn" size={13} color={colors.textTertiary} />
@@ -166,20 +176,9 @@ export function BusinessMoreHubOperationsScreen({
               className="min-w-0 flex-1"
               numberOfLines={1}
             >
-              {copy.locationLabel}
+              {identity?.branch ?? ''}
             </VemtapText>
           </View>
-          <BusinessStatusPill label={copy.terminalStatus} tone="success" />
-        </View>
-        <View className="flex-row items-center gap-1.5">
-          <Icon name="cloudDone" size={13} color={colors.badgeDiscountText} />
-          <VemtapText
-            variant="micro"
-            className="min-w-0 flex-1 text-badge-discount-text"
-            numberOfLines={1}
-          >
-            {copy.terminalSynced}
-          </VemtapText>
         </View>
       </View>
 
@@ -260,17 +259,7 @@ export function BusinessMoreHubOperationsScreen({
               {copy.netSalesLabel}
             </VemtapText>
             <VemtapText variant="headingSm" className="font-sans-bold" numberOfLines={1}>
-              {copy.netSalesValue}
-            </VemtapText>
-          </View>
-          <View className="flex-row items-center gap-1">
-            <Icon name="trendingUp" size={15} color={colors.badgeDiscountText} />
-            <VemtapText
-              variant="labelSm"
-              className="font-sans-semibold text-badge-discount-text"
-              numberOfLines={1}
-            >
-              {copy.netSalesDelta}
+              {netSales ?? '\u2014'}
             </VemtapText>
           </View>
         </View>
@@ -323,17 +312,14 @@ export function BusinessMoreHubOperationsScreen({
         </View>
       </View>
 
-      <View className="mt-3 flex-row items-center gap-1.5 rounded-field bg-surface-subtle p-2.5">
-        <Icon name="lock" size={13} color={colors.textTertiary} />
-        <View className="min-w-0 flex-1">
+      {version ? (
+        <View className="mt-3 flex-row items-center gap-1.5 rounded-field bg-surface-subtle p-2.5">
+          <Icon name="info" size={13} color={colors.textTertiary} />
           <VemtapText variant="micro" tone="tertiary" numberOfLines={1}>
-            {more.buildFootnote}
-          </VemtapText>
-          <VemtapText variant="micro" tone="tertiary" numberOfLines={2}>
-            {strings.businessMore.complianceFootnote ?? more.buildFootnote}
+            {more.buildFootnote(version)}
           </VemtapText>
         </View>
-      </View>
+      ) : null}
     </BusinessScreenLayout>
   );
 }

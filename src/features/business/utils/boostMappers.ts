@@ -205,7 +205,7 @@ export function invoicesToCsvRows(invoices: readonly AdWalletInvoice[]) {
   });
 }
 
-/** Everything the Preview & Payment step shows, live or from the design. */
+/** Everything the Preview & Payment step shows. */
 export interface BoostPreviewView {
   feed: {
     distance: string;
@@ -215,8 +215,6 @@ export interface BoostPreviewView {
     was?: string;
     save?: string;
     cta: string;
-    /** Engagement line under the card; sample only. */
-    stats?: readonly string[];
   };
   spotlight: { title: string; sub: string; caption?: string };
   push: { title: string; body: string };
@@ -241,35 +239,6 @@ export interface BoostPreviewView {
 }
 
 const previewCopy = wizard.preview;
-
-export const prototypeBoostPreviewView: BoostPreviewView = {
-  feed: {
-    distance: previewCopy.feedDistance,
-    business: previewCopy.feedBusiness,
-    name: previewCopy.feedName,
-    price: previewCopy.feedPrice,
-    was: previewCopy.feedWas,
-    save: previewCopy.feedSave,
-    cta: previewCopy.feedCta,
-    stats: [previewCopy.feedLikes, previewCopy.feedShares, previewCopy.feedSpeed],
-  },
-  spotlight: {
-    title: previewCopy.spotlightTitle,
-    sub: previewCopy.spotlightSub,
-    caption: previewCopy.spotlightCaption,
-  },
-  push: { title: previewCopy.pushTitle, body: previewCopy.pushBody },
-  trustNote: previewCopy.trustNote,
-  params: previewCopy.params,
-  total: {
-    value: previewCopy.totalValue,
-    note: previewCopy.totalNote,
-    pace: previewCopy.totalPace,
-  },
-  methods: previewCopy.methods,
-  termsSuffix: previewCopy.termsSuffix,
-  cta: previewCopy.cta,
-};
 
 function shortDate(date: Date): string {
   return date.toLocaleDateString('en-NG', { day: 'numeric', month: 'short' });
@@ -305,7 +274,7 @@ export function boostDraftToPreviewView(
     .join(', ');
   const spendable = context.walletSpendable;
   const shortfall = spendable === undefined ? 0 : Math.max(0, draft.budget - spendable);
-  const walletMethod = previewCopy.methods[0];
+  const { walletMethod } = previewCopy;
 
   return {
     feed: {
@@ -341,19 +310,19 @@ export function boostDraftToPreviewView(
     params: [
       {
         id: 'asset',
-        label: previewCopy.params[0].label,
+        label: previewCopy.paramLabels[0],
         value: name,
         icon: 'localOffer',
       },
       {
         id: 'objective',
-        label: previewCopy.params[1].label,
+        label: previewCopy.paramLabels[1],
         value: goalTitle,
         icon: 'campaign',
       },
       {
         id: 'radius',
-        label: previewCopy.params[2].label,
+        label: previewCopy.paramLabels[2],
         value:
           draft.audienceScope !== 'nearby' && draft.areas.length
             ? live.areasValue(draft.areas.map(area => area.name))
@@ -362,14 +331,14 @@ export function boostDraftToPreviewView(
       },
       {
         id: 'schedule',
-        label: previewCopy.params[3].label,
+        label: previewCopy.paramLabels[3],
         value: live.paramsSchedule(draft.durationDays, shortDate(start), shortDate(end)),
         detail: draft.dayparting ? live.lunchOnly : live.allDay,
         icon: 'schedule',
       },
       {
         id: 'placements',
-        label: previewCopy.params[4].label,
+        label: previewCopy.paramLabels[4],
         value: placementTitles,
         icon: 'dashboardCustomize',
       },

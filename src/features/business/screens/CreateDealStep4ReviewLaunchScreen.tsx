@@ -16,13 +16,11 @@ import {
   SetupCard,
 } from '@features/business/components/BusinessPrimitives';
 import {
-  InlineImageCard,
   SetupCallout,
   SetupStepBar,
   StatusPill,
 } from '@features/business/components/BusinessSetupPrimitives';
 import { ServiceFlowFooter } from '@features/business/components/ServiceFlowPrimitives';
-import { businessMedia, formatNaira } from '@features/business/data/businessSetupData';
 import { cn } from '@utils/cn';
 import type { DealReviewView } from '@features/business/utils/dealPresentation';
 import type { DealLaunchPhase } from '@features/business/hooks/useDealReviewLaunch';
@@ -31,17 +29,6 @@ cssInterop(View, { className: 'style' });
 cssInterop(LinearGradient, { className: 'style' });
 
 const copy = strings.businessCreateDeal.step4;
-const ORIGINAL_PRICE = 12000;
-const MEMBER_PRICE = 9600;
-const REACH_ESTIMATE = '~1,420';
-
-const mapFade = {
-  position: 'absolute',
-  left: 0,
-  right: 0,
-  top: 0,
-  bottom: 0,
-} as const;
 
 export interface CreateDealStep4ReviewLaunchScreenProps {
   onBack: () => void;
@@ -56,8 +43,8 @@ export interface CreateDealStep4ReviewLaunchScreenProps {
    * every branch (`onLaunch`) and there is no draft option.
    */
   mode?: 'create' | 'edit';
-  /** The draft as it will publish; omit to render the Stitch prototype. */
-  review?: DealReviewView;
+  /** The draft as it will publish (`dealDraftToReview`). */
+  review: DealReviewView;
   /** The real request's state: the button only reads "Published" after it succeeds. */
   phase?: DealLaunchPhase;
   /** A request is in flight; both actions are blocked. */
@@ -79,7 +66,7 @@ export function CreateDealStep4ReviewLaunchScreen({
 }: CreateDealStep4ReviewLaunchScreenProps) {
   const isEdit = mode === 'edit';
   // An edit already has its item and branches; only a new deal can be blocked.
-  const blocker = isEdit ? undefined : review?.blocker;
+  const blocker = isEdit ? undefined : review.blocker;
   const blocked = Boolean(blocker);
 
   const handleLaunch = () => {
@@ -109,9 +96,7 @@ export function CreateDealStep4ReviewLaunchScreen({
               : phase === 'idle'
                 ? copy.publishLabel
                 : phase === 'publishing'
-                  ? review
-                    ? copy.publishingLive
-                    : copy.publishingLabel
+                  ? copy.publishingLive
                   : copy.publishedLabel
           }
           primaryRightIcon={phase === 'published' ? 'checkCircle' : null}
@@ -176,13 +161,14 @@ export function CreateDealStep4ReviewLaunchScreen({
           </View>
           <View className="flex-row items-start gap-3">
             <View className="h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-surface-container">
-              {review && !review.image ? null : (
+              {!review.image ? (
+                <View className="h-full w-full items-center justify-center">
+                  <Icon name="localOffer" size={26} color={colors.textTertiary} />
+                </View>
+              ) : (
                 <BusinessProductImage
-                  source={review?.image ?? businessMedia.ribeyeCover}
-                  alt={
-                    review?.image?.alt ??
-                    'Woodfire aged ribeye steak on a rustic dark slate board'
-                  }
+                  source={review.image}
+                  alt={review.image.alt ?? 'Deal photo'}
                   className="h-full w-full"
                 />
               )}
@@ -191,38 +177,24 @@ export function CreateDealStep4ReviewLaunchScreen({
                   variant="caption"
                   className="font-sans-semibold text-badge-discount-text"
                 >
-                  {review?.discountBadge ?? copy.discountBadge}
+                  {review.discountBadge}
                 </VemtapText>
               </View>
             </View>
             <View className="min-w-0 flex-1">
-              {review ? null : (
-                <View className="flex-row flex-wrap items-center gap-1.5">
-                  <View className="rounded-full bg-surface-container px-2 py-0.5">
-                    <VemtapText variant="caption" tone="secondary">
-                      {copy.autoSynced}
-                    </VemtapText>
-                  </View>
-                  <View className="rounded-full bg-surface-tint-blue px-2 py-0.5">
-                    <VemtapText variant="caption" className="text-primary">
-                      {copy.flashDeal}
-                    </VemtapText>
-                  </View>
-                </View>
-              )}
               <VemtapText variant="headingSm" numberOfLines={2} className="mt-1">
-                {review?.title ?? copy.offerTitle}
+                {review.title}
               </VemtapText>
-              {(review ? review.body : copy.offerBody) ? (
+              {review.body ? (
                 <VemtapText variant="bodyMd" tone="secondary" numberOfLines={2}>
-                  {review ? review.body : copy.offerBody}
+                  {review.body}
                 </VemtapText>
               ) : null}
             </View>
           </View>
 
           <View className="gap-2 rounded-xl bg-surface-subtle p-3">
-            {review && !review.originalPrice ? null : (
+            {!review.originalPrice ? null : (
               <>
                 <View className="flex-row items-baseline justify-between gap-3">
                   <VemtapText
@@ -237,7 +209,7 @@ export function CreateDealStep4ReviewLaunchScreen({
                     tone="secondary"
                     className="shrink-0 line-through"
                   >
-                    {review?.originalPrice ?? formatNaira(ORIGINAL_PRICE)}
+                    {review.originalPrice}
                   </VemtapText>
                 </View>
                 <View className="flex-row items-start justify-between gap-3 pt-1">
@@ -246,14 +218,14 @@ export function CreateDealStep4ReviewLaunchScreen({
                       {copy.memberPay}
                     </VemtapText>
                     <VemtapText variant="caption" className="text-badge-discount-text">
-                      {review?.savings ?? copy.instantSavings}
+                      {review.savings}
                     </VemtapText>
                   </View>
                   <VemtapText
                     variant="headingLg"
                     className="shrink-0 font-sans-bold text-primary"
                   >
-                    {review?.memberPrice ?? formatNaira(MEMBER_PRICE)}
+                    {review.memberPrice}
                   </VemtapText>
                 </View>
               </>
@@ -262,7 +234,7 @@ export function CreateDealStep4ReviewLaunchScreen({
               <View className="min-w-0 flex-1 flex-row items-center gap-2">
                 <Icon name="localOffer" size={18} color={colors.primary} />
                 <VemtapText variant="labelSm" numberOfLines={1}>
-                  {review?.strategySummary ?? copy.strategySummary}
+                  {review.strategySummary}
                 </VemtapText>
               </View>
               <Icon name="verified" size={16} color={colors.textTertiary} />
@@ -282,44 +254,19 @@ export function CreateDealStep4ReviewLaunchScreen({
             items={[
               {
                 label: copy.availableVouchers,
-                value: review?.vouchers ?? copy.vouchersValue,
-                note: review?.vouchersNote ?? copy.vouchersNote,
+                value: review.vouchers,
+                note: review.vouchersNote,
               },
               {
                 label: copy.claimLimit,
-                value: review?.claimLimit ?? copy.claimLimitValue,
-                note: review?.claimLimitNote ?? copy.claimLimitNote,
+                value: review.claimLimit,
+                note: review.claimLimitNote,
               },
             ]}
             keyExtractor={item => item.label}
             renderItem={item => <SummaryTile {...item} />}
           />
-          <RuleRow
-            icon="gifting"
-            title={review?.giftingTitle ?? copy.giftingTitle}
-            body={review?.giftingBody ?? copy.giftingBody}
-          />
-          {review ? null : (
-            <>
-              <RuleRow
-                icon="restaurant"
-                title={copy.orderTypes}
-                body={undefined}
-                trailing={
-                  <View className="mt-1 flex-row flex-wrap items-center gap-2">
-                    <ChannelPill label={copy.dineIn} tone="success" />
-                    <ChannelPill label={copy.pickup} tone="success" />
-                    <ChannelPill label={copy.delivery} tone="neutral" />
-                  </View>
-                }
-              />
-              <RuleRow
-                icon="hourglass"
-                title={copy.advanceNotice}
-                body={copy.advanceBody}
-              />
-            </>
-          )}
+          <RuleRow icon="gifting" title={review.giftingTitle} body={review.giftingBody} />
         </SetupCard>
 
         <SetupCard className="gap-3">
@@ -334,13 +281,13 @@ export function CreateDealStep4ReviewLaunchScreen({
               />
             }
           />
-          {review?.branchesNote ? (
+          {review.branchesNote ? (
             <VemtapText variant="caption" tone="secondary">
               {review.branchesNote}
             </VemtapText>
           ) : null}
           <View className="gap-2">
-            {(review?.branches ?? copy.branches).map(branch => (
+            {review.branches.map(branch => (
               <View
                 key={branch.id}
                 className="flex-row items-center justify-between gap-3 rounded-lg bg-surface-subtle p-2.5"
@@ -364,123 +311,38 @@ export function CreateDealStep4ReviewLaunchScreen({
               </View>
             ))}
           </View>
-          {review ? (
-            <SummaryTile
-              label={copy.duration}
-              value={review.duration}
-              note={review.durationNote}
-              surface="containerLow"
-            />
-          ) : (
-            <TwoColumnGrid
-              items={[
-                {
-                  label: copy.redeemHours,
-                  value: copy.redeemHoursValue,
-                  note: copy.redeemHoursNote,
-                  noteTone: 'brand' as const,
-                  surface: 'containerLow' as const,
-                },
-                {
-                  label: copy.duration,
-                  value: copy.durationValue,
-                  note: copy.durationNote,
-                  noteTone: 'secondary' as const,
-                  surface: 'containerLow' as const,
-                },
-              ]}
-              keyExtractor={item => item.label}
-              renderItem={item => <SummaryTile {...item} />}
-            />
-          )}
+          <SummaryTile
+            label={copy.duration}
+            value={review.duration}
+            note={review.durationNote}
+            surface="containerLow"
+          />
         </SetupCard>
 
-        {review ? (
-          <SetupCard className="gap-3">
-            <BusinessSectionHeading
-              title={copy.termsTitle}
-              icon="policy"
-              trailing={
-                <BusinessInlineAction
-                  label={copy.edit}
-                  icon="edit"
-                  onPress={onEditBranches}
-                />
-              }
-            />
-            {review.claimSteps.length ? (
-              <ReviewList
-                label={copy.claimStepsLabel}
-                lines={review.claimSteps}
-                numbered
+        <SetupCard className="gap-3">
+          <BusinessSectionHeading
+            title={copy.termsTitle}
+            icon="policy"
+            trailing={
+              <BusinessInlineAction
+                label={copy.edit}
+                icon="edit"
+                onPress={onEditBranches}
               />
-            ) : null}
-            {review.terms.length ? (
-              <ReviewList label={copy.termsLabel} lines={review.terms} />
-            ) : null}
-            {review.claimSteps.length || review.terms.length ? null : (
-              <VemtapText variant="caption" tone="secondary">
-                {copy.noTerms}
-              </VemtapText>
-            )}
-          </SetupCard>
-        ) : null}
-
-        {review ? null : (
-          <SetupCard className="gap-4">
-            <BusinessSectionHeading
-              title={copy.audienceTitle}
-              icon="radar"
-              trailing={<StatusPill label={copy.hyperlocalLive} tone="brand" />}
-            />
-            <View className="flex-row items-center gap-3 rounded-xl bg-surface-tint-blue p-3">
-              <View className="h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary shadow-lg">
-                <Icon name="activeNotifications" size={24} color={colors.surface} />
-              </View>
-              <View className="min-w-0 flex-1">
-                <View className="flex-row items-baseline gap-1">
-                  <VemtapText variant="headingLg" className="font-sans-bold">
-                    {REACH_ESTIMATE}
-                  </VemtapText>
-                  <VemtapText variant="labelSm" className="text-primary">
-                    {copy.foodies}
-                  </VemtapText>
-                </View>
-                <VemtapText variant="caption" tone="secondary">
-                  {copy.reachBody}
-                </VemtapText>
-              </View>
-            </View>
-            <View className="gap-2">
-              <ReachRow icon="pushPin" text={copy.pinned} />
-              <ReachRow
-                icon="verifiedUser"
-                text={copy.zeroCommission}
-                iconColor={colors.badgeDiscountText}
-              />
-            </View>
-            <View>
-              <InlineImageCard
-                uri={businessMedia.reviewMap.uri}
-                alt={copy.mapAlt}
-                height={112}
-              >
-                <LinearGradient
-                  colors={['transparent', 'rgba(20, 27, 43, 0.7)']}
-                  locations={[0, 1]}
-                  style={mapFade}
-                  pointerEvents="none"
-                />
-                <View className="absolute inset-x-0 bottom-0 flex-row items-center gap-1.5 p-2.5">
-                  <Icon name="myLocation" size={14} color={colors.surface} />
-                  <VemtapText variant="caption" className="text-surface">
-                    {copy.coverageZone}
-                  </VemtapText>
-                </View>
-              </InlineImageCard>
-            </View>
-          </SetupCard>
-        )}
+            }
+          />
+          {review.claimSteps.length ? (
+            <ReviewList label={copy.claimStepsLabel} lines={review.claimSteps} numbered />
+          ) : null}
+          {review.terms.length ? (
+            <ReviewList label={copy.termsLabel} lines={review.terms} />
+          ) : null}
+          {review.claimSteps.length || review.terms.length ? null : (
+            <VemtapText variant="caption" tone="secondary">
+              {copy.noTerms}
+            </VemtapText>
+          )}
+        </SetupCard>
       </View>
     </BusinessScreenLayout>
   );
@@ -589,50 +451,6 @@ function RuleRow({
         ) : null}
         {trailing}
       </View>
-    </View>
-  );
-}
-
-function ChannelPill({ label, tone }: { label: string; tone: 'success' | 'neutral' }) {
-  return (
-    <View
-      className={cn(
-        'flex-row items-center gap-1 rounded-full px-2 py-0.5',
-        tone === 'success' ? 'bg-badge-discount-bg' : 'bg-surface-container',
-      )}
-    >
-      <Icon
-        name={tone === 'success' ? 'check' : 'close'}
-        size={13}
-        color={tone === 'success' ? colors.badgeDiscountText : colors.textTertiary}
-      />
-      <VemtapText
-        variant="caption"
-        className={tone === 'success' ? 'text-badge-discount-text' : 'text-text-tertiary'}
-      >
-        {label}
-      </VemtapText>
-    </View>
-  );
-}
-
-function ReachRow({
-  icon,
-  text,
-  iconColor,
-}: {
-  icon: IconName;
-  text: string;
-  iconColor?: string;
-}) {
-  return (
-    <View className="flex-row items-start gap-2.5">
-      <View className="pt-0.5">
-        <Icon name={icon} size={18} color={iconColor ?? colors.primary} />
-      </View>
-      <VemtapText variant="bodyMd" className="min-w-0 flex-1">
-        {text}
-      </VemtapText>
     </View>
   );
 }

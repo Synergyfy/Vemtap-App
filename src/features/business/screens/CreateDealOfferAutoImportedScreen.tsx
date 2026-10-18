@@ -19,13 +19,9 @@ import {
   SetupCard,
 } from '@features/business/components/BusinessPrimitives';
 import { ProductStatusSnapshot } from '@features/business/components/BusinessProductContent';
-import {
-  businessMedia,
-  formatNaira,
-  participatingDealBranches,
-  productIdentity,
-  weekDays,
-} from '@features/business/data/businessSetupData';
+import { formatNaira, weekDays } from '@features/business/data/businessSetupData';
+import { useBusinessBranches } from '@features/business/hooks/useCatalogueMutations';
+import type { ProductSnapshot } from '@features/business/utils/productSnapshot';
 
 export type CreateDealOfferValue = {
   discountMode: 'percentage' | 'fixed' | 'bundle';
@@ -41,22 +37,31 @@ export interface CreateDealOfferAutoImportedScreenProps {
   onPublish?: (value: CreateDealOfferValue) => void;
   onCancel?: () => void;
   onSaveDraft?: (value: CreateDealOfferValue) => void;
+  /** The catalogue item the deal is built from. */
+  product?: ProductSnapshot;
+  /** Branches the product is sold at; preselected for the deal. */
+  initialBranchIds?: string[];
 }
 
 const initialTerms =
-  'Show voucher code before ordering. Dine-in only. Valid from 12:00 PM - 5:00 PM on eligible redemption days.';
+  'Show your voucher code before ordering. Valid on the selected days.';
 
 export function CreateDealOfferAutoImportedScreen({
   onBack,
   onPublish,
   onCancel,
   onSaveDraft,
+  product,
+  initialBranchIds = [],
 }: CreateDealOfferAutoImportedScreenProps) {
+  const branchesQuery = useBusinessBranches();
+  const branches = branchesQuery.data ?? [];
+  const basePrice = product?.priceMin ?? 0;
   const [discountMode, setDiscountMode] =
     useState<CreateDealOfferValue['discountMode']>('percentage');
   const [discountPercent, setDiscountPercent] = useState(20);
   const [vouchers, setVouchers] = useState(50);
-  const [selectedBranchIds, setSelectedBranchIds] = useState(['wuse-ii', 'garki-ii']);
+  const [selectedBranchIds, setSelectedBranchIds] = useState<string[]>(initialBranchIds);
   const [redemptionDays, setRedemptionDays] = useState([
     'Mon',
     'Tue',
@@ -65,8 +70,8 @@ export function CreateDealOfferAutoImportedScreen({
     'Fri',
   ]);
   const [terms, setTerms] = useState(initialTerms);
-  const savings = Math.round(12000 * (discountPercent / 100));
-  const memberPrice = formatNaira(12000 - savings);
+  const savings = Math.round(basePrice * (discountPercent / 100));
+  const memberPrice = formatNaira(basePrice - savings);
   const value = useMemo(
     () => ({
       discountMode,
@@ -131,7 +136,7 @@ export function CreateDealOfferAutoImportedScreen({
             variant="labelSm"
             className="min-w-0 flex-1 font-sans-semibold tracking-wide text-primary"
           >
-            Auto-Imported from “{productIdentity.name}”
+            Auto-Imported from “{product?.name || 'your catalogue'}”
           </VemtapText>
         </View>
         <VemtapText variant="caption" tone="secondary">
@@ -142,9 +147,9 @@ export function CreateDealOfferAutoImportedScreen({
 
       <View className="mt-3 gap-6">
         <ProductStatusSnapshot
-          image={businessMedia.ribeyeAlternate}
-          imageAlt="Woodfire Aged Ribeye Steak"
-          name={productIdentity.name}
+          image={product?.image ? { uri: product.image } : undefined}
+          imageAlt={product?.name || 'Product photo'}
+          name={product?.name || 'Untitled product'}
           statusLabel="Details Auto-Synced"
           statusTone="success"
           price={
@@ -153,7 +158,7 @@ export function CreateDealOfferAutoImportedScreen({
                 Catalog Base:
               </VemtapText>
               <VemtapText variant="labelMd" tone="secondary" className="line-through">
-                ₦12,000
+                {formatNaira(basePrice)}
               </VemtapText>
             </View>
           }
@@ -262,7 +267,7 @@ export function CreateDealOfferAutoImportedScreen({
                 Regular Catalog Price
               </VemtapText>
               <VemtapText variant="labelSm" className="font-sans-medium">
-                ₦12,000
+                {formatNaira(basePrice)}
               </VemtapText>
             </View>
             <View className="flex-row items-center justify-between gap-3">
@@ -373,16 +378,16 @@ export function CreateDealOfferAutoImportedScreen({
             title="Participating Locations"
             trailing={
               <VemtapText variant="caption" className="shrink-0 text-success">
-                2 Active Stores
+                {`${selectedBranchIds.length} selected`}
               </VemtapText>
             }
           />
           <View className="gap-2">
-            {participatingDealBranches.map(branch => (
+            {branches.map(branch => (
               <BusinessCheckRow
                 key={branch.id}
                 title={branch.name}
-                subtitle={branch.address}
+                subtitle={branch.address ?? ''}
                 icon="storefront"
                 selected={selectedBranchIds.includes(branch.id)}
                 onPress={() => toggleBranch(branch.id)}
@@ -395,7 +400,7 @@ export function CreateDealOfferAutoImportedScreen({
         <SetupCard className="gap-2">
           <BusinessSectionHeading title="Terms & Claim Notes" icon="fileDocument" />
           <VemtapText variant="caption" tone="tertiary">
-            Pre-composed from your restaurant dining policy:
+            Shown to customers before they claim:
           </VemtapText>
           <BusinessTextArea
             value={terms}
@@ -404,13 +409,6 @@ export function CreateDealOfferAutoImportedScreen({
             minHeight={104}
           />
         </SetupCard>
-
-        <View className="flex-row items-center justify-center gap-2 py-2">
-          <Icon name="verified" size={18} color={colors.badgeDiscountText} />
-          <VemtapText variant="caption" tone="secondary" className="text-center">
-            Push notifications sent to 1,420 foodies within 3.5 miles
-          </VemtapText>
-        </View>
       </View>
     </BusinessScreenLayout>
   );

@@ -57,6 +57,17 @@ describe('locations plan notice', () => {
     const view = await render(
       <LocationsBranchesScreen
         planBlocked
+        branches={[
+          {
+            id: 'br-1',
+            name: 'Aurora Wuse',
+            tag: 'Main',
+            cluster: 'Abuja',
+            address: '1 Wuse',
+            status: 'Active',
+            active: true,
+          },
+        ]}
         onAddLocation={onAddLocation}
         onViewDetails={onViewDetails}
       />,
@@ -68,6 +79,6 @@ describe('locations plan notice', () => {
     expect(onAddLocation).toHaveBeenCalledTimes(1);
 
     fireEvent.press(view.getAllByText(copy.viewDetails)[0]);
-    expect(onViewDetails).toHaveBeenCalledWith('wuse');
+    expect(onViewDetails).toHaveBeenCalledWith('br-1');
   });
 });

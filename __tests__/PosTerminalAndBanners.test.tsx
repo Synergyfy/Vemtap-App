@@ -34,10 +34,10 @@ describe('presentPosTerminal', () => {
     expect(view.heldSalesCount).toBe(0);
   });
 
-  it('keeps the designed figures until the payload lands', () => {
+  it('shows dashes, not sample figures, until the payload lands', () => {
     expect(presentPosTerminal()).toEqual({
-      volumeValue: copy.volumeValue,
-      volumeMeta: copy.volumeMeta,
+      volumeValue: '\u2014',
+      volumeMeta: '',
       heldSalesCount: 0,
     });
   });
@@ -105,14 +105,14 @@ describe('POS terminal row', () => {
     );
 
     expect(screen.getByText(copy.heldSalesFor(3))).toBeTruthy();
-    expect(screen.queryByText(copy.volumeValue)).toBeNull();
+    expect(screen.queryByText('\u2014')).toBeNull();
   });
 
-  it('falls back to the designed copy with no payload', async () => {
+  it('shows a dash with no payload', async () => {
     const screen = await render(<BusinessPosOrdersViewScreen onBack={jest.fn()} />);
 
-    expect(screen.getByText(copy.volumeValue)).toBeTruthy();
-    expect(screen.getByText(copy.volumeMeta)).toBeTruthy();
+    expect(screen.getByText('\u2014')).toBeTruthy();
+    expect(screen.queryByText('₦142,500')).toBeNull();
     await act(async () => undefined);
   });
 });

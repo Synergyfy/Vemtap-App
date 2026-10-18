@@ -25,8 +25,6 @@ import {
   BusinessMetricGrid,
 } from '@features/business/components/BusinessAnalyticsPrimitives';
 import {
-  campaigns,
-  campaignRetention,
   campaignStatusMeta,
   growthSubTabIcon,
   growthSubTabs,
@@ -88,13 +86,13 @@ export interface CampaignsHubScreenProps {
   onOpenRetentionPlaybook?: () => void;
   onExport?: () => void;
   onViewCampaign?: (campaignId: string) => void;
-  /** Live campaigns; the design's sample campaigns show when absent. */
-  campaigns?: readonly CampaignCard[];
+  /** The business's campaigns (empty until they load). */
+  campaigns: readonly CampaignCard[];
   metrics?: CampaignsHubMetrics;
   /** Filter tab labels with live counts. */
   tabs?: readonly string[];
   upcomingBadge?: string;
-  /** Live win-back nudge; `null` hides the playbook (nothing to win back). */
+  /** Win-back nudge; absent or `null` hides the playbook. */
   playbook?: { subtitle: string; body: string } | null;
   /** The ledger export is being built. */
   exporting?: boolean;
@@ -125,7 +123,7 @@ export function CampaignsHubScreen({
   campaigns: liveCampaigns,
   metrics,
   tabs = copy.tabs,
-  upcomingBadge = copy.upcomingBadge,
+  upcomingBadge,
   playbook,
   busyIds = [],
   exporting = false,
@@ -136,8 +134,7 @@ export function CampaignsHubScreen({
   const [filter, setFilter] = useState(0);
   const [subTab, setSubTab] = useState(growthSubTabs[0]);
 
-  const live = liveCampaigns !== undefined;
-  const source = liveCampaigns ?? campaigns;
+  const source = liveCampaigns;
   const visible =
     filter === 0
       ? source
@@ -162,7 +159,7 @@ export function CampaignsHubScreen({
             onPress={onCreateCampaign}
             leftIcon={<Icon name="plus" size={18} color={colors.surface} />}
           />
-          {live && !onExport ? null : (
+          {!onExport ? null : (
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={copy.exportCta}
@@ -202,7 +199,7 @@ export function CampaignsHubScreen({
         className="mt-3"
         title={copy.liveNowTitle}
         icon="sensors"
-        badge={metrics?.liveBadge ?? copy.liveNowBadge}
+        badge={metrics?.liveBadge}
         badgeTone="success"
       >
         <BusinessMetricGrid
@@ -229,28 +226,14 @@ export function CampaignsHubScreen({
                   },
                 ]
               : [
+                  // Loading or unavailable: labels only, never sample figures.
+                  { label: copy.reachLabel, value: '\u2014', icon: 'group' },
                   {
-                    label: copy.reachLabel,
-                    value: copy.reachValue,
-                    note: copy.reachDelta,
-                    noteIcon: 'trendingUp',
-                    noteTone: 'success',
-                    icon: 'group',
-                  },
-                  {
-                    label: copy.conversionsLabel,
-                    value: copy.conversionsValue,
-                    note: copy.conversionsSub,
+                    label: copy.live.conversionsLabel,
+                    value: '\u2014',
                     icon: 'pointOfSale',
                   },
-                  {
-                    label: copy.gmvLabel,
-                    value: copy.gmvValue,
-                    note: copy.gmvDelta,
-                    noteIcon: 'trendingUp',
-                    noteTone: 'success',
-                    icon: 'payments',
-                  },
+                  { label: copy.live.gmvLabel, value: '\u2014', icon: 'payments' },
                 ]
           }
           columns={3}
@@ -279,7 +262,7 @@ export function CampaignsHubScreen({
         {(isLoading || error ? [] : visible).map(campaign => {
           const meta = campaignStatusMeta[campaign.status];
           const busy = busyIds.includes(campaign.id);
-          const showEdit = !live || campaign.status === 'draft';
+          const showEdit = campaign.status === 'draft';
           return (
             <View
               key={campaign.id}
@@ -394,7 +377,7 @@ export function CampaignsHubScreen({
                 {showEdit ? (
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel={live ? copy.live.continueCta : copy.editSetupCta}
+                    accessibilityLabel={copy.live.continueCta}
                     onPress={() => onEditSetup?.(campaign.id)}
                     className="min-h-9 flex-1 flex-row items-center justify-center gap-1.5 rounded-field bg-surface-container px-3 active:scale-95"
                   >
@@ -404,11 +387,11 @@ export function CampaignsHubScreen({
                       className="font-sans-semibold"
                       numberOfLines={1}
                     >
-                      {live ? copy.live.continueCta : copy.editSetupCta}
+                      {copy.live.continueCta}
                     </VemtapText>
                   </Pressable>
                 ) : null}
-                {live && !onPreviewPush ? null : (
+                {!onPreviewPush ? null : (
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel={copy.previewPushCta}
@@ -470,7 +453,7 @@ export function CampaignsHubScreen({
           ))}
       </BusinessPanel>
 
-      {playbook === null ? null : (
+      {!playbook ? null : (
         <BusinessPanel
           className="mt-3"
           title={copy.playbookTitle}
@@ -479,49 +462,17 @@ export function CampaignsHubScreen({
           badgeTone="brand"
         >
           <VemtapText variant="labelMd" className="font-sans-semibold" numberOfLines={2}>
-            {playbook?.subtitle ?? campaignRetention.subtitle}
+            {playbook.subtitle}
           </VemtapText>
           <BusinessInsightCard
             className="mt-2"
-            title={campaignRetention.title}
-            body={playbook?.body ?? campaignRetention.body}
-            icon={campaignRetention.icon}
+            title={copy.playbookTitle}
+            body={playbook.body}
+            icon="personAlert"
           />
-          {playbook ? null : (
-            <View className="mt-2 flex-row flex-wrap gap-2">
-              <View className="min-w-[45%] flex-1 gap-1 rounded-field bg-surface-subtle p-2.5">
-                <VemtapText variant="micro" tone="tertiary" numberOfLines={1}>
-                  {copy.playbookOfferLabel}
-                </VemtapText>
-                <VemtapText
-                  variant="labelMd"
-                  className="font-sans-semibold"
-                  numberOfLines={2}
-                >
-                  {campaignRetention.offer}
-                </VemtapText>
-              </View>
-              <View className="min-w-[45%] flex-1 gap-1 rounded-field bg-badge-discount-bg p-2.5">
-                <VemtapText
-                  variant="micro"
-                  className="text-badge-discount-text"
-                  numberOfLines={1}
-                >
-                  {copy.playbookValueLabel}
-                </VemtapText>
-                <VemtapText
-                  variant="labelMd"
-                  className="font-sans-bold text-badge-discount-text"
-                  numberOfLines={2}
-                >
-                  {campaignRetention.value}
-                </VemtapText>
-              </View>
-            </View>
-          )}
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={playbook?.subtitle ?? campaignRetention.subtitle}
+            accessibilityLabel={playbook.subtitle}
             onPress={onOpenRetentionPlaybook}
             className="mt-2 min-h-10 flex-row items-center justify-center gap-1.5 rounded-field bg-primary active:scale-95"
           >
@@ -531,7 +482,7 @@ export function CampaignsHubScreen({
               className="font-sans-semibold text-surface"
               numberOfLines={1}
             >
-              {playbook?.subtitle ?? campaignRetention.subtitle}
+              {playbook.subtitle}
             </VemtapText>
           </Pressable>
         </BusinessPanel>

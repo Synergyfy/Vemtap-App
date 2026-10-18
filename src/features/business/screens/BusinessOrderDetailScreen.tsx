@@ -17,20 +17,13 @@ import {
 import { InfoHint } from '@features/business/components/BusinessSetupPrimitives';
 import type { OrderDetailView } from '@features/business/hooks/useBusinessOrders';
 import { cn } from '@utils/cn';
+import { LoadingState } from '@components/shared/LoadingState';
+import { ErrorState } from '@components/shared/ErrorState';
 
 cssInterop(Pressable, { className: 'style' });
 cssInterop(Image, { className: 'style' });
 
 const copy = strings.businessOrderDetail;
-
-const itemImages: Record<string, string> = {
-  ribeye:
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuAdEdxdPUi3zdxvqRBnywcwOBfjvzxOgZx8MjTUIkBghPm6KYVd4olOdgnqqr5yF2VVsQxk2sbvIa9Tx4MRdC0vFtAUtAEtcWyTURedMqvJGja981oTRata25f3_CZu57QUkhnkWDP7waN4tgaDwDnqwTv-ZQZSGZmUFh0Mhl6dJmiAA1v9BEranHVeh2XawBFiXEJAVzIIotojuvbod9VrkV2gsioARmWx--_LkbL557YEXuMZJwQJyg',
-  fries:
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuAcGi_IZcSTyg9UzFWd_zG-FYfidkdpXeXJrbnK5zeIWwCC6I0D3DON0r3Pxb_1O-myGFKNp6ah9qllEy_iy2u48Kf2YxMQNpicNth3xKRrR5NW20S0wS3fLVU3ME05_OSfi79l3oWrxFh2OyYW5UP6qIgiRATx6mYBFt4P0wisVvoNJrfSG9GzYC93383OnhqUC8VPAgOcYjA2JQ8GIhGukJxccDuDJUEnCoyP_blcD38TZfBenPw2Zg',
-  lemonade:
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuBhj3lZVf1FYiEtzrUTaeW3_22hRkZ4opss8ICs2jvFOsbNA1v3ntezZG7IXweOfsrnBHi6lgyoGT2-a6fmGz-cu1MQnqAaUfPtllHD8p5zCq3krYwH2O3DjsUUfCIGFXHs4T-y-F8UUxRQvQtdrPN124ZSd_X2mdmKdilnQb9oloradFoIkQLNtqpb9EvMkr5hL60DDvI8PZP8NwyHjJnmXFVFJn07-sdRED1FLjrYpNxXAEfmNG0lxA',
-};
 
 const timelineIcons: Record<string, IconName> = {
   done: 'check',
@@ -49,8 +42,11 @@ export interface OrderDetailScreenProps {
   onCallCustomer?: () => void;
   onOpenChat?: () => void;
   onOpenBranchSwitcher?: () => void;
-  /** Live detail from `GET /catalogue/orders/:id`; omitted keeps design copy. */
+  /** Live detail from `GET /catalogue/orders/:id`; absent while it loads. */
   detail?: OrderDetailView;
+  /** The order failed to load. */
+  isError?: boolean;
+  onRetry?: () => void;
 }
 
 interface DetailItem {
@@ -65,6 +61,33 @@ interface DetailItem {
 }
 
 export function OrderDetailScreen({
+  detail,
+  isError,
+  onRetry,
+  ...props
+}: OrderDetailScreenProps) {
+  const { onBack } = props;
+  if (!detail) {
+    return (
+      <BusinessScreenLayout
+        header={{ title: copy.title, titleVariant: 'labelMd', onBack, showAvatar: true }}
+        contentContainerClassName="pb-8"
+      >
+        {isError ? <ErrorState onRetry={onRetry} /> : <LoadingState />}
+      </BusinessScreenLayout>
+    );
+  }
+  return <OrderDetailBody {...props} detail={detail} />;
+}
+
+type OrderDetailBodyProps = Omit<
+  OrderDetailScreenProps,
+  'detail' | 'isError' | 'onRetry'
+> & {
+  detail: OrderDetailView;
+};
+
+function OrderDetailBody({
   onBack,
   onAcceptOrder,
   onDeclineOrder,
@@ -76,41 +99,26 @@ export function OrderDetailScreen({
   onOpenChat,
   onOpenBranchSwitcher,
   detail,
-}: OrderDetailScreenProps) {
+}: OrderDetailBodyProps) {
   const [accepted, setAccepted] = useState(false);
-  const isLive = Boolean(detail);
 
-  const reference = detail?.reference ?? copy.reference;
-  const branchLabel = detail?.branchName ?? copy.branch;
-  const statusLabel = detail?.statusLabel ?? copy.statusLabel;
-  const statusTitle = detail?.statusTitle ?? copy.statusTitle;
-  const statusTime = detail?.statusTime || copy.statusTime;
-  const showTriage = !detail || detail.showTriage;
-  const kitchenAccepted = accepted || detail?.kitchenAccepted === true;
+  const { reference, statusLabel, statusTitle, statusTime, showTriage } = detail;
+  const branchLabel = detail.branchName;
+  const kitchenAccepted = accepted || detail.kitchenAccepted === true;
 
-  const items: DetailItem[] = detail
-    ? detail.items.map(line => ({
-        id: line.id,
-        name: line.name,
-        price: line.lineTotalLabel,
-        quantity: `Qty: ${line.quantity}`,
-        each: `${line.unitPriceLabel} each`,
-        imageUri: line.image,
-        imageAlt: line.name,
-      }))
-    : copy.items.map(item => ({
-        ...item,
-        imageUri: itemImages[item.id],
-        imageAlt: item.imageAlt,
-      }));
+  const items: DetailItem[] = detail.items.map(line => ({
+    id: line.id,
+    name: line.name,
+    price: line.lineTotalLabel,
+    quantity: `Qty: ${line.quantity}`,
+    each: `${line.unitPriceLabel} each`,
+    imageUri: line.image,
+    imageAlt: line.name,
+  }));
 
-  const timeline = detail?.timeline ?? copy.timeline;
+  const { timeline } = detail;
 
   const confirmRefund = () => {
-    if (!isLive) {
-      onAdjustRefund?.();
-      return;
-    }
     Alert.alert(copy.refundConfirmTitle, copy.refundConfirmBody, [
       { text: copy.refundConfirmCancel, style: 'cancel' },
       {
@@ -127,77 +135,49 @@ export function OrderDetailScreen({
     icon: IconName;
     onPress?: () => void;
     tone?: 'error';
-  }[] = detail
-    ? [
-        ...(detail.canMarkProcessing
-          ? [
-              {
-                id: 'processing',
-                label: copy.markProcessing,
-                icon: 'sync' as IconName,
-                onPress: onMarkProcessing,
-              },
-            ]
-          : []),
-        ...(detail.canMarkReady
-          ? [
-              {
-                id: 'ready',
-                label: copy.markReady,
-                icon: 'inventory' as IconName,
-                onPress: onMarkReady,
-              },
-            ]
-          : []),
-        ...(detail.canComplete
-          ? [
-              {
-                id: 'complete',
-                label: copy.completeOrder,
-                icon: 'checkCircle' as IconName,
-                onPress: onConfirmPayment,
-              },
-            ]
-          : []),
-        ...(detail.canRefund
-          ? [
-              {
-                id: 'refund',
-                label: copy.refundOrder,
-                icon: 'autorenew' as IconName,
-                onPress: confirmRefund,
-                tone: 'error' as const,
-              },
-            ]
-          : []),
-      ]
-    : [
-        {
-          id: 'processing',
-          label: copy.markProcessing,
-          icon: 'sync' as IconName,
-          onPress: onMarkProcessing,
-        },
-        {
-          id: 'ready',
-          label: copy.markReady,
-          icon: 'inventory' as IconName,
-          onPress: onMarkReady,
-        },
-        {
-          id: 'payment',
-          label: copy.confirmPayment,
-          icon: 'payments' as IconName,
-          onPress: onConfirmPayment,
-        },
-        {
-          id: 'refund',
-          label: copy.adjustRefund,
-          icon: 'autorenew' as IconName,
-          onPress: confirmRefund,
-          tone: 'error' as const,
-        },
-      ];
+  }[] = [
+    ...(detail.canMarkProcessing
+      ? [
+          {
+            id: 'processing',
+            label: copy.markProcessing,
+            icon: 'sync' as IconName,
+            onPress: onMarkProcessing,
+          },
+        ]
+      : []),
+    ...(detail.canMarkReady
+      ? [
+          {
+            id: 'ready',
+            label: copy.markReady,
+            icon: 'inventory' as IconName,
+            onPress: onMarkReady,
+          },
+        ]
+      : []),
+    ...(detail.canComplete
+      ? [
+          {
+            id: 'complete',
+            label: copy.completeOrder,
+            icon: 'checkCircle' as IconName,
+            onPress: onConfirmPayment,
+          },
+        ]
+      : []),
+    ...(detail.canRefund
+      ? [
+          {
+            id: 'refund',
+            label: copy.refundOrder,
+            icon: 'autorenew' as IconName,
+            onPress: confirmRefund,
+            tone: 'error' as const,
+          },
+        ]
+      : []),
+  ];
 
   return (
     <BusinessScreenLayout
@@ -237,17 +217,6 @@ export function OrderDetailScreen({
         <VemtapText variant="labelMd" className="mt-2 font-sans-semibold">
           {statusTitle}
         </VemtapText>
-        {!isLive ? (
-          <View className="mt-1 flex-row flex-wrap items-center gap-1.5">
-            <Icon name="timer" size={16} color={colors.primary} />
-            <VemtapText variant="bodyMd" tone="secondary" className="min-w-0 flex-1">
-              {copy.statusEstimate}
-            </VemtapText>
-            <VemtapText variant="bodyMd" className="font-sans-semibold">
-              {copy.statusEstimateValue}
-            </VemtapText>
-          </View>
-        ) : null}
       </View>
 
       {showTriage ? (
@@ -302,12 +271,12 @@ export function OrderDetailScreen({
         />
         <View className="flex-row items-center gap-3">
           <Avatar
-            uri={detail?.customer.avatar ?? undefined}
-            name={detail?.customer.name ?? copy.customerName}
+            uri={detail.customer.avatar ?? undefined}
+            name={detail.customer.name}
             size="lg"
             tone="brand"
             className="bg-surface-container"
-            accessibilityLabel={`${detail?.customer.name ?? copy.customerName} portrait`}
+            accessibilityLabel={`${detail.customer.name} portrait`}
           />
           <View className="min-w-0 flex-1">
             <View className="flex-row items-center gap-1">
@@ -316,20 +285,15 @@ export function OrderDetailScreen({
                 className="font-sans-semibold"
                 numberOfLines={1}
               >
-                {detail?.customer.name ?? copy.customerName}
+                {detail.customer.name}
               </VemtapText>
               <Icon name="verified" size={16} color={colors.primary} />
             </View>
             <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
-              {detail?.customer.phone || (isLive ? '—' : copy.customerPhone)}
+              {detail.customer.phone || '—'}
             </VemtapText>
           </View>
         </View>
-        {!isLive ? (
-          <VemtapText variant="caption" tone="tertiary">
-            {copy.customerMeta}
-          </VemtapText>
-        ) : null}
         <TwoColumnGrid
           items={[
             {
@@ -356,21 +320,6 @@ export function OrderDetailScreen({
             />
           )}
         />
-        {!isLive ? (
-          <View className="flex-row items-start gap-2 rounded-lg bg-surface-container-low p-3">
-            <View className="pt-0.5">
-              <Icon name="directionsCar" size={16} color={colors.primary} />
-            </View>
-            <View className="min-w-0 flex-1">
-              <VemtapText variant="labelSm" className="font-sans-semibold">
-                {copy.arrivalNote}
-              </VemtapText>
-              <VemtapText variant="caption" tone="secondary">
-                {copy.arrivalBody}
-              </VemtapText>
-            </View>
-          </View>
-        ) : null}
       </SetupCard>
 
       <SetupCard className="mt-4 gap-3">
@@ -385,7 +334,7 @@ export function OrderDetailScreen({
                   variant="micro"
                   className="font-sans-medium text-text-secondary"
                 >
-                  {detail?.itemsCountLabel ?? copy.itemsCount}
+                  {detail.itemsCountLabel}
                 </VemtapText>
               </View>
             }
@@ -393,7 +342,7 @@ export function OrderDetailScreen({
         </View>
         <View className="self-start rounded-full bg-surface-container px-2 py-0.5">
           <VemtapText variant="caption" className="font-sans-medium text-text-secondary">
-            {detail ? copy.itemsStatusFor(detail.status) : copy.itemsStatus}
+            {copy.itemsStatusFor(detail.status)}
           </VemtapText>
         </View>
 
@@ -453,44 +402,10 @@ export function OrderDetailScreen({
               {copy.subtotal}
             </VemtapText>
             <VemtapText variant="labelMd" tone="secondary" className="shrink-0">
-              {detail?.subtotalLabel ?? copy.subtotalValue}
+              {detail.subtotalLabel}
             </VemtapText>
           </View>
-          {!isLive ? (
-            <View className="flex-row items-center justify-between gap-2">
-              <View className="min-w-0 flex-1 flex-row items-center gap-1">
-                <Icon name="localOffer" size={15} color={colors.badgeDiscountText} />
-                <VemtapText
-                  variant="labelSm"
-                  className="min-w-0 text-badge-discount-text"
-                  numberOfLines={1}
-                >
-                  {copy.memberPerk}
-                </VemtapText>
-              </View>
-              <VemtapText variant="labelMd" className="shrink-0 text-badge-discount-text">
-                {copy.memberPerkValue}
-              </VemtapText>
-            </View>
-          ) : null}
-          {!isLive ? (
-            <View className="flex-row items-center justify-between gap-2">
-              <View className="min-w-0 flex-1 flex-row items-center gap-1">
-                <Icon name="loyalty" size={15} color={colors.badgeDiscountText} />
-                <VemtapText
-                  variant="labelSm"
-                  className="min-w-0 text-badge-discount-text"
-                  numberOfLines={1}
-                >
-                  {copy.pointsRedeemed}
-                </VemtapText>
-              </View>
-              <VemtapText variant="labelMd" className="shrink-0 text-badge-discount-text">
-                {copy.pointsRedeemedValue}
-              </VemtapText>
-            </View>
-          ) : null}
-          {detail?.loyaltyAwarded ? (
+          {detail.loyaltyAwarded ? (
             <InfoHint text={copy.loyaltyAwardedHint} icon="loyalty" />
           ) : null}
           <View className="mt-2 flex-row items-center justify-between gap-2 border-t border-border pt-2">
@@ -501,29 +416,10 @@ export function OrderDetailScreen({
               variant="labelMd"
               className="shrink-0 font-sans-bold text-primary"
             >
-              {detail?.totalLabel ?? copy.totalValue}
+              {detail.totalLabel}
             </VemtapText>
           </View>
         </View>
-
-        {!isLive ? (
-          <View className="rounded-lg border border-border bg-surface p-3">
-            <View className="flex-row items-center justify-between gap-2">
-              <VemtapText
-                variant="labelSm"
-                tone="secondary"
-                className="min-w-0 flex-1 font-sans-semibold uppercase"
-                numberOfLines={1}
-              >
-                {copy.settlementLabel}
-              </VemtapText>
-              <VemtapText variant="labelSm" className="shrink-0 font-sans-semibold">
-                {copy.settlementMethod}
-              </VemtapText>
-            </View>
-            <InfoHint text={copy.settlementNote} icon="info" className="mt-2" />
-          </View>
-        ) : null}
       </SetupCard>
 
       <SetupCard className="mt-4 gap-3">
@@ -604,12 +500,12 @@ export function OrderDetailScreen({
             {
               id: 'branch',
               label: copy.branchLabel,
-              value: detail?.fulfilment.branch ?? copy.branchValue,
+              value: detail.fulfilment.branch,
             },
             {
               id: 'station',
               label: copy.stationLabel,
-              value: detail?.fulfilment.station ?? copy.stationValue,
+              value: detail.fulfilment.station,
             },
           ]}
           keyExtractor={item => item.id}
@@ -629,7 +525,7 @@ export function OrderDetailScreen({
           )}
         />
         <VemtapText variant="caption" tone="secondary">
-          {detail?.fulfilment.note ?? copy.fulfilmentNote}
+          {detail.fulfilment.note}
         </VemtapText>
       </SetupCard>
 

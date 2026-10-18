@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { catalogueApi, type CatalogueItem } from '@api/catalogueApi';
 import { toPopularProduct } from '@features/home/utils/productMapper';
-import type { PopularProduct } from '@features/home/data/homeFeed';
+import type { PopularProduct } from '@features/home/types/feed';
 
 /**
  * Products near the reader, from the public catalogue.

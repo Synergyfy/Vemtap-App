@@ -18,7 +18,6 @@ import {
 } from '@features/business/components/BusinessPrimitives';
 import { ServiceChoiceCard } from '@features/business/components/ServiceFlowPrimitives';
 import { LoadingSkeletonList } from '@components/shared/LoadingState';
-import { productBranches } from '@features/business/data/businessSetupData';
 import { useBusinessBranches } from '@features/business/hooks/useCatalogueMutations';
 
 export type ProductBranchAvailabilityValue = {
@@ -33,6 +32,8 @@ export interface AddProductBranchAvailabilityScreenProps {
   onContinue?: (value: ProductBranchAvailabilityValue) => void;
   onSaveDraft?: (value: ProductBranchAvailabilityValue) => void;
   onEditPrice?: (branchId: string) => void;
+  /** Values already in the draft (`catalogueDraftStore`). */
+  initialValue?: Partial<ProductBranchAvailabilityValue>;
 }
 
 const fulfillmentOptions = [
@@ -76,21 +77,24 @@ export function AddProductBranchAvailabilityScreen({
   onContinue,
   onSaveDraft,
   onEditPrice,
+  initialValue,
 }: AddProductBranchAvailabilityScreenProps) {
-  const [selectedOverride, setSelectedOverride] = useState<string[] | null>(null);
-  const [pricingMode, setPricingMode] = useState<'unified' | 'custom'>('unified');
-  const [fulfillment, setFulfillment] = useState(['pickup', 'delivery']);
+  const [selectedOverride, setSelectedOverride] = useState<string[] | null>(
+    initialValue?.selectedBranchIds?.length ? initialValue.selectedBranchIds : null,
+  );
+  const [pricingMode, setPricingMode] = useState<'unified' | 'custom'>(
+    initialValue?.pricingMode ?? 'unified',
+  );
+  const [fulfillment, setFulfillment] = useState<string[]>(
+    initialValue?.fulfillment?.length ? initialValue.fulfillment : ['pickup'],
+  );
   const [preparationWindow, setPreparationWindow] = useState('20-30');
 
   const branchesQuery = useBusinessBranches();
-  const availableBranches: ReadonlyArray<{
-    id: string;
-    name: string;
-    address?: string | null;
-  }> = branchesQuery.data ?? productBranches;
+  // Live branches only, so "continue" can never submit an id the API does not know.
   const defaultBranchIds = useMemo<string[]>(
-    () => availableBranches.slice(0, 2).map(branch => branch.id),
-    [availableBranches],
+    () => (branchesQuery.data ?? []).slice(0, 2).map(branch => branch.id),
+    [branchesQuery.data],
   );
   const selectedBranchIds = selectedOverride ?? defaultBranchIds;
   // The branch API carries no per-product badge or stock yet, so those lines

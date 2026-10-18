@@ -1,2 +1,2 @@
-export * from './data/dealsFeed';
+export * from './types';
 export * from './screens';

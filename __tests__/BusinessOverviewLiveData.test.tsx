@@ -110,7 +110,7 @@ test('the overview renders live dashboard values over the design copy', async ()
   expect(view.getByText('9,000')).toBeTruthy();
   expect(view.getByText('142')).toBeTruthy();
   expect(view.getByText('₦486.0k')).toBeTruthy();
-  expect(view.queryByText(copy.weekStats[0].value)).toBeNull();
+  expect(view.queryByText('8,420')).toBeNull();
 
   // Chart peak derives from the live series.
   expect(view.getByText(copy.weekChartPeakFor('Fri'))).toBeTruthy();

@@ -19,10 +19,6 @@ import {
   BusinessTextArea,
   SetupCard,
 } from '@features/business/components/BusinessPrimitives';
-import {
-  businessMedia,
-  productIdentity,
-} from '@features/business/data/businessSetupData';
 
 export type ProductBasicsValue = {
   title: string;
@@ -38,8 +34,12 @@ export interface AddProductBasicsCategoryScreenProps {
   onContinue?: (value: ProductBasicsValue) => void;
   onSaveDraft?: (value: ProductBasicsValue) => void;
   onChangePhoto?: () => void;
-  onChangeCategory?: (level: 'primary' | 'sub' | 'classification') => void;
   onAddHighlight?: (highlight: string) => void;
+  /** Values already in the draft (`catalogueDraftStore`). */
+  initialValue?: Partial<ProductBasicsValue>;
+  /** Uploaded photos, cover first. */
+  images?: string[];
+  uploadingPhoto?: boolean;
 }
 
 const conditions: Array<{
@@ -60,25 +60,32 @@ export function AddProductBasicsCategoryScreen({
   onContinue,
   onSaveDraft,
   onChangePhoto,
-  onChangeCategory,
   onAddHighlight,
+  initialValue,
+  images = [],
+  uploadingPhoto = false,
 }: AddProductBasicsCategoryScreenProps) {
-  const [title, setTitle] = useState<string>(productIdentity.basicsTitle);
-  const [brand, setBrand] = useState<string>(productIdentity.brand);
-  const [unbranded, setUnbranded] = useState(false);
-  const [description, setDescription] = useState<string>(productIdentity.description);
-  const [condition, setCondition] =
-    useState<ProductBasicsValue['condition']>('Fresh / New');
+  const [title, setTitle] = useState<string>(initialValue?.title ?? '');
+  const [brand, setBrand] = useState<string>(initialValue?.brand ?? '');
+  const [unbranded, setUnbranded] = useState(initialValue?.unbranded ?? false);
+  const [description, setDescription] = useState<string>(initialValue?.description ?? '');
+  const [categoryPath, setCategoryPath] = useState<string>(
+    initialValue?.categoryPath ?? '',
+  );
+  const [condition, setCondition] = useState<ProductBasicsValue['condition']>(
+    initialValue?.condition ?? 'Fresh / New',
+  );
+  const [cover, ...thumbnails] = images;
   const value = useMemo(
     () => ({
       title,
       brand,
       unbranded,
-      categoryPath: productIdentity.categoryPath,
+      categoryPath,
       description,
       condition,
     }),
-    [brand, condition, description, title, unbranded],
+    [brand, categoryPath, condition, description, title, unbranded],
   );
 
   return (
@@ -160,11 +167,20 @@ export function AddProductBasicsCategoryScreen({
           </View>
 
           <View className="relative aspect-square w-full overflow-hidden rounded-xl bg-surface-container-low">
-            <BusinessProductImage
-              source={businessMedia.ribeyeCover}
-              alt="Woodfire seared Angus ribeye steak served on a rustic slate board"
-              className="h-full w-full"
-            />
+            {cover ? (
+              <BusinessProductImage
+                source={{ uri: cover }}
+                alt={title || 'Product cover photo'}
+                className="h-full w-full"
+              />
+            ) : (
+              <View className="h-full w-full items-center justify-center gap-1">
+                <Icon name="camera" size={32} color={colors.textTertiary} />
+                <VemtapText variant="caption" tone="tertiary">
+                  {uploadingPhoto ? 'Uploading…' : 'No photos yet'}
+                </VemtapText>
+              </View>
+            )}
             <View className="absolute left-3 top-3 flex-row items-center gap-1 rounded-full bg-inverse-surface/85 px-2.5 py-1 shadow-sm">
               <Icon name="star" size={14} color={colors.badgeDiscountBg} />
               <VemtapText variant="caption" className="text-inverse font-sans-semibold">
@@ -190,20 +206,16 @@ export function AddProductBasicsCategoryScreen({
           </View>
 
           <View className="mt-1 flex-row gap-1">
-            {[
-              businessMedia.ribeyeThumbnailOne,
-              businessMedia.ribeyeThumbnailTwo,
-              businessMedia.ribeyeThumbnailThree,
-            ].map((source, index) => (
+            {thumbnails.slice(0, 3).map((uri, index) => (
               <View
-                key={source.uri}
+                key={uri}
                 className={cn(
                   'relative aspect-square flex-1 overflow-hidden rounded-lg bg-surface-container-high shadow-sm',
                   index === 0 && 'border-2 border-primary',
                 )}
               >
                 <BusinessProductImage
-                  source={source}
+                  source={{ uri }}
                   alt={`Product media thumbnail ${index + 1}`}
                   className="h-full w-full"
                 />
@@ -291,7 +303,7 @@ export function AddProductBasicsCategoryScreen({
               onPress={() => {
                 const next = !unbranded;
                 setUnbranded(next);
-                setBrand(next ? 'Unbranded / Homemade' : productIdentity.brand);
+                setBrand(next ? 'Unbranded / Homemade' : '');
               }}
               className="-ml-1 mt-1 bg-transparent p-0"
             />
@@ -310,29 +322,14 @@ export function AddProductBasicsCategoryScreen({
             </View>
             <Icon name="category" size={22} color={colors.primary} />
           </View>
-          <View className="gap-2 rounded-xl bg-surface-subtle p-3">
-            <CategoryLevel
-              label="Primary Category"
-              value="Food & Dining"
-              icon="restaurant"
-              active
-              onPress={() => onChangeCategory?.('primary')}
-            />
-            <View className="ml-9 h-px bg-surface-container-high" />
-            <CategoryLevel
-              label="Sub-Category"
-              value="Grill, Steaks & BBQ"
-              icon="grill"
-              onPress={() => onChangeCategory?.('sub')}
-            />
-            <View className="ml-9 h-px bg-surface-container-high" />
-            <CategoryLevel
-              label="Item Classification"
-              value={productIdentity.itemClassification}
-              icon="fire"
-              onPress={() => onChangeCategory?.('classification')}
-            />
-          </View>
+          <Input
+            label="Category"
+            value={categoryPath}
+            onChangeText={setCategoryPath}
+            placeholder="e.g. Food & Dining > Grills"
+            accessibilityLabel="Category"
+            containerClassName="gap-1.5"
+          />
         </SetupCard>
 
         <SetupCard>
@@ -385,57 +382,5 @@ export function AddProductBasicsCategoryScreen({
         </SetupCard>
       </View>
     </BusinessScreenLayout>
-  );
-}
-
-function CategoryLevel({
-  label,
-  value,
-  icon,
-  active = false,
-  onPress,
-}: {
-  label: string;
-  value: string;
-  icon: 'restaurant' | 'grill' | 'fire';
-  active?: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <View className="flex-row items-center justify-between gap-2 py-1">
-      <View className="min-w-0 flex-1 flex-row items-center gap-2">
-        <View
-          className={cn(
-            'h-7 w-7 shrink-0 items-center justify-center rounded-lg',
-            active ? 'bg-primary-fixed' : 'bg-surface-container-high',
-          )}
-        >
-          <Icon
-            name={icon}
-            size={16}
-            color={active ? colors.primary : colors.onSecondaryContainer}
-          />
-        </View>
-        <View className="min-w-0 flex-1">
-          <VemtapText variant="caption" tone="tertiary">
-            {label}
-          </VemtapText>
-          <VemtapText variant="labelMd" className="font-sans-semibold" numberOfLines={1}>
-            {value}
-          </VemtapText>
-        </View>
-      </View>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`Change ${label}`}
-        hitSlop={8}
-        className="min-h-9 justify-center rounded px-2"
-        onPress={onPress}
-      >
-        <VemtapText variant="labelSm" className="font-sans-semibold text-primary">
-          Change
-        </VemtapText>
-      </Pressable>
-    </View>
   );
 }

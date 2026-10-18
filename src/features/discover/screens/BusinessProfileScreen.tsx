@@ -35,7 +35,7 @@ import {
 import type { LiveBusinessProfile } from '@features/discover/utils/liveBusinessMapper';
 import { colors } from '@theme/colors';
 import { strings } from '@constants/strings';
-import type { BusinessProfileSummary } from '@features/discover/data/discoverData';
+import type { BusinessProfileSummary } from '@features/discover/types';
 
 cssInterop(View, { className: 'style' });
 cssInterop(Pressable, { className: 'style' });

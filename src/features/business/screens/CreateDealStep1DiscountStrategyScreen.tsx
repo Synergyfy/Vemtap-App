@@ -21,15 +21,10 @@ import {
 } from '@features/business/components/BusinessSetupPrimitives';
 import { ProductStatusSnapshot } from '@features/business/components/BusinessProductContent';
 import { ServiceFlowFooter } from '@features/business/components/ServiceFlowPrimitives';
-import {
-  businessMedia,
-  formatNaira,
-  productIdentity,
-} from '@features/business/data/businessSetupData';
+import { formatNaira } from '@features/business/data/businessSetupData';
 import { cn } from '@utils/cn';
 
 const copy = strings.businessCreateDeal.step1;
-const CATALOG_BASE_PRICE = 12000;
 const RATE_MINIMUM = 5;
 const RATE_MAXIMUM = 60;
 const RATE_STEP = 5;
@@ -56,7 +51,7 @@ export interface CreateDealStep1DiscountStrategyScreenProps {
   onChangeItem?: () => void;
   /** Starting values, e.g. an existing deal being edited. */
   initialValue?: Pick<CreateDealDiscountValue, 'strategy' | 'discountRate'>;
-  /** The real item(s) being discounted; the prototype item is the fallback. */
+  /** The real item(s) being discounted. */
   item?: { name: string; image?: string; basePrice: number; meta?: string };
   /**
    * No item chosen yet (a deal started from the Deals screen): show a "choose
@@ -80,7 +75,8 @@ export function CreateDealStep1DiscountStrategyScreen({
   const [discountRate, setDiscountRate] = useState(
     initialValue ? clampDealRate(initialValue.discountRate) : 20,
   );
-  const basePrice = item?.basePrice ?? CATALOG_BASE_PRICE;
+  // No item, no price: the pricing math waits for the owner to pick one.
+  const basePrice = item?.basePrice ?? 0;
 
   const value = useMemo<CreateDealDiscountValue>(() => {
     const memberPrice = Math.round(basePrice * (1 - discountRate / 100));
@@ -147,16 +143,13 @@ export function CreateDealStep1DiscountStrategyScreen({
       ) : (
         <View className="mt-3">
           <ProductStatusSnapshot
-            image={item?.image ? { uri: item.image } : businessMedia.ribeyeThumbnailOne}
-            imageAlt={
-              item?.name ?? 'Woodfire grilled ribeye steak plated with rosemary potatoes'
-            }
-            imageBadge={item ? undefined : 'POS Live'}
+            image={item?.image ? { uri: item.image } : undefined}
+            imageAlt={item?.name ?? 'Deal item'}
             className="gap-2 p-3"
-            name={item?.name ?? productIdentity.name}
+            name={item?.name ?? 'No item selected'}
             statusLabel={copy.syncedLabel}
             statusVariant="eyebrow"
-            catalogId={item ? undefined : copy.branchesPill}
+
             price={
               <View className="mt-1 flex-row flex-wrap items-baseline gap-1.5">
                 <VemtapText variant="caption" tone="secondary">

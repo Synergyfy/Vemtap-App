@@ -9,7 +9,6 @@ import { BusinessVerificationTrustScreen } from '@features/business/screens/Busi
 import { BusinessSupportHelpScreen } from '@features/business/screens/BusinessSupportHelpScreen';
 import { BusinessSettingsScreen } from '@features/business/screens/BusinessSettingsScreen';
 import { SwitchToCustomerScreen } from '@features/business/screens/SwitchToCustomerScreen';
-import { switchCustomerCards } from '@features/business/data/businessTrustSettingsData';
 import { toSettingsView } from '@features/business/utils/settingsMappers';
 import type { MyBusiness } from '@api/businessDashboardApi';
 import { presentBusinessReviews } from '@features/business/utils/reviewMappers';
@@ -818,17 +817,34 @@ describe('business settings', () => {
 describe('switch to customer', () => {
   const copy = strings.switchToCustomer;
 
-  it('renders both identities, the customer summary and the wallet deal', async () => {
-    const view = await render(<SwitchToCustomerScreen />);
+  const preview = {
+    activeClaims: 2,
+    savedPlaces: 5,
+    savedDeals: 1,
+    latestClaim: {
+      offerId: 'offer-9',
+      title: 'Lunch for Two',
+      businessName: 'Aurora Grill',
+    },
+  };
+
+  it('renders both identities and the live customer summary', async () => {
+    const view = await render(
+      <SwitchToCustomerScreen merchantName="Ada's Kitchen" preview={preview} />,
+    );
 
     expect(view.getByText(copy.title)).toBeTruthy();
-    expect(view.getByText(copy.fromName)).toBeTruthy();
-    expect(view.getByText(copy.toName)).toBeTruthy();
-    expect(view.getByText(copy.toMeta)).toBeTruthy();
-    switchCustomerCards.forEach(card => {
-      expect(view.getByText(card.hint)).toBeTruthy();
-    });
-    expect(view.getByText(copy.footer)).toBeTruthy();
+    expect(view.getByText(copy.claimsHint(2))).toBeTruthy();
+    expect(view.getByText(copy.spotsHint(5))).toBeTruthy();
+    expect(view.getByText('Lunch for Two')).toBeTruthy();
+    expect(view.getByText(copy.footer("Ada's Kitchen"))).toBeTruthy();
+    expect(view.queryByText(/Emeka|Urban Grill|Artisan Coffee/)).toBeNull();
+  });
+
+  it('shows no summary cards or deal until the preview loads', async () => {
+    const view = await render(<SwitchToCustomerScreen />);
+    expect(view.queryByText(copy.claimsLabel)).toBeNull();
+    expect(view.queryByText('Lunch for Two')).toBeNull();
   });
 
   it('shows the logged-in business and customer identity when provided', async () => {
@@ -845,7 +861,6 @@ describe('switch to customer', () => {
     expect(view.getByText('ada.obi@example.com')).toBeTruthy();
     // Design placeholders are replaced, not duplicated.
     expect(view.queryByText(copy.fromName)).toBeNull();
-    expect(view.queryByText(copy.toName)).toBeNull();
   });
 
   it('confirms the switch, stays in business and opens the deal', async () => {
@@ -857,6 +872,7 @@ describe('switch to customer', () => {
         onConfirmSwitch={onConfirmSwitch}
         onStayInBusiness={onStayInBusiness}
         onOpenDeal={onOpenDeal}
+        preview={preview}
       />,
     );
 
@@ -866,7 +882,7 @@ describe('switch to customer', () => {
     await pressAndSettle(view, copy.stayCta);
     expect(onStayInBusiness).toHaveBeenCalledTimes(1);
 
-    await pressAndSettle(view, copy.dealName);
-    expect(onOpenDeal).toHaveBeenCalledWith('coffee');
+    await pressAndSettle(view, 'Lunch for Two');
+    expect(onOpenDeal).toHaveBeenCalledWith('offer-9');
   });
 });

@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useStartNewDeal } from '@navigation/useStartNewDeal';
 import { Clipboard, Linking } from 'react-native';
 import { useRoute, type RouteProp } from '@react-navigation/native';
 import { strings } from '@constants/strings';
@@ -122,6 +123,7 @@ export function CustomerCrmDirectoryRoute() {
 }
 
 export function CustomerProfileDossierRoute() {
+  const startNewDeal = useStartNewDeal();
   const navigation = useBusinessNavigation();
   const copy = strings.customerDossier;
   const route = useRoute<RouteProp<BusinessTabParamList, 'CustomerProfileDossier'>>();
@@ -145,7 +147,7 @@ export function CustomerProfileDossierRoute() {
       onCall={phone => void Linking.openURL(`tel:${phone.replace(/\s+/g, '')}`)}
       onCopyEmail={email => Clipboard.setString(email)}
       onSendMessage={() => navigation.navigate('BusinessMessages')}
-      onCustomDeal={() => navigation.navigate('CreateDealLocationAssignment')}
+      onCustomDeal={startNewDeal}
       onLogVisit={() => navigation.navigate('PosCustomerLookupActive', { customerId })}
       onViewOrder={() => navigation.navigate('BusinessOrders')}
       onViewVoucher={() => navigation.navigate('CentralDealsManagement')}

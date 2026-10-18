@@ -5,6 +5,9 @@ import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
+import { EmptyState } from '@components/shared/EmptyState';
+import { ErrorState } from '@components/shared/ErrorState';
+import { LoadingState } from '@components/shared/LoadingState';
 import { colors } from '@theme/colors';
 import {
   BusinessInlineAction,
@@ -92,6 +95,10 @@ export interface LocationsBranchesScreenProps {
    * can do anything about it.
    */
   planBlocked?: boolean;
+  /** The branch list is still loading / failed to load. */
+  isLoading?: boolean;
+  isError?: boolean;
+  onRetry?: () => void;
   onOpenPlan?: () => void;
   onDismissPlanNotice?: () => void;
 }
@@ -113,12 +120,14 @@ export function LocationsBranchesScreen({
   planBlocked = false,
   onOpenPlan,
   onDismissPlanNotice,
+  isLoading = false,
+  isError = false,
+  onRetry,
 }: LocationsBranchesScreenProps) {
-  const [scope, setScope] = useState('wuse');
-  // Live rows win; the designed copy is the fallback so the standalone render
-  // still works. `scope` is re-checked against `rows` because the live ids
-  // replace the prototype's `'wuse' | 'vi' | 'garki'`.
-  const rows = branches?.length ? branches : copy.branches;
+  const [scope, setScope] = useState('');
+  // Only the business's own branches: never sample locations, which would
+  // read as real ones while the list loads or when there are none.
+  const rows = branches ?? [];
   const firstRow = rows[0];
   const scopeValue = rows.some(row => row.id === scope) ? scope : (firstRow?.id ?? scope);
 
@@ -192,39 +201,57 @@ export function LocationsBranchesScreen({
       {/* z-10 sits on this row rather than on the picker: RN orders siblings
           only, so the flyout's own z-30 could never lift it past the branch
           cards — this container is their sibling, so this is what wins. */}
-      <View className="z-10 mt-3 flex-row items-center justify-between gap-3 rounded-card bg-surface-container-high p-3 shadow-sm">
-        <View className="min-w-0 flex-1 flex-row items-center gap-2.5">
-          <View className="h-2.5 w-2.5 shrink-0 rounded-full bg-badge-discount-text" />
-          <VemtapText
-            variant="caption"
-            tone="secondary"
-            numberOfLines={1}
-            className="shrink-0"
+      {isLoading ? (
+        <LoadingState label={copy.loading} />
+      ) : isError ? (
+        <ErrorState
+          title={copy.error.title}
+          description={copy.error.body}
+          onRetry={onRetry}
+        />
+      ) : rows.length === 0 ? (
+        <EmptyState
+          icon="storefront"
+          title={copy.empty.title}
+          description={copy.empty.body}
+        />
+      ) : null}
+
+      {rows.length > 0 ? (
+        <View className="z-10 mt-3 flex-row items-center justify-between gap-3 rounded-card bg-surface-container-high p-3 shadow-sm">
+          <View className="min-w-0 flex-1 flex-row items-center gap-2.5">
+            <View className="h-2.5 w-2.5 shrink-0 rounded-full bg-badge-discount-text" />
+            <VemtapText
+              variant="caption"
+              tone="secondary"
+              numberOfLines={1}
+              className="shrink-0"
+            >
+              {copy.operatingView}
+            </VemtapText>
+            <BusinessScopePicker
+              className="flex-1"
+              label={firstRow?.name ?? copy.title}
+              value={scopeValue}
+              options={rows.map(row => ({ label: row.name, value: row.id }))}
+              onChange={value => {
+                setScope(value);
+                onChangeScope?.(value);
+              }}
+            />
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={copy.switch}
+            onPress={() => onChangeScope?.(scopeValue)}
+            className="min-h-8 shrink-0 justify-center rounded-full bg-surface px-2.5 py-1 shadow-sm active:scale-95"
           >
-            {copy.operatingView}
-          </VemtapText>
-          <BusinessScopePicker
-            className="flex-1"
-            label={firstRow?.name ?? copy.title}
-            value={scopeValue}
-            options={rows.map(row => ({ label: row.name, value: row.id }))}
-            onChange={value => {
-              setScope(value);
-              onChangeScope?.(value);
-            }}
-          />
+            <VemtapText variant="caption" className="font-sans-medium text-primary">
+              {copy.switch}
+            </VemtapText>
+          </Pressable>
         </View>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={copy.switch}
-          onPress={() => onChangeScope?.(scopeValue)}
-          className="min-h-8 shrink-0 justify-center rounded-full bg-surface px-2.5 py-1 shadow-sm active:scale-95"
-        >
-          <VemtapText variant="caption" className="font-sans-medium text-primary">
-            {copy.switch}
-          </VemtapText>
-        </Pressable>
-      </View>
+      ) : null}
 
       <View className="mt-3 gap-3">
         {rows.map((branch, index) => {

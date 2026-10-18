@@ -5,7 +5,7 @@ import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { DealEngagementRow } from '@components/shared/DealEngagementRow';
 import { colors } from '@theme/colors';
-import type { FeaturedDealOfDay } from '@features/deals/data/dealsFeed';
+import type { FeaturedDealOfDay } from '@features/deals/types';
 
 cssInterop(View, { className: 'style' });
 cssInterop(Pressable, { className: 'style' });

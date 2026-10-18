@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useStartNewDeal } from '@navigation/useStartNewDeal';
 import { Alert, Linking } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -14,7 +15,19 @@ import { BusinessDashboardOverviewScreen } from '@features/business/screens/Busi
 import { BusinessOrdersHubScreen } from '@features/business/screens/BusinessOrdersHubScreen';
 import { OrderDetailScreen } from '@features/business/screens/BusinessOrderDetailScreen';
 import { BusinessBookingsHubScreen } from '@features/business/screens/BusinessBookingsHubScreen';
-import { BusinessPosOrdersViewScreen } from '@features/business/screens/BusinessPosOrdersViewScreen';
+import {
+  BusinessPosOrdersViewScreen,
+  presentPosSaleRow,
+} from '@features/business/screens/BusinessPosOrdersViewScreen';
+import {
+  usePosSales,
+  useRegisterStatus,
+  usePeripherals,
+  usePosSettings,
+  useUpdatePosSettings,
+} from '@features/business/hooks/usePos';
+import { startOfTodayIso } from '@features/business/utils/posMappers';
+import { useNetworkStatus } from '@hooks/useNetworkStatus';
 import {
   BusinessMessagesHomeScreen,
   toBusinessMessageThreadView,
@@ -27,6 +40,9 @@ import { BusinessHubCentralManagementScreen } from '@features/business/screens/B
 import { BusinessMoreHubScreen } from '@features/business/screens/BusinessMoreHubScreen';
 import { BusinessManagementHubScreen } from '@features/business/screens/BusinessManagementHubScreen';
 import { BusinessProfilePreviewScreen } from '@features/business/screens/BusinessProfilePreviewScreen';
+import { AddProductPricingVariantsScreen } from '@features/business/screens/AddProductPricingVariantsScreen';
+import { AddProductBranchAvailabilityScreen } from '@features/business/screens/AddProductBranchAvailabilityScreen';
+import { ReviewProductSummaryScreen } from '@features/business/screens/ReviewProductSummaryScreen';
 import { CentralDealsManagementScreen } from '@features/business/screens/CentralDealsManagementScreen';
 import { DealDetailsPerformanceScreen } from '@features/business/screens/DealDetailsPerformanceScreen';
 import {
@@ -34,14 +50,10 @@ import {
   type DealLedgerPeriod,
   type DealLedgerStatusFilter,
 } from '@features/business/screens/DealRedemptionLedgerScreen';
-import { CreateDealLocationAssignmentScreen } from '@features/business/screens/CreateDealLocationAssignmentScreen';
 import { CreateDealStep1DiscountStrategyScreen } from '@features/business/screens/CreateDealStep1DiscountStrategyScreen';
 import { CreateDealStep2LimitsGiftingRulesScreen } from '@features/business/screens/CreateDealStep2LimitsGiftingRulesScreen';
 import { CreateDealStep3ParticipatingBranchesScheduleScreen } from '@features/business/screens/CreateDealStep3ParticipatingBranchesScheduleScreen';
 import { CreateDealStep4ReviewLaunchScreen } from '@features/business/screens/CreateDealStep4ReviewLaunchScreen';
-import { DealLocationAssignmentPricingScreen } from '@features/business/screens/DealLocationAssignmentPricingScreen';
-import { LocationAssignmentBranchPricingScreen } from '@features/business/screens/LocationAssignmentBranchPricingScreen';
-import { BranchAvailabilityLocationPricingScreen } from '@features/business/screens/BranchAvailabilityLocationPricingScreen';
 import { CentralCatalogueScreen } from '@features/business/screens/CentralCatalogueScreen';
 import { ServicesCategoriesManagementScreen } from '@features/business/screens/ServicesCategoriesManagementScreen';
 import { AddProductBasicsMediaScreen } from '@features/business/screens/AddProductBasicsMediaScreen';
@@ -66,6 +78,7 @@ import {
   useMyBusiness,
   usePosDashboard,
   toStatNumber,
+  useUnreadNotificationsCount as useBusinessUnreadCount,
 } from '@features/business/hooks/useBusinessDashboardData';
 import { useActiveBranch } from '@features/business/hooks/useActiveBranch';
 import { branchPlanErrorMessage } from '@api/planErrors';
@@ -79,11 +92,6 @@ import {
   useLoyaltyBusinessStats,
 } from '@features/business/hooks/useBusinessHubData';
 import { ApiError } from '@api/ApiError';
-import {
-  usePeripherals,
-  usePosSettings,
-  useUpdatePosSettings,
-} from '@features/business/hooks/usePos';
 import {
   useDiscoveryPresence,
   useUpdateDiscoverySetting,
@@ -182,11 +190,9 @@ import { useAuthStore } from '@store/authStore';
 import { showError, showSuccess } from '@components/shared';
 import { useCatalogueDraftStore } from '@store/catalogueDraftStore';
 import {
-  useBusinessBranches,
   useCatalogueCategories,
   useDeleteCatalogueCategory,
   usePublishCatalogueItem,
-  usePublishCatalogueOffer,
   useReorderCatalogueCategories,
   useUpdateCatalogueCategory,
   useUpdateCatalogueItemDetails,
@@ -250,6 +256,10 @@ import type { ActiveSubscription, BillingPeriod } from '@api/subscriptionsApi';
 import type { BillingPlanSummary } from '@features/business/screens/BusinessSubscriptionBillingScreen';
 import { formatDay } from '@features/business/verificationDisplay';
 import { formatCurrency } from '@utils/formatters';
+import { appVersion } from '@utils/appVersion';
+import { useSwitchPreview } from '@features/accountHub/hooks/useActivity';
+import { claimPassParams } from '@navigation/claimPassLink';
+import type { MoreRowStatus } from '@features/business/screens/BusinessMoreHubScreen';
 import { useVerificationStatus } from '@features/business/hooks/useVerification';
 import {
   BoostBudgetScheduleRoute,
@@ -357,6 +367,7 @@ const MoreStack = createNativeStackNavigator<BusinessTabParamList>();
 const stackOptions = { headerShown: false } as const;
 
 function BusinessOverviewRoute() {
+  const startNewDeal = useStartNewDeal();
   const navigation = useBusinessNavigation();
   const openPlanScreen = useOpenPlanScreen();
   return (
@@ -368,7 +379,7 @@ function BusinessOverviewRoute() {
       // Quick shortcuts + the rows/cards that share their handlers.
       onOpenScanner={() => navigation.navigate('PosCustomerLookupActive')}
       onOpenPos={() => navigation.navigate('PosHomeSalesOperations')}
-      onCreateDeal={() => navigation.navigate('CreateDealLocationAssignment')}
+      onCreateDeal={startNewDeal}
       onAddProduct={() => navigation.navigate('AddProductBasicsMedia')}
       onOpenClaims={() => navigation.navigate('CentralDealsManagement')}
       onBoostDeal={() => navigation.navigate('BoostEngine')}
@@ -453,6 +464,8 @@ function BusinessOrderDetailRoute() {
     <OrderDetailScreen
       onBack={navigation.goBack}
       detail={orderQuery.isSuccess ? presentOrderDetail(orderQuery.data) : undefined}
+      isError={orderQuery.isError}
+      onRetry={() => orderQuery.refetch()}
       onAcceptOrder={() => setStatus('processing')}
       onDeclineOrder={() => setStatus('rejected')}
       onMarkProcessing={() => setStatus('processing')}
@@ -512,13 +525,21 @@ function BusinessBookingsRoute() {
 
 function BusinessPosOrdersRoute() {
   const navigation = useBusinessNavigation();
-  const { activeBranchId } = useActiveBranch();
+  const { activeBranchId, branches } = useActiveBranch();
   const posQuery = usePosDashboard(activeBranchId);
-  // The screen presents the payload itself; undefined (still loading or failed)
-  // keeps the designed figures rather than flashing zeros.
+  const sales = usePosSales(
+    { branchId: activeBranchId ?? undefined, dateFrom: startOfTodayIso(), limit: 50 },
+    Boolean(activeBranchId),
+  );
+  const register = useRegisterStatus();
+  const network = useNetworkStatus();
   return (
     <BusinessPosOrdersViewScreen
       pos={posQuery.data}
+      orders={sales.data ? sales.data.data.map(presentPosSaleRow) : undefined}
+      branchName={branches.find(branch => branch.id === activeBranchId)?.name}
+      tillName={register.data?.session?.till?.name ?? undefined}
+      online={network.isConnected}
       onBack={navigation.goBack}
       // Opening a transaction hands the terminal over to the customer-facing
       // table display, which continues through payment, rating and receipt.
@@ -675,10 +696,15 @@ function BusinessHubRoute() {
 
 function BusinessManagementHubRoute() {
   const navigation = useBusinessNavigation();
+  const { branches, activeBranchId, setActiveBranch } = useActiveBranch();
+  const { view } = useBusinessHubData(activeBranchId);
   return (
     <BusinessManagementHubScreen
+      branches={branches}
+      activeBranchId={activeBranchId}
+      hub={view}
       onNotifications={() => navigation.navigate('BusinessNotifications')}
-      onChangeBranch={() => undefined}
+      onChangeBranch={setActiveBranch}
       onOpenModule={id => {
         const moduleRoutes: Record<
           string,
@@ -768,9 +794,13 @@ function useDealStatusToggle() {
 }
 
 function CentralDealsManagementRoute() {
-  const navigation = useBusinessNavigation();
   const route = useRoute<RouteProp<BusinessTabParamList, 'CentralDealsManagement'>>();
-  const layout = route.params?.layout ?? 'hero';
+  return <LiveDealsList layout={route.params?.layout ?? 'hero'} />;
+}
+
+/** The owner's deals in any of the three list treatments. */
+function LiveDealsList({ layout }: { layout: 'hero' | 'compact' | 'discovery' }) {
+  const navigation = useBusinessNavigation();
   const { branches, isLive: hasLiveBranches } = useActiveBranch();
   const [scope, setScope] = useState(ALL_DEAL_SCOPE);
   const branchId = scope === ALL_DEAL_SCOPE ? null : scope;
@@ -811,6 +841,15 @@ function CentralDealsManagementRoute() {
       onRetry={() => groups.refetch()}
       refreshControl={refresh.refreshControl}
       netRevenue={summary.data ? formatNaira(summary.data.netRevenue30d ?? 0) : undefined}
+      pulse={
+        summary.data
+          ? {
+              activeDeals: String(summary.data.activeDeals ?? 0),
+              claimsToday: String(summary.data.claimsToday ?? 0),
+              redeemedToday: String(summary.data.redeemedToday ?? 0),
+            }
+          : undefined
+      }
       onNotifications={() => navigation.navigate('BusinessNotifications')}
       onCreateDeal={() => {
         resetDeal();
@@ -860,9 +899,15 @@ function DealDetailsPerformanceRoute() {
       )
     : undefined;
 
-  // Opened without a deal (legacy entry points): show the Stitch prototype.
+  // Every entry point passes a deal; without one there is nothing to show.
   if (!dealGroupId) {
-    return <DealDetailsPerformanceScreen onBack={navigation.goBack} />;
+    return (
+      <DealDetailsPerformanceScreen
+        onBack={navigation.goBack}
+        isError
+        onRetry={navigation.goBack}
+      />
+    );
   }
 
   const endDeal = () =>
@@ -990,79 +1035,6 @@ function DealRedemptionLedgerRoute() {
   );
 }
 
-function CreateDealLocationAssignmentRoute() {
-  const navigation = useBusinessNavigation();
-  const setDeal = useCatalogueDraftStore(state => state.setDeal);
-  const publish = usePublishCatalogueOffer();
-  const branches = useBusinessBranches();
-
-  const submit = (status: 'active' | 'inactive') => {
-    const all = (branches.data ?? []).map(branch => branch.id);
-    if (!all.length) {
-      showError('No branches available for this deal.');
-      return;
-    }
-    setDeal({ branchIds: all });
-    publish.mutate(
-      { status, branchId: all[0] },
-      {
-        onSuccess: () => {
-          showSuccess(status === 'active' ? 'Deal launched.' : 'Deal saved as draft.');
-          navigation.goBack();
-        },
-        onError: error =>
-          showError(error instanceof Error ? error.message : 'Could not launch the deal'),
-      },
-    );
-  };
-
-  return (
-    <CreateDealLocationAssignmentScreen
-      onBack={navigation.goBack}
-      onMoreActions={() => undefined}
-      onReviewLaunch={() => submit('active')}
-      onSaveDraft={() => submit('inactive')}
-      onManageMerchantTier={() => undefined}
-    />
-  );
-}
-
-function DealLocationAssignmentPricingRoute() {
-  const navigation = useBusinessNavigation();
-  const setDeal = useCatalogueDraftStore(state => state.setDeal);
-  const publish = usePublishCatalogueOffer();
-  const branches = useBusinessBranches();
-
-  const submit = (status: 'active' | 'inactive') => {
-    const all = (branches.data ?? []).map(branch => branch.id);
-    if (!all.length) {
-      showError('No branches available for this deal.');
-      return;
-    }
-    setDeal({ branchIds: all });
-    publish.mutate(
-      { status, branchId: all[0] },
-      {
-        onSuccess: () => {
-          showSuccess(status === 'active' ? 'Deal launched.' : 'Deal saved as draft.');
-          navigation.goBack();
-        },
-        onError: error =>
-          showError(error instanceof Error ? error.message : 'Could not launch the deal'),
-      },
-    );
-  };
-
-  return (
-    <DealLocationAssignmentPricingScreen
-      onBack={navigation.goBack}
-      onMoreActions={() => undefined}
-      onSave={() => submit('active')}
-      onCancel={navigation.goBack}
-    />
-  );
-}
-
 /**
  * The four-step create-deal wizard in the hub stack. Mirrors the
  * `BusinessSetup` deal routes: each step merges its slice into the shared
@@ -1169,49 +1141,104 @@ function CreateDealStep4Route() {
   );
 }
 
-function ProductLocationAssignmentRoute() {
+function ProductPricingRoute() {
   const navigation = useBusinessNavigation();
+  const setProduct = useCatalogueDraftStore(state => state.setProduct);
+  const draft = useCatalogueDraftStore(state => state.product);
   return (
-    <LocationAssignmentBranchPricingScreen
+    <AddProductPricingVariantsScreen
+      initialValue={{
+        regularPrice: draft.regularPrice,
+        compareAtPrice: draft.compareAtPrice,
+        costPerItem: draft.costPrice,
+        variants: draft.variants,
+        sku: draft.sku,
+        lowStockThreshold: draft.lowStockThreshold,
+        continueWhenOutOfStock: draft.backorder,
+      }}
       onBack={navigation.goBack}
-      // Product step 3: branch availability + customer-facing location pricing.
-      onSave={() => navigation.navigate('BranchAvailabilityLocationPricing')}
+      onContinue={value => {
+        setProduct({
+          regularPrice: value.regularPrice,
+          compareAtPrice: value.compareAtPrice,
+          costPrice: value.costPerItem,
+          variants: value.variants,
+          sku: value.sku,
+          lowStockThreshold: value.lowStockThreshold,
+          backorder: value.continueWhenOutOfStock,
+        });
+        navigation.navigate('ProductAvailability');
+      }}
     />
   );
 }
 
-function BranchAvailabilityLocationPricingRoute() {
+function ProductAvailabilityRoute() {
   const navigation = useBusinessNavigation();
-  const branches = useBusinessBranches();
-  const publish = usePublishCatalogueItem();
+  const setProduct = useCatalogueDraftStore(state => state.setProduct);
+  const draft = useCatalogueDraftStore(state => state.product);
   return (
-    <BranchAvailabilityLocationPricingScreen
-      onBack={navigation.goBack}
-      onMoreActions={() => undefined}
-      onSaveContinue={() => {
-        const store = useCatalogueDraftStore.getState();
-        if (!store.product.branchIds.length) {
-          const all = (branches.data ?? []).map(branch => branch.id);
-          if (!all.length) {
-            showError('No branches available to stock this product.');
-            return;
-          }
-          store.setProduct({ branchIds: all });
-        }
-        publish.mutate(
-          { kind: 'product', status: 'active' },
-          {
-            onSuccess: () => {
-              showSuccess('Product published to your branches.');
-              navigation.goBack();
-            },
-            onError: error =>
-              showError(
-                error instanceof Error ? error.message : 'Failed to publish product.',
-              ),
-          },
-        );
+    <AddProductBranchAvailabilityScreen
+      initialValue={{
+        selectedBranchIds: draft.branchIds,
+        ...(draft.pricingMode === 'unified' || draft.pricingMode === 'custom'
+          ? { pricingMode: draft.pricingMode }
+          : {}),
+        fulfillment: draft.fulfillmentModes,
       }}
+      onBack={navigation.goBack}
+      onContinue={value => {
+        setProduct({
+          branchIds: value.selectedBranchIds,
+          pricingMode: value.pricingMode,
+          fulfillmentModes: value.fulfillment,
+        });
+        navigation.navigate('ProductReview');
+      }}
+    />
+  );
+}
+
+function ProductReviewRoute() {
+  const navigation = useBusinessNavigation();
+  const draft = useCatalogueDraftStore(state => state.product);
+  const resetProduct = useCatalogueDraftStore(state => state.resetProduct);
+  const publish = usePublishCatalogueItem();
+  const submit = (status: 'active' | 'inactive') => {
+    if (!draft.branchIds.length) {
+      showError('Pick at least one branch for this product.');
+      return;
+    }
+    publish.mutate(
+      { kind: 'product', status },
+      {
+        onSuccess: () => {
+          showSuccess(
+            status === 'active' ? 'Product published.' : 'Product saved as draft.',
+          );
+          resetProduct();
+          navigation.navigate('CentralCatalogue');
+        },
+        onError: error =>
+          showError(
+            error instanceof Error ? error.message : 'Could not publish the product.',
+          ),
+      },
+    );
+  };
+  return (
+    <ReviewProductSummaryScreen
+      draft={draft}
+      publishing={publish.isPending}
+      onBack={navigation.goBack}
+      onPublish={() => submit('active')}
+      onSaveDraft={() => submit('inactive')}
+      onEditMedia={() => navigation.navigate('AddProductBasicsMedia')}
+      onEditBasics={() => navigation.navigate('AddProductBasicsMedia')}
+      onEditDescription={() => navigation.navigate('AddProductBasicsMedia')}
+      onEditPricing={() => navigation.navigate('ProductPricing')}
+      onEditBranches={() => navigation.navigate('ProductAvailability')}
+      onEditFulfillment={() => navigation.navigate('ProductAvailability')}
     />
   );
 }
@@ -1595,7 +1622,7 @@ function AddProductBasicsMediaRoute() {
           galleryImages: value.gallery,
           mainImage: value.mainImage,
         });
-        navigation.navigate('ProductLocationAssignment');
+        navigation.navigate('ProductPricing');
       }}
       onSaveDraft={value => {
         useCatalogueDraftStore.getState().setProduct({
@@ -1682,7 +1709,10 @@ function LocationsBranchesRoute() {
   return (
     <>
       <LocationsBranchesScreen
-        branches={liveBranches.map(branchToLocationRow)}
+        branches={myBusiness.data ? liveBranches.map(branchToLocationRow) : undefined}
+        isLoading={myBusiness.isLoading}
+        isError={myBusiness.isError && !myBusiness.data}
+        onRetry={() => myBusiness.refetch()}
         planBlocked={planBlocked}
         onOpenPlan={openPlanScreen}
         onDismissPlanNotice={() => setPlanBlocked(false)}
@@ -2160,44 +2190,12 @@ function InviteStaffRoute() {
  * so it keeps its own back-stack entry; the screen component is shared.
  */
 function DealsFlashRadarRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <CentralDealsManagementScreen
-      layout="compact"
-      onNotifications={() => navigation.navigate('BusinessNotifications')}
-      onCreateDeal={() => navigation.navigate('CreateDealLocationAssignment')}
-      onSearch={() => undefined}
-      onFilter={() => undefined}
-      onChangeScope={() => navigation.navigate('LocationsBranches')}
-      onBoostDeal={() => navigation.navigate('CampaignsHub')}
-      onEditDeal={() => navigation.navigate('DealLocationAssignmentPricing')}
-      onPauseDeal={() => undefined}
-      onDealActions={() => undefined}
-      onViewLedger={() => undefined}
-      onOpenDeal={() => navigation.navigate('DealDetailsPerformance')}
-    />
-  );
+  return <LiveDealsList layout="compact" />;
 }
 
 /** `central_deals_management_3` — the campaigns & deals treatment. */
 function CampaignsDealsManagementRoute() {
-  const navigation = useBusinessNavigation();
-  return (
-    <CentralDealsManagementScreen
-      layout="discovery"
-      onNotifications={() => navigation.navigate('BusinessNotifications')}
-      onCreateDeal={() => navigation.navigate('CreateDealLocationAssignment')}
-      onSearch={() => undefined}
-      onFilter={() => undefined}
-      onChangeScope={() => navigation.navigate('LocationsBranches')}
-      onBoostDeal={() => navigation.navigate('CampaignsHub')}
-      onEditDeal={() => navigation.navigate('DealLocationAssignmentPricing')}
-      onPauseDeal={() => undefined}
-      onDealActions={() => undefined}
-      onViewLedger={() => undefined}
-      onOpenDeal={() => navigation.navigate('DealDetailsPerformance')}
-    />
-  );
+  return <LiveDealsList layout="discovery" />;
 }
 
 /** `central_products_services_catalogue_2` — the business-hub catalogue. */
@@ -2716,44 +2714,48 @@ function SwitchToCustomerRoute() {
   const switchRole = useSwitchRole();
   const user = useAuthStore(state => state.user);
   const { data: myBusiness } = useMyBusiness();
+  const preview = useSwitchPreview();
 
   const customerName = [user?.firstName, user?.lastName].filter(Boolean).join(' ').trim();
   const customerMeta = user?.email || user?.phone || undefined;
+
+  /** Switch to the customer token, then land on `then` in the customer app. */
+  const switchThen = (then: { screen: string; params?: object }) =>
+    switchRole.mutate('customer', {
+      onSuccess: () => {
+        // The customer app lives in AppStack on the root stack; the business
+        // shell is a sibling, so navigate through the root ref instead of the
+        // shell's immediate parent.
+        const target = { screen: then.screen, params: then.params } as never;
+        if (navigationRef?.isReady()) {
+          navigationRef.navigate('AppStack', target);
+          return;
+        }
+        navigation.raw.navigate('AppStack', target);
+      },
+      onError: error =>
+        Alert.alert(
+          strings.switchToCustomer.error.title,
+          error.message || strings.switchToCustomer.error.body,
+        ),
+    });
 
   return (
     <SwitchToCustomerScreen
       merchantName={myBusiness?.name}
       customerName={customerName || undefined}
       customerMeta={customerMeta}
+      preview={preview.data}
       onBack={navigation.goBack}
       onOpenProfile={() => undefined}
       onConfirmSwitch={() =>
-        switchRole.mutate('customer', {
-          onSuccess: () => {
-            // The customer app lives in AppStack on the root stack; the
-            // business shell is a sibling, so navigate through the root ref
-            // instead of the shell's immediate parent.
-            if (navigationRef?.isReady()) {
-              navigationRef.navigate('AppStack', {
-                screen: 'Tabs',
-                params: { screen: 'Account' },
-              });
-              return;
-            }
-            navigation.raw.navigate('AppStack', {
-              screen: 'Tabs',
-              params: { screen: 'Account' },
-            });
-          },
-          onError: error =>
-            Alert.alert(
-              strings.switchToCustomer.error.title,
-              error.message || strings.switchToCustomer.error.body,
-            ),
-        })
+        switchThen({ screen: 'Tabs', params: { screen: 'Account' } })
       }
       onStayInBusiness={navigation.goBack}
-      onOpenDeal={() => undefined}
+      // The claimed deal is customer-side: switch first, then open its pass.
+      onOpenDeal={offerId =>
+        switchThen({ screen: 'Tabs', params: claimPassParams(offerId) })
+      }
     />
   );
 }
@@ -2832,7 +2834,9 @@ const signOut = () => {
 
 function BusinessMoreHubOperationsRoute() {
   const navigation = useBusinessNavigation();
-  const { activeBranchId } = useActiveBranch();
+  const { activeBranchId, branches } = useActiveBranch();
+  const business = useMyBusiness();
+  const subscription = useActiveSubscription();
   const catalogue = useBusinessCatalogue({ limit: 1 });
   const posDashboard = usePosDashboard(activeBranchId);
   const queuedSales = useOfflineQueueStore(
@@ -2958,6 +2962,20 @@ function BusinessMoreHubOperationsRoute() {
   return (
     <BusinessMoreHubOperationsScreen
       tileHints={tileHints}
+      identity={
+        business.data
+          ? {
+              name: business.data.name,
+              plan: subscription.data?.plan?.name,
+              branch: branches.find(branch => branch.id === activeBranchId)?.name,
+            }
+          : undefined
+      }
+      netSales={
+        posDashboard.data
+          ? formatCurrency(toStatNumber(posDashboard.data.revenue) ?? 0)
+          : undefined
+      }
       onBack={navigation.goBack}
       onOpenNotifications={() => navigation.navigate('BusinessNotifications')}
       onOpenProfile={() => undefined}
@@ -2983,9 +3001,50 @@ function BusinessMoreRoute() {
   const navigation = useBusinessNavigation();
   const { branches, activeBranchId, setActiveBranch } = useActiveBranch();
   const { view } = useBusinessHubData(activeBranchId);
+  const subscription = useActiveSubscription();
+  const verification = useVerificationStatus();
+  const unread = useBusinessUnreadCount();
+  const moreCopy = strings.businessMore;
+
+  const rowStatus: Partial<Record<string, MoreRowStatus>> = {};
+  if (view) {
+    rowStatus.reviews = {
+      meta:
+        view.reviews.total > 0 && view.reviews.average !== null
+          ? moreCopy.reviewsMeta(view.reviews.average.toFixed(1), view.reviews.total)
+          : moreCopy.noReviewsMeta,
+    };
+  }
+  if (unread.data) {
+    rowStatus.notifications = {
+      badge: moreCopy.unreadBadge(unread.data),
+      badgeTone: 'brand',
+    };
+  }
+  const sub = subscription.data;
+  if (sub?.plan) {
+    const day = formatDay(sub.isTrial ? sub.trialEndsAt : sub.endDate);
+    rowStatus.billing = {
+      meta: moreCopy.billingMeta(
+        sub.plan.name,
+        sub.plan.isFree ? '' : moreCopy.perMonth(formatCurrency(sub.plan.monthlyPrice)),
+        day ? (sub.isTrial ? moreCopy.trialEndsOn(day) : moreCopy.renewsOn(day)) : null,
+      ),
+    };
+  }
+  if (verification.data) {
+    rowStatus.verification = {
+      badge: moreCopy.verificationBadge[verification.data.status],
+      badgeTone: verification.data.isVerified ? 'success' : 'neutral',
+    };
+  }
+
   return (
     <BusinessMoreHubScreen
       hub={view}
+      planName={sub?.plan?.name}
+      rowStatus={rowStatus}
+      appVersion={appVersion()}
       branches={branches}
       activeBranchId={activeBranchId ?? undefined}
       onChangeBranch={setActiveBranch}
@@ -3225,26 +3284,13 @@ function BusinessHubTabNavigator() {
         name="DealRedemptionLedger"
         component={DealRedemptionLedgerRoute}
       />
-      <HubStack.Screen
-        name="CreateDealLocationAssignment"
-        component={CreateDealLocationAssignmentRoute}
-      />
-      <HubStack.Screen
-        name="DealLocationAssignmentPricing"
-        component={DealLocationAssignmentPricingRoute}
-      />
       <HubStack.Screen name="CreateDealStep1" component={CreateDealStep1Route} />
       <HubStack.Screen name="CreateDealStep2" component={CreateDealStep2Route} />
       <HubStack.Screen name="CreateDealStep3" component={CreateDealStep3Route} />
       <HubStack.Screen name="CreateDealStep4" component={CreateDealStep4Route} />
-      <HubStack.Screen
-        name="ProductLocationAssignment"
-        component={ProductLocationAssignmentRoute}
-      />
-      <HubStack.Screen
-        name="BranchAvailabilityLocationPricing"
-        component={BranchAvailabilityLocationPricingRoute}
-      />
+      <HubStack.Screen name="ProductPricing" component={ProductPricingRoute} />
+      <HubStack.Screen name="ProductAvailability" component={ProductAvailabilityRoute} />
+      <HubStack.Screen name="ProductReview" component={ProductReviewRoute} />
       <HubStack.Screen name="CentralCatalogue" component={CentralCatalogueRoute} />
       <HubStack.Screen name="ServicesCategories" component={ServicesCategoriesRoute} />
       <HubStack.Screen

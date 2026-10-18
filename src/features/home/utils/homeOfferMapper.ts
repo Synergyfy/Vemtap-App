@@ -9,12 +9,8 @@ import {
   offerImage,
   priceLabels,
 } from '@features/deals/utils/offerMapper';
-import type {
-  FeaturedDeal,
-  NearbyDeal,
-  TrendingDeal,
-} from '@features/home/data/homeFeed';
-import type { FeaturedListing } from '@features/home/data/featuredDeals';
+import type { FeaturedDeal, NearbyDeal, TrendingDeal } from '@features/home/types/feed';
+import type { FeaturedListing } from '@features/home/types/featuredDeals';
 import { strings } from '@constants/strings';
 
 /**

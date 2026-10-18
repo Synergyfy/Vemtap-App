@@ -1,4 +1,5 @@
 import React from 'react';
+import { useCatalogueDraftStore } from '@store/catalogueDraftStore';
 import { act, fireEvent, render } from '@testing-library/react-native';
 import { AddProductLocationPricingScreen } from '@features/business/screens/AddProductLocationPricingScreen';
 import { AddProductBasicsCategoryScreen } from '@features/business/screens/AddProductBasicsCategoryScreen';
@@ -43,9 +44,16 @@ describe('product, deal and QR setup screens', () => {
   });
 
   it('renders the product review summary', async () => {
-    const view = await render(<ReviewProductSummaryScreen onBack={onBack} />);
+    useCatalogueDraftStore.getState().resetProduct();
+    const view = await render(
+      <ReviewProductSummaryScreen
+        onBack={onBack}
+        draft={{ ...useCatalogueDraftStore.getState().product, name: 'Aurora Ribeye' }}
+      />,
+    );
     expect(view.getByText('Review Product Summary')).toBeTruthy();
-    expect(view.getByText('Ready for customers')).toBeTruthy();
+    expect(view.getByText('Aurora Ribeye')).toBeTruthy();
+    expect(view.queryByText(/Woodfire|Urban Grill|UG-RB/)).toBeNull();
   });
 
   it('renders the published product state', async () => {
@@ -60,6 +68,14 @@ describe('product, deal and QR setup screens', () => {
       <ProductPublishedMakeItADealScreen
         onBack={onBack}
         onConvertToDeal={onConvertToDeal}
+        product={{
+          name: 'Aurora Ribeye',
+          priceMin: 12000,
+          priceMax: 12000,
+          stock: null,
+          branchNames: ['Aurora Wuse'],
+          inStock: true,
+        }}
       />,
     );
 
@@ -69,7 +85,7 @@ describe('product, deal and QR setup screens', () => {
       fireEvent.press(view.getByText('Convert to Deal Offer (Auto-Imported)'));
     });
 
-    expect(view.getByText('Quick Setup: Woodfire Ribeye')).toBeTruthy();
+    expect(view.getByText('Quick Setup: Aurora Ribeye')).toBeTruthy();
     await act(async () => {
       fireEvent.press(view.getByText('25% OFF'));
     });

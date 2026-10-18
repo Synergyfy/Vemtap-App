@@ -67,7 +67,7 @@ async function openOrdersNested() {
   // nested screen inside the Orders stack.
   await act(async () => {
     fireEvent.press(
-      screen.queryByLabelText(strings.businessOrders.alertTitle) ??
+      screen.queryByLabelText('\u2026') ??
         screen.getByLabelText(strings.businessOrders.alertTitleFor(0)),
     );
   });
@@ -127,8 +127,8 @@ describe('business tab navigation', () => {
     expect(screen.getAllByText(shell.tabs.orders).length).toBeGreaterThan(0);
     expect(
       screen.getByLabelText(
-        screen.queryByLabelText(strings.businessOrders.alertTitle)
-          ? strings.businessOrders.alertTitle
+        screen.queryByLabelText('\u2026')
+          ? '\u2026'
           : strings.businessOrders.alertTitleFor(0),
       ),
     ).toBeTruthy();
@@ -252,8 +252,8 @@ describe('business tab navigation', () => {
     await waitFor(() => expect(screen.queryByText(strings.businessPos.title)).toBeNull());
     expect(
       screen.getByLabelText(
-        screen.queryByLabelText(strings.businessOrders.alertTitle)
-          ? strings.businessOrders.alertTitle
+        screen.queryByLabelText('\u2026')
+          ? '\u2026'
           : strings.businessOrders.alertTitleFor(0),
       ),
     ).toBeTruthy();
@@ -284,8 +284,8 @@ describe('business tab navigation', () => {
     await waitFor(() => expect(screen.queryByText(strings.businessPos.title)).toBeNull());
     expect(
       screen.getByLabelText(
-        screen.queryByLabelText(strings.businessOrders.alertTitle)
-          ? strings.businessOrders.alertTitle
+        screen.queryByLabelText('\u2026')
+          ? '\u2026'
           : strings.businessOrders.alertTitleFor(0),
       ),
     ).toBeTruthy();
@@ -318,8 +318,8 @@ describe('business tab navigation', () => {
     await waitFor(() => expect(screen.queryByText(strings.businessPos.title)).toBeNull());
     expect(
       screen.getByLabelText(
-        screen.queryByLabelText(strings.businessOrders.alertTitle)
-          ? strings.businessOrders.alertTitle
+        screen.queryByLabelText('\u2026')
+          ? '\u2026'
           : strings.businessOrders.alertTitleFor(0),
       ),
     ).toBeTruthy();

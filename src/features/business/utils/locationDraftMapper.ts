@@ -2,15 +2,11 @@ import type { BusinessLocationDraft } from '@features/business/screens/WhereIsYo
 import type { BusinessOnboardingProfile } from '@store/businessOnboardingStore';
 
 /**
- * Bridges the location screen's free-text draft to the fields `register/owner`
- * accepts.
+ * Bridges the location screen's draft to the fields `register/owner` accepts.
  *
- * The screen collects `search` / `street` / `landmark` / `district` as strings
- * and has no geocoder, so `state`, `city` and `latitude` / `longitude` cannot be
- * derived here. All four are optional on the DTO, so registration still
- * succeeds and they are carried as empty rather than invented — a fabricated
- * coordinate would be worse than a missing one. `registerLocationGap` records
- * what is still owed so the gap is visible instead of silent.
+ * `state`, `city` and the coordinates come from the device position when the
+ * owner used it; otherwise they stay empty rather than invented, since all four
+ * are optional on the DTO. `registerLocationGap` records what is still owed.
  */
 export function mapLocationDraft(
   draft: BusinessLocationDraft,
@@ -20,10 +16,10 @@ export function mapLocationDraft(
 
   return {
     address,
-    state: '',
-    city: '',
-    latitude: 0,
-    longitude: 0,
+    state: draft.state ?? '',
+    city: draft.city ?? '',
+    latitude: draft.latitude ?? 0,
+    longitude: draft.longitude ?? 0,
   };
 }
 
@@ -38,15 +34,21 @@ export function registerLocationGap(
 ): RegistrationGap[] {
   const gaps: RegistrationGap[] = [];
   if (!location.state) {
-    gaps.push({ field: 'state', reason: 'No state input on the location screen.' });
+    gaps.push({
+      field: 'state',
+      reason: 'The owner typed the address instead of using their location.',
+    });
   }
   if (!location.city) {
-    gaps.push({ field: 'city', reason: 'No city input on the location screen.' });
+    gaps.push({
+      field: 'city',
+      reason: 'The owner typed the address instead of using their location.',
+    });
   }
   if (!location.latitude || !location.longitude) {
     gaps.push({
       field: 'latitude/longitude',
-      reason: 'The location screen has no geocoder, so coordinates are never resolved.',
+      reason: 'The owner typed the address instead of using their location.',
     });
   }
   return gaps;

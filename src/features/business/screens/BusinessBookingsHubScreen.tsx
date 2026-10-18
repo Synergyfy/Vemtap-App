@@ -53,10 +53,10 @@ export function BusinessBookingsHubScreen({
 }: BusinessBookingsHubScreenProps) {
   const [switcher, setSwitcher] = useState(1);
 
-  const switcherCounts: [string, string] =
-    orderTotal !== undefined && bookingTotal !== undefined
-      ? [String(orderTotal), String(bookingTotal)]
-      : [...copy.switcherCounts];
+  const switcherCounts: [string, string] = [
+    String(orderTotal ?? 0),
+    String(bookingTotal ?? 0),
+  ];
 
   return (
     <BusinessScreenLayout
@@ -79,7 +79,7 @@ export function BusinessBookingsHubScreen({
       <View className="flex-row items-center gap-2">
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={copy.branch}
+          accessibilityLabel={copy.branchLabel}
           onPress={onOpenBranchSwitcher}
           className="min-w-0 flex-1 flex-row items-center gap-2 self-start rounded-full bg-surface-container-low px-3 py-1.5 active:scale-95"
         >
@@ -89,7 +89,7 @@ export function BusinessBookingsHubScreen({
             className="min-w-0 flex-1 font-sans-semibold"
             numberOfLines={1}
           >
-            {branchName ?? copy.branch}
+            {branchName ?? copy.branchLabel}
           </VemtapText>
           <Icon name="expandMore" size={18} color={colors.onSurfaceVariant} />
         </Pressable>

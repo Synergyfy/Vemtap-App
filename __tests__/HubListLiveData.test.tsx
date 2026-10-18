@@ -163,11 +163,10 @@ describe('hub screens render live data with copy fallback', () => {
     expect(screen.getByText('₦8,500')).toBeTruthy();
   });
 
-  test('central catalogue falls back to prototype copy without items', async () => {
+  test('central catalogue shows no sample items without data', async () => {
     await render(<CentralCatalogueScreen layout="directory" />);
 
-    expect(screen.getByText(/Woodfire Aged Ribeye Steak/i)).toBeTruthy();
-    expect(screen.queryByText('Buffalo Wing Bucket')).toBeNull();
+    expect(screen.queryByText(/Woodfire Aged Ribeye Steak/i)).toBeNull();
   });
 
   test('central deals renders live deals when provided', async () => {

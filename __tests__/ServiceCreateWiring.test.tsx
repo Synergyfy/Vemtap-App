@@ -1,9 +1,6 @@
 import React from 'react';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react-native';
-import {
-  serviceBranches,
-  serviceFlowDraft,
-} from '@features/business/data/serviceFlowData';
+import { useCatalogueDraftStore } from '@store/catalogueDraftStore';
 import { AddServiceBasicsMediaScreen } from '@features/business/screens/AddServiceBasicsMediaScreen';
 import { AddServiceDurationPricingScreen } from '@features/business/screens/AddServiceDurationPricingScreen';
 import { AddServiceAvailabilityRulesScreen } from '@features/business/screens/AddServiceAvailabilityRulesScreen';
@@ -12,35 +9,46 @@ import { ServicePublishedStatusScreen } from '@features/business/screens/Service
 
 afterEach(cleanup);
 
+const branches = [
+  { id: 'br-1', name: 'Aurora Maitama', address: '1 Maitama Close' },
+  { id: 'br-2', name: 'Aurora Wuse', address: '2 Wuse Road' },
+];
+
 describe('service basics screen', () => {
-  test('emits typed values on continue', async () => {
+  test('starts empty and emits typed values on continue', async () => {
     const onNext = jest.fn();
     await render(<AddServiceBasicsMediaScreen onBack={jest.fn()} onNext={onNext} />);
 
-    const title = screen.getByDisplayValue(serviceFlowDraft.title);
-    await fireEvent.changeText(title, 'Express Glow Facial');
+    expect(screen.queryByDisplayValue(/Deep Hydration|Facial/)).toBeNull();
+    await fireEvent.changeText(
+      screen.getByLabelText('Service Title'),
+      'Express Glow Facial',
+    );
     await fireEvent.press(screen.getByText('Continue to Duration & Pricing'));
 
     expect(onNext).toHaveBeenCalledTimes(1);
     const value = onNext.mock.calls[0][0];
     expect(value.title).toBe('Express Glow Facial');
-    expect(value.description).toBeTruthy();
     expect(value.delivery).toBe('in-salon');
-    expect(value.highlights).toContain('Sensitive Skin Safe');
+    expect(value.highlights).toEqual([]);
     expect(value.audience).toBe('all');
   });
 
   test('save draft emits the same value shape', async () => {
     const onSaveDraft = jest.fn();
     await render(
-      <AddServiceBasicsMediaScreen onBack={jest.fn()} onSaveDraft={onSaveDraft} />,
+      <AddServiceBasicsMediaScreen
+        onBack={jest.fn()}
+        onSaveDraft={onSaveDraft}
+        initialValue={{ title: 'Hot Stone Therapy' }}
+      />,
     );
 
     await fireEvent.press(screen.getByText('Save as Draft & Exit'));
 
     expect(onSaveDraft).toHaveBeenCalledTimes(1);
     expect(onSaveDraft.mock.calls[0][0]).toMatchObject({
-      title: serviceFlowDraft.title,
+      title: 'Hot Stone Therapy',
       delivery: 'in-salon',
     });
   });
@@ -49,14 +57,20 @@ describe('service basics screen', () => {
 describe('service duration & pricing screen', () => {
   test('emits pricing and duration values', async () => {
     const onNext = jest.fn();
-    await render(<AddServiceDurationPricingScreen onBack={jest.fn()} onNext={onNext} />);
+    await render(
+      <AddServiceDurationPricingScreen
+        onBack={jest.fn()}
+        onNext={onNext}
+        initialValue={{ basePrice: '16000', compareAtPrice: '20000' }}
+      />,
+    );
 
     await fireEvent.press(screen.getByText('Continue to Branch Availability'));
 
     expect(onNext).toHaveBeenCalledTimes(1);
     expect(onNext.mock.calls[0][0]).toMatchObject({
-      basePrice: serviceFlowDraft.basePrice,
-      compareAtPrice: serviceFlowDraft.compareAtPrice,
+      basePrice: '16000',
+      compareAtPrice: '20000',
       duration: '60 mins',
       bookingEnabled: true,
     });
@@ -64,29 +78,38 @@ describe('service duration & pricing screen', () => {
 });
 
 describe('service availability rules screen', () => {
-  test('emits seeded branch ids', async () => {
+  test('emits the real branch ids', async () => {
     const onNext = jest.fn();
     await render(
-      <AddServiceAvailabilityRulesScreen onBack={jest.fn()} onNext={onNext} />,
+      <AddServiceAvailabilityRulesScreen
+        onBack={jest.fn()}
+        onNext={onNext}
+        branches={branches}
+        basePrice="₦16,000"
+      />,
     );
 
     await fireEvent.press(screen.getByText('Review & Publish'));
 
     expect(onNext).toHaveBeenCalledTimes(1);
-    const value = onNext.mock.calls[0][0];
-    expect(value.branchIds).toEqual(serviceBranches.map(b => b.id));
+    expect(onNext.mock.calls[0][0].branchIds).toEqual(['br-1', 'br-2']);
   });
 
   test('toggle removes a branch', async () => {
     const onNext = jest.fn();
     await render(
-      <AddServiceAvailabilityRulesScreen onBack={jest.fn()} onNext={onNext} />,
+      <AddServiceAvailabilityRulesScreen
+        onBack={jest.fn()}
+        onNext={onNext}
+        branches={branches}
+        basePrice="₦16,000"
+      />,
     );
 
-    await fireEvent.press(screen.getByLabelText(serviceBranches[0].name));
+    await fireEvent.press(screen.getByLabelText('Aurora Maitama'));
     await fireEvent.press(screen.getByText('Review & Publish'));
 
-    expect(onNext.mock.calls[0][0].branchIds).toEqual([serviceBranches[1].id]);
+    expect(onNext.mock.calls[0][0].branchIds).toEqual(['br-2']);
   });
 });
 
@@ -120,14 +143,17 @@ describe('review service summary screen', () => {
     expect(screen.getByText('₦25,000')).toBeTruthy();
   });
 
-  test('falls back to prototype copy without a draft', async () => {
-    await render(<ReviewServiceSummaryScreen onBack={jest.fn()} />);
+  test('an empty draft shows neutral placeholders, not sample copy', async () => {
+    useCatalogueDraftStore.getState().resetService();
+    await render(
+      <ReviewServiceSummaryScreen
+        onBack={jest.fn()}
+        draft={useCatalogueDraftStore.getState().service}
+      />,
+    );
 
-    expect(screen.getByText(serviceFlowDraft.title)).toBeTruthy();
-    // The base rate and the branch summaries both quote it.
-    expect(
-      screen.getAllByText(serviceFlowDraft.basePriceFormatted).length,
-    ).toBeGreaterThan(0);
+    expect(screen.getByText('Untitled service')).toBeTruthy();
+    expect(screen.queryByText(/Deep Hydration|Glow|Maitama/)).toBeNull();
   });
 });
 

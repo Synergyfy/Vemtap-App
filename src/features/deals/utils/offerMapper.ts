@@ -7,7 +7,7 @@ import type {
   DealGridItem,
   DealListItem,
   FeaturedDealOfDay,
-} from '@features/deals/data/dealsFeed';
+} from '@features/deals/types';
 
 /**
  * Maps API offers onto the view models the deal cards already consume.
