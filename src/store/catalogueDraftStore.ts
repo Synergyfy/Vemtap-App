@@ -5,8 +5,8 @@ import { create } from 'zustand';
  * across screens. The setup navigators drive every step with
  * `navigation.navigate`, which cannot carry payloads between routes, so each
  * screen merges its slice here on Continue and the review/published screens
- * read it back at publish time. The seeds the screens render with are UI
- * prototype copy; this store only holds what the owner actually submits.
+ * read it back at publish time. This store only holds what the owner
+ * actually submits.
  */
 
 export interface ProductDraft {

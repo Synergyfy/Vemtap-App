@@ -27,7 +27,7 @@ export interface BusinessBookingsHubScreenProps {
   onCheckIn?: (id: string) => void;
   onOpenCalendar?: () => void;
   onOpenNotifications?: () => void;
-  /** Live data from the route; omitted renders the designed fallback copy. */
+  /** Live bookings from the route; `undefined` while they load. */
   bookings?: readonly PresentedBooking[];
   branchName?: string;
   orderTotal?: number;

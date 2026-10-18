@@ -73,10 +73,10 @@ function matchesFilter(item: CentralCatalogueItemRow, filter: string): boolean {
 /** `directory` = catalogue tab with search + filter carousel, `businessHub` = compact business hub list. */
 export type CentralCatalogueLayout = 'directory' | 'businessHub';
 
-/** Row shape the catalogue list renders; either live-mapped or prototype copy. */
+/** Row shape the catalogue list renders, mapped from the live catalogue. */
 export interface CentralCatalogueItemRow {
   id: string;
-  /** Drives the Products / Services tabs; prototype rows are products. */
+  /** Drives the Products / Services tabs; rows without a kind are products. */
   kind?: 'product' | 'service';
   title: string;
   sku: string;
@@ -117,7 +117,7 @@ export interface CentralCatalogueScreenProps {
    */
   onToggleStock?: (itemId: string, value: boolean) => void | Promise<unknown>;
   onSheetAction?: (actionId: string, itemId: string) => void;
-  /** Optional live catalogue items from API. When provided, renders live data instead of prototype copy. */
+  /** The live catalogue items; empty while they load. */
   items?: CentralCatalogueItemRow[];
   /** Optional live services for the Services tab. */
   services?: ServicesManagementRow[];

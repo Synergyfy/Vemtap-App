@@ -119,7 +119,7 @@ export interface BusinessOrdersHubScreenProps {
   /** Status filter selected from the chip row (undefined = All). */
   onSelectStatus?: (status?: string) => void;
   onOpenNotifications?: () => void;
-  /** Live data from the route; omitted renders the designed fallback copy. */
+  /** Live orders from the route; `undefined` while they load. */
   orders?: readonly PresentedOrder[];
   orderCounts?: BusinessOrderCounts['counts'];
   orderTotal?: number;

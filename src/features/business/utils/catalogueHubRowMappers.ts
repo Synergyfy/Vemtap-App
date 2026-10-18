@@ -10,11 +10,8 @@ import { businessCatalogCopy } from '@features/business/businessCopy';
 import type { CatalogItem } from '@features/business/businessData';
 
 /**
- * Live-catalogue → hub-row mappers. The hub management screens were built as
- * UI prototypes fed by `strings.ts` copy; the navigator routes now feed live
- * API data through these mappers so a single row shape renders either source.
- * Screens fall back to the prototype copy whenever a prop is absent, so the
- * standalone/storybook use still works.
+ * Live-catalogue → hub-row mappers: the navigator routes feed API data through
+ * these so every hub management screen renders one row shape.
  */
 
 /**
@@ -28,7 +25,7 @@ function toAmount(value: unknown, fallback = 0): number {
 
 /**
  * Maps a catalogue item to the CentralCatalogue row shape. The API uses
- * `active | inactive | ...`; the prototype rows use marketing labels, so map
+ * `active | inactive | ...`; the rows show marketing labels, so map
  * the known statuses and pass the raw status through as a fallback.
  */
 export function catalogueItemToCentralRow(

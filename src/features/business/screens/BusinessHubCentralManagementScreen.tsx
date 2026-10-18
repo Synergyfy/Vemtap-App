@@ -73,7 +73,7 @@ export interface BusinessHubCentralManagementScreenProps {
   onOpenReader?: () => void;
   onCall?: () => void;
   onOpenWebsite?: () => void;
-  /** Live view from the hub queries; omitted keeps the designed fallback. */
+  /** Live view from the hub queries; neutral labels show while it loads. */
   hub?: BusinessHubView;
   branches?: readonly BusinessBranch[];
   activeBranchId?: string;
@@ -502,7 +502,7 @@ export function BusinessHubCentralManagementScreen({
                       className={`font-sans-semibold ${accent.body}`}
                       numberOfLines={2}
                     >
-                      {hub?.moduleBodies[module.id as BusinessHubModuleId] ?? module.body}
+                      {hub?.moduleBodies[module.id as BusinessHubModuleId] ?? ''}
                     </VemtapText>
                     <VemtapText
                       variant="caption"

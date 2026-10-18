@@ -60,10 +60,10 @@ export interface BusinessMoreHubScreenProps {
   onAddBranch?: () => void;
   onOpenMasterQr?: () => void;
   onOpenNotifications?: () => void;
-  /** Live branch list; omitted renders the designed fallback copy. */
+  /** Live branch list; empty while it loads. */
   branches?: readonly BusinessBranch[];
   activeBranchId?: string;
-  /** Live business identity; omitted renders the designed fallback copy. */
+  /** Live business identity; neutral labels show while it loads. */
   hub?: BusinessHubView;
   /** Current plan name, shown as the pill beside the account code. */
   planName?: string | null;

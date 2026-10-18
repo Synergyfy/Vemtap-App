@@ -16,7 +16,6 @@ import {
   BusinessChipScroller,
   BusinessInfoStrip,
   BusinessPanel,
-  BusinessScopePicker,
   BusinessSegmentTabs,
   BusinessSheetActionRow,
 } from '@features/business/components/BusinessOpsPrimitives';
@@ -34,8 +33,6 @@ cssInterop(Pressable, { className: 'style' });
 
 const copy = strings.servicesCategories;
 
-const tabs = copy.tabs.map(tab => ({ key: tab.key, label: tab.label, count: tab.count }));
-
 export type { ServicesManagementRow };
 
 export type { CategoryManagementRow };
@@ -49,9 +46,9 @@ export interface ServicesCategoriesManagementScreenProps {
   onEditCategory?: (categoryId: string) => void;
   onArchiveCategory?: (categoryId: string) => void;
   onReorderCategory?: (categoryId: string) => void;
-  /** Optional live services. When provided, renders live data instead of prototype copy. */
+  /** The business's services; empty while they load. */
   services?: ServicesManagementRow[];
-  /** Optional live categories. When provided, renders live data instead of prototype copy. */
+  /** The business's catalogue categories; empty while they load. */
   categories?: CategoryManagementRow[];
 }
 
@@ -78,6 +75,16 @@ export function ServicesCategoriesManagementScreen({
 
   const shownServices: ServicesManagementRow[] = services ? [...services] : [];
   const shownCategories: CategoryManagementRow[] = categories ? [...categories] : [];
+  // Products are counted on the catalogue screen, not here.
+  const counts: Partial<Record<string, number>> = {
+    services: shownServices.length,
+    categories: shownCategories.length,
+  };
+  const tabs = copy.tabs.map(entry => ({
+    key: entry.key,
+    label: entry.label,
+    count: counts[entry.key],
+  }));
 
   return (
     <BusinessScreenLayout
@@ -91,18 +98,6 @@ export function ServicesCategoriesManagementScreen({
       }}
       contentContainerClassName="pb-8"
     >
-      <View className="z-10 mt-1 flex-row items-center justify-between gap-2">
-        <BusinessScopePicker
-          label={copy.tabs[1].label}
-          value="all"
-          options={copy.scopeBranches.map(option => ({
-            label: option.label,
-            value: option.value,
-          }))}
-          onChange={() => undefined}
-        />
-      </View>
-
       <View className="mt-3">
         <BusinessSegmentTabs
           tabs={tabs}

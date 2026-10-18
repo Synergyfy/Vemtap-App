@@ -123,9 +123,7 @@ import { useBusinessNavigation } from './useBusinessNavigation';
 import type { BusinessTabParamList } from './types';
 
 /**
- * Live routes for the growth hub's Segments surfaces. The screens render the
- * design's sample data when a prop is absent; these routes always pass live
- * data, so the app never shows the samples.
+ * Live routes for the growth hub's Segments surfaces.
  */
 
 const segmentCopy = strings.customerSegments;

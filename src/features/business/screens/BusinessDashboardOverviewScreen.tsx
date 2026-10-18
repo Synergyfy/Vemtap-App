@@ -242,7 +242,7 @@ export function BusinessDashboardOverviewScreen({
     });
   })();
 
-  /** Rules-based insights replace the designed recommendation cards. */
+  /** Rules-based insights from the dashboard; the card hides when there are none. */
   const liveInsights = (dashboard.data?.insights ?? [])
     .filter(insight => insight.title && insight.message)
     .map(insight => ({
@@ -252,7 +252,7 @@ export function BusinessDashboardOverviewScreen({
       cta: copy.recommendationsCta,
       badge: insight.priority === 'high' ? copy.recommendationsHighBadge : undefined,
     }));
-  const recommendations = liveInsights.length > 0 ? liveInsights : copy.recommendations;
+  const recommendations = liveInsights;
 
   const updatedAgo = formatUpdatedAgo(dashboard.data?.generatedAt);
   const overviewMeta = updatedAgo ? copy.overviewMetaFor(updatedAgo) : copy.overviewMeta;
@@ -817,59 +817,61 @@ export function BusinessDashboardOverviewScreen({
               </View>
             </SetupCard>
 
-            <View className="mt-3 gap-3">
-              <View className="flex-row items-center justify-between gap-2">
-                <VemtapText variant="labelMd" className="font-sans-semibold">
-                  {copy.recommendationsTitle}
-                </VemtapText>
-                <View className="rounded-full bg-surface-tint px-2 py-0.5">
-                  <VemtapText variant="micro" className="text-primary">
-                    {copy.recommendationsBadge}
+            {recommendations.length > 0 ? (
+              <View className="mt-3 gap-3">
+                <View className="flex-row items-center justify-between gap-2">
+                  <VemtapText variant="labelMd" className="font-sans-semibold">
+                    {copy.recommendationsTitle}
                   </VemtapText>
-                </View>
-              </View>
-              {recommendations.map(item => (
-                <SetupCard key={item.id} className="gap-2">
-                  <View className="flex-row items-start gap-2.5">
-                    <View className="h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-surface-tint">
-                      <Icon
-                        name={item.id === 'branch' ? 'addBusiness' : 'localOffer'}
-                        size={20}
-                        color={colors.primary}
-                      />
-                    </View>
-                    <View className="min-w-0 flex-1 gap-0.5">
-                      <VemtapText
-                        variant={item.id === 'branch' ? 'labelMd' : 'headingSm'}
-                        className="font-sans-semibold"
-                        numberOfLines={2}
-                      >
-                        {item.title}
-                      </VemtapText>
-                      {item.badge ? (
-                        <View className="self-start rounded-full bg-badge-discount-bg px-1.5 py-0.5">
-                          <VemtapText
-                            variant="micro"
-                            className="font-sans-semibold text-badge-discount-text"
-                          >
-                            {item.badge}
-                          </VemtapText>
-                        </View>
-                      ) : null}
-                      <VemtapText variant="caption" tone="secondary">
-                        {item.body}
-                      </VemtapText>
-                    </View>
+                  <View className="rounded-full bg-surface-tint px-2 py-0.5">
+                    <VemtapText variant="micro" className="text-primary">
+                      {copy.recommendationsBadge}
+                    </VemtapText>
                   </View>
-                  <BusinessInlineAction
-                    label={item.cta}
-                    icon={item.id === 'branch' ? 'addLocation' : 'bolt'}
-                    onPress={item.id === 'branch' ? onAddBranch : onBoostDeal}
-                  />
-                </SetupCard>
-              ))}
-              <BusinessInlineAction label={copy.viewAll} onPress={onManageLocations} />
-            </View>
+                </View>
+                {recommendations.map(item => (
+                  <SetupCard key={item.id} className="gap-2">
+                    <View className="flex-row items-start gap-2.5">
+                      <View className="h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-surface-tint">
+                        <Icon
+                          name={item.id === 'branch' ? 'addBusiness' : 'localOffer'}
+                          size={20}
+                          color={colors.primary}
+                        />
+                      </View>
+                      <View className="min-w-0 flex-1 gap-0.5">
+                        <VemtapText
+                          variant={item.id === 'branch' ? 'labelMd' : 'headingSm'}
+                          className="font-sans-semibold"
+                          numberOfLines={2}
+                        >
+                          {item.title}
+                        </VemtapText>
+                        {item.badge ? (
+                          <View className="self-start rounded-full bg-badge-discount-bg px-1.5 py-0.5">
+                            <VemtapText
+                              variant="micro"
+                              className="font-sans-semibold text-badge-discount-text"
+                            >
+                              {item.badge}
+                            </VemtapText>
+                          </View>
+                        ) : null}
+                        <VemtapText variant="caption" tone="secondary">
+                          {item.body}
+                        </VemtapText>
+                      </View>
+                    </View>
+                    <BusinessInlineAction
+                      label={item.cta}
+                      icon={item.id === 'branch' ? 'addLocation' : 'bolt'}
+                      onPress={item.id === 'branch' ? onAddBranch : onBoostDeal}
+                    />
+                  </SetupCard>
+                ))}
+                <BusinessInlineAction label={copy.viewAll} onPress={onManageLocations} />
+              </View>
+            ) : null}
           </ScrollView>
         )}
       </SafeAreaView>

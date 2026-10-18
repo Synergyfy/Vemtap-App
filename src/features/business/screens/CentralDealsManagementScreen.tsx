@@ -38,7 +38,7 @@ const DEAL_TABS: DealTab[] = ['active', 'scheduled', 'expired', 'drafts'];
 /** 1 = full-bleed media cards, 2 = compact thumbnails, 3 = discovery + sheet. */
 export type CentralDealsLayout = 'hero' | 'compact' | 'discovery';
 
-/** Row shape the deals list renders; either live-mapped or prototype copy. */
+/** Row shape the deals list renders, mapped from the live deal groups. */
 export interface CentralDealRow {
   id: string;
   title: string;

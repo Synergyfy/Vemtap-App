@@ -42,16 +42,15 @@ export function EditProfileScreen({
   const uploadAvatar = useUploadAvatar();
   const [firstName, setFirstName] = useState(me.firstName);
   const [lastName, setLastName] = useState(me.lastName);
-  // Starts from whatever was saved, falling back to the first option so the
-  // control is never blank for a profile saved before gender existed.
-  const [gender, setGender] = useState<string>(me.gender ?? copy.female);
+  // Starts from whatever was saved; unset stays unselected rather than guessed.
+  const [gender, setGender] = useState<string>(me.gender ?? '');
 
   // Saving with nothing changed was how the old screen announced "updated"
   // for a no-op; the button stays disabled until a field is actually touched.
   const pristine =
     firstName === me.firstName &&
     lastName === me.lastName &&
-    gender === (me.gender ?? copy.female);
+    gender === (me.gender ?? '');
 
   // Trimmed so a stray space in a name field is not what gets persisted.
   const handleSave = () => {
@@ -59,7 +58,11 @@ export function EditProfileScreen({
     const trimmedLastName = lastName.trim();
 
     updateProfile.mutate(
-      { firstName: trimmedFirstName, lastName: trimmedLastName, gender },
+      {
+        firstName: trimmedFirstName,
+        lastName: trimmedLastName,
+        ...(gender ? { gender } : {}),
+      },
       {
         onSuccess: () => {
           setFirstName(trimmedFirstName);
@@ -253,7 +256,7 @@ export function EditProfileScreen({
             onPress={() => {
               setFirstName(me.firstName);
               setLastName(me.lastName);
-              setGender(me.gender ?? copy.female);
+              setGender(me.gender ?? '');
               onDiscard?.();
             }}
             labelVariant="labelMd"
