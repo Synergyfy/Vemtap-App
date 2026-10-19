@@ -44,6 +44,7 @@ const TAB_FOR_ROUTE = new Map<string, BusinessTabRootName>([
   ['BusinessOverviewHome', 'BusinessOverview'],
   ['BusinessOrdersHome', 'BusinessOrders'],
   ['BusinessOrderDetail', 'BusinessOrders'],
+  ['BusinessBookingDetail', 'BusinessOrders'],
   ['BusinessBookings', 'BusinessOrders'],
   ['BusinessPosOrders', 'BusinessOrders'],
   ['CustomerDisplayOrder', 'BusinessOrders'],

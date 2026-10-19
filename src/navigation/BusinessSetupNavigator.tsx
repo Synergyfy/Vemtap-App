@@ -1,3 +1,4 @@
+import { enterShell } from '@navigation/shellSwitch';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Linking } from 'react-native';
 import { strings } from '@constants/strings';
@@ -222,15 +223,27 @@ function useRootNavigation() {
   return useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 }
 
+/**
+ * Finishing setup lands in the business shell *instead of* setup and the
+ * customer app, so back cannot return to either.
+ */
 export function useBusinessDashboardEntry() {
   const navigation = useRootNavigation();
-  return () => navigation.navigate('BusinessTabs', businessDashboardEntry);
+  return () => {
+    if (!enterShell('BusinessTabs', businessDashboardEntry)) {
+      navigation.navigate('BusinessTabs', businessDashboardEntry);
+    }
+  };
 }
 
 /** Referral growth hand-off: drops the owner into the Business Network hub. */
 export function useBusinessNetworkEntry() {
   const navigation = useRootNavigation();
-  return () => navigation.navigate('BusinessTabs', businessNetworkEntry);
+  return () => {
+    if (!enterShell('BusinessTabs', businessNetworkEntry)) {
+      navigation.navigate('BusinessTabs', businessNetworkEntry);
+    }
+  };
 }
 
 type BusinessShellTab =

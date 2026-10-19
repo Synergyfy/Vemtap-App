@@ -1,3 +1,4 @@
+import { enterShell } from '@navigation/shellSwitch';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useStartNewDeal } from '@navigation/useStartNewDeal';
 import { Alert, Clipboard, Linking } from 'react-native';
@@ -14,6 +15,8 @@ import {
 import { BusinessDashboardOverviewScreen } from '@features/business/screens/BusinessDashboardOverviewScreen';
 import { BusinessOrdersHubScreen } from '@features/business/screens/BusinessOrdersHubScreen';
 import { OrderDetailScreen } from '@features/business/screens/BusinessOrderDetailScreen';
+import { BusinessBookingDetailScreen } from '@features/business/screens/BusinessBookingDetailScreen';
+import { useBooking } from '@features/booking/hooks/useBookings';
 import { BusinessBookingsHubScreen } from '@features/business/screens/BusinessBookingsHubScreen';
 import {
   BusinessPosOrdersViewScreen,
@@ -451,7 +454,9 @@ function BusinessOrdersSurfaceRoute() {
       }
       onSelectDay={setBookingDay}
       onSelectFilter={setBookingFilter}
-      onOpenBooking={orderId => navigation.navigate('BusinessOrderDetail', { orderId })}
+      onOpenBooking={bookingId =>
+        navigation.navigate('BusinessBookingDetail', { bookingId })
+      }
       onCheckIn={bookingId =>
         updateBookingStatus.mutate({ id: bookingId, status: 'completed' })
       }
@@ -494,6 +499,57 @@ function BusinessOrderDetailRoute() {
   );
 }
 
+function BusinessBookingDetailRoute() {
+  const navigation = useBusinessNavigation();
+  const route = useRoute<RouteProp<BusinessTabParamList, 'BusinessBookingDetail'>>();
+  const bookingId = route.params?.bookingId;
+  const bookingQuery = useBooking(bookingId);
+  const updateStatus = useUpdateBookingStatus();
+  const startThread = useStartBusinessThread();
+  const booking = bookingQuery.data;
+
+  return (
+    <BusinessBookingDetailScreen
+      onBack={navigation.goBack}
+      booking={booking}
+      isError={bookingQuery.isError}
+      onRetry={() => bookingQuery.refetch()}
+      updating={updateStatus.isPending}
+      onChangeStatus={status => {
+        if (!bookingId) return;
+        updateStatus.mutate(
+          { id: bookingId, status },
+          {
+            onSuccess: () => showSuccess(strings.businessBookingDetail.updated),
+            onError: () => showError(strings.businessBookingDetail.updateFailed),
+          },
+        );
+      }}
+      onCallCustomer={() => {
+        const phone = booking?.customer?.phone;
+        if (!phone) {
+          showError(strings.businessBookingDetail.noPhone);
+          return;
+        }
+        Linking.openURL(`tel:${phone}`).catch(() => undefined);
+      }}
+      onChatCustomer={() => {
+        const customerId = booking?.customer?.id;
+        if (!customerId || !booking?.branchId || startThread.isPending) return;
+        startThread.mutate(
+          { customerId, branchId: booking.branchId },
+          {
+            onSuccess: thread =>
+              navigation.navigate('BusinessConversation', { threadId: thread.id }),
+            onError: () =>
+              showError(strings.businessMessages.newMessageSheet.startFailed),
+          },
+        );
+      }}
+    />
+  );
+}
+
 function BusinessBookingsRoute() {
   const navigation = useBusinessNavigation();
   const { branches, activeBranchId, setActiveBranch } = useActiveBranch();
@@ -528,7 +584,9 @@ function BusinessBookingsRoute() {
       onSelectDay={setDay}
       onSelectFilter={setFilter}
       onCheckIn={id => updateStatus.mutate({ id, status: 'completed' })}
-      onOpenBooking={id => navigation.navigate('BusinessOrderDetail', { orderId: id })}
+      onOpenBooking={bookingId =>
+        navigation.navigate('BusinessBookingDetail', { bookingId })
+      }
     />
   );
 }
@@ -2880,14 +2938,10 @@ function SwitchToCustomerRoute() {
   const switchThen = (then: { screen: string; params?: object }) =>
     switchRole.mutate('customer', {
       onSuccess: () => {
-        // The customer app lives in AppStack on the root stack; the business
-        // shell is a sibling, so navigate through the root ref instead of the
-        // shell's immediate parent.
+        // The customer app (AppStack) replaces the business shell on the root
+        // stack, so back cannot cross into the dashboard just left.
         const target = { screen: then.screen, params: then.params } as never;
-        if (navigationRef?.isReady()) {
-          navigationRef.navigate('AppStack', target);
-          return;
-        }
+        if (enterShell('AppStack', target)) return;
         navigation.raw.navigate('AppStack', target);
       },
       onError: error =>
@@ -3287,6 +3341,10 @@ function BusinessOrdersTabNavigator() {
       <OrdersStack.Screen
         name="BusinessOrderDetail"
         component={BusinessOrderDetailRoute}
+      />
+      <OrdersStack.Screen
+        name="BusinessBookingDetail"
+        component={BusinessBookingDetailRoute}
       />
       <OrdersStack.Screen name="BusinessBookings" component={BusinessBookingsRoute} />
       <OrdersStack.Screen name="BusinessPosOrders" component={BusinessPosOrdersRoute} />

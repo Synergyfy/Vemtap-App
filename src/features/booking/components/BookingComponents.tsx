@@ -5,7 +5,7 @@ import { Button } from '@components/ui/Button';
 import { Icon, type IconName } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
-import { colors } from '@theme/colors';
+import { colors, shadowTokens } from '@theme/colors';
 import { navbarBottomShadow } from '@theme/shadows';
 import { PriceBreakdown } from '@features/order/components/OrderComponents';
 import type { BookingSlot } from '@api/bookingsApi';
@@ -227,6 +227,26 @@ export function BookingDateStrip({
   );
 }
 
+function dateCardStyle(selected: boolean) {
+  return {
+    backgroundColor: selected ? colors.primaryContainer : colors.surface,
+    borderColor: selected ? colors.primaryContainer : colors.border,
+    ...(selected ? shadowTokens.md : shadowTokens.none),
+  };
+}
+
+function slotStyle(selected: boolean, taken: boolean) {
+  return {
+    backgroundColor: selected
+      ? colors.primaryContainer
+      : taken
+        ? colors.surfaceContainer
+        : colors.surface,
+    borderColor: selected ? colors.primary : colors.border,
+    opacity: taken ? 0.6 : 1,
+  };
+}
+
 function DateCard({
   date,
   selected,
@@ -241,9 +261,10 @@ function DateCard({
       accessibilityRole="radio"
       accessibilityState={{ checked: selected }}
       onPress={onPress}
-      className={`w-16 shrink-0 items-center rounded-card p-2.5 ${
-        selected ? 'bg-primary-container shadow-md' : 'border border-border bg-surface'
-      }`}
+      // State lives in `style`, never `className`: a class that gains a shadow
+      // when picked makes css-interop remount the card and drop the tap.
+      className="w-16 shrink-0 items-center rounded-card border p-2.5"
+      style={dateCardStyle(selected)}
     >
       <VemtapText
         variant="caption"
@@ -297,13 +318,8 @@ export function TimeSlotGrid({
             }}
             disabled={isTaken}
             onPress={() => onSelect(slot.time)}
-            className={`min-w-[30%] flex-1 items-center rounded-card border px-2 py-2.5 ${
-              isSelected
-                ? 'border-primary bg-primary-container'
-                : isTaken
-                  ? 'border-border bg-surface-container opacity-60'
-                  : 'border-border bg-surface'
-            }`}
+            className="min-w-[30%] flex-1 items-center rounded-card border px-2 py-2.5"
+            style={slotStyle(isSelected, isTaken)}
           >
             <VemtapText
               variant="labelMd"

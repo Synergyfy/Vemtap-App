@@ -403,21 +403,25 @@ export function BusinessProfileScreen({
           </View>
         </View>
 
-        <View className="mt-4 flex-row gap-3 px-6">
+        <View className="mt-4 flex-row gap-2 px-6">
           {bestOffer ? (
             <Button
               label={strings.urbanProfile.viewDeals(offerTotal)}
-              className="min-w-0 flex-[1.4] shadow-md"
-              leftIcon={<Icon name="localOffer" size={20} color={colors.surface} />}
+              size="sm"
+              labelVariant="labelSm"
+              className="min-w-0 flex-[1.4] shadow-sm"
+              leftIcon={<Icon name="localOffer" size={16} color={colors.surface} />}
               onPress={() => onOpenDeal(bestOffer.id)}
             />
           ) : null}
           <Button
             label={strings.urbanProfile.directions}
             variant="secondary"
+            size="sm"
+            labelVariant="labelSm"
             fullWidth={false}
             className="min-w-0 flex-1"
-            leftIcon={<Icon name="nearMe" size={20} color={colors.primary} />}
+            leftIcon={<Icon name="nearMe" size={16} color={colors.primary} />}
             onPress={() => {
               Linking.openURL(directionsUrl).catch(() => undefined);
             }}

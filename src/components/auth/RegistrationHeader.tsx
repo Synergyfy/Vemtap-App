@@ -10,6 +10,7 @@ import { colors } from '@theme/colors';
 import { navbarBottomShadow } from '@theme/shadows';
 import { strings } from '@constants/strings';
 import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
+import { useAuthStore } from '@store/authStore';
 
 cssInterop(View, { className: 'style' });
 cssInterop(Pressable, { className: 'style' });
@@ -29,7 +30,8 @@ export interface RegistrationHeaderProps {
   progress?: { activeIndex: number; total: number };
 }
 
-/** Fixed chrome header from customer_registration_step_* HTML (back · title · avatar). */
+/** Fixed chrome header from customer_registration_step_* HTML (back · title · avatar).
+ * The avatar only shows for a signed-in user. */
 export function RegistrationHeader({
   title,
   onBack,
@@ -45,6 +47,9 @@ export function RegistrationHeader({
   progress,
 }: RegistrationHeaderProps) {
   const display = useCurrentUserDisplay();
+  // Only a signed-in user has an avatar to show. On sign-in, sign-up and OTP
+  // screens there is no one yet, and the placeholder name rendered as "VM".
+  const signedIn = useAuthStore(state => state.status === 'authenticated');
   const alignStart = titleAlign === 'start';
   return (
     <View
@@ -119,7 +124,9 @@ export function RegistrationHeader({
             <Icon name="more" size={22} color={colors.textSecondary} />
           </Pressable>
         ) : null}
-        <Avatar uri={display.avatar} name={display.fullName} size="sm" tone="brand" />
+        {signedIn ? (
+          <Avatar uri={display.avatar} name={display.fullName} size="sm" tone="brand" />
+        ) : null}
       </View>
     </View>
   );

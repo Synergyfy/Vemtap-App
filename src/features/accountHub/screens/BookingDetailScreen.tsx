@@ -1,5 +1,5 @@
-import React from 'react';
-import { Pressable, View } from 'react-native';
+import React, { useState } from 'react';
+import { Clipboard, Linking, Pressable, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   AccountHeader,
@@ -16,6 +16,10 @@ import { strings } from '@constants/strings';
 import { colors } from '@theme/colors';
 import { useBooking, useCancelBooking } from '@features/booking/hooks/useBookings';
 import { usePullToRefresh } from '@hooks/usePullToRefresh';
+import { Avatar } from '@components/ui/Avatar';
+import { showToast } from '@components/shared/toast';
+import { RescheduleBookingSheet } from '@features/booking/components/RescheduleBookingSheet';
+import { directionsUrl } from '@utils/geo';
 
 const copy = strings.accountScreens.bookingDetail;
 
@@ -87,8 +91,15 @@ export interface BookingDetailScreenProps {
   onMore?: () => void;
   onAddCalendar?: () => void;
   onCopy?: (value: string) => void;
+  /** Overrides the in-app chat; by default `onOpenChat` gets the branch. */
   onChat?: () => void;
+  /** Opens (or starts) the customer's chat with the booking's branch. */
+  onOpenChat?: (target: { branchId: string; businessName: string }) => void;
+  /** Opens the business's public profile, by its code. */
+  onOpenBusiness?: (code: string) => void;
+  /** Overrides dialling the branch. */
   onCall?: () => void;
+  /** Overrides the built-in reschedule sheet. */
   onReschedule?: () => void;
   onCancel?: () => void;
 }
@@ -110,11 +121,14 @@ export function BookingDetailScreen({
   onAddCalendar,
   onCopy,
   onChat,
+  onOpenChat,
+  onOpenBusiness,
   onCall,
   onReschedule,
   onCancel,
 }: BookingDetailScreenProps) {
   const booking = useBooking(bookingId);
+  const [rescheduling, setRescheduling] = useState(false);
   const cancel = useCancelBooking();
   const refresh = usePullToRefresh([['bookings']]);
 
@@ -168,6 +182,36 @@ export function BookingDetailScreen({
   const record = booking.data;
   const duration = formatDuration(record.durationMinutes);
   const canCancel = CANCELLABLE.includes(record.status ?? '');
+  const { merchant } = record;
+  const businessName = record.businessName ?? record.branchName ?? copy.merchantFallback;
+  const address = [merchant?.address, merchant?.city, merchant?.state]
+    .filter(Boolean)
+    .join(', ');
+  const mapsUrl = merchant ? directionsUrl({ ...merchant, address }) : null;
+  const phone = merchant?.phone ?? null;
+
+  const chat =
+    onChat ??
+    (record.branchId && onOpenChat
+      ? () => onOpenChat({ branchId: record.branchId as string, businessName })
+      : undefined);
+  const call =
+    onCall ??
+    (() => {
+      if (!phone) {
+        showToast(copy.noPhone, 'info');
+        return;
+      }
+      Linking.openURL(`tel:${phone}`).catch(() => undefined);
+    });
+  const copyReference = (value: string) => {
+    if (onCopy) {
+      onCopy(value);
+      return;
+    }
+    Clipboard.setString(value);
+    showToast(strings.businessProfilePreview.copied, 'success');
+  };
 
   return (
     <SafeAreaView edges={[]} className="flex-1 bg-background">
@@ -220,27 +264,45 @@ export function BookingDetailScreen({
 
         <View className="gap-4 rounded-card bg-surface p-4 shadow-sm">
           <View className="flex-row items-center gap-3">
-            <View className="h-14 w-14 items-center justify-center rounded-xl bg-surface-container">
-              <VemtapText variant="labelMd" tone="brand">
-                {(record.businessName ?? record.branchName ?? copy.merchantFallback)
-                  .charAt(0)
-                  .toUpperCase()}
-              </VemtapText>
-            </View>
+            <Avatar
+              uri={merchant?.logoUrl ?? undefined}
+              name={businessName}
+              size="lg"
+              tone="brand"
+            />
             <View className="min-w-0 flex-1">
               <VemtapText
                 variant="labelMd"
-                className="min-w-0 flex-1 font-sans-semibold"
+                className="font-sans-semibold"
                 numberOfLines={1}
               >
-                {record.businessName ?? record.branchName ?? copy.merchantFallback}
+                {businessName}
               </VemtapText>
-              {record.branchName ? (
+              {record.branchName && record.branchName !== businessName ? (
                 <VemtapText variant="caption" tone="secondary" numberOfLines={1}>
                   {record.branchName}
                 </VemtapText>
               ) : null}
+              {address ? (
+                <VemtapText variant="caption" tone="tertiary" numberOfLines={2}>
+                  {address}
+                </VemtapText>
+              ) : null}
             </View>
+            {merchant?.businessCode && onOpenBusiness ? (
+              <Pressable
+                accessibilityRole="link"
+                accessibilityLabel={copy.viewBusiness}
+                hitSlop={8}
+                onPress={() => onOpenBusiness(merchant.businessCode as string)}
+                className="shrink-0 flex-row items-center"
+              >
+                <VemtapText variant="labelSm" tone="brand" className="font-sans-semibold">
+                  {copy.viewBusiness}
+                </VemtapText>
+                <Icon name="forward" size={16} color={colors.primary} />
+              </Pressable>
+            ) : null}
           </View>
 
           <View className="gap-2">
@@ -298,7 +360,7 @@ export function BookingDetailScreen({
                 variant="secondary"
                 size="sm"
                 fullWidth={false}
-                onPress={() => onCopy?.(record.reference as string)}
+                onPress={() => copyReference(record.reference as string)}
                 leftIcon={<Icon name="copy" size={16} color={colors.primary} />}
               />
             </View>
@@ -318,12 +380,29 @@ export function BookingDetailScreen({
               {record.branchName ?? copy.merchantFallback}
             </VemtapText>
           </View>
-          {/* No address or coordinates come back on a booking, so the map
-              placeholder is dropped rather than pinpointing a fictional plaza. */}
+          {address ? (
+            <View className="flex-row items-start gap-2">
+              <Icon name="locationOn" size={18} color={colors.primary} />
+              <VemtapText variant="bodyMd" tone="secondary" className="min-w-0 flex-1">
+                {address}
+              </VemtapText>
+            </View>
+          ) : null}
           <ActionGrid
             actions={[
-              { label: copy.chat, icon: 'message', onPress: onChat },
-              { label: copy.call, icon: 'phone', onPress: onCall },
+              { label: copy.chat, icon: 'message', onPress: chat },
+              { label: copy.call, icon: 'phone', onPress: call },
+              ...(mapsUrl
+                ? [
+                    {
+                      label: copy.directions,
+                      icon: 'nearMe' as const,
+                      onPress: () => {
+                        Linking.openURL(mapsUrl).catch(() => undefined);
+                      },
+                    },
+                  ]
+                : []),
             ]}
           />
         </View>
@@ -340,12 +419,14 @@ export function BookingDetailScreen({
               </VemtapText>
             </View>
           </View>
-          <Button
-            label={copy.reschedule}
-            variant="secondary"
-            onPress={onReschedule}
-            labelVariant="labelMd"
-          />
+          {canCancel ? (
+            <Button
+              label={copy.reschedule}
+              variant="secondary"
+              onPress={onReschedule ?? (() => setRescheduling(true))}
+              labelVariant="labelMd"
+            />
+          ) : null}
           {canCancel ? (
             <Pressable
               accessibilityRole="button"
@@ -364,6 +445,12 @@ export function BookingDetailScreen({
           )}
         </View>
       </PageScroll>
+      <RescheduleBookingSheet
+        visible={rescheduling}
+        onClose={() => setRescheduling(false)}
+        booking={record}
+        onRescheduled={() => showToast(copy.rescheduled, 'success')}
+      />
     </SafeAreaView>
   );
 }

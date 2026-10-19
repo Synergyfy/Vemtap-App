@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { authApi, type LoginInput, type Session } from '@api/authApi';
 import { getSecureItem, setTokenPair } from '@utils/secureStorage';
 import { useAuthStore } from '@store/authStore';
-import { navigationRef } from '@navigation/navigationRef';
+import { enterShell } from '@navigation/shellSwitch';
 import { logger } from '@utils/logger';
 
 /**
@@ -17,9 +17,9 @@ async function reconcileActiveMode(session: Session) {
   const { activeMode } = useAuthStore.getState();
 
   if (activeMode === 'business') {
-    if (navigationRef?.isReady()) {
-      navigationRef.navigate('BusinessTabs', { screen: 'BusinessOverview' });
-    }
+    // Replace the customer shell rather than stacking on it, so back cannot
+    // cross into it.
+    enterShell('BusinessTabs', { screen: 'BusinessOverview' });
     return;
   }
 

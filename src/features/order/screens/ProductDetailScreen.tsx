@@ -1,20 +1,12 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import {
-  Image,
-  Pressable,
-  ScrollView,
-  Share,
-  StyleSheet,
-  TextInput,
-  View,
-} from 'react-native';
+import { Pressable, ScrollView, Share, StyleSheet, TextInput, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RegistrationHeader } from '@components/auth/RegistrationHeader';
 import { ErrorState } from '@components/shared/ErrorState';
 import { LoadingState } from '@components/shared/LoadingState';
-import { DoubleTapLike } from '@components/shared/DoubleTapLike';
+import { HeroImageGallery } from '@components/shared/HeroImageGallery';
 import { LikeButton } from '@components/shared/LikeButton';
 import { useCatalogueItemLike } from '@features/order/hooks/useCatalogueItemLike';
 import { Button } from '@components/ui/Button';
@@ -66,7 +58,6 @@ export function ProductDetailScreen({ navigation, route }: Props) {
   const item = useProductItem(productId, branchId);
   const comments = useProductComments(productId);
   const like = useCatalogueItemLike(productId);
-  const [imageIndex, setImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [instructions, setInstructions] = useState('');
   const [commentsOpen, setCommentsOpen] = useState(false);
@@ -137,7 +128,7 @@ export function ProductDetailScreen({ navigation, route }: Props) {
     );
   }
 
-  const image = view.images[imageIndex] ?? view.images[0];
+  const galleryImages = view.images.map(uri => ({ uri }));
 
   return (
     <View className="flex-1 bg-surface">
@@ -158,15 +149,14 @@ export function ProductDetailScreen({ navigation, route }: Props) {
       >
         <View className="w-full max-w-screen self-center">
           <View className="relative aspect-[4/3] overflow-hidden bg-surface-container-low">
-            {image ? (
-              <DoubleTapLike onDoubleTap={like.like} style={StyleSheet.absoluteFill}>
-                <Image
-                  source={{ uri: image }}
-                  accessibilityLabel={view.name}
-                  className="h-full w-full"
-                  resizeMode="cover"
-                />
-              </DoubleTapLike>
+            {view.images.length > 0 ? (
+              // One photo stays a plain image; several swipe, with dots.
+              <HeroImageGallery
+                images={galleryImages}
+                accessibilityLabel={view.name}
+                onDoubleTap={like.like}
+                testID="product-hero-gallery"
+              />
             ) : (
               <View className="h-full w-full items-center justify-center">
                 <Icon name="shoppingBag" size={48} color={colors.textTertiary} />
@@ -190,18 +180,6 @@ export function ProductDetailScreen({ navigation, route }: Props) {
               ) : (
                 <View />
               )}
-              {view.images.length > 1 ? (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={copy.imageCount(imageIndex + 1, view.images.length)}
-                  onPress={() => setImageIndex(index => (index + 1) % view.images.length)}
-                  className="rounded-full bg-inverse-surface/80 px-2.5 py-1"
-                >
-                  <VemtapText variant="caption" tone="inverse">
-                    {copy.imageCount(imageIndex + 1, view.images.length)}
-                  </VemtapText>
-                </Pressable>
-              ) : null}
             </View>
           </View>
 

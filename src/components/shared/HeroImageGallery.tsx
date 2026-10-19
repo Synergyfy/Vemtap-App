@@ -11,26 +11,34 @@ import {
 import { colors } from '@theme/colors';
 import { DoubleTapLike } from '@components/shared/DoubleTapLike';
 
-export interface DealHeroGalleryProps {
+export interface HeroImageGalleryProps {
   /** Unique URLs (the mapper deduplicates them). */
   images: { uri: string }[];
   /** Read out for each photo, with its position. */
   accessibilityLabel: string;
-  /** Double-tap a photo to like the deal. */
+  /** Double-tap a photo to like what it shows. */
   onDoubleTap?: () => void;
+  /** testID of the pager, for screens with more than one gallery. */
+  testID?: string;
 }
 
 /**
- * The deal's hero photo. With more than one photo it becomes a horizontal
- * pager (one photo per swipe) with dots showing where you are; with one it is
- * a plain image, so a single-photo deal looks exactly as before.
+ * A hero photo that fills its parent (deal and product detail). With more than
+ * one photo it becomes a horizontal pager (one photo per swipe) with dots
+ * showing where you are; with one it is a plain image.
+ *
+ * Pages are as wide as the gallery itself, measured on layout, so it pages
+ * correctly in a column narrower than the window.
  */
-export function DealHeroGallery({
+export function HeroImageGallery({
   images,
   accessibilityLabel,
   onDoubleTap,
-}: DealHeroGalleryProps) {
-  const { width } = useWindowDimensions();
+  testID = 'hero-image-gallery',
+}: HeroImageGalleryProps) {
+  const window = useWindowDimensions();
+  const [measured, setMeasured] = useState<number | null>(null);
+  const width = measured ?? window.width;
   const [index, setIndex] = useState(0);
 
   if (images.length <= 1) {
@@ -52,9 +60,12 @@ export function DealHeroGallery({
   };
 
   return (
-    <View style={StyleSheet.absoluteFill}>
+    <View
+      style={StyleSheet.absoluteFill}
+      onLayout={event => setMeasured(event.nativeEvent.layout.width)}
+    >
       <FlatList
-        testID="deal-hero-gallery"
+        testID={testID}
         data={images}
         horizontal
         pagingEnabled
