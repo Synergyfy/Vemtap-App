@@ -8,7 +8,7 @@ cssInterop(View, { className: 'style' });
 
 export function PopularProductCard({ product }: { product: PopularProduct }) {
   return (
-    <View className="w-full flex-1 overflow-hidden rounded-2xl border border-border bg-surface-canvas shadow-md">
+    <View className="w-full overflow-hidden rounded-2xl border border-border bg-surface-canvas shadow-md">
       <View className="relative aspect-square w-full overflow-hidden bg-surface-container">
         <Image source={product.image} className="h-full w-full" resizeMode="cover" />
         {product.badge ? (
