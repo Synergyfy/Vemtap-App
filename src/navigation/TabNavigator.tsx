@@ -1,3 +1,4 @@
+import { useCustomerTokenSync } from '@features/auth/hooks/useCustomerTokenSync';
 import { useOpenBusinessChat } from '@features/merchantChat/hooks/useOpenBusinessChat';
 import { useHistoryBack } from '@navigation/useHistoryBack';
 import { useHideTabBarOnFocus } from '@navigation/useHideTabBarOnFocus';
@@ -700,11 +701,18 @@ function BookingDetailRoute() {
   const route = useRoute<RouteProp<AccountStackParamList, 'BookingDetail'>>();
 
   const navigation = useNavigation<AccountStackNavigation>();
+  const openChat = useOpenBusinessChat(
+    useCallback(
+      params =>
+        navigation.navigate('PersonalHub', { screen: 'PersonalConversation', params }),
+      [navigation],
+    ),
+  );
   return (
     <BookingDetailScreen
       onBack={goBack}
       bookingId={route.params?.bookingId}
-      onChat={() => navigation.navigate('Conversation', {})}
+      onOpenChat={openChat.open}
     />
   );
 }
@@ -787,6 +795,11 @@ export function TabNavigator() {
   const insets = useSafeAreaInsets();
   // The consumer shell: keep the account's home district in step with the area.
   useHomeDistrictSync();
+  // A dual-role owner can land here still holding the owner token (the login
+  // token carries the owner role). Customer-only queries are then disabled or
+  // 403, so Total Saved and Active Deals sat at "—" until a dashboard switch
+  // happened to reissue the token. Reissue the customer token here instead.
+  useCustomerTokenSync();
   const isTabBarHidden = useTabBarStore(state => state.isTabBarHidden);
 
   const screenOptions = useMemo(

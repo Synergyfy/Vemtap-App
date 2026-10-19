@@ -93,4 +93,17 @@ export function useCancelBooking() {
   });
 }
 
+/** Move one of the customer's bookings to a new slot. */
+export function useRescheduleBooking() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { id: string; date: string; time: string }) =>
+      bookingsApi.rescheduleBooking(input.id, { date: input.date, time: input.time }),
+    onSuccess: updated => {
+      queryClient.setQueryData(bookingKeys.detail(updated.id), updated);
+      queryClient.invalidateQueries({ queryKey: ['bookings'] });
+    },
+  });
+}
+
 export type { Booking };

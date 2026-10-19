@@ -16,7 +16,7 @@ import type { Booking } from '@api/bookingsApi';
 import { isActiveStatus, statusLabel, statusToneFor } from '@features/order/orderStatus';
 import { PRODUCT_FALLBACK_IMAGE } from '@features/home/utils/productMapper';
 import { formatBookingSlot, formatCurrency, formatWhen } from '@utils/formatters';
-import { colors } from '@theme/colors';
+import { colors, shadowTokens } from '@theme/colors';
 import { navbarBottomShadow } from '@theme/shadows';
 import { usePullToRefresh } from '@hooks/usePullToRefresh';
 
@@ -64,6 +64,26 @@ function bookingStatusLabel(status: string | null | undefined): string {
     default:
       return status ?? strings.common.empty;
   }
+}
+
+/**
+ * The Orders/Bookings switcher and the filter chips keep a constant `className`
+ * and carry their selected look in `style`. A className that gains a background
+ * or shadow when a tab is picked makes css-interop remount the button, and in
+ * dev its warning serialises the props tree. Tapping Bookings froze the app.
+ */
+function modeTabStyle(selected: boolean) {
+  return {
+    backgroundColor: selected ? colors.primary : 'transparent',
+    ...(selected ? shadowTokens.sm : shadowTokens.none),
+  };
+}
+
+function filterChipStyle(selected: boolean) {
+  return {
+    backgroundColor: selected ? colors.surfaceTint : colors.surface,
+    ...shadowTokens.sm,
+  };
 }
 
 export interface OrdersBookingsHubScreenProps {
@@ -192,12 +212,14 @@ export function OrdersBookingsHubScreen({
         <View className="flex-row rounded-full bg-surface-container p-1 shadow-sm">
           <Pressable
             accessibilityRole="tab"
+            accessibilityLabel={strings.ordersHub.orders}
             accessibilityState={{ selected: mode === 'orders' }}
             onPress={() => {
               setMode('orders');
               setFilter(0);
             }}
-            className={`min-h-10 flex-1 flex-row items-center justify-center gap-1 rounded-full ${mode === 'orders' ? 'bg-primary shadow-sm' : ''}`}
+            className="min-h-10 flex-1 flex-row items-center justify-center gap-1 rounded-full"
+            style={modeTabStyle(mode === 'orders')}
           >
             <Icon
               name="shoppingBag"
@@ -214,12 +236,14 @@ export function OrdersBookingsHubScreen({
           </Pressable>
           <Pressable
             accessibilityRole="tab"
+            accessibilityLabel={strings.ordersHub.bookingsTab}
             accessibilityState={{ selected: mode === 'bookings' }}
             onPress={() => {
               setMode('bookings');
               setFilter(0);
             }}
-            className={`min-h-10 flex-1 flex-row items-center justify-center gap-1 rounded-full ${mode === 'bookings' ? 'bg-primary shadow-sm' : ''}`}
+            className="min-h-10 flex-1 flex-row items-center justify-center gap-1 rounded-full"
+            style={modeTabStyle(mode === 'bookings')}
           >
             <Icon
               name="eventAvailable"
@@ -231,7 +255,7 @@ export function OrdersBookingsHubScreen({
               tone={mode === 'bookings' ? 'inverse' : 'secondary'}
               className="font-sans-semibold"
             >
-              {strings.ordersHub.bookingsTab}
+              {withBookingCount(strings.ordersHub.bookingsTab, bookingList.length)}
             </VemtapText>
           </Pressable>
         </View>
@@ -288,7 +312,8 @@ export function OrdersBookingsHubScreen({
               accessibilityRole="button"
               accessibilityState={{ selected: filter === index }}
               onPress={() => setFilter(index)}
-              className={`h-9 shrink-0 items-center justify-center rounded-full px-4 shadow-sm ${filter === index ? 'bg-surface-tint' : 'bg-surface'}`}
+              className="h-9 shrink-0 items-center justify-center rounded-full px-4"
+              style={filterChipStyle(filter === index)}
             >
               <VemtapText
                 variant="labelMd"

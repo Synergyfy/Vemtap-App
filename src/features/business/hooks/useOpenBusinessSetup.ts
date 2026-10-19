@@ -5,6 +5,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuthStore } from '@store/authStore';
 import { useSwitchRole } from '@features/auth/hooks/useSwitchRole';
 import { strings } from '@constants/strings';
+import { enterShell } from '@navigation/shellSwitch';
 import type { RootStackParamList } from '@navigation/types';
 
 /**
@@ -28,8 +29,12 @@ export function useOpenBusinessSetup() {
     }
 
     switchRole.mutate('business', {
-      onSuccess: () =>
-        navigation.navigate('BusinessTabs', { screen: 'BusinessOverview' }),
+      onSuccess: () => {
+        // The business shell replaces the customer one: back must not cross.
+        if (!enterShell('BusinessTabs', { screen: 'BusinessOverview' })) {
+          navigation.navigate('BusinessTabs', { screen: 'BusinessOverview' });
+        }
+      },
       onError: error =>
         Alert.alert(
           strings.switchToCustomer.error.title,

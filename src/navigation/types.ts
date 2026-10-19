@@ -67,6 +67,8 @@ export type BusinessStackParamList = {
   BusinessHubHome: undefined;
   BusinessMoreHome: undefined;
   BusinessOrderDetail: { orderId?: string } | undefined;
+  /** A booking's own detail; bookings are not orders and 404 on the order screen. */
+  BusinessBookingDetail: { bookingId?: string } | undefined;
   BusinessBookings: undefined;
   BusinessPosOrders: undefined;
   /**

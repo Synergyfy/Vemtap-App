@@ -67,3 +67,21 @@ export function discoveryOrigin(area: string, coords: GeoCoords | null): GeoCoor
   const { latitude, longitude } = areaCoords(area);
   return { latitude, longitude };
 }
+
+/**
+ * A maps link for directions to a place: exact coordinates when known,
+ * otherwise a search for the address. `null` when there is nothing to find.
+ */
+export function directionsUrl(place: {
+  latitude?: number | null;
+  longitude?: number | null;
+  address?: string | null;
+}): string | null {
+  if (place.latitude != null && place.longitude != null) {
+    return `https://www.google.com/maps/search/?api=1&query=${place.latitude},${place.longitude}`;
+  }
+  const address = place.address?.trim();
+  return address
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
+    : null;
+}

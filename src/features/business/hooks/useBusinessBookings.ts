@@ -27,6 +27,8 @@ export function useUpdateBookingStatus() {
       bookingsApi.updateBookingStatus(id, status),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: businessBookingKeys.all });
+      // The detail screen reads `GET /bookings/:id` through the shared keys.
+      queryClient.invalidateQueries({ queryKey: ['bookings'] });
     },
   });
 }

@@ -25,7 +25,7 @@ import { strings } from '@constants/strings';
 import { navbarBottomShadow } from '@theme/shadows';
 import type { AppStackParamList } from '@navigation/types';
 import { useDealDetail } from '@features/dealDetail/hooks/useDealDetail';
-import { DealHeroGallery } from '@features/dealDetail/components/DealHeroGallery';
+import { HeroImageGallery } from '@components/shared/HeroImageGallery';
 import { LikeHeart } from '@components/shared/LikeHeart';
 import { useOfferClaim } from '@features/dealDetail/hooks/useOfferClaim';
 import { useSendGift } from '@features/dealDetail/hooks/useSendGift';
@@ -279,10 +279,11 @@ export function DealDetailScreen({ route, navigation }: Props) {
         showsVerticalScrollIndicator={false}
       >
         <View className="h-80 overflow-hidden bg-surface-container-low">
-          <DealHeroGallery
+          <HeroImageGallery
             images={deal.images}
             accessibilityLabel={deal.title}
             onDoubleTap={reaction.like}
+            testID="deal-hero-gallery"
           />
           <View pointerEvents="none" style={styles.heroScrim} />
           <View style={[styles.heroUtilities, { top: insets.top + 12 }]}>
