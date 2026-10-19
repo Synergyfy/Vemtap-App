@@ -146,8 +146,9 @@ export function useConsumerTargeting({
   const renderChrome = useCallback(
     (content: ReactNode) => (
       <View className="flex-1 bg-background">
-        {/* Status bar + navbar share solid white so the iPhone inset blends with the header. */}
-        <SafeAreaView edges={[]} className="bg-surface">
+        {/* The navbar takes the top inset in white so it sits below the status
+            bar on iOS and on Android's edge-to-edge layout. */}
+        <SafeAreaView edges={['top']} className="bg-surface">
           {!isOnline ? <OfflineBanner /> : null}
           <HomeHeader {...headerProps} />
         </SafeAreaView>

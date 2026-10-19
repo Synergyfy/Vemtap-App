@@ -160,7 +160,8 @@ export function AddServiceBasicsMediaScreen({
 
   return (
     <ServiceFlowPage
-      title="Add Service   Step 1: Service Basics & Media"
+      step={1}
+      title="Service Basics & Media"
       onBack={onBack}
       onSaveDraft={() => onSaveDraft?.(currentValue)}
       footer={

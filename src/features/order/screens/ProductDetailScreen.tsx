@@ -14,6 +14,9 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RegistrationHeader } from '@components/auth/RegistrationHeader';
 import { ErrorState } from '@components/shared/ErrorState';
 import { LoadingState } from '@components/shared/LoadingState';
+import { DoubleTapLike } from '@components/shared/DoubleTapLike';
+import { LikeButton } from '@components/shared/LikeButton';
+import { useCatalogueItemLike } from '@features/order/hooks/useCatalogueItemLike';
 import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
@@ -62,6 +65,7 @@ export function ProductDetailScreen({ navigation, route }: Props) {
   const signedIn = useAuthStore(state => state.status === 'authenticated');
   const item = useProductItem(productId, branchId);
   const comments = useProductComments(productId);
+  const like = useCatalogueItemLike(productId);
   const [imageIndex, setImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [instructions, setInstructions] = useState('');
@@ -155,19 +159,24 @@ export function ProductDetailScreen({ navigation, route }: Props) {
         <View className="w-full max-w-screen self-center">
           <View className="relative aspect-[4/3] overflow-hidden bg-surface-container-low">
             {image ? (
-              <Image
-                source={{ uri: image }}
-                accessibilityLabel={view.name}
-                className="h-full w-full"
-                resizeMode="cover"
-              />
+              <DoubleTapLike onDoubleTap={like.like} style={StyleSheet.absoluteFill}>
+                <Image
+                  source={{ uri: image }}
+                  accessibilityLabel={view.name}
+                  className="h-full w-full"
+                  resizeMode="cover"
+                />
+              </DoubleTapLike>
             ) : (
               <View className="h-full w-full items-center justify-center">
                 <Icon name="shoppingBag" size={48} color={colors.textTertiary} />
               </View>
             )}
-            <View style={styles.heroScrim} />
-            <View className="absolute inset-x-4 bottom-4 flex-row items-end justify-between gap-3">
+            <View pointerEvents="none" style={styles.heroScrim} />
+            <View
+              pointerEvents="box-none"
+              className="absolute inset-x-4 bottom-4 flex-row items-end justify-between gap-3"
+            >
               {view.discountLabel ? (
                 <View className="flex-row items-center gap-1 rounded-full bg-success-container px-2.5 py-1 shadow-sm">
                   <Icon name="localOffer" size={14} color={colors.badgeDiscountText} />
@@ -218,31 +227,39 @@ export function ProductDetailScreen({ navigation, route }: Props) {
               {view.name}
             </VemtapText>
 
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`${rating.ratingLabel}, ${rating.commentLabel}`}
-              onPress={() => setCommentsOpen(true)}
-              className="mt-1 flex-row flex-wrap items-center gap-2 self-start"
-            >
-              <View className="flex-row items-center gap-1">
-                <Icon name="star" size={18} color={colors.tertiaryContainer} />
-                <VemtapText variant="labelMd" className="font-sans-semibold text-text">
-                  {rating.score ?? rating.ratingLabel}
-                </VemtapText>
-              </View>
-              {rating.score ? (
-                <>
-                  <VemtapText tone="tertiary">•</VemtapText>
-                  <VemtapText variant="labelSm" tone="secondary">
-                    {rating.ratingLabel}
+            <View className="mt-1 flex-row flex-wrap items-center gap-4">
+              <LikeButton
+                liked={like.liked}
+                likesCount={like.likesCount}
+                onToggle={like.toggle}
+                accessibilityLabel={view.name}
+              />
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${rating.ratingLabel}, ${rating.commentLabel}`}
+                onPress={() => setCommentsOpen(true)}
+                className="flex-row flex-wrap items-center gap-2 self-start"
+              >
+                <View className="flex-row items-center gap-1">
+                  <Icon name="star" size={18} color={colors.tertiaryContainer} />
+                  <VemtapText variant="labelMd" className="font-sans-semibold text-text">
+                    {rating.score ?? rating.ratingLabel}
                   </VemtapText>
-                </>
-              ) : null}
-              <VemtapText tone="tertiary">•</VemtapText>
-              <VemtapText variant="labelSm" tone="brand">
-                {rating.commentLabel}
-              </VemtapText>
-            </Pressable>
+                </View>
+                {rating.score ? (
+                  <>
+                    <VemtapText tone="tertiary">•</VemtapText>
+                    <VemtapText variant="labelSm" tone="secondary">
+                      {rating.ratingLabel}
+                    </VemtapText>
+                  </>
+                ) : null}
+                <VemtapText tone="tertiary">•</VemtapText>
+                <VemtapText variant="labelSm" tone="brand">
+                  {rating.commentLabel}
+                </VemtapText>
+              </Pressable>
+            </View>
 
             <View className="mt-3 flex-row flex-wrap items-baseline gap-2">
               <VemtapText className="font-sans-bold text-display-mobile text-text">

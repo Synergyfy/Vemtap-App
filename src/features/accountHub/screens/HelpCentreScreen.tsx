@@ -86,7 +86,7 @@ export function HelpCentreScreen({
   };
 
   return (
-    <SafeAreaView edges={['top']} className="flex-1 bg-surface">
+    <SafeAreaView edges={[]} className="flex-1 bg-surface">
       <AccountHeader title={copy.title} onBack={onBack} onOpenAccount={onOpenAccount} />
       <View className="flex-1">
         <PageScroll>

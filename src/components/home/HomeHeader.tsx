@@ -86,9 +86,9 @@ export function HomeHeader({
             onPress={onPressNotifications}
             className="relative h-10 w-10 items-center justify-center rounded-full bg-surface-container-lowest shadow-sm"
           >
-            <Icon name="notifications" size={22} color={colors.text} />
+            <Icon name="notifications" size={19} color={colors.text} />
             {hasUnread ? (
-              <View className="absolute right-2 top-2 h-2 w-2 rounded-full bg-error" />
+              <View className="absolute right-2.5 top-2.5 h-1.5 w-1.5 rounded-full bg-error" />
             ) : null}
           </Pressable>
           <Pressable

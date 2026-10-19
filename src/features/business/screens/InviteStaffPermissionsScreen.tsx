@@ -127,7 +127,13 @@ export function InviteStaffPermissionsScreen({
         title: copy.headerTitle,
         onBack,
         titleVariant: 'headingSm',
-        actions: [{ icon: 'more', label: copy.headerTitle, onPress: onMoreActions }],
+        actions: [
+          {
+            icon: 'more',
+            label: strings.businessShell.moreActionsLabel,
+            onPress: onMoreActions,
+          },
+        ],
       }}
       contentContainerClassName="pb-8"
       footer={

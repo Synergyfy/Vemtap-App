@@ -76,8 +76,16 @@ export function BusinessQrScreen({
         title: copy.headerTitle,
         onBack,
         actions: [
-          { icon: 'bellRing', label: copy.headerTitle, onPress: onOpenNotifications },
-          { icon: 'accountCircle', label: copy.headerTitle, onPress: onOpenProfile },
+          {
+            icon: 'bellRing',
+            label: strings.businessShell.notificationsLabel,
+            onPress: onOpenNotifications,
+          },
+          {
+            icon: 'accountCircle',
+            label: strings.businessShell.profileLabel,
+            onPress: onOpenProfile,
+          },
         ],
       }}
       contentContainerClassName="pb-8"

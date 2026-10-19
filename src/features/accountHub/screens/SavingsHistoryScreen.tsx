@@ -144,7 +144,7 @@ export function SavingsHistoryScreen({
   };
 
   return (
-    <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-surface">
+    <SafeAreaView edges={[]} className="flex-1 bg-surface">
       <AccountHeader title={copy.title} onBack={onBack} />
       <PageScroll>
         <View className="flex-row items-center justify-between gap-2">

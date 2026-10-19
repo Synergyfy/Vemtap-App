@@ -64,7 +64,11 @@ export function BusinessNetworkInfoScreen({
         onBack,
         actions: [
           { icon: 'help', label: copy.headerHelp, onPress: onOpenHelp },
-          { icon: 'accountCircle', label: copy.headerTitle, onPress: onOpenProfile },
+          {
+            icon: 'accountCircle',
+            label: strings.businessShell.profileLabel,
+            onPress: onOpenProfile,
+          },
         ],
       }}
       contentContainerClassName="pb-8"

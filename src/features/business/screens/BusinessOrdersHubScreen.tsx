@@ -358,7 +358,7 @@ export function BusinessOrdersHubScreen({
                     className={cn(
                       'gap-2 rounded-card bg-surface-container-lowest p-3.5 shadow-sm',
                       channel.accent,
-                      order.muted && 'opacity-90',
+                      order.muted ? 'opacity-90' : 'opacity-100',
                     )}
                   >
                     <View className="flex-row items-center justify-between gap-2">
@@ -414,10 +414,15 @@ export function BusinessOrdersHubScreen({
                         ) : null}
                         <VemtapText
                           variant="caption"
-                          className={cn(
-                            order.urgent && 'font-sans-semibold text-primary',
-                            order.muted && 'text-text-tertiary',
-                          )}
+                          // Every state sets a colour: `urgent` flips as the order
+                          // ages, and gaining a colour class later would upgrade it.
+                          className={
+                            order.urgent
+                              ? 'font-sans-semibold text-primary'
+                              : order.muted
+                                ? 'font-sans text-text-tertiary'
+                                : 'font-sans text-text-secondary'
+                          }
                         >
                           {order.time}
                         </VemtapText>
@@ -487,7 +492,11 @@ export function BusinessOrdersHubScreen({
                             className={cn(
                               'h-8 shrink-0 flex-row items-center gap-1 rounded-field px-2.5',
                               cta.chip,
-                              cta.chip && 'shadow-sm active:scale-95',
+                              // Shadow and press utilities in every style: the CTA
+                              // changes style with the order's status, and gaining
+                              // them later would upgrade (remount) the button.
+                              'active:scale-95',
+                              cta.chip ? 'shadow-sm' : 'shadow-none',
                             )}
                           >
                             <VemtapText

@@ -129,7 +129,7 @@ export function BookingDetailScreen({
 
   if (!bookingId) {
     return (
-      <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-background">
+      <SafeAreaView edges={[]} className="flex-1 bg-background">
         {header}
         <PageScroll>
           <EmptyState
@@ -145,7 +145,7 @@ export function BookingDetailScreen({
 
   if (booking.isLoading) {
     return (
-      <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-background">
+      <SafeAreaView edges={[]} className="flex-1 bg-background">
         {header}
         <LoadingState label={copy.loading} />
       </SafeAreaView>
@@ -154,7 +154,7 @@ export function BookingDetailScreen({
 
   if (booking.isError || !booking.data) {
     return (
-      <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-background">
+      <SafeAreaView edges={[]} className="flex-1 bg-background">
         {header}
         <ErrorState
           title={copy.errorTitle}
@@ -170,7 +170,7 @@ export function BookingDetailScreen({
   const canCancel = CANCELLABLE.includes(record.status ?? '');
 
   return (
-    <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-background">
+    <SafeAreaView edges={[]} className="flex-1 bg-background">
       {header}
       <PageScroll refreshControl={refresh.refreshControl}>
         <View className="gap-3 rounded-card bg-surface p-4 shadow-sm">

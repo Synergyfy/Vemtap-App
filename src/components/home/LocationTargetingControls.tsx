@@ -43,14 +43,15 @@ export function LocationTargetingControls({
         hitSlop={6}
         className="flex-row items-center gap-1"
       >
-        <Icon name="locationOn" size={20} color={colors.primary} />
+        <Icon name="locationOn" size={16} color={colors.primary} />
         <VemtapText
-          className="font-sans-semibold text-button-md text-text"
+          variant="labelMd"
+          className="font-sans-semibold text-label-md text-text"
           numberOfLines={1}
         >
           {location}
         </VemtapText>
-        <Icon name="expandMore" size={18} color={colors.textSecondary} />
+        <Icon name="expandMore" size={16} color={colors.textSecondary} />
       </Pressable>
       <Pressable
         accessibilityRole="button"
@@ -59,7 +60,7 @@ export function LocationTargetingControls({
         hitSlop={6}
         className="ml-1 rounded-full bg-surface-tint-blue px-2 py-0.5 active:opacity-80"
       >
-        <VemtapText className="text-caption text-primary" numberOfLines={1}>
+        <VemtapText variant="micro" className="text-micro text-primary" numberOfLines={1}>
           {radius}
         </VemtapText>
       </Pressable>

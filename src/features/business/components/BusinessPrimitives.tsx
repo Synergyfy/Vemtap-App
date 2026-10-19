@@ -167,9 +167,10 @@ export function BusinessHeader({
             </VemtapText>
           </Pressable>
         ) : null}
-        {actions.map((action, index) => (
+        {actions.map(action => (
           <Pressable
-            key={action.label ?? `${action.icon}-${index}`}
+            // Icon + label: a label alone was shared by two actions on some screens.
+            key={`${action.icon}:${action.label ?? ''}`}
             accessibilityRole="button"
             accessibilityLabel={action.label}
             hitSlop={8}

@@ -66,6 +66,9 @@ export type BusinessStackParamList = {
    * screens that have several design treatments take an optional `layout`.
    */
   BusinessProfilePreview: undefined;
+  BusinessEditProfile: undefined;
+  /** The owner's own public storefront, as customers see it. */
+  BusinessStorefrontPreview: undefined;
   BusinessManagementHub: undefined;
   CentralDealsManagement: { layout?: 'hero' | 'compact' | 'discovery' } | undefined;
   /**

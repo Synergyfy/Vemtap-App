@@ -5,7 +5,7 @@ import { cn } from '@utils/cn';
 import { Button } from '@components/ui/Button';
 import { Icon, type IconName } from '@components/ui/Icon';
 import { VemtapText } from '@components/ui/Text';
-import { colors } from '@theme/colors';
+import { colors, shadowTokens } from '@theme/colors';
 import {
   BusinessActionDock,
   BusinessFieldLabel,
@@ -24,6 +24,8 @@ cssInterop(View, { className: 'style' });
 
 export interface ServiceFlowPageProps {
   title: string;
+  /** Position in the Add Service flow, shown above the title. */
+  step?: number;
   onBack: () => void;
   onSaveDraft?: () => void;
   children: React.ReactNode;
@@ -31,8 +33,12 @@ export interface ServiceFlowPageProps {
   contentContainerClassName?: string;
 }
 
+/** Steps in the Add Service flow (basics, pricing, availability, review, published). */
+const SERVICE_FLOW_STEPS = 5;
+
 export function ServiceFlowPage({
   title,
+  step,
   onBack,
   onSaveDraft,
   children,
@@ -41,7 +47,18 @@ export function ServiceFlowPage({
 }: ServiceFlowPageProps) {
   return (
     <BusinessScreenLayout
-      header={{ title, onBack, actionLabel: 'Draft', onAction: onSaveDraft }}
+      // The step goes in the eyebrow so the title stays short, at a navbar
+      // size that fits on one line.
+      header={{
+        title,
+        eyebrow: step
+          ? `Add Service \u00b7 Step ${step} of ${SERVICE_FLOW_STEPS}`
+          : undefined,
+        titleVariant: 'labelMd',
+        onBack,
+        actionLabel: 'Draft',
+        onAction: onSaveDraft,
+      }}
       footer={footer}
       contentContainerClassName={cn(
         'w-full max-w-[640px] self-center',
@@ -443,11 +460,15 @@ export function ServiceChip({
       accessibilityLabel={accessibilityLabel ?? label}
       accessibilityState={{ selected }}
       onPress={onPress}
+      // Same className in every state (see ServiceChoiceCard); state in `style`.
       className={cn(
         'min-h-9 items-center justify-center rounded-full px-3 py-2 active:scale-[0.98]',
-        selected ? 'bg-surface-tint shadow-sm' : 'bg-surface-container-low',
         className,
       )}
+      style={{
+        backgroundColor: selected ? colors.surfaceTint : colors.surfaceContainerLow,
+        ...(selected ? shadowTokens.sm : shadowTokens.none),
+      }}
     >
       <View className="flex-row items-center justify-center gap-1">
         {leadingIcon ? (
@@ -550,17 +571,19 @@ export function ServiceChoiceCard({
       accessibilityState={{ selected }}
       accessibilityLabel={title}
       onPress={onPress}
-      className={cn(
-        'flex-row items-center gap-3 rounded-card-lg p-3',
-        selected
-          ? selectedTone === 'surface'
-            ? 'bg-surface shadow-sm'
-            : 'bg-surface-tint shadow-sm'
-          : selectedTone === 'surface'
-            ? 'bg-surface'
-            : 'bg-surface-container-low',
-        className,
-      )}
+      // className stays the same in every state: gaining `shadow-sm` on select
+      // made css-interop remount the card, which swallowed the tap on device
+      // (the Service Delivery Format choice never changed). State is in `style`.
+      className={cn('flex-row items-center gap-3 rounded-card-lg p-3', className)}
+      style={{
+        backgroundColor:
+          selectedTone === 'surface'
+            ? colors.surface
+            : selected
+              ? colors.surfaceTint
+              : colors.surfaceContainerLow,
+        ...(selected ? shadowTokens.sm : shadowTokens.none),
+      }}
     >
       {selectionPosition === 'left' ? selection : null}
       {content}

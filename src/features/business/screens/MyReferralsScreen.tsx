@@ -66,7 +66,11 @@ export function MyReferralsScreen({
         onBack,
         actions: [
           { icon: 'tune', label: copy.headerFilter, onPress: onOpenFilter },
-          { icon: 'accountCircle', label: copy.headerTitle, onPress: onOpenProfile },
+          {
+            icon: 'accountCircle',
+            label: strings.businessShell.profileLabel,
+            onPress: onOpenProfile,
+          },
         ],
       }}
       contentContainerClassName="pb-8"

@@ -192,61 +192,59 @@ export function AccountHomeScreen({
     ? copy.savedItemsBadgeFor(savedTotals.all ?? 0)
     : undefined;
   return (
-    <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-background">
-      <View
-        className="flex-row items-center justify-between bg-surface px-4 pb-3 pt-2"
-        style={navbarBottomShadow}
-      >
-        <View className="min-w-0 flex-1 flex-row items-center gap-2">
-          <VemtapText
-            variant="labelMd"
-            className="shrink-0 font-sans-bold text-primary"
-            numberOfLines={1}
-          >
-            VEMTAP
-          </VemtapText>
-          <VemtapText variant="labelSm" tone="tertiary" className="shrink-0">
-            /
-          </VemtapText>
-          <VemtapText
-            accessibilityRole="header"
-            variant="labelMd"
-            className="min-w-0 flex-1 font-sans-semibold"
-            numberOfLines={1}
-          >
-            {copy.title}
-          </VemtapText>
+    <View className="flex-1 bg-background">
+      <SafeAreaView edges={['top']} className="bg-surface" style={navbarBottomShadow}>
+        <View className="flex-row items-center justify-between bg-surface px-4 pb-3 pt-2">
+          <View className="min-w-0 flex-1 flex-row items-center gap-2">
+            <VemtapText
+              variant="labelMd"
+              className="shrink-0 font-sans-bold text-primary"
+              numberOfLines={1}
+            >
+              VEMTAP
+            </VemtapText>
+            <VemtapText variant="labelSm" tone="tertiary" className="shrink-0">
+              /
+            </VemtapText>
+            <VemtapText
+              accessibilityRole="header"
+              variant="labelMd"
+              className="min-w-0 flex-1 font-sans-semibold"
+              numberOfLines={1}
+            >
+              {copy.title}
+            </VemtapText>
+          </View>
+          <View className="shrink-0 flex-row items-center gap-1">
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={copy.notificationsLabel}
+              onPress={onOpenNotifications}
+              hitSlop={6}
+              className="h-10 w-10 items-center justify-center rounded-full"
+            >
+              <Icon name="notifications" size={21} color={colors.text} />
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={copy.helpCentre}
+              onPress={onOpenHelp}
+              hitSlop={6}
+              className="h-10 w-10 items-center justify-center rounded-full"
+            >
+              <Icon name="help" size={21} color={colors.text} />
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={copy.accountLabel}
+              onPress={onOpenAccountMenu}
+              className="h-9 w-9 items-center justify-center rounded-full bg-primary"
+            >
+              <Avatar uri={me.avatar} name={me.fullName} size="sm" tone="brand" />
+            </Pressable>
+          </View>
         </View>
-        <View className="shrink-0 flex-row items-center gap-1">
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={copy.notificationsLabel}
-            onPress={onOpenNotifications}
-            hitSlop={6}
-            className="h-10 w-10 items-center justify-center rounded-full"
-          >
-            <Icon name="notifications" size={21} color={colors.text} />
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={copy.helpCentre}
-            onPress={onOpenHelp}
-            hitSlop={6}
-            className="h-10 w-10 items-center justify-center rounded-full"
-          >
-            <Icon name="help" size={21} color={colors.text} />
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={copy.accountLabel}
-            onPress={onOpenAccountMenu}
-            className="h-9 w-9 items-center justify-center rounded-full bg-primary"
-          >
-            <Avatar uri={me.avatar} name={me.fullName} size="sm" tone="brand" />
-          </Pressable>
-        </View>
-      </View>
-
+      </SafeAreaView>
       <ScrollView
         className="flex-1"
         contentContainerClassName="gap-4 px-4 pb-8 pt-3"
@@ -444,6 +442,6 @@ export function AccountHomeScreen({
           {copy.version}
         </VemtapText>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

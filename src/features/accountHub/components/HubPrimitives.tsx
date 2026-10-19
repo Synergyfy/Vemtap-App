@@ -8,7 +8,7 @@ import { SearchClearButton } from '@components/ui/SearchClearButton';
 import { VemtapText } from '@components/ui/Text';
 import { strings } from '@constants/strings';
 import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
-import { colors } from '@theme/colors';
+import { colors, shadowTokens } from '@theme/colors';
 import { navbarBottomShadow } from '@theme/shadows';
 import { cn } from '@utils/cn';
 
@@ -161,6 +161,15 @@ export function HubSearchField({
   );
 }
 
+/** Selected / disabled visuals for a switcher pill, kept out of `className`. */
+function switcherPillStyle(selected: boolean, disabled: boolean) {
+  return {
+    backgroundColor: selected ? colors.surface : 'transparent',
+    opacity: disabled ? 0.4 : 1,
+    ...(selected ? shadowTokens.sm : shadowTokens.none),
+  };
+}
+
 export function StatusPillTabs({
   labels,
   counts,
@@ -215,14 +224,13 @@ export function StatusPillTabs({
               accessibilityHint={isDisabled ? `${label} is unavailable` : undefined}
               disabled={isDisabled}
               onPress={() => onSelect?.(index)}
-              // Both branches must always set shadow/opacity utilities: gaining one
-              // after first render makes css-interop remount the pill (and, pre-patch,
-              // crash the app via its upgrade-warning props serializer).
-              className={cn(
-                'min-w-0 flex-1 flex-row items-center justify-center gap-2 rounded-lg py-2',
-                isSelected ? 'bg-surface-container-lowest shadow-sm' : 'shadow-none',
-                isDisabled ? 'opacity-40' : 'opacity-100',
-              )}
+              // className never changes with state. Gaining a background (it sets
+              // a CSS variable), shadow or opacity class after the first render
+              // makes css-interop "upgrade" the pill, and in dev its warning walks
+              // the whole props tree; as navigation and query state grow, that
+              // walk exhausts memory and the app closes. State lives in `style`.
+              className="min-w-0 flex-1 flex-row items-center justify-center gap-2 rounded-lg py-2"
+              style={switcherPillStyle(isSelected, isDisabled)}
             >
               <VemtapText
                 variant="labelMd"
@@ -236,10 +244,12 @@ export function StatusPillTabs({
               </VemtapText>
               {badgeCounts?.[index] ? (
                 <View
-                  className={cn(
-                    'rounded-full px-1.5 py-0.5',
-                    isSelected ? 'bg-surface-tint-blue' : 'bg-surface-container',
-                  )}
+                  className="rounded-full px-1.5 py-0.5"
+                  style={{
+                    backgroundColor: isSelected
+                      ? colors.surfaceTint
+                      : colors.surfaceContainer,
+                  }}
                 >
                   <VemtapText
                     variant="caption"

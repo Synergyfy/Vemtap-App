@@ -60,6 +60,8 @@ export const myBusinessSchema = z.looseObject({
   address: nullableText(),
   phone: nullableText(),
   whatsappNumber: nullableText(),
+  /** `{ instagram, facebook, tiktok, x, linkedin }` profile links. */
+  socials: z.record(z.string(), z.string()).nullish(),
   officialEmail: nullableText(),
   website: nullableText(),
   uniqueCode: nullableText(),

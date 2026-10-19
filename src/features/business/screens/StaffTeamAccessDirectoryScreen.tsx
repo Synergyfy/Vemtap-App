@@ -307,7 +307,13 @@ export function StaffTeamAccessDirectoryScreen({
         eyebrow: copy.pro,
         centerTitle: false,
         titleVariant: 'headingSm',
-        actions: [{ icon: 'notifications', label: copy.title, onPress: onNotifications }],
+        actions: [
+          {
+            icon: 'notifications',
+            label: strings.businessShell.notificationsLabel,
+            onPress: onNotifications,
+          },
+        ],
       }}
       contentContainerClassName="pb-8"
     >

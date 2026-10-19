@@ -63,7 +63,7 @@ export function MoreHubScreen({
       })
     : null;
   return (
-    <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-background">
+    <SafeAreaView edges={[]} className="flex-1 bg-background">
       <AccountHeader
         title={copy.title}
         onBack={onBack}

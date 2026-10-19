@@ -43,7 +43,10 @@ export function CategoryChips({
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
-      className="flex-1"
+      // A chip strip sized by its chips. `flex-1` (or the default grow) lets a
+      // horizontal scroller inside a vertical one stretch, which left blank
+      // scroll space on Home.
+      className="grow-0"
       contentContainerClassName={cn(
         'items-center gap-2 py-1',
         horizontalGutter && 'px-6',

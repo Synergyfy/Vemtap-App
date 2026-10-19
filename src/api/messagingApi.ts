@@ -255,6 +255,26 @@ export const messagingApi = {
   },
 
   /**
+   * Business: open (or reopen) the in-app thread with one of its customers.
+   * The server only opens a new thread with someone who is already a customer.
+   */
+  async startBusinessThread(
+    customerId: string,
+    branchId: string,
+    options: ApiRequestOptions = {},
+  ): Promise<ConversationThread> {
+    return requestValidated<ConversationThread>(
+      {
+        method: 'POST',
+        url: '/messaging/inbox/threads/init',
+        data: { customerId, branchId },
+        ...options,
+      },
+      conversationThreadSchema,
+    );
+  },
+
+  /**
    * Business: get messages in a thread.
    */
   async getBusinessThreadMessages(

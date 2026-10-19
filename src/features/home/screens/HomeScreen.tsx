@@ -27,6 +27,7 @@ import { SearchResults } from '@features/search/components/SearchResults';
 import type { FeaturedDeal, NearbyDeal, TrendingDeal } from '@features/home/types/feed';
 import { LoadingState } from '@components/shared/LoadingState';
 import { sponsoredTracker } from '@services/sponsoredTracker';
+import { useTopOnlyBounce } from '@hooks/useTopOnlyBounce';
 import { EmptyState } from '@components/shared/EmptyState';
 
 cssInterop(View, { className: 'style' });
@@ -220,6 +221,8 @@ export function HomeScreen({
   // Same navbar + targeting behaviour as the Deals feed — one owner, so the two
   // bars can never disagree about the active district or radius.
   const refresh = usePullToRefresh(HOME_REFRESH_KEYS);
+  // No dragging past the last card; bounce stays at the top for pull-to-refresh.
+  const topOnlyBounce = useTopOnlyBounce();
   const targeting = useConsumerTargeting({
     onOpenLocationSelect: onOpenLocationSelect ?? (() => onSearchArea?.()),
     onUseCurrentLocation,
@@ -235,9 +238,15 @@ export function HomeScreen({
   return targeting.renderChrome(
     <>
       <ScrollView
+        className="flex-1"
         contentContainerClassName="px-6 pb-8 pt-4 gap-6"
         showsVerticalScrollIndicator={false}
+        // The navbar and tab bar already own the safe areas; iOS must not add
+        // its own insets on top, or the feed scrolls past its last card.
+        contentInsetAdjustmentBehavior="never"
+        automaticallyAdjustContentInsets={false}
         refreshControl={refresh.refreshControl}
+        {...topOnlyBounce}
       >
         <View className="gap-4">
           {/* Same shared filter page the Deals feed opens, so the two feeds
@@ -350,7 +359,7 @@ export function HomeScreen({
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
-                  className="-mx-6"
+                  className="-mx-6 grow-0"
                   contentContainerClassName="px-6 gap-3.5 pb-2"
                 >
                   {trending.map(deal => (

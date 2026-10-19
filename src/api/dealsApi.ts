@@ -301,6 +301,7 @@ export const reactionStatusSchema = z.object({
   dislikesCount: nullableNumber(0),
   reviewsCount: nullableNumber(0),
 });
+export type ReactionStatus = z.infer<typeof reactionStatusSchema>;
 
 /**
  * Deal reviews.
@@ -552,18 +553,35 @@ export const dealsApi = {
     );
   },
 
-  /** Authenticated; the spec documents no response body for this toggle. */
+  /**
+   * Authenticated; toggles the reaction (the same type again removes it) and
+   * returns the resulting `type` (`null` when removed) and the live counts.
+   */
   async setReaction(
     offerId: string,
     type: ReactionType,
     options: ApiRequestOptions = {},
-  ): Promise<unknown> {
-    return request<unknown>({
-      method: 'POST',
-      url: `/deals/${offerId}/reactions`,
-      data: { type },
-      ...options,
-    });
+  ): Promise<ReactionStatus> {
+    return requestValidated<ReactionStatus>(
+      {
+        method: 'POST',
+        url: `/deals/${offerId}/reactions`,
+        data: { type },
+        ...options,
+      },
+      reactionStatusSchema,
+    );
+  },
+
+  /** Authenticated; the caller's reaction (`type`) and the deal's counts. */
+  async getReactionStatus(
+    offerId: string,
+    options: ApiRequestOptions = {},
+  ): Promise<ReactionStatus> {
+    return requestValidated<ReactionStatus>(
+      { method: 'GET', url: `/deals/${offerId}/reaction-status`, ...options },
+      reactionStatusSchema,
+    );
   },
 
   /**

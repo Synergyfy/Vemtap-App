@@ -5,6 +5,8 @@
 export type ResolvedDeal = {
   id: string;
   image: { uri: string };
+  /** Every photo of the deal (main first); more than one makes the hero swipeable. */
+  images: { uri: string }[];
   merchant: string;
   location: string;
   title: string;

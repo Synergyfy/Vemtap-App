@@ -33,6 +33,8 @@ export const publicBusinessDetailSchema = z.object({
   name: z.string(),
   description: z.string().nullable().optional(),
   logoUrl: z.string().nullable().optional(),
+  /** The storefront banner. */
+  coverImage: z.string().nullable().optional(),
   website: z.string().nullable().optional(),
 
   category: namedCategorySchema.nullable().optional(),

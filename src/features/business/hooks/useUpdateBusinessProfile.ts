@@ -10,7 +10,10 @@ export interface UpdateBusinessProfileInput {
   about?: string;
   description?: string;
   phone?: string;
+  whatsappNumber?: string;
   officialEmail?: string;
+  logoUrl?: string;
+  coverImage?: string;
   website?: string;
   socials?: Record<string, string>;
   amenities?: string[];

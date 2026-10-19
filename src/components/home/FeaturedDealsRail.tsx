@@ -85,6 +85,8 @@ function RailPill({
   );
 }
 
+const railListStyle = { flexGrow: 0 } as const;
+
 export function FeaturedDealsRail({
   deals,
   onOpenComments,
@@ -180,6 +182,9 @@ export function FeaturedDealsRail({
         testID="featured-deals-rail"
         data={deals}
         horizontal
+        // Sized by its cards: a growing horizontal list inside Home's vertical
+        // scroll can stretch it.
+        style={railListStyle}
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         decelerationRate="fast"

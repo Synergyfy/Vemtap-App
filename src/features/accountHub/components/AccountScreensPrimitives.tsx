@@ -6,6 +6,7 @@ import {
   View,
   type RefreshControlProps,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { cssInterop } from 'nativewind';
 import { Button } from '@components/ui/Button';
 import { Avatar } from '@components/ui/Avatar';
@@ -16,6 +17,7 @@ import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
 import { navbarBottomShadow } from '@theme/shadows';
 
 cssInterop(View, { className: 'style' });
+cssInterop(SafeAreaView, { className: 'style' });
 cssInterop(Pressable, { className: 'style' });
 cssInterop(ScrollView, {
   className: 'style',
@@ -44,56 +46,57 @@ export function AccountHeader({
 }: AccountHeaderProps) {
   const me = useCurrentUserDisplay();
 
+  // The navbar owns the top inset in white, so it sits below the status bar
+  // on both platforms (Android draws edge-to-edge under it).
   return (
-    <View
-      className="flex-row items-center justify-between bg-surface px-4 pb-3 pt-2"
-      style={navbarBottomShadow}
-    >
-      <View className="min-w-0 flex-1 flex-row items-center gap-1">
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-          onPress={onBack}
-          className="h-11 w-11 items-center justify-center rounded-full"
-        >
-          <Icon name="back" size={24} color={colors.surfaceDark} />
-        </Pressable>
-        <VemtapText
-          accessibilityRole="header"
-          variant="headingSm"
-          className="text-heading-sm"
-          numberOfLines={1}
-        >
-          {title}
-        </VemtapText>
-      </View>
-      <View className="shrink-0 flex-row items-center gap-1">
-        {onAction ? (
+    <SafeAreaView edges={['top']} className="bg-surface" style={navbarBottomShadow}>
+      <View className="flex-row items-center justify-between bg-surface px-4 pb-3 pt-2">
+        <View className="min-w-0 flex-1 flex-row items-center gap-1">
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="More options"
-            onPress={onAction}
+            accessibilityLabel="Go back"
+            onPress={onBack}
             className="h-11 w-11 items-center justify-center rounded-full"
           >
-            <Icon name={actionIcon} size={22} color={colors.textSecondary} />
+            <Icon name="back" size={24} color={colors.surfaceDark} />
           </Pressable>
-        ) : null}
-        {/* Signed-in customer's initials; shared by the Account and More bars. */}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Open account"
-          onPress={onOpenAccount}
-          className="h-8 w-8 items-center justify-center rounded-full bg-primary"
-        >
-          <Avatar
-            uri={me.avatar}
-            name={accountName ?? me.fullName}
-            size="sm"
-            tone="brand"
-          />
-        </Pressable>
+          <VemtapText
+            accessibilityRole="header"
+            variant="headingSm"
+            className="text-heading-sm"
+            numberOfLines={1}
+          >
+            {title}
+          </VemtapText>
+        </View>
+        <View className="shrink-0 flex-row items-center gap-1">
+          {onAction ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="More options"
+              onPress={onAction}
+              className="h-11 w-11 items-center justify-center rounded-full"
+            >
+              <Icon name={actionIcon} size={22} color={colors.textSecondary} />
+            </Pressable>
+          ) : null}
+          {/* Signed-in customer's initials; shared by the Account and More bars. */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Open account"
+            onPress={onOpenAccount}
+            className="h-8 w-8 items-center justify-center rounded-full bg-primary"
+          >
+            <Avatar
+              uri={me.avatar}
+              name={accountName ?? me.fullName}
+              size="sm"
+              tone="brand"
+            />
+          </Pressable>
+        </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 

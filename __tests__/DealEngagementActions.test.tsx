@@ -10,14 +10,29 @@ import {
 
 const mockSetReaction = jest.fn();
 const mockToggleSave = jest.fn();
+const mockReactionStatus = jest.fn();
+const mockSaveStatus = jest.fn();
 
 jest.mock('@api/dealsApi', () => ({
   dealsApi: {
     setReaction: (...args: unknown[]) => mockSetReaction(...args),
     toggleSave: (...args: unknown[]) => mockToggleSave(...args),
+    getReactionStatus: (...args: unknown[]) => mockReactionStatus(...args),
+    getSaveStatus: (...args: unknown[]) => mockSaveStatus(...args),
     getEngagement: jest.fn(),
   },
 }));
+
+/** A server that really toggles, like `deal-engagement.service.setReaction`. */
+function toggleServer(initial: { liked: boolean; likesCount: number }) {
+  const state = { ...initial };
+  mockSetReaction.mockImplementation(async () => {
+    state.liked = !state.liked;
+    state.likesCount += state.liked ? 1 : -1;
+    return { type: state.liked ? 'like' : null, likesCount: state.likesCount };
+  });
+  return state;
+}
 
 let mockStatus = 'authenticated';
 
@@ -76,11 +91,16 @@ afterEach(() => {
 beforeEach(() => {
   mockSetReaction.mockReset();
   mockToggleSave.mockReset();
+  mockReactionStatus.mockReset();
+  mockSaveStatus.mockReset();
+  // Held open by default so a status fetch never races the taps under test.
+  mockReactionStatus.mockReturnValue(new Promise(() => {}));
+  mockSaveStatus.mockReturnValue(new Promise(() => {}));
   mockStatus = 'authenticated';
 });
 
 test('calls the reaction endpoint with the deal id and a like type', async () => {
-  mockSetReaction.mockResolvedValue(undefined);
+  toggleServer({ liked: false, likesCount: 5 });
   const { screen } = await renderProbe();
 
   await fireEvent.press(screen.getByTestId('like'));
@@ -111,7 +131,7 @@ test('flips the liked flag while the request is still in flight', async () => {
 });
 
 test('moves the cached like count up on like and back down on unlike', async () => {
-  mockSetReaction.mockResolvedValue(undefined);
+  toggleServer({ liked: false, likesCount: 5 });
   const { screen, client } = await renderProbe();
 
   await fireEvent.press(screen.getByTestId('like'));
@@ -130,7 +150,7 @@ test('moves the cached like count up on like and back down on unlike', async () 
 });
 
 test('never drives the cached like count below zero', async () => {
-  mockSetReaction.mockResolvedValue(undefined);
+  mockSetReaction.mockReturnValue(new Promise(() => {}));
   const { screen, client } = await renderProbe();
   client.setQueryData(engagementKeys.counts(OFFER), { likesCount: 0 });
 
@@ -170,7 +190,7 @@ test('does not fire when signed out, and reports that auth is needed', async () 
 });
 
 test('toggles save through its own endpoint and cache slot', async () => {
-  mockToggleSave.mockResolvedValue(undefined);
+  mockToggleSave.mockResolvedValue({ saved: true });
   const { screen, client } = await renderProbe();
 
   await fireEvent.press(screen.getByTestId('save'));
@@ -181,7 +201,7 @@ test('toggles save through its own endpoint and cache slot', async () => {
 });
 
 test('save state is scoped to its own deal', async () => {
-  mockToggleSave.mockResolvedValue(undefined);
+  mockToggleSave.mockResolvedValue({ saved: true });
   const { screen } = await renderProbe(OFFER);
 
   await fireEvent.press(screen.getByTestId('save'));
@@ -198,4 +218,45 @@ test('save state is scoped to its own deal', async () => {
   );
 
   expect(screen.getByTestId('saved')).toHaveTextContent('false');
+});
+
+test('shows a deal the viewer already liked as liked, and the next tap unlikes it', async () => {
+  mockReactionStatus.mockResolvedValue({ type: 'like', likesCount: 5 });
+  toggleServer({ liked: true, likesCount: 5 });
+  const { screen, client } = await renderProbe();
+
+  await waitFor(() => expect(screen.getByTestId('liked')).toHaveTextContent('true'));
+
+  await fireEvent.press(screen.getByTestId('like'));
+  await waitFor(() => expect(screen.getByTestId('liked')).toHaveTextContent('false'));
+  await waitFor(() =>
+    expect(client.getQueryData(engagementKeys.counts(OFFER))).toMatchObject({
+      likesCount: 4,
+    }),
+  );
+  expect(mockSetReaction).toHaveBeenCalledTimes(1);
+});
+
+test('rapid like-unlike-like ends liked, with the server in step', async () => {
+  const server = toggleServer({ liked: false, likesCount: 5 });
+  const { screen, client } = await renderProbe();
+
+  await fireEvent.press(screen.getByTestId('like'));
+  await fireEvent.press(screen.getByTestId('like'));
+  await fireEvent.press(screen.getByTestId('like'));
+
+  await waitFor(() => expect(mockSetReaction).toHaveBeenCalled());
+  await waitFor(() => {
+    expect(server.liked).toBe(true);
+    expect(screen.getByTestId('liked')).toHaveTextContent('true');
+    expect(client.getQueryData(engagementKeys.counts(OFFER))).toMatchObject({
+      likesCount: 6,
+    });
+  });
+});
+
+test('shows a deal the viewer already saved as saved', async () => {
+  mockSaveStatus.mockResolvedValue({ isSaved: true });
+  const { screen } = await renderProbe();
+  await waitFor(() => expect(screen.getByTestId('saved')).toHaveTextContent('true'));
 });

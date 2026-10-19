@@ -119,9 +119,7 @@ export interface BusinessMessagesHomeScreenProps {
   onOpenBranchSwitcher?: () => void;
   onOpenThread?: (id: string) => void;
   onNewMessage?: () => void;
-  onOpenSearch?: () => void;
   onOpenFilters?: () => void;
-  onOpenMoreOptions?: () => void;
 }
 
 export function BusinessMessagesHomeScreen({
@@ -133,9 +131,7 @@ export function BusinessMessagesHomeScreen({
   onOpenBranchSwitcher,
   onOpenThread,
   onNewMessage,
-  onOpenSearch,
   onOpenFilters,
-  onOpenMoreOptions,
 }: BusinessMessagesHomeScreenProps) {
   const [filter, setFilter] = useState(0);
   const [query, setQuery] = useState('');
@@ -185,14 +181,12 @@ export function BusinessMessagesHomeScreen({
         header={{
           title: copy.title,
           centerTitle: false,
+          // Navbar-sized title; the search field below covers search.
+          titleVariant: 'labelMd',
           showAvatar: true,
           titleAccessory: (
             <BusinessStatusPill label={copy.online} tone="success" icon="checkCircle" />
           ),
-          actions: [
-            { icon: 'search', label: copy.searchLabel, onPress: onOpenSearch },
-            { icon: 'more', label: copy.moreLabel, onPress: onOpenMoreOptions },
-          ],
         }}
         contentContainerClassName="pb-24"
         footer={

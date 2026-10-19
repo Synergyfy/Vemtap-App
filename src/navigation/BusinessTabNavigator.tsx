@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useStartNewDeal } from '@navigation/useStartNewDeal';
-import { Alert, Linking } from 'react-native';
+import { Alert, Clipboard, Linking } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useFocusEffect, useRoute, type RouteProp } from '@react-navigation/native';
@@ -97,6 +97,14 @@ import {
   useUpdateDiscoverySetting,
 } from '@features/business/hooks/useBusinessNetwork';
 import { useUpdateBusinessProfile } from '@features/business/hooks/useUpdateBusinessProfile';
+import { useBusinessImageUpload } from '@features/business/hooks/useBusinessImageUpload';
+import { NewMessageCustomerSheet } from '@features/business/components/NewMessageCustomerSheet';
+import {
+  BusinessEditProfileScreen,
+  type BusinessProfileFormValue,
+} from '@features/business/screens/BusinessEditProfileScreen';
+import { BusinessProfileScreen } from '@features/discover/screens/BusinessProfileScreen';
+import type { MyBusiness } from '@api/businessDashboardApi';
 import { toSettingsView } from '@features/business/utils/settingsMappers';
 import { useOfflineQueueStore } from '@store/offlineQueueStore';
 import { POS_SALE_QUEUE_KIND } from '@features/business/services/posOfflineSales';
@@ -165,6 +173,7 @@ import {
   useBusinessThreads,
   useMarkBusinessThreadRead,
   useSendBusinessReply,
+  useStartBusinessThread,
 } from '@features/business/hooks/useBusinessMessaging';
 import { useBusinessMessagingRealtime } from '@features/business/hooks/useBusinessMessagingRealtime';
 import {
@@ -187,7 +196,8 @@ import {
   useUpdateBookingStatus,
 } from '@features/business/hooks/useBusinessBookings';
 import { useAuthStore } from '@store/authStore';
-import { showError, showSuccess } from '@components/shared';
+import { ErrorState, LoadingState, showError, showSuccess } from '@components/shared';
+import { BusinessScreenLayout } from '@features/business/components/BusinessPrimitives';
 import { useCatalogueDraftStore } from '@store/catalogueDraftStore';
 import {
   useCatalogueCategories,
@@ -558,19 +568,48 @@ function BusinessMessagesRoute() {
     ? threadsQuery.data.map(toBusinessMessageThreadView)
     : undefined;
   const activeBranchName = branches.find(branch => branch.id === activeBranchId)?.name;
+  const [composing, setComposing] = useState(false);
+  const startThread = useStartBusinessThread();
 
   return (
-    <BusinessMessagesHomeScreen
-      threads={threads}
-      isLoading={threadsQuery.isLoading}
-      isError={threadsQuery.isError}
-      onRetry={() => {
-        threadsQuery.refetch();
-      }}
-      branchName={activeBranchName}
-      onOpenBranchSwitcher={() => navigation.navigate('LocationsBranches')}
-      onOpenThread={threadId => navigation.navigate('BusinessConversation', { threadId })}
-    />
+    <>
+      <BusinessMessagesHomeScreen
+        threads={threads}
+        isLoading={threadsQuery.isLoading}
+        isError={threadsQuery.isError}
+        onRetry={() => {
+          threadsQuery.refetch();
+        }}
+        branchName={activeBranchName}
+        onOpenBranchSwitcher={() => navigation.navigate('LocationsBranches')}
+        onOpenThread={threadId =>
+          navigation.navigate('BusinessConversation', { threadId })
+        }
+        onNewMessage={() => setComposing(true)}
+      />
+      <NewMessageCustomerSheet
+        visible={composing}
+        onClose={() => setComposing(false)}
+        branchId={activeBranchId ?? undefined}
+        startingUserId={
+          startThread.isPending ? (startThread.variables?.customerId ?? null) : null
+        }
+        onPick={customer => {
+          if (!activeBranchId) return;
+          startThread.mutate(
+            { customerId: customer.userId, branchId: activeBranchId },
+            {
+              onSuccess: thread => {
+                setComposing(false);
+                navigation.navigate('BusinessConversation', { threadId: thread.id });
+              },
+              onError: () =>
+                showError(strings.businessMessages.newMessageSheet.startFailed),
+            },
+          );
+        }}
+      />
+    </>
   );
 }
 
@@ -676,9 +715,9 @@ function BusinessHubRoute() {
       onOpenLoyalty={() => navigation.navigate('LoyaltyProgramme')}
       onOpenLocations={() => navigation.navigate('LocationsBranches')}
       onOpenStaff={() => navigation.navigate('StaffDirectory')}
-      onEditProfile={() => navigation.navigate('BusinessProfilePreview')}
+      onEditProfile={() => navigation.navigate('BusinessEditProfile')}
       onOpenLocationSwitcher={() => navigation.navigate('BusinessManagementHub')}
-      onPreviewStorefront={() => navigation.navigate('BusinessProfilePreview')}
+      onPreviewStorefront={() => navigation.navigate('BusinessStorefrontPreview')}
       onCall={() => openExternal(view.phone ? `tel:${view.phone}` : '')}
       onOpenWebsite={() =>
         openExternal(
@@ -742,23 +781,141 @@ function BusinessProfilePreviewRoute() {
   // Read live so the amenity toggles reflect what is actually saved; a save
   // built from the design defaults would overwrite them.
   const myBusiness = useMyBusiness();
+  const images = useBusinessImageUpload();
+  const openEdit = () => navigation.navigate('BusinessEditProfile');
+  const openStorefront = () => navigation.navigate('BusinessStorefrontPreview');
   return (
     <BusinessProfilePreviewScreen
+      // Keyed on the saved list so the toggles reset to it once it loads.
+      key={(myBusiness.data?.amenities ?? []).join('|') || 'none'}
       initialAmenities={myBusiness.data?.amenities ?? undefined}
       onBack={navigation.goBack}
-      onMoreActions={() => undefined}
-      onChangeCover={() => undefined}
-      onEditAvatar={() => undefined}
-      onPublicPreview={() => undefined}
-      onPublicStorefront={() => undefined}
-      onEditProfile={() => undefined}
-      onManageContacts={() => undefined}
-      onCopyValue={() => undefined}
-      onAddSocial={() => undefined}
+      onChangeCover={() => images.change('cover')}
+      onEditAvatar={() => images.change('logo')}
+      uploading={images.busy}
+      onPublicPreview={openStorefront}
+      onPublicStorefront={openStorefront}
+      onEditProfile={openEdit}
+      onManageContacts={openEdit}
+      onAddSocial={openEdit}
+      onCopyValue={value => {
+        Clipboard.setString(value);
+        showSuccess(strings.businessProfilePreview.copied);
+      }}
       onSaveChanges={navigation.goBack}
       onDiscardChanges={navigation.goBack}
     />
   );
+}
+
+/** The saved profile as the edit form's starting values. */
+function profileFormValue(business?: MyBusiness): BusinessProfileFormValue {
+  const socials = business?.socials ?? {};
+  return {
+    name: business?.name ?? '',
+    about: business?.description ?? '',
+    phone: business?.phone ?? '',
+    whatsappNumber: business?.whatsappNumber ?? '',
+    officialEmail: business?.officialEmail ?? '',
+    website: business?.website ?? '',
+    address: business?.address ?? '',
+    instagram: socials.instagram ?? '',
+    facebook: socials.facebook ?? '',
+    tiktok: socials.tiktok ?? '',
+    x: socials.x ?? '',
+  };
+}
+
+function BusinessEditProfileRoute() {
+  const navigation = useBusinessNavigation();
+  const myBusiness = useMyBusiness();
+  const update = useUpdateBusinessProfile();
+  const images = useBusinessImageUpload();
+  const copy = strings.businessEditProfile;
+
+  if (!myBusiness.data) {
+    return (
+      <BusinessScreenLayout header={{ title: copy.title, onBack: navigation.goBack }}>
+        {myBusiness.isError ? (
+          <ErrorState
+            description={copy.loadFailed}
+            onRetry={() => myBusiness.refetch()}
+          />
+        ) : (
+          <LoadingState />
+        )}
+      </BusinessScreenLayout>
+    );
+  }
+
+  const business = myBusiness.data;
+  return (
+    <BusinessEditProfileScreen
+      // Mounted once the profile has loaded, so the form starts from it.
+      initialValue={profileFormValue(business)}
+      logoUri={business.logoUrl || undefined}
+      coverUri={business.coverImage || undefined}
+      onBack={navigation.goBack}
+      saving={update.isPending}
+      onChangeImage={kind => images.change(kind)}
+      uploading={images.busy}
+      onPreviewStorefront={() => navigation.navigate('BusinessStorefrontPreview')}
+      onSave={value => {
+        const trim = (text: string) => text.trim();
+        update.mutate(
+          {
+            name: trim(value.name),
+            description: trim(value.about),
+            phone: trim(value.phone),
+            whatsappNumber: trim(value.whatsappNumber),
+            officialEmail: trim(value.officialEmail),
+            website: trim(value.website),
+            address: trim(value.address),
+            // All four links are sent, a cleared one as '', merged over any
+            // other saved links (e.g. LinkedIn) so those are kept.
+            socials: {
+              ...(business.socials ?? {}),
+              instagram: trim(value.instagram),
+              facebook: trim(value.facebook),
+              tiktok: trim(value.tiktok),
+              x: trim(value.x),
+            },
+          },
+          {
+            onSuccess: () => {
+              showSuccess(copy.saved);
+              navigation.goBack();
+            },
+            onError: () => showError(copy.saveFailed),
+          },
+        );
+      }}
+    />
+  );
+}
+
+function BusinessStorefrontPreviewRoute() {
+  const navigation = useBusinessNavigation();
+  const myBusiness = useMyBusiness();
+  const code = myBusiness.data?.uniqueCode ?? undefined;
+  if (!code) {
+    return (
+      <BusinessScreenLayout
+        header={{
+          title: strings.businessEditProfile.previewStorefront,
+          onBack: navigation.goBack,
+        }}
+      >
+        {myBusiness.isError ? (
+          <ErrorState onRetry={() => myBusiness.refetch()} />
+        ) : (
+          <LoadingState />
+        )}
+      </BusinessScreenLayout>
+    );
+  }
+  // The customer storefront itself, for the owner's own code.
+  return <BusinessProfileScreen code={code} onBack={navigation.goBack} preview />;
 }
 
 const ALL_DEAL_SCOPE = 'all';
@@ -3262,6 +3419,11 @@ function BusinessHubTabNavigator() {
       <HubStack.Screen
         name="BusinessProfilePreview"
         component={BusinessProfilePreviewRoute}
+      />
+      <HubStack.Screen name="BusinessEditProfile" component={BusinessEditProfileRoute} />
+      <HubStack.Screen
+        name="BusinessStorefrontPreview"
+        component={BusinessStorefrontPreviewRoute}
       />
       <HubStack.Screen
         name="CentralDealsManagement"

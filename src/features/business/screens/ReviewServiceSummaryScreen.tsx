@@ -162,7 +162,8 @@ export function ReviewServiceSummaryScreen({
   const shownHighlights = draft.highlights;
   return (
     <ServiceFlowPage
-      title="Add Service   Step 4: Review Service Summary"
+      step={4}
+      title="Review Service Summary"
       onBack={onBack}
       onSaveDraft={onSaveDraft}
       contentContainerClassName="w-full max-w-[640px] self-center gap-6 px-6 pb-12 pt-4"

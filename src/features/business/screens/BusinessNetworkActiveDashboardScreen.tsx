@@ -109,7 +109,11 @@ export function BusinessNetworkActiveDashboardScreen({
         title: copy.headerTitle,
         onBack,
         actions: [
-          { icon: 'accountCircle', label: copy.headerTitle, onPress: onOpenProfile },
+          {
+            icon: 'accountCircle',
+            label: strings.businessShell.profileLabel,
+            onPress: onOpenProfile,
+          },
         ],
       }}
       contentContainerClassName="pb-8"

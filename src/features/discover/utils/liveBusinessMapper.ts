@@ -28,6 +28,8 @@ export type LiveBusinessProfile = BusinessProfileSummary & {
   /** Real coordinates, used to centre the profile map. */
   latitude?: number;
   longitude?: number;
+  /** The storefront banner, when one was uploaded. */
+  coverUri?: string;
   /** The merchant's own words, when they have written any. */
   description?: string;
   phone?: string;
@@ -61,6 +63,7 @@ export function mapPublicBusinessToProfile(
     // filtering, which a live profile never participates in.
     categoryFilter: 'Food & Dining',
     imageUri: business.logoUrl ?? FALLBACK_LOGO_URI,
+    coverUri: business.coverImage ?? undefined,
     imageAlt: strings.businessProfile.imageAlt(business.name, category),
     // No public rating source — the profile hides the row rather than inventing
     // a score.

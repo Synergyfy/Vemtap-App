@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo } from 'react';
-import { Image, Pressable, ScrollView, Share, View } from 'react-native';
+import { Image, Pressable, ScrollView, Share, StyleSheet, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -10,6 +10,9 @@ import { VemtapText } from '@components/ui/Text';
 import { EmptyState } from '@components/shared/EmptyState';
 import { ErrorState } from '@components/shared/ErrorState';
 import { LoadingState } from '@components/shared/LoadingState';
+import { DoubleTapLike } from '@components/shared/DoubleTapLike';
+import { LikeButton } from '@components/shared/LikeButton';
+import { useCatalogueItemLike } from '@features/order/hooks/useCatalogueItemLike';
 import { strings } from '@constants/strings';
 import { toAmount } from '@features/deals/utils/offerMapper';
 import { colors } from '@theme/colors';
@@ -42,6 +45,7 @@ export function ServiceDetailScreen({ route, navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { serviceId, branchId, businessName, branchName } = route.params ?? {};
   const item = useServiceItem(serviceId, branchId);
+  const like = useCatalogueItemLike(serviceId);
 
   const hero = useMemo(() => {
     const gallery = item.data?.galleryImages ?? [];
@@ -131,13 +135,19 @@ export function ServiceDetailScreen({ route, navigation }: Props) {
       >
         <View className="relative aspect-[4/3] overflow-hidden bg-surface-container-high">
           {hero ? (
-            <Image source={{ uri: hero }} className="h-full w-full" resizeMode="cover" />
+            <DoubleTapLike onDoubleTap={like.like} style={StyleSheet.absoluteFill}>
+              <Image
+                source={{ uri: hero }}
+                className="h-full w-full"
+                resizeMode="cover"
+              />
+            </DoubleTapLike>
           ) : (
             <View className="h-full w-full items-center justify-center">
               <Icon name="spa" size={64} color={colors.outline} />
             </View>
           )}
-          <View className="absolute inset-0 bg-inverse-surface/25" />
+          <View pointerEvents="none" className="absolute inset-0 bg-inverse-surface/25" />
           {service.category?.name ? (
             <View className="absolute left-4 top-4 flex-row items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 shadow-sm">
               <Icon name="spa" size={16} color={colors.primary} />
@@ -173,6 +183,12 @@ export function ServiceDetailScreen({ route, navigation }: Props) {
             >
               {service.name}
             </VemtapText>
+            <LikeButton
+              liked={like.liked}
+              likesCount={like.likesCount}
+              onToggle={like.toggle}
+              accessibilityLabel={service.name}
+            />
             <View className="flex-row flex-wrap gap-2">
               {service.duration ? (
                 <Badge icon="schedule" label={service.duration} />

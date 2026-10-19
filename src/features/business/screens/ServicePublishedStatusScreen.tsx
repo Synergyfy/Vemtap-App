@@ -58,7 +58,8 @@ export function ServicePublishedStatusScreen({
 
   return (
     <ServiceFlowPage
-      title="Add Service   Step 5: Service Published Or Saved As Draft"
+      step={5}
+      title="Service Published Or Saved As Draft"
       onBack={onBack}
       onSaveDraft={onSaveDraft}
       contentContainerClassName="w-full max-w-[640px] self-center gap-6 px-6 pb-10 pt-4"

@@ -43,6 +43,24 @@ function asFeedOffer(detail: PublicOfferDetail): FeedOfferView {
  * straight from the payload. Do not use `business.slug`: on this endpoint that
  * is the *branch* code, and the profile lookup 404s for it.
  */
+/**
+ * The deal's photos: its own main and gallery images, then those of the items
+ * it bundles, deduplicated, with the hero image first. Falls back to the hero
+ * alone (which may be the placeholder) when there are none.
+ */
+export function dealImages(detail: PublicOfferDetail, hero: string): string[] {
+  const urls = [
+    hero,
+    detail.mainImage,
+    ...(detail.galleryImages ?? []),
+    ...(detail.items ?? []).flatMap(item => [
+      item.mainImage,
+      ...(item.galleryImages ?? []),
+    ]),
+  ].filter((url): url is string => Boolean(url));
+  return [...new Set(urls)];
+}
+
 export function mapOfferDetailToResolved(
   detail: PublicOfferDetail,
   origin: GeoCoords,
@@ -54,6 +72,7 @@ export function mapOfferDetailToResolved(
   return {
     id: detail.id,
     image: { uri: offerImage(offer) },
+    images: dealImages(detail, offerImage(offer)).map(uri => ({ uri })),
     merchant: business?.name ?? '',
     // The merchant's own city/address, not a hardcoded "Apo, Abuja".
     location: business?.city ?? business?.address ?? '',

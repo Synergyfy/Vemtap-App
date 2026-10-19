@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { ActivityIndicator, Pressable, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { cssInterop } from 'nativewind';
 import { Button } from '@components/ui/Button';
@@ -30,7 +30,6 @@ const copy = strings.businessProfilePreview;
 
 export interface BusinessProfilePreviewScreenProps {
   onBack?: () => void;
-  onMoreActions?: () => void;
   onChangeCover?: () => void;
   onEditAvatar?: () => void;
   onPublicPreview?: () => void;
@@ -41,6 +40,8 @@ export interface BusinessProfilePreviewScreenProps {
   onAddSocial?: () => void;
   onSaveChanges?: () => void;
   onDiscardChanges?: () => void;
+  /** The logo or banner currently uploading. */
+  uploading?: 'logo' | 'cover' | null;
   /**
    * The amenities the business actually has saved. Without this the toggles
    * would start all-on and a save would overwrite real settings with the full
@@ -55,7 +56,6 @@ export interface BusinessProfilePreviewScreenProps {
  */
 export function BusinessProfilePreviewScreen({
   onBack,
-  onMoreActions,
   onChangeCover,
   onEditAvatar,
   onPublicPreview,
@@ -67,6 +67,7 @@ export function BusinessProfilePreviewScreen({
   onSaveChanges,
   onDiscardChanges,
   initialAmenities,
+  uploading = null,
 }: BusinessProfilePreviewScreenProps) {
   // Falls back to the full design list only when the business has never saved
   // one, which is what a brand-new profile should start as.
@@ -148,7 +149,6 @@ export function BusinessProfilePreviewScreen({
         title: copy.headerTitle,
         onBack,
         centerTitle: false,
-        actions: [{ icon: 'more', label: copy.discardChanges, onPress: onMoreActions }],
       }}
       contentContainerClassName="pb-8"
       footer={
@@ -157,7 +157,11 @@ export function BusinessProfilePreviewScreen({
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={copy.discardChanges}
-              onPress={onDiscardChanges}
+              onPress={() => {
+                // Put the toggles back to what is saved before leaving.
+                setActiveAmenities(initialAmenities ?? []);
+                onDiscardChanges?.();
+              }}
               className="h-12 w-12 shrink-0 items-center justify-center rounded-field bg-surface-container active:scale-95"
             >
               <Icon name="restore" size={20} color={colors.textSecondary} />
@@ -219,11 +223,18 @@ export function BusinessProfilePreviewScreen({
           accessibilityRole="button"
           accessibilityLabel={copy.changeCover}
           onPress={onChangeCover}
+          disabled={uploading !== null}
           className="absolute right-2.5 top-2.5 min-h-9 flex-row items-center gap-1.5 rounded-full bg-inverse-surface px-3 py-1.5 active:scale-95"
         >
-          <Icon name="camera" size={16} color={colors.surface} />
+          {uploading === 'cover' ? (
+            <ActivityIndicator size="small" color={colors.surface} />
+          ) : (
+            <Icon name="camera" size={16} color={colors.surface} />
+          )}
           <VemtapText variant="labelSm" className="font-sans-semibold text-surface">
-            {copy.changeCover}
+            {uploading === 'cover'
+              ? strings.businessEditProfile.uploading
+              : copy.changeCover}
           </VemtapText>
         </Pressable>
         {business.data?.uniqueCode ? (
@@ -239,8 +250,9 @@ export function BusinessProfilePreviewScreen({
       <View className="-mt-9 flex-row items-end justify-between gap-3 px-3">
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={copy.editProfile}
+          accessibilityLabel={strings.businessEditProfile.changeLogo}
           onPress={onEditAvatar}
+          disabled={uploading !== null}
           className="h-[68px] w-[68px] shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-surface bg-surface shadow-md"
         >
           <Avatar
@@ -252,7 +264,11 @@ export function BusinessProfilePreviewScreen({
             accessibilityLabel={`${businessName} logo`}
           />
           <View className="absolute bottom-0 right-0 h-7 w-7 items-center justify-center rounded-full bg-primary shadow-md">
-            <Icon name="edit" size={14} color={colors.surface} />
+            {uploading === 'logo' ? (
+              <ActivityIndicator size="small" color={colors.surface} />
+            ) : (
+              <Icon name="edit" size={14} color={colors.surface} />
+            )}
           </View>
         </Pressable>
         {verified ? (

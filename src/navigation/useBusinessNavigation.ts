@@ -84,6 +84,8 @@ const TAB_FOR_ROUTE = new Map<string, BusinessTabRootName>([
   ['BusinessHubHome', 'BusinessHub'],
   ['BusinessManagementHub', 'BusinessHub'],
   ['BusinessProfilePreview', 'BusinessHub'],
+  ['BusinessEditProfile', 'BusinessHub'],
+  ['BusinessStorefrontPreview', 'BusinessHub'],
   ['CentralDealsManagement', 'BusinessHub'],
   ['DealsFlashRadar', 'BusinessHub'],
   ['CampaignsDealsManagement', 'BusinessHub'],

@@ -146,8 +146,16 @@ export function CampaignsHubScreen({
         title: copy.headerTitle,
         onBack,
         actions: [
-          { icon: 'bellRing', label: copy.headerTitle, onPress: onOpenNotifications },
-          { icon: 'accountCircle', label: copy.headerTitle, onPress: undefined },
+          {
+            icon: 'bellRing',
+            label: strings.businessShell.notificationsLabel,
+            onPress: onOpenNotifications,
+          },
+          {
+            icon: 'accountCircle',
+            label: strings.businessShell.profileLabel,
+            onPress: undefined,
+          },
         ],
       }}
       contentContainerClassName="pb-8"

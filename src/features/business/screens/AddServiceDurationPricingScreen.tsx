@@ -163,7 +163,8 @@ export function AddServiceDurationPricingScreen({
 
   return (
     <ServiceFlowPage
-      title="Add Service   Step 2: Duration Pricing & Staff/Tiers"
+      step={2}
+      title="Duration Pricing & Staff/Tiers"
       onBack={onBack}
       onSaveDraft={() => onSaveDraft?.(currentValue)}
       footer={

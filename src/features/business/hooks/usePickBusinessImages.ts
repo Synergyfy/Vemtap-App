@@ -7,7 +7,11 @@ import { uploadBusinessImage } from '@features/business/utils/uploadBusinessMedi
  * Pick images from the library and upload them as business media. Resolves to
  * the hosted URLs (empty when the owner cancels or every upload fails).
  */
-export function usePickBusinessImages(limit = 5) {
+export function usePickBusinessImages(
+  limit = 5,
+  /** Crop frame for a single image (`[1, 1]` logo, `[16, 9]` banner). */
+  aspect: [number, number] | null = null,
+) {
   const [uploading, setUploading] = useState(false);
 
   const pick = useCallback(async (): Promise<string[]> => {
@@ -16,6 +20,9 @@ export function usePickBusinessImages(limit = 5) {
       mediaTypes: ['images'],
       allowsMultipleSelection: limit > 1,
       selectionLimit: limit,
+      // Cropping only applies to a single pick.
+      allowsEditing: limit === 1 && aspect !== null,
+      aspect: aspect ?? undefined,
       quality: 0.8,
     });
     if (result.canceled || !result.assets.length) return [];
@@ -36,7 +43,7 @@ export function usePickBusinessImages(limit = 5) {
     } finally {
       setUploading(false);
     }
-  }, [limit, uploading]);
+  }, [aspect, limit, uploading]);
 
   return { pick, uploading };
 }

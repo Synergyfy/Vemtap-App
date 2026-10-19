@@ -156,7 +156,8 @@ export function AddServiceAvailabilityRulesScreen({
 
   return (
     <ServiceFlowPage
-      title="Add Service   Step 3: Branch Availability & Appointment Rules"
+      step={3}
+      title="Branch Availability & Appointment Rules"
       onBack={onBack}
       onSaveDraft={() => onSaveDraft?.(currentValue)}
       footer={

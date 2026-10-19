@@ -358,10 +358,12 @@ describe('business management surfaces are reachable', () => {
     }, Promise.resolve());
   });
 
-  it('reaches the profile preview and the management hub', async () => {
+  it('reaches the profile editor, the storefront preview and the management hub', async () => {
+    // Edit Profile opens the editor; Preview Storefront the customer storefront.
+    await expectToReach([hub.editProfile], strings.businessEditProfile.title);
     await expectToReach(
-      [strings.businessProfilePreview.editProfile],
-      strings.businessProfilePreview.headerTitle,
+      [hub.previewStorefront],
+      strings.businessEditProfile.previewStorefront,
     );
 
     await openBusinessTab();

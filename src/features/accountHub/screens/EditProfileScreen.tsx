@@ -108,7 +108,7 @@ export function EditProfileScreen({
   };
 
   return (
-    <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-background">
+    <SafeAreaView edges={[]} className="flex-1 bg-background">
       <AccountHeader title={copy.title} onBack={onBack} />
       <PageScroll>
         <View className="items-center gap-2 py-3">

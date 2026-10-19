@@ -83,6 +83,11 @@ export interface BusinessProfileScreenProps {
     businessName?: string;
     branchName?: string;
   }) => void;
+  /**
+   * The owner previewing their own storefront from the business app: shows a
+   * notice and drops the customer-only actions (save, follow).
+   */
+  preview?: boolean;
 }
 
 /** Products shown on the profile before "See all". */
@@ -104,6 +109,7 @@ export function BusinessProfileScreen({
   onOpenService,
   onOpenProduct,
   onOpenProducts,
+  preview = false,
 }: BusinessProfileScreenProps) {
   const [bundledBookmarked, setBundledBookmarked] = useState(false);
   const [following, setFollowing] = useState(false);
@@ -251,28 +257,42 @@ export function BusinessProfileScreen({
         showsVerticalScrollIndicator={false}
         contentContainerClassName="w-full max-w-screen self-center pb-3"
       >
+        {preview ? (
+          <View className="flex-row items-center gap-2 bg-surface-tint px-6 py-2.5">
+            <Icon name="visibility" size={16} color={colors.primary} />
+            <VemtapText variant="caption" tone="brand" className="min-w-0 flex-1">
+              {strings.businessEditProfile.previewBanner}
+            </VemtapText>
+          </View>
+        ) : null}
         <View className="relative h-[210px] w-full overflow-hidden bg-surface-container">
-          <Image
-            source={{ uri: business.imageUri }}
-            accessibilityLabel={business.imageAlt}
-            className="h-full w-full"
-            resizeMode="cover"
-          />
+          {/* The banner is the uploaded cover; without one the panel stays plain
+              rather than repeating the logo at banner size. */}
+          {business.coverUri ? (
+            <Image
+              source={{ uri: business.coverUri }}
+              accessibilityLabel={business.imageAlt}
+              className="h-full w-full"
+              resizeMode="cover"
+            />
+          ) : null}
           <View className="absolute inset-x-0 bottom-0 h-28 bg-surface-dark/60" />
           <View className="absolute right-4 top-4 flex-row gap-2">
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={strings.discoverFeed.bookmarkBusiness(business.name)}
-              accessibilityState={{ selected: bookmarked }}
-              onPress={toggleBookmark}
-              className="h-10 w-10 items-center justify-center rounded-full bg-surface-canvas shadow-sm"
-            >
-              <Icon
-                name="bookmark"
-                size={20}
-                color={bookmarked ? colors.primary : colors.text}
-              />
-            </Pressable>
+            {preview ? null : (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={strings.discoverFeed.bookmarkBusiness(business.name)}
+                accessibilityState={{ selected: bookmarked }}
+                onPress={toggleBookmark}
+                className="h-10 w-10 items-center justify-center rounded-full bg-surface-canvas shadow-sm"
+              >
+                <Icon
+                  name="bookmark"
+                  size={20}
+                  color={bookmarked ? colors.primary : colors.text}
+                />
+              </Pressable>
+            )}
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={strings.urbanProfile.share}
@@ -305,22 +325,28 @@ export function BusinessProfileScreen({
                   <Icon name="check" size={15} color={colors.surface} />
                 </View>
               </View>
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => setFollowing(value => !value)}
-                className="flex-row items-center gap-1.5 rounded-full bg-surface-tint px-3.5 py-1.5"
-              >
-                <Icon
-                  name={following ? 'check' : 'plus'}
-                  size={16}
-                  color={following ? colors.badgeDiscountText : colors.primary}
-                />
-                <VemtapText variant="labelSm" tone="brand" className="font-sans-semibold">
-                  {following
-                    ? strings.urbanProfile.following
-                    : strings.urbanProfile.follow}
-                </VemtapText>
-              </Pressable>
+              {preview ? null : (
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => setFollowing(value => !value)}
+                  className="flex-row items-center gap-1.5 rounded-full bg-surface-tint px-3.5 py-1.5"
+                >
+                  <Icon
+                    name={following ? 'check' : 'plus'}
+                    size={16}
+                    color={following ? colors.badgeDiscountText : colors.primary}
+                  />
+                  <VemtapText
+                    variant="labelSm"
+                    tone="brand"
+                    className="font-sans-semibold"
+                  >
+                    {following
+                      ? strings.urbanProfile.following
+                      : strings.urbanProfile.follow}
+                  </VemtapText>
+                </Pressable>
+              )}
             </View>
             <VemtapText
               accessibilityRole="header"

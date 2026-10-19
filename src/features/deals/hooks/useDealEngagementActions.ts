@@ -1,18 +1,23 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { dealsApi, type DealEngagement } from '@api/dealsApi';
+import { dealsApi, type DealEngagement, type ReactionStatus } from '@api/dealsApi';
+import {
+  useLikeToggle,
+  type LikeStatus,
+  type UseLikeToggleOptions,
+} from '@hooks/useLikeToggle';
 import { useAuthStore } from '@store/authStore';
 import { logger } from '@utils/logger';
 import { savedHubKeys } from '@features/accountHub/hooks/useSavedHub';
 
 /**
- * Optimistic like/save for a deal.
+ * Like and save for a deal.
  *
- * The API documents no response body for the reaction/save toggles, so the
- * cache is treated as the source of truth for the UI: the count and the flag
- * flip immediately, the request reconciles the count on settle, and any failure
- * restores the previous value. That keeps the interaction instant without
- * inventing a response contract.
+ * Both start from the server's answer for the signed-in viewer
+ * (`reaction-status` / `save-status`), flip immediately on tap, and take the
+ * server's response as the final word. Before this the flags lived only in the
+ * client cache, so a liked deal showed as unliked after a restart and the next
+ * tap sent the toggle the wrong way.
  *
  * Both endpoints are authenticated, so an anonymous tap is reported through
  * `needsAuth` for the screen to route to sign-in rather than firing a request
@@ -25,112 +30,66 @@ export const engagementKeys = {
   saved: (offerId: string) => ['offers', 'saved', offerId] as const,
 };
 
-type ReactionState = { liked: boolean };
 type SavedState = { saved: boolean };
 
-/**
- * Reads a client-held flag out of the query cache. `enabled: false` keeps this
- * a pure cache subscription — it never fetches, but it does re-render when the
- * optimistic write in `onMutate` lands, which a bare `getQueryData` would miss.
- */
-function useClientFlag<T>(queryKey: readonly unknown[], initial: T) {
-  const { data } = useQuery<T>({
-    queryKey,
-    queryFn: async () => initial,
-    initialData: initial,
-    enabled: false,
-    staleTime: Infinity,
-    gcTime: Infinity,
-  });
-  return data;
+function toLikeStatus(status: ReactionStatus): LikeStatus {
+  return { liked: status.type === 'like', likesCount: status.likesCount };
 }
 
 export function useDealReaction(offerId: string) {
   const queryClient = useQueryClient();
-  const status = useAuthStore(state => state.status);
-  const isSignedIn = status === 'authenticated';
-  const reaction = useClientFlag<ReactionState>(engagementKeys.reaction(offerId), {
-    liked: false,
-  });
-
-  type ReactionContext = {
-    previousReaction?: ReactionState;
-    previousCounts?: DealEngagement;
-  };
-
-  const mutation = useMutation<void, Error, void, ReactionContext>({
-    mutationFn: () => dealsApi.setReaction(offerId, 'like').then(() => undefined),
-
-    onMutate: async () => {
-      await queryClient.cancelQueries({ queryKey: engagementKeys.reaction(offerId) });
-      await queryClient.cancelQueries({ queryKey: engagementKeys.counts(offerId) });
-
-      const previousReaction = queryClient.getQueryData<ReactionState>(
-        engagementKeys.reaction(offerId),
-      );
-      const previousCounts = queryClient.getQueryData<DealEngagement>(
-        engagementKeys.counts(offerId),
-      );
-
-      const wasLiked = previousReaction?.liked ?? false;
-      const nextLiked = !wasLiked;
-
-      queryClient.setQueryData<ReactionState>(engagementKeys.reaction(offerId), {
-        liked: nextLiked,
-      });
-      // Optimistic count lives in the same cache every card reads, so the
-      // displayed number moves once here and never again at the render site.
+  const setCount = useCallback(
+    (update: (count: number) => number) =>
+      // The count every card shows lives in the engagement cache.
       queryClient.setQueryData<DealEngagement>(engagementKeys.counts(offerId), old =>
-        old
-          ? { ...old, likesCount: Math.max(0, old.likesCount + (nextLiked ? 1 : -1)) }
-          : old,
-      );
+        old ? { ...old, likesCount: update(old.likesCount) } : old,
+      ),
+    [offerId, queryClient],
+  );
 
-      return { previousReaction, previousCounts, wasLiked };
-    },
+  const options = useMemo<UseLikeToggleOptions>(
+    () => ({
+      queryKey: engagementKeys.reaction(offerId),
+      fetchStatus: async () => {
+        const status = toLikeStatus(await dealsApi.getReactionStatus(offerId));
+        setCount(() => status.likesCount);
+        return status;
+      },
+      // The endpoint toggles; the sync loop only calls it while the server
+      // differs from what the customer wants, and re-checks the answer.
+      send: async () => toLikeStatus(await dealsApi.setReaction(offerId, 'like')),
+      onCount: setCount,
+      onFailed: () =>
+        queryClient.invalidateQueries({ queryKey: engagementKeys.counts(offerId) }),
+      enabled: Boolean(offerId),
+    }),
+    [offerId, queryClient, setCount],
+  );
 
-    onError: (error, _variables, context) => {
-      if (context?.previousReaction) {
-        queryClient.setQueryData(
-          engagementKeys.reaction(offerId),
-          context.previousReaction,
-        );
-      }
-      if (context?.previousCounts) {
-        queryClient.setQueryData(engagementKeys.counts(offerId), context.previousCounts);
-      }
-      logger.warn('api', 'Like failed, restored previous state', { offerId, error });
-    },
-
-    onSettled: () => {
-      // The server is the system of record for the count.
-      queryClient.invalidateQueries({ queryKey: engagementKeys.counts(offerId) });
-    },
-  });
-
-  const toggle = useCallback(() => {
-    if (!isSignedIn || mutation.isPending) return;
-    mutation.mutate();
-  }, [isSignedIn, mutation]);
-
-  return {
-    liked: reaction?.liked ?? false,
-    toggle,
-    isPending: mutation.isPending,
-    needsAuth: !isSignedIn,
-  };
+  const { liked, toggle, like, needsAuth } = useLikeToggle(options);
+  return { liked, toggle, like, needsAuth };
 }
 
 export function useDealSave(offerId: string) {
   const queryClient = useQueryClient();
   const status = useAuthStore(state => state.status);
   const isSignedIn = status === 'authenticated';
-  const savedState = useClientFlag<SavedState>(engagementKeys.saved(offerId), {
-    saved: false,
+  const { data: savedState } = useQuery<SavedState>({
+    queryKey: engagementKeys.saved(offerId),
+    queryFn: async () => ({
+      saved: (await dealsApi.getSaveStatus(offerId)).isSaved,
+    }),
+    enabled: isSignedIn && Boolean(offerId),
+    staleTime: 5 * 60_000,
   });
 
-  const mutation = useMutation<void, Error, void, { previous?: SavedState }>({
-    mutationFn: () => dealsApi.toggleSave(offerId).then(() => undefined),
+  const mutation = useMutation<
+    { saved: boolean } | undefined,
+    Error,
+    void,
+    { previous?: SavedState }
+  >({
+    mutationFn: () => dealsApi.toggleSave(offerId),
 
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: engagementKeys.saved(offerId) });
@@ -144,16 +103,24 @@ export function useDealSave(offerId: string) {
     },
 
     onError: (error, _variables, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(engagementKeys.saved(offerId), context.previous);
-      }
+      queryClient.setQueryData<SavedState>(
+        engagementKeys.saved(offerId),
+        context?.previous ?? { saved: false },
+      );
       logger.warn('api', 'Save failed, restored previous state', { offerId, error });
     },
 
+    onSuccess: result => {
+      // The server decides the direction; its answer is the saved state.
+      if (typeof result?.saved === 'boolean') {
+        queryClient.setQueryData<SavedState>(engagementKeys.saved(offerId), {
+          saved: result.saved,
+        });
+      }
+    },
+
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: engagementKeys.saved(offerId) });
-      // This hook keeps its own client flag and never reads server save state,
-      // so without this a save made here would leave the Saved Hub showing the
+      // Without this a save made here would leave the Saved Hub showing the
       // old list until its own cache went stale.
       queryClient.invalidateQueries({ queryKey: savedHubKeys.all });
     },

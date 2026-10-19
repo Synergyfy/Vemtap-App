@@ -82,7 +82,11 @@ export function MyBusinessNetworkScreen({
         onBack,
         actions: [
           { icon: 'search', label: copy.headerSearch, onPress: onOpenSearch },
-          { icon: 'accountCircle', label: copy.headerTitle, onPress: onOpenProfile },
+          {
+            icon: 'accountCircle',
+            label: strings.businessShell.profileLabel,
+            onPress: onOpenProfile,
+          },
         ],
       }}
       contentContainerClassName="pb-8"

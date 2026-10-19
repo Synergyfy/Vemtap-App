@@ -2,6 +2,7 @@ import React from 'react';
 import { Image, Pressable, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { Icon } from '@components/ui/Icon';
+import { LikeHeart } from '@components/shared/LikeHeart';
 import { VemtapText } from '@components/ui/Text';
 import type { NearbyDeal } from '@features/home/types/feed';
 import { colors } from '@theme/colors';
@@ -44,11 +45,7 @@ export function NearbyDealGridCard({
           onPress={() => onToggleLike?.(deal.id)}
           className="absolute right-2 top-2 h-7 w-7 items-center justify-center rounded-full bg-surface-canvas/90 shadow-sm"
         >
-          <Icon
-            name={liked ? 'favoriteFilled' : 'favorite'}
-            size={16}
-            color={liked ? '#BA1A1A' : '#4B5563'}
-          />
+          <LikeHeart liked={liked} size={16} color="#4B5563" />
         </Pressable>
       </View>
       <View className="flex-col justify-between gap-1.5 p-3">

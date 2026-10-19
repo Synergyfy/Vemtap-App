@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -25,6 +25,8 @@ import { strings } from '@constants/strings';
 import { navbarBottomShadow } from '@theme/shadows';
 import type { AppStackParamList } from '@navigation/types';
 import { useDealDetail } from '@features/dealDetail/hooks/useDealDetail';
+import { DealHeroGallery } from '@features/dealDetail/components/DealHeroGallery';
+import { LikeHeart } from '@components/shared/LikeHeart';
 import { useOfferClaim } from '@features/dealDetail/hooks/useOfferClaim';
 import { useSendGift } from '@features/dealDetail/hooks/useSendGift';
 import { useDealReaction } from '@features/deals/hooks/useDealEngagementActions';
@@ -275,8 +277,12 @@ export function DealDetailScreen({ route, navigation }: Props) {
         showsVerticalScrollIndicator={false}
       >
         <View className="h-80 overflow-hidden bg-surface-container-low">
-          <Image source={deal.image} className="h-full w-full" resizeMode="cover" />
-          <View style={styles.heroScrim} />
+          <DealHeroGallery
+            images={deal.images}
+            accessibilityLabel={deal.title}
+            onDoubleTap={reaction.like}
+          />
+          <View pointerEvents="none" style={styles.heroScrim} />
           <View style={[styles.heroUtilities, { top: insets.top + 12 }]}>
             <Pressable
               accessibilityRole="button"
@@ -302,11 +308,7 @@ export function DealDetailScreen({ route, navigation }: Props) {
                 onPress={reaction.toggle}
                 style={styles.likePill}
               >
-                <Icon
-                  name={reaction.liked ? 'favoriteFilled' : 'favorite'}
-                  size={20}
-                  color={reaction.liked ? colors.error : colors.text}
-                />
+                <LikeHeart liked={reaction.liked} size={20} color={colors.text} />
                 <VemtapText
                   className="font-sans-semibold text-label-sm"
                   style={{ color: reaction.liked ? colors.error : colors.text }}
@@ -409,14 +411,11 @@ export function DealDetailScreen({ route, navigation }: Props) {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Like deal"
+              accessibilityState={{ selected: reaction.liked }}
               onPress={reaction.toggle}
               style={styles.engagementButton}
             >
-              <Icon
-                name={reaction.liked ? 'favoriteFilled' : 'favorite'}
-                size={18}
-                color={reaction.liked ? colors.error : colors.textSecondary}
-              />
+              <LikeHeart liked={reaction.liked} size={18} />
               <VemtapText className="font-sans-semibold text-label-md text-text-secondary">
                 {details.likes}
               </VemtapText>

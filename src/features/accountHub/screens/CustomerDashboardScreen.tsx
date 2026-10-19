@@ -184,66 +184,65 @@ export function CustomerDashboardScreen({
   ).slice(0, 2);
 
   return (
-    <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-background">
-      <View
-        className="flex-row items-center justify-between bg-surface px-4 py-2"
-        style={navbarBottomShadow}
-      >
-        {onBack ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={strings.common.goBack}
-            hitSlop={8}
-            onPress={onBack}
-            className="-ml-2 mr-1 h-11 w-11 shrink-0 items-center justify-center rounded-full active:bg-surface-container-low"
-          >
-            <Icon name="back" size={24} color={colors.surfaceDark} />
-          </Pressable>
-        ) : null}
-        <View className="min-w-0 flex-1">
-          <VemtapText
-            accessibilityRole="header"
-            variant="headingSm"
-            className="text-heading-sm"
-            numberOfLines={1}
-          >
-            {copy.greetingFor(me.firstName)}
-          </VemtapText>
-          <Pressable
-            accessibilityRole="button"
-            onPress={onLocation}
-            className="mt-0.5 flex-row items-center gap-1"
-          >
-            <Icon name="locationOn" size={17} color={colors.primary} />
-            <VemtapText variant="labelMd" tone="secondary">
-              {copy.locationFor(area)}
+    <View className="flex-1 bg-background">
+      <SafeAreaView edges={['top']} className="bg-surface" style={navbarBottomShadow}>
+        <View className="flex-row items-center justify-between bg-surface px-4 py-2">
+          {onBack ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={strings.common.goBack}
+              hitSlop={8}
+              onPress={onBack}
+              className="-ml-2 mr-1 h-11 w-11 shrink-0 items-center justify-center rounded-full active:bg-surface-container-low"
+            >
+              <Icon name="back" size={24} color={colors.surfaceDark} />
+            </Pressable>
+          ) : null}
+          <View className="min-w-0 flex-1">
+            <VemtapText
+              accessibilityRole="header"
+              variant="headingSm"
+              className="text-heading-sm"
+              numberOfLines={1}
+            >
+              {copy.greetingFor(me.firstName)}
             </VemtapText>
-            <Icon name="expandMore" size={15} color={colors.textTertiary} />
-          </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              onPress={onLocation}
+              className="mt-0.5 flex-row items-center gap-1"
+            >
+              <Icon name="locationOn" size={17} color={colors.primary} />
+              <VemtapText variant="labelMd" tone="secondary">
+                {copy.locationFor(area)}
+              </VemtapText>
+              <Icon name="expandMore" size={15} color={colors.textTertiary} />
+            </Pressable>
+          </View>
+          <View className="shrink-0 flex-row items-center gap-2">
+            <HubIconButton
+              icon="localMall"
+              label={shopLabel ?? copy.shop}
+              onPress={onShop}
+            />
+            <HubIconButton
+              icon="notifications"
+              label={copy.notifications}
+              badge={unreadCount > 0 ? String(unreadCount) : undefined}
+              onPress={onNotifications}
+            />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={copy.account}
+              onPress={onOpenAccount}
+              className="relative h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-surface-container-highest"
+            >
+              <Icon name="person" size={22} color={colors.secondary} />
+              <View className="absolute bottom-0.5 right-0.5 h-3 w-3 rounded-full border-2 border-surface bg-badge-discount-text" />
+            </Pressable>
+          </View>
         </View>
-        <View className="shrink-0 flex-row items-center gap-2">
-          <HubIconButton
-            icon="localMall"
-            label={shopLabel ?? copy.shop}
-            onPress={onShop}
-          />
-          <HubIconButton
-            icon="notifications"
-            label={copy.notifications}
-            badge={unreadCount > 0 ? String(unreadCount) : undefined}
-            onPress={onNotifications}
-          />
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={copy.account}
-            onPress={onOpenAccount}
-            className="relative h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-surface-container-highest"
-          >
-            <Icon name="person" size={22} color={colors.secondary} />
-            <View className="absolute bottom-0.5 right-0.5 h-3 w-3 rounded-full border-2 border-surface bg-badge-discount-text" />
-          </Pressable>
-        </View>
-      </View>
+      </SafeAreaView>
       <ScrollView
         className="flex-1"
         contentContainerClassName="gap-5 pb-5"
@@ -466,7 +465,7 @@ export function CustomerDashboardScreen({
           </VemtapText>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

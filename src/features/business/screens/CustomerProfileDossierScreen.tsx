@@ -92,7 +92,13 @@ export function CustomerProfileDossierScreen({
       header={{
         title: copy.headerTitle,
         onBack,
-        actions: [{ icon: 'more', label: copy.headerTitle, onPress: onMoreActions }],
+        actions: [
+          {
+            icon: 'more',
+            label: strings.businessShell.moreActionsLabel,
+            onPress: onMoreActions,
+          },
+        ],
       }}
       contentContainerClassName="pb-8"
     >

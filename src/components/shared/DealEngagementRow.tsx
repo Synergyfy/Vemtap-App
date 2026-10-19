@@ -2,6 +2,7 @@ import React from 'react';
 import { Pressable, View } from 'react-native';
 import { cssInterop } from 'nativewind';
 import { Icon } from '@components/ui/Icon';
+import { LikeHeart } from '@components/shared/LikeHeart';
 import { VemtapText } from '@components/ui/Text';
 import { colors } from '@theme/colors';
 import { cn } from '@utils/cn';
@@ -53,11 +54,7 @@ export function DealEngagementRow({
           !onToggleLike && 'opacity-60',
         )}
       >
-        <Icon
-          name={liked ? 'favoriteFilled' : 'favorite'}
-          size={iconSize[size]}
-          color={liked ? colors.error : colors.textSecondary}
-        />
+        <LikeHeart liked={liked} size={iconSize[size]} />
         <VemtapText variant="caption" tone="secondary">
           {likeCount}
         </VemtapText>

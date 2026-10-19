@@ -441,7 +441,7 @@ export function SavedHubScreen({
   const filtered = normalizedQuery.length > 0 || filter !== 'ALL';
 
   return (
-    <SafeAreaView edges={['top']} className="flex-1 bg-surface">
+    <SafeAreaView edges={[]} className="flex-1 bg-surface">
       <AccountHeader
         title={copy.title}
         onBack={onBack}

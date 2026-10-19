@@ -109,7 +109,11 @@ export function CustomerCrmDirectoryScreen({
         subtitle: copy.subtitleEyebrow,
         actions: [
           { icon: 'qrCodeScanner', label: copy.scanCode, onPress: onScanCode },
-          { icon: 'notifications', label: copy.headerTitle, onPress: onNotifications },
+          {
+            icon: 'notifications',
+            label: strings.businessShell.notificationsLabel,
+            onPress: onNotifications,
+          },
         ],
       }}
       contentContainerClassName="pb-8"

@@ -36,6 +36,13 @@ export const productCommentsPageSchema = z.object({
 });
 export type ProductCommentsPage = z.infer<typeof productCommentsPageSchema>;
 
+/** Likes on a catalogue product or service. */
+export const productLikeStatusSchema = z.object({
+  liked: nullableFlag(false),
+  likesCount: nullableNumber(0),
+});
+export type ProductLikeStatus = z.infer<typeof productLikeStatusSchema>;
+
 export interface ProductCommentInput {
   comment: string;
   rating?: number;
@@ -75,6 +82,33 @@ export const productCommentsSummarySchema = z.object({
 export type ProductCommentsSummary = z.infer<typeof productCommentsSummarySchema>;
 
 export const productCommentsApi = {
+  /** Public; `liked` is only true when the request carries the caller's token. */
+  async getLikeStatus(
+    itemId: string,
+    options: ApiRequestOptions = {},
+  ): Promise<ProductLikeStatus> {
+    return requestValidated<ProductLikeStatus>(
+      { method: 'GET', url: `/public/catalogue/items/${itemId}/likes`, ...options },
+      productLikeStatusSchema,
+    );
+  },
+
+  /** Authenticated and idempotent: like (`true`) or unlike (`false`). */
+  async setLiked(
+    itemId: string,
+    liked: boolean,
+    options: ApiRequestOptions = {},
+  ): Promise<ProductLikeStatus> {
+    return requestValidated<ProductLikeStatus>(
+      {
+        method: liked ? 'POST' : 'DELETE',
+        url: `/catalogue/items/${itemId}/like`,
+        ...options,
+      },
+      productLikeStatusSchema,
+    );
+  },
+
   async list(
     itemId: string,
     query: { page?: number; limit?: number } = {},

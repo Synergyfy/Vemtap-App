@@ -89,3 +89,15 @@ export function useMarkBusinessThreadRead() {
     },
   });
 }
+
+/** Open (or reopen) a conversation with a customer, then refresh the inbox. */
+export function useStartBusinessThread() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ customerId, branchId }: { customerId: string; branchId: string }) =>
+      messagingApi.startBusinessThread(customerId, branchId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: businessMessagingKeys.all });
+    },
+  });
+}
