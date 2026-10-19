@@ -248,7 +248,10 @@ export type DealEngagement = z.infer<typeof dealEngagementSchema>;
 export const publicBusinessSchema = z.object({
   id: z.string(),
   name: z.string(),
+  /** The business's own code, resolved by `GET /public/businesses/code/:code`. */
+  uniqueCode: z.string().nullable().optional(),
   logoUrl: z.string().nullable().optional(),
+  coverImage: z.string().nullable().optional(),
   description: z.string().nullable().optional(),
   address: z.string().nullable().optional(),
   state: z.string().nullable().optional(),
@@ -256,6 +259,7 @@ export const publicBusinessSchema = z.object({
   categoryId: z.string().nullable().optional(),
   categoryName: z.string().nullable().optional(),
   isVerified: nullableFlag(false),
+  /** The main branch's username or code — not accepted by the business lookup. */
   slug: z.string().nullable().optional(),
   branchCode: z.string().nullable().optional(),
 });

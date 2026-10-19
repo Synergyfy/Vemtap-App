@@ -6,6 +6,7 @@ import { strings } from '@constants/strings';
 const mockThreads = jest.fn();
 
 jest.mock('@features/merchantChat/hooks/useCustomerMessaging', () => ({
+  useStartCustomerConversation: () => ({ mutate: jest.fn(), isPending: false }),
   ...jest.requireActual('@features/merchantChat/hooks/useCustomerMessaging'),
   useCustomerThreads: () => mockThreads(),
 }));

@@ -56,7 +56,11 @@ export interface BusinessProfileScreenProps {
   code?: string;
   onBack: () => void;
   onOpenDeal?: (dealId: string) => void;
-  onOpenInApp?: () => void;
+  /**
+   * Opens a chat with the business. Carries the active branch, because chats
+   * are per branch; a summary-only profile has no branch and passes none.
+   */
+  onOpenInApp?: (target?: { branchId: string; businessName: string }) => void;
   /**
    * Opens a branch's service. Carries the branch uuid because availability and
    * `POST /bookings` are branch-scoped, and the two names because the service
@@ -667,7 +671,13 @@ export function BusinessProfileScreen({
           <ContactActionGrid
             phone={livePhone ?? undefined}
             website={business.website ?? undefined}
-            onInApp={onOpenInApp}
+            onInApp={() =>
+              onOpenInApp(
+                activeBranchId
+                  ? { branchId: activeBranchId, businessName: business.name }
+                  : undefined,
+              )
+            }
           />
         </View>
         <View className="mt-6 px-6">

@@ -13,7 +13,10 @@ export interface BusinessProfileSummary {
   name: string;
   category: string;
   categoryFilter: Exclude<DiscoverCategory, 'All'>;
+  /** The logo. */
   imageUri: string;
+  /** The uploaded banner, when the business has one. */
+  coverUri?: string;
   imageAlt: string;
   rating: string;
   reviews: number;

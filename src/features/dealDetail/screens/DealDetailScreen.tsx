@@ -161,7 +161,9 @@ export function DealDetailScreen({ route, navigation }: Props) {
         // Engagement cache is the one number every screen shares; fall back to
         // the payload while it loads.
         likes: engagement.data?.likesCount ?? deal.likes,
-        comments: deal.comments,
+        // Same source as likes: the deal payload can omit the count, which left
+        // the comments button with no number. Posting a comment refreshes it.
+        comments: engagement.data?.reviewsCount ?? deal.comments ?? 0,
       }
     : null;
 
@@ -318,25 +320,25 @@ export function DealDetailScreen({ route, navigation }: Props) {
               </Pressable>
             </View>
           </View>
-          <View style={styles.heroBadges}>
-            <View style={styles.row}>
+          <View pointerEvents="none" style={styles.heroBadges}>
+            <View style={styles.badgeRow}>
               <View style={styles.discountBadge}>
-                <VemtapText className="font-sans-bold text-label-md text-badge-discount-text">
+                <VemtapText className="font-sans-bold text-caption text-badge-discount-text">
                   {details.badge}
                 </VemtapText>
               </View>
               {details.endsIn ? (
                 <View style={styles.timerBadge}>
-                  <Icon name="schedule" size={14} color={colors.inverseOnSurface} />
-                  <VemtapText className="text-caption text-inverse-on-surface">
+                  <Icon name="schedule" size={12} color={colors.inverseOnSurface} />
+                  <VemtapText className="font-sans-medium text-micro text-inverse-on-surface">
                     {details.endsIn}
                   </VemtapText>
                 </View>
               ) : null}
             </View>
             <View style={styles.hotBadge}>
-              <Icon name="fire" size={16} color={colors.tertiaryContainer} />
-              <VemtapText className="font-sans-semibold text-caption text-text">
+              <Icon name="fire" size={13} color={colors.tertiaryContainer} />
+              <VemtapText className="font-sans-semibold text-micro text-text">
                 Hot Deal
               </VemtapText>
             </View>
@@ -783,39 +785,41 @@ const styles = StyleSheet.create({
     gap: 4,
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
   },
+  // Clear of the photo dots (14pt from the bottom, 6pt tall).
   heroBadges: {
     position: 'absolute',
-    left: 24,
-    right: 24,
-    bottom: 16,
+    left: 20,
+    right: 20,
+    bottom: 32,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  badgeRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   discountBadge: {
     borderRadius: 999,
     backgroundColor: colors.badgeDiscountBg,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
   },
   timerBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 3,
     borderRadius: 999,
     backgroundColor: 'rgba(41, 48, 64, 0.85)',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
   },
   hotBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 3,
     borderRadius: 999,
     backgroundColor: 'rgba(255, 255, 255, 0.92)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
   },
   merchantRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   merchantAvatar: {

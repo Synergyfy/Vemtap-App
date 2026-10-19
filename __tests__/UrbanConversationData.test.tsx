@@ -12,6 +12,7 @@ import type { ChatMessage, ConversationThread } from '@api/messagingApi';
 import type { MyClaim } from '@api/claimApi';
 
 jest.mock('@features/merchantChat/hooks/useCustomerMessaging', () => ({
+  useStartCustomerConversation: () => ({ mutate: jest.fn(), isPending: false }),
   useCustomerThreads: jest.fn(),
   useCustomerThreadMessages: jest.fn(),
   useSendCustomerReply: jest.fn(),

@@ -554,6 +554,13 @@ export const strings = {
       email: 'Email',
       phone: 'Phone number',
       addGiftMessage: 'Add a gift message (optional)',
+      requiredMark: '*',
+      firstNameRequired: "Enter the recipient's first name.",
+      lastNameRequired: "Enter the recipient's last name.",
+      emailRequired: "Enter the recipient's email.",
+      emailInvalid: 'Enter a valid email address.',
+      phoneRequired: "Enter the recipient's phone number.",
+      phoneInvalid: 'Enter a valid phone number.',
       giftMessageSub: 'We will personalize their digital voucher card',
       giftMessagePlaceholder:
         'Write a warm note... (e.g. Happy Birthday! Lunch on me this week 🎉)',
@@ -1364,6 +1371,9 @@ export const strings = {
     pageTitle: 'Conversation View',
     /** Fallback when the thread has not resolved a branch name yet. */
     merchant: 'Business',
+    newChatTitle: (business: string) => `Start a chat with ${business}`,
+    newChatBody: 'Send a message to begin. They will reply here.',
+    startFailed: 'Your message could not be sent. Please try again.',
     details: 'Share or details',
     /** Shown until presence resolves; makes no claim about reply times. */
     replyStatus: 'Business chat',
@@ -2090,6 +2100,8 @@ export const strings = {
   businessMessages: {
     newMessageSheet: {
       title: 'New Message',
+      subtitle: 'Message anyone who has ordered, booked, claimed a deal or visited.',
+      sectionLabel: 'Your customers',
       searchLabel: 'Search customers',
       searchPlaceholder: 'Name, email or phone',
       emptyTitle: 'No customers yet',

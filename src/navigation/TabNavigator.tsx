@@ -1,3 +1,4 @@
+import { useOpenBusinessChat } from '@features/merchantChat/hooks/useOpenBusinessChat';
 import { useHistoryBack } from '@navigation/useHistoryBack';
 import { useHideTabBarOnFocus } from '@navigation/useHideTabBarOnFocus';
 import { useOpenClaimChat } from '@features/merchantChat/hooks/useOpenClaimChat';
@@ -364,12 +365,22 @@ function BusinessProfileTabScreen() {
   // downstream had no branch to key off.
   const navigation = useNavigation<DiscoverStackNavigation>();
   const openMessages = useOpenPersonalMessages();
+  const openChat = useOpenBusinessChat(
+    useCallback(
+      params =>
+        navigation.navigate('Account', {
+          screen: 'PersonalHub',
+          params: { screen: 'PersonalConversation', params },
+        }),
+      [navigation],
+    ),
+  );
   return (
     <BusinessProfileScreen
       code={'code' in route.params ? route.params.code : undefined}
       business={'business' in route.params ? route.params.business : undefined}
       onBack={goBack}
-      onOpenInApp={openMessages}
+      onOpenInApp={target => (target ? openChat.open(target) : openMessages())}
       onOpenService={target => navigation.navigate('ServiceDetail', target)}
       onOpenDeal={dealId => navigation.navigate('DealDetail', { dealId })}
       onOpenProduct={target => navigation.navigate('ProductDetail', target)}

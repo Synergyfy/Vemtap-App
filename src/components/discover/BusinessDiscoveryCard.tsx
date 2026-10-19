@@ -38,8 +38,9 @@ export function BusinessDiscoveryCard({ business, onOpen }: BusinessDiscoveryCar
       className="w-full overflow-hidden rounded-2xl border border-border bg-surface-canvas shadow-md active:scale-[0.99]"
     >
       <View className="relative aspect-video w-full overflow-hidden bg-surface-container">
+        {/* The banner when uploaded; the logo only stands in without one. */}
         <Image
-          source={{ uri: business.imageUri }}
+          source={{ uri: business.coverUri ?? business.imageUri }}
           accessibilityLabel={business.imageAlt}
           className="h-full w-full"
           resizeMode="cover"

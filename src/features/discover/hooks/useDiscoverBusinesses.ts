@@ -68,6 +68,7 @@ export function toDiscoverBusiness(business: PublicBusiness): BusinessProfileSum
     category: mapDiscoverCategory(business.categoryName ?? ''),
     categoryFilter: mapDiscoverCategory(business.categoryName ?? ''),
     imageUri: business.logoUrl ?? FALLBACK_LOGO_URI,
+    coverUri: business.coverImage ?? undefined,
     imageAlt: strings.businessProfile.imageAlt(
       business.name,
       business.categoryName ?? '',
@@ -83,7 +84,9 @@ export function toDiscoverBusiness(business: PublicBusiness): BusinessProfileSum
     status: business.isVerified
       ? { label: strings.businessProfile.verified, icon: 'verified' }
       : { label: strings.businessProfile.active, icon: 'featured' },
-    branchCode: business.slug ?? business.branchCode ?? '',
+    // The business code is what the profile lookup resolves; the branch slug
+    // 404s there, which left the profile on this summary (and no banner).
+    branchCode: business.uniqueCode ?? business.slug ?? business.branchCode ?? '',
   };
 }
 

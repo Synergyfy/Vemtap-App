@@ -39,7 +39,15 @@ export type PersonalHubParamList = {
   PersonalClaimedDealPass: { claimId?: string; dealId?: string } | undefined;
   PersonalOrderDetail: { orderId?: string } | undefined;
   PersonalBookingDetail: { bookingId?: string } | undefined;
-  PersonalConversation: { threadId?: string; claimId?: string } | undefined;
+  PersonalConversation:
+    | {
+        threadId?: string;
+        claimId?: string;
+        /** A new chat with a branch the customer has not messaged yet. */
+        branchId?: string;
+        businessName?: string;
+      }
+    | undefined;
 };
 
 /**

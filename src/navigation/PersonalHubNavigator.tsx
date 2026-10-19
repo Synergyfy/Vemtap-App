@@ -176,6 +176,17 @@ function PersonalConversationRoute() {
       <UrbanConversationScreen
         threadId={route.params?.threadId}
         claimId={claimId}
+        newChat={
+          route.params?.branchId && !route.params.threadId
+            ? {
+                branchId: route.params.branchId,
+                businessName: route.params.businessName ?? '',
+              }
+            : undefined
+        }
+        // Once the first message opens the thread, the route points at it, so
+        // going back and forward again lands on the same chat.
+        onThreadStarted={threadId => navigation.setParams({ threadId })}
         onBack={goBack}
         onViewPass={id => navigation.navigate('PersonalClaimedDealPass', { claimId: id })}
         {...actions}

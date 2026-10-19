@@ -645,6 +645,25 @@ export function RecipientVerificationSheet({
   );
 }
 
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/** What is missing or malformed on a gift recipient; empty when it can be sent. */
+export function giftRecipientErrors(
+  data: RecipientData,
+): Partial<Record<keyof RecipientData, string>> {
+  const copy = strings.deals.claimFlow;
+  const errors: Partial<Record<keyof RecipientData, string>> = {};
+  if (!data.firstName.trim()) errors.firstName = copy.firstNameRequired;
+  if (!data.lastName.trim()) errors.lastName = copy.lastNameRequired;
+  const email = data.email.trim();
+  if (!email) errors.email = copy.emailRequired;
+  else if (!EMAIL_PATTERN.test(email)) errors.email = copy.emailInvalid;
+  const digits = data.phone.replace(/\D/g, '');
+  if (!data.phone.trim()) errors.phone = copy.phoneRequired;
+  else if (digits.length < 7 || digits.length > 15) errors.phone = copy.phoneInvalid;
+  return errors;
+}
+
 export function GiftDetailsSheet({
   visible,
   onClose,
@@ -664,8 +683,22 @@ export function GiftDetailsSheet({
     message: '',
   });
   const [messageOpen, setMessageOpen] = useState(false);
+  // Errors show once Continue has been tried, then update as the fields change.
+  const [attempted, setAttempted] = useState(false);
   const update = (key: keyof typeof data, value: string) =>
     setData(current => ({ ...current, [key]: value }));
+  const errors = attempted ? giftRecipientErrors(data) : {};
+  const submit = () => {
+    setAttempted(true);
+    if (Object.keys(giftRecipientErrors(data)).length > 0) return;
+    onContinue({
+      ...data,
+      firstName: data.firstName.trim(),
+      lastName: data.lastName.trim(),
+      email: data.email.trim(),
+      phone: data.phone.trim(),
+    });
+  };
   return (
     <BottomSheet
       visible={visible}
@@ -722,12 +755,16 @@ export function GiftDetailsSheet({
             value={data.firstName}
             placeholder="e.g. Amara"
             onChangeText={value => update('firstName', value)}
+            required
+            error={errors.firstName}
           />
           <Field
             label={strings.deals.claimFlow.lastName}
             value={data.lastName}
             placeholder="e.g. Okafor"
             onChangeText={value => update('lastName', value)}
+            required
+            error={errors.lastName}
           />
         </View>
         <Field
@@ -736,12 +773,18 @@ export function GiftDetailsSheet({
           placeholder="recipient@example.com"
           onChangeText={value => update('email', value)}
           icon="mail"
+          required
+          error={errors.email}
+          keyboardType="email-address"
         />
         <Field
           label={strings.deals.claimFlow.phone}
           value={data.phone}
           placeholder="801 234 5678"
           onChangeText={value => update('phone', value)}
+          required
+          error={errors.phone}
+          keyboardType="phone-pad"
         />
         <Pressable
           accessibilityRole="button"
@@ -804,7 +847,7 @@ export function GiftDetailsSheet({
         <Button
           label={strings.deals.claimFlow.continue}
           rightIcon={<Icon name="arrowForward" size={18} color={colors.surface} />}
-          onPress={() => onContinue(data)}
+          onPress={submit}
         />
         <View style={styles.guaranteeRow}>
           <Icon name="lock" size={14} color={colors.textTertiary} />
@@ -1043,17 +1086,30 @@ function Field({
   placeholder,
   onChangeText,
   icon,
+  required = false,
+  error,
+  keyboardType,
 }: {
   label: string;
   value: string;
   placeholder: string;
   onChangeText: (value: string) => void;
   icon?: 'mail';
+  /** Marks the label with an asterisk and tells screen readers. */
+  required?: boolean;
+  /** Shown under the field, which turns red. */
+  error?: string;
+  keyboardType?: 'email-address' | 'phone-pad';
 }) {
   return (
     <View style={styles.field}>
       <VemtapText variant="labelSm" tone="secondary">
         {label}
+        {required ? (
+          <VemtapText variant="labelSm" tone="error">
+            {` ${strings.deals.claimFlow.requiredMark}`}
+          </VemtapText>
+        ) : null}
       </VemtapText>
       <View style={styles.inputWrap}>
         {icon ? (
@@ -1072,9 +1128,24 @@ function Field({
           // The visible label is a separate line, so announce it on the input
           // itself — screen readers attach to the field, not the caption.
           accessibilityLabel={label}
-          style={[styles.input, icon ? styles.inputWithIcon : null]}
+          accessibilityHint={error}
+          aria-required={required}
+          aria-invalid={Boolean(error)}
+          keyboardType={keyboardType}
+          autoCapitalize={keyboardType === 'email-address' ? 'none' : undefined}
+          autoCorrect={keyboardType ? false : undefined}
+          style={[
+            styles.input,
+            icon ? styles.inputWithIcon : null,
+            error ? styles.inputError : null,
+          ]}
         />
       </View>
+      {error ? (
+        <VemtapText variant="caption" tone="error">
+          {error}
+        </VemtapText>
+      ) : null}
     </View>
   );
 }
@@ -1309,6 +1380,7 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   inputWithIcon: { paddingLeft: 44 },
+  inputError: { borderColor: colors.error },
   inputIcon: { position: 'absolute', left: 16, zIndex: 1 },
   smsNote: {
     flexDirection: 'row',

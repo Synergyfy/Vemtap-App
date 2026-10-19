@@ -39,6 +39,7 @@ jest.mock('@components/shared/LocationMapView', () => ({
 let mockParams: { dealId: string };
 
 const mockGetOfferDetails = jest.fn();
+const mockGetEngagement = jest.fn();
 const mockGetBusinessByCode = jest.fn();
 
 jest.mock('@api/dealsApi', () => ({
@@ -46,12 +47,7 @@ jest.mock('@api/dealsApi', () => ({
     getPublicOfferDetails: (...args: unknown[]) => mockGetOfferDetails(...args),
     setReaction: jest.fn(),
     toggleSave: jest.fn(),
-    getEngagement: jest.fn(async () => ({
-      likesCount: 0,
-      dislikesCount: 0,
-      reviewsCount: 0,
-      averageRating: null,
-    })),
+    getEngagement: (...args: unknown[]) => mockGetEngagement(...args),
   },
 }));
 
@@ -149,6 +145,12 @@ beforeEach(() => {
     radiusKm: 5,
   });
   mockGetOfferDetails.mockResolvedValue(DETAIL);
+  mockGetEngagement.mockResolvedValue({
+    likesCount: 0,
+    dislikesCount: 0,
+    reviewsCount: 0,
+    averageRating: null,
+  });
   mockGetBusinessByCode.mockResolvedValue({
     uniqueCode: BUSINESS_CODE,
     name: 'Test store',
@@ -245,6 +247,22 @@ describe('DealDetailScreen', () => {
 
     await waitFor(() => expect(view.getByText(strings.errors.notFound)).toBeTruthy());
     expect(view.queryByText(DETAIL.name)).toBeNull();
+  });
+
+  test('shows the live comment count, even when the deal payload has none', async () => {
+    mockGetOfferDetails.mockResolvedValue({ ...DETAIL, reviewsCount: null });
+    mockGetEngagement.mockResolvedValue({
+      likesCount: 4,
+      dislikesCount: 0,
+      reviewsCount: 3,
+      averageRating: null,
+    });
+    const view = await renderScreen(LIVE_ID);
+    await waitFor(() => expect(view.getByText(DETAIL.name)).toBeTruthy());
+
+    await waitFor(() =>
+      expect(view.getByLabelText('Open comments')).toHaveTextContent(/3$/),
+    );
   });
 
   test('links a real offer to its merchant by code', async () => {

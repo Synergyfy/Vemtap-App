@@ -18,6 +18,7 @@ import {
 import { strings } from '@constants/strings';
 import { PRODUCT_FALLBACK_IMAGE } from '@features/home/utils/productMapper';
 import {
+  useStartCustomerConversation,
   markCustomerThreadReadLocally,
   useCustomerThreadMessages,
   useCustomerThreads,
@@ -53,6 +54,14 @@ export interface UrbanConversationScreenProps {
    * list yet, so the route's claim wins when both are present.
    */
   claimId?: string;
+  /**
+   * A chat with a business the customer has never messaged. The screen opens
+   * empty, and the first message starts the thread (`POST /threads/start`);
+   * after that it behaves like any other thread.
+   */
+  newChat?: { branchId: string; businessName: string };
+  /** Called with the thread the first message of a `newChat` created. */
+  onThreadStarted?: (threadId: string) => void;
   onBack?: () => void;
   onCallMerchant?: () => void;
   /** Opens the merchant's public profile. Receives the branch's 9-char code. */
@@ -70,8 +79,10 @@ export interface UrbanConversationScreenProps {
 }
 
 export function UrbanConversationScreen({
-  threadId,
+  threadId: routeThreadId,
   claimId,
+  newChat,
+  onThreadStarted,
   onBack,
   onCallMerchant,
   onOpenBusiness,
@@ -91,6 +102,11 @@ export function UrbanConversationScreen({
   const [draft, setDraft] = useState('');
   const [pendingMediaUrl, setPendingMediaUrl] = useState<string | null>(null);
   const [uploadingMedia, setUploadingMedia] = useState(false);
+  const [startedThreadId, setStartedThreadId] = useState<string | null>(null);
+  const [startFailed, setStartFailed] = useState(false);
+  const threadId = routeThreadId ?? startedThreadId ?? undefined;
+  const startConversation = useStartCustomerConversation();
+  const isNewChat = !threadId && newChat != null;
 
   const threadsQuery = useCustomerThreads();
   const thread = threadId
@@ -109,8 +125,9 @@ export function UrbanConversationScreen({
     () =>
       thread?.branch?.name ??
       thread?.business?.name ??
+      newChat?.businessName ??
       strings.urbanConversation.merchant,
-    [thread?.branch?.name, thread?.business?.name],
+    [thread?.branch?.name, thread?.business?.name, newChat?.businessName],
   );
   const branchPhone = thread?.branch?.phone ?? thread?.business?.phone ?? undefined;
   const branchCode = thread?.branch?.code ?? undefined;
@@ -188,6 +205,27 @@ export function UrbanConversationScreen({
     const message = draft.trim();
     // An image on its own is a complete message, so the text is optional once
     // there is something attached.
+    if (isNewChat && newChat) {
+      // The first message of a new chat opens the thread. The draft stays
+      // until the server answers, so a failed start loses nothing.
+      if (!message || startConversation.isPending) return;
+      setStartFailed(false);
+      startConversation.mutate(
+        { branchId: newChat.branchId, content: message, subjectType: 'GENERAL' },
+        {
+          onSuccess: created => {
+            setDraft('');
+            if (created.threadId) {
+              setStartedThreadId(created.threadId);
+              onThreadStarted?.(created.threadId);
+            }
+            scrollToLatest(true);
+          },
+          onError: () => setStartFailed(true),
+        },
+      );
+      return;
+    }
     if ((!message && !pendingMediaUrl) || !threadId) return;
     sendReply.mutate({
       threadId,
@@ -199,7 +237,17 @@ export function UrbanConversationScreen({
     setDraft('');
     setPendingMediaUrl(null);
     scrollToLatest(true);
-  }, [draft, pendingMediaUrl, threadId, sendReply, scrollToLatest]);
+  }, [
+    draft,
+    pendingMediaUrl,
+    threadId,
+    sendReply,
+    scrollToLatest,
+    isNewChat,
+    newChat,
+    startConversation,
+    onThreadStarted,
+  ]);
 
   /**
    * Host the picked image, then stage it on the composer rather than sending
@@ -468,6 +516,17 @@ export function UrbanConversationScreen({
           <LoadingState label={strings.common.loading} />
         ) : messagesQuery.isError ? (
           <ErrorState title={strings.common.error} onRetry={messagesQuery.refetch} />
+        ) : isNewChat ? (
+          <EmptyState
+            variant="contained"
+            icon="message"
+            title={strings.urbanConversation.newChatTitle(businessName)}
+            description={
+              startFailed
+                ? strings.urbanConversation.startFailed
+                : strings.urbanConversation.newChatBody
+            }
+          />
         ) : (messagesQuery.data ?? []).length === 0 ? (
           <EmptyState variant="contained" icon="message" title={strings.common.empty} />
         ) : (
