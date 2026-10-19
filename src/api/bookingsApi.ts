@@ -9,6 +9,24 @@ const bookingCustomerSchema = z
     firstName: z.string().nullish(),
     lastName: z.string().nullish(),
     phone: z.string().nullish(),
+    email: z.string().nullish(),
+    avatar: z.string().nullish(),
+  })
+  .nullish();
+
+/** Who the booking is with: what the customer needs to recognise, call, find or message them. */
+const bookingMerchantSchema = z
+  .object({
+    businessCode: z.string().nullish(),
+    branchCode: z.string().nullish(),
+    logoUrl: z.string().nullish(),
+    coverImage: z.string().nullish(),
+    phone: z.string().nullish(),
+    address: z.string().nullish(),
+    city: z.string().nullish(),
+    state: z.string().nullish(),
+    latitude: z.number().nullish(),
+    longitude: z.number().nullish(),
   })
   .nullish();
 
@@ -31,6 +49,7 @@ export const bookingSchema = z.object({
   itemName: z.string().nullish(),
   notes: z.string().nullish(),
   customer: bookingCustomerSchema,
+  merchant: bookingMerchantSchema,
   cancelledAt: z.string().nullish(),
   cancellationReason: z.string().nullish(),
   createdAt: z.string().nullish(),
@@ -232,6 +251,21 @@ export const bookingsApi = {
         data: cancellationReason ? { cancellationReason } : {},
         ...options,
       },
+      bookingSchema,
+    );
+  },
+
+  /**
+   * Move one of the customer's active bookings to a new slot. The server
+   * checks it like a new booking and answers 400 when the slot is taken.
+   */
+  async rescheduleBooking(
+    id: string,
+    slot: { date: string; time: string },
+    options: ApiRequestOptions = {},
+  ): Promise<Booking> {
+    return requestValidated<Booking>(
+      { method: 'PATCH', url: `/bookings/${id}/reschedule`, data: slot, ...options },
       bookingSchema,
     );
   },

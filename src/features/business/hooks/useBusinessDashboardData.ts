@@ -34,11 +34,12 @@ export const businessDashboardKeys = {
 };
 
 /** The caller's business (name, verification, branches). */
-export function useMyBusiness() {
+export function useMyBusiness(options: { enabled?: boolean } = {}) {
   return useQuery<MyBusiness>({
     queryKey: businessDashboardKeys.myBusiness(),
     queryFn: () => businessDashboardApi.getMyBusiness(),
     staleTime: 300_000,
+    enabled: options.enabled ?? true,
   });
 }
 

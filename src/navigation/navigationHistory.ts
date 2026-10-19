@@ -17,6 +17,11 @@ import { navigationRef } from '@navigation/navigationRef';
  */
 
 export interface HistoryLocation {
+  /**
+   * The root route the screen lives under (`AppStack`, `BusinessTabs`,
+   * `BusinessSetup`…). Back never steps from one shell into another.
+   */
+  shell?: string;
   /** Bottom-tab route name, or '' when the screen sits outside any tab bar. */
   tab: string;
   /** Key of the tab navigator, so a jump can target it even when unfocused. */
@@ -97,6 +102,9 @@ export function deriveLocation(root: RouteNode | undefined): HistoryLocation | n
   const tabIsTheScreen = tabIndex >= 0 && tabIndex === chain.length - 1;
 
   return {
+    // chain[1] is the route the root navigator shows, i.e. the shell. A tab
+    // bar mounted as the root (tests) has no shell above it.
+    shell: chain[0].navType === 'stack' ? chain[1]?.routeName : undefined,
     tab:
       tabIndex >= 0
         ? tabIsTheScreen
@@ -319,8 +327,11 @@ export function takeHistoryEntryForBack(
   const entry = past[past.length - 1];
   // Outside a tab bar: an ordinary stack pop, the navigator handles it.
   if (!entry.tab) return null;
-  // Same tab stack: still an ordinary pop.
   const current = useNavigationHistory.getState().present;
+  // Never back into the other shell (customer ↔ business); only the explicit
+  // switch buttons cross. At a shell's root the press does nothing here.
+  if (entry.shell && current?.shell && entry.shell !== current.shell) return null;
+  // Same tab stack: still an ordinary pop.
   if (current?.stackKey && current.stackKey === entry.stackKey) return null;
 
   useNavigationHistory.getState().pop();
