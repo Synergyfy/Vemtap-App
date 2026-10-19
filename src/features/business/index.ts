@@ -100,6 +100,7 @@ export * from './screens/StaffTeamAccessDirectoryScreen';
 export * from './screens/WuseBranchDetailsScreen';
 export * from './screens/BusinessOrdersHubScreen';
 export * from './screens/BusinessOrderDetailScreen';
+export * from './screens/BusinessBookingDetailScreen';
 export * from './screens/BusinessBookingsHubScreen';
 export * from './screens/BusinessPosOrdersViewScreen';
 export * from './screens/BusinessMessagesHomeScreen';

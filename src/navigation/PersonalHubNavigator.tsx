@@ -8,7 +8,7 @@ import { useNavigation } from '@react-navigation/native';
 // `useCustomerMessaging`, and pulling it from there left the binding
 // undefined, which threw on render and took the shell down.
 import { useCustomerMessagingRealtime } from '@features/merchantChat/hooks/useCustomerMessagingRealtime';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import {
   useRoute,
@@ -38,6 +38,7 @@ import { UrbanConversationScreen } from '@features/merchantChat/screens/UrbanCon
 import { OrdersBookingsHubScreen } from '@features/order/screens/OrdersBookingsHubScreen';
 import { UrbanOrderDetailScreen } from '@features/order/screens/UrbanOrderDetailScreen';
 import { BookingDetailScreen } from '@features/accountHub/screens/BookingDetailScreen';
+import { useOpenBusinessChat } from '@features/merchantChat/hooks/useOpenBusinessChat';
 import { TypeDensityProvider } from '@theme/TypeDensityProvider';
 import { strings } from '@constants/strings';
 import type {
@@ -232,8 +233,25 @@ function PersonalOrderDetailRoute() {
 function PersonalBookingDetailRoute() {
   const goBack = useHistoryBack();
   const route = useRoute<RouteProp<PersonalHubParamList, 'PersonalBookingDetail'>>();
+  const navigation = useNavigation<HubNavigation>();
+  const openChat = useOpenBusinessChat(
+    useCallback(
+      params => navigation.navigate('PersonalConversation', params),
+      [navigation],
+    ),
+  );
 
-  return <BookingDetailScreen onBack={goBack} bookingId={route.params?.bookingId} />;
+  return (
+    <BookingDetailScreen
+      onBack={goBack}
+      bookingId={route.params?.bookingId}
+      onOpenChat={openChat.open}
+      onOpenBusiness={code =>
+        // Discover is a sibling of Account, so the tab is addressed first.
+        navigation.navigate('Discover', { screen: 'BusinessProfile', params: { code } })
+      }
+    />
+  );
 }
 
 function PersonalMoreRoute() {

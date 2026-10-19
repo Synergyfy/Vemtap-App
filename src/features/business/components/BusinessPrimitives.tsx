@@ -1,4 +1,5 @@
-import React, { useState, type ReactNode } from 'react';
+import React, { useContext, useState, type ReactNode } from 'react';
+import { QueryClientContext } from '@tanstack/react-query';
 import {
   Image,
   Pressable,
@@ -16,6 +17,8 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Card } from '@components/ui/Card';
 import { Icon, type IconName } from '@components/ui/Icon';
 import { Avatar } from '@components/ui/Avatar';
+import { useAuthStore } from '@store/authStore';
+import { useMyBusiness } from '@features/business/hooks/useBusinessDashboardData';
 import { useCurrentUserDisplay } from '@hooks/useCurrentUserDisplay';
 import { VemtapText } from '@components/ui/Text';
 import { RangeSlider } from '@components/ui/RangeSlider';
@@ -54,14 +57,51 @@ export interface BusinessHeaderProps {
   titleAccessory?: ReactNode;
   stepBadge?: string;
   showAvatar?: boolean;
-  /** Business logo shown in the avatar slot; falls back to the business's
-   * initials, then to the person icon when there is no name either. */
+  /** Overrides the avatar image. By default the slot shows the business's
+   * logo, falling back to its initials (the owner's before setup). */
   avatarUri?: string;
   /** Business (or owner) name the initials are derived from. */
   avatarName?: string;
   centerTitle?: boolean;
   /** Navbar title token; defaults to `headingSm`, drop to `labelMd` on crowded bars. */
   titleVariant?: TextVariant;
+}
+
+function NavbarAvatar({ uri, name }: { uri?: string; name: string }) {
+  return (
+    <Avatar
+      uri={uri}
+      name={name}
+      size="sm"
+      tone="brand"
+      className="shadow-sm"
+      accessibilityLabel={`${name} logo`}
+    />
+  );
+}
+
+/**
+ * The navbar wears the business's own logo, falling back to its initials.
+ * Screens may still pass their own; the owner's name is the last resort
+ * (e.g. during setup, before the business exists).
+ */
+function NavbarBusinessAvatar({
+  uri,
+  name,
+  fallbackName,
+}: {
+  uri?: string;
+  name?: string;
+  fallbackName: string;
+}) {
+  const signedIn = useAuthStore(state => state.status === 'authenticated');
+  const business = useMyBusiness({ enabled: Boolean(signedIn) });
+  return (
+    <NavbarAvatar
+      uri={uri ?? (business.data?.logoUrl || undefined)}
+      name={name ?? (business.data?.name?.trim() || fallbackName)}
+    />
+  );
 }
 
 export function BusinessHeader({
@@ -82,11 +122,8 @@ export function BusinessHeader({
   centerTitle = true,
   titleVariant = 'headingSm',
 }: BusinessHeaderProps) {
-  // Business surfaces that know their own name pass `avatarName`; the rest fall
-  // back to the signed-in owner's name, so the slot always shows initials
-  // instead of a generic person glyph.
   const owner = useCurrentUserDisplay();
-  const ownerName = owner.fullName;
+  const hasQueryClient = useContext(QueryClientContext) != null;
 
   return (
     <View
@@ -188,14 +225,15 @@ export function BusinessHeader({
           </View>
         ) : null}
         {showAvatar ? (
-          <Avatar
-            uri={avatarUri}
-            name={avatarName ?? ownerName}
-            size="sm"
-            tone="brand"
-            className="shadow-sm"
-            accessibilityLabel={`${avatarName ?? ownerName} logo`}
-          />
+          hasQueryClient ? (
+            <NavbarBusinessAvatar
+              uri={avatarUri}
+              name={avatarName}
+              fallbackName={owner.fullName}
+            />
+          ) : (
+            <NavbarAvatar uri={avatarUri} name={avatarName ?? owner.fullName} />
+          )
         ) : null}
       </View>
     </View>
